@@ -1,369 +1,138 @@
-# 🍽️ Restaurant Automation SaaS
+# Restaurant Automation SaaS
 
-A modern multi-tenant Restaurant Automation SaaS platform designed to streamline restaurant operations from QR-based customer ordering to kitchen batching, service management, billing, loyalty systems, analytics, and platform-level SaaS administration.
+Restaurant Automation SaaS is a multi-tenant platform for running modern restaurant operations across customer ordering, kitchen execution, floor service, restaurant administration, and SaaS-level platform management.
 
----
+## What Changed
 
-# 🚀 Vision
+This repo now has a stronger production-style baseline:
 
-Restaurant Automation is not just a digital menu system.
+- npm workspaces for backend and frontend
+- typed environment parsing with `zod`
+- structured backend logging with request IDs
+- centralized Express error handling and rate limiting
+- JWT auth middleware and role guards
+- health and readiness endpoints
+- protected React routing with role-based app shells
+- React Query and Socket.IO app bootstrapping
+- CI, ESLint, Prettier, and TypeScript build validation
 
-It is a complete restaurant operating ecosystem that automates:
+## Stack
 
-- QR dining sessions
-- table lifecycle management
-- reservations & waiting queues
-- real-time kitchen workflows
-- waiter coordination
-- billing & payments
-- loyalty systems
-- offers & discounts
-- analytics dashboards
-- SaaS-level restaurant management
+### Frontend
 
----
-
-# ✨ Core Features
-
-## 👤 Customer PWA
-- QR-based table session
-- Temporary dining session
-- Digital menu
-- Veg / Non-Veg filters
-- Smart recommendations
-- Add to cart
-- Reorder previous meals
-- Live order tracking
-- Waiter assistance requests
-- Loyalty rewards
-- Coupon system
-- Online payment
-- Feedback system
-
----
-
-## 👨‍🍳 Kitchen PWA
-- Real-time order queue
-- Smart kitchen batching
-- Priority handling
-- Chef workload tracking
-- Preparation ETA management
-- Batch optimization
-- Delay handling
-- Item availability management
-
----
-
-## 🧑‍💼 Service Staff PWA
-- Table management
-- Reservation handling
-- Queue handling
-- Food serving workflow
-- Customer request handling
-- Billing assistance
-- Issue escalation
-
----
-
-## 🧹 Cleaning Staff PWA
-- Cleaning task queue
-- Table turnover workflow
-- Priority-based cleaning
-- Availability reset
-
----
-
-## 🛠️ Restaurant Admin Dashboard
-- Revenue analytics
-- Table management
-- Menu management
-- Offer management
-- Staff management
-- Inventory tracking
-- Billing reports
-- Loyalty management
-- Customer retention analytics
-
----
-
-## 🌐 Super Admin Dashboard
-- SaaS tenant management
-- Subscription management
-- Restaurant approval/suspension
-- Platform analytics
-- Audit logs
-- Feature flag management
-- System monitoring
-
----
-
-# 🔒 Security Features
-
-- JWT Authentication
-- Refresh Token Rotation
-- RBAC (Role-Based Access Control)
-- Session Isolation
-- QR Session Expiry
-- URL Abuse Prevention
-- Rate Limiting
-- Helmet Security
-- Mongo Sanitize
-- Secure Cookies
-- Audit Logging
-
----
-
-# 📲 QR Session Security
-
-Each table QR generates a temporary session tied to:
-
-- restaurant
-- table
-- expiry timestamp
-- session token
-
-Expired sessions automatically become invalid.
-
-If someone tries to reuse the same URL:
-
-```json
-{
-  "success": false,
-  "error": {
-    "code": "TABLE_SESSION_EXPIRED",
-    "message": "Please scan another QR code."
-  }
-}
-```
-
-This prevents QR abuse and unauthorized table access.
-
----
-
-# 🧱 Tech Stack
-
-## Frontend
 - React
 - Vite
 - TypeScript
-- TailwindCSS
-- Shadcn UI
+- Tailwind CSS
 - TanStack Query
-- Axios
-- Framer Motion
-- Socket.IO Client
-- PWA
+- React Router
+- Socket.IO client
 
----
+### Backend
 
-## Backend
 - Node.js
-- Express.js
+- Express
 - TypeScript
-- MongoDB Atlas
-- Mongoose
+- MongoDB with Mongoose
 - JWT
-- Socket.IO
 - Zod
 - Winston
-- Node Cron
 
----
+## Monorepo Layout
 
-# 🏗️ Frontend Structure
-
-```txt
-frontend/
-├── src/
-│   ├── app/
-│   ├── shared/
-│   ├── lib/
-│   ├── auth/
-│   ├── layouts/
-│   ├── routes/
-│   ├── features/
-│   │   ├── customer/
-│   │   ├── staff/
-│   │   ├── kitchen/
-│   │   ├── cleaning/
-│   │   ├── admin/
-│   │   └── superAdmin/
-│   ├── sockets/
-│   ├── store/
-│   └── hooks/
+```text
+.
+|-- backend/
+|   |-- src/
+|   |   |-- config/
+|   |   |-- middleware/
+|   |   `-- server.ts
+|-- frontend/
+|   |-- src/
+|   |   |-- app/
+|   |   |-- auth/
+|   |   |-- layouts/
+|   |   |-- lib/
+|   |   `-- routes/
+|-- .github/workflows/ci.yml
+`-- package.json
 ```
 
----
+## Getting Started
 
-# ⚙️ Backend Structure
-
-```txt
-backend/
-├── src/
-│   ├── config/
-│   ├── middleware/
-│   ├── modules/
-│   ├── services/
-│   ├── sockets/
-│   ├── jobs/
-│   ├── utils/
-│   └── constants/
-```
-
----
-
-# 🔄 Real-Time Features
-
-Socket.IO powered live updates:
-
-- order updates
-- kitchen queue updates
-- billing updates
-- reservation updates
-- notification updates
-- table state updates
-- staff request updates
-
----
-
-# 📊 API Architecture
-
-REST API architecture with:
-
-- URL params
-- Query params
-- Pagination
-- Filtering
-- Analytics endpoints
-- Role-based access
-
-Example:
-
-```http
-GET /orders?status=READY&page=1&limit=20
-```
-
----
-
-# 👥 Roles
-
-| Role | Description |
-|---|---|
-| Customer | QR dining & ordering |
-| Service Staff | Table & serving workflow |
-| Kitchen Staff | Food preparation workflow |
-| Cleaning Staff | Table turnover workflow |
-| Restaurant Admin | Restaurant operations |
-| Super Admin | SaaS platform management |
-
----
-
-# 🌍 Deployment Architecture
-
-## Restaurant App
-
-```txt
-app.domain.com
-```
-
-Contains:
-- Customer
-- Kitchen
-- Staff
-- Restaurant Admin
-
----
-
-## Super Admin App
-
-```txt
-admin.domain.com
-```
-
-Contains:
-- Super Admin only
-
-Same frontend codebase.
-Separate deployment exposure.
-
----
-
-# 📦 Installation
-
-## Clone Repository
+### Install
 
 ```bash
-git clone https://github.com/Graphura-India-Private-Limited/Restaurant-automation-Saas.git
-```
-
----
-
-## Install Frontend
-
-```bash
-cd frontend
 npm install
 ```
 
----
-
-## Install Backend
-
-```bash
-cd backend
-npm install
-```
-
----
-
-# 🔑 Environment Variables
-
-## Frontend
-
-```env
-VITE_API_URL=
-VITE_SOCKET_URL=
-VITE_APP_MODE=
-```
-
----
-
-## Backend
-
-```env
-PORT=
-MONGO_URI=
-JWT_SECRET=
-JWT_REFRESH_SECRET=
-CLIENT_URL=
-CORS_ORIGINS=
-```
-
----
-
-# ▶️ Run Development Server
-
-## Frontend
+### Run both apps
 
 ```bash
 npm run dev
 ```
 
----
-
-## Backend
+### Run one workspace
 
 ```bash
-npm run dev
+npm run dev --workspace backend
+npm run dev --workspace frontend
 ```
 
----
+## Quality Scripts
 
-# 📌 Project Status
+```bash
+npm run lint
+npm run typecheck
+npm run build
+npm run format
+```
 
-🚧 In Active Development
+## Environment Variables
 
----
-# 🤝 Contributors
+### Backend
 
-Built with ❤️ by the Restaurant Automation SaaS Team with Graphura.pvt.ltd.
+See [backend/.env.example](/c:/Users/rahul/OneDrive/Desktop/Restaurant%20Management%20SaaS/backend/.env.example).
+
+Important keys:
+
+- `PORT`
+- `NODE_ENV`
+- `CORS_ORIGIN` or `CORS_ORIGINS`
+- `MONGODB_URI`
+- `JWT_SECRET`
+- `REFRESH_TOKEN_SECRET`
+- `RATE_LIMIT_WINDOW_MS`
+- `RATE_LIMIT_MAX`
+
+### Frontend
+
+See [frontend/.env.example](/c:/Users/rahul/OneDrive/Desktop/Restaurant%20Management%20SaaS/frontend/.env.example).
+
+Important keys:
+
+- `VITE_APP_NAME`
+- `VITE_ENV`
+- `VITE_API_URL`
+- `VITE_SOCKET_URL`
+
+## API Baseline
+
+The backend currently exposes foundational endpoints for platform readiness and application wiring:
+
+- `GET /health`
+- `GET /ready`
+- `GET /api/v1`
+- `POST /api/v1/auth/login`
+- `GET /api/v1/me`
+- `GET /api/v1/admin/overview`
+
+## Next Recommended Milestones
+
+To move from strong scaffold to full product, the next high-value steps are:
+
+1. Implement real auth flows with refresh tokens and secure cookies.
+2. Add domain modules for orders, tables, reservations, billing, and inventory.
+3. Add integration tests for middleware and route contracts.
+4. Add database models, service layers, and tenant isolation rules.
+5. Add observability tooling such as metrics and error reporting.

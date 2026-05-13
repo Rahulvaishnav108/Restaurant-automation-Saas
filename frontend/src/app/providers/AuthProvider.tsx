@@ -1,7 +1,1 @@
-import React from 'react';
-
-const AuthProvider = ({ children }: any) => {
-  return <>{children}</>;
-};
-
-export default AuthProvider;
+export { AuthProvider, useAuth, type AppRole, type AuthUser } from '../../auth/AuthProvider';

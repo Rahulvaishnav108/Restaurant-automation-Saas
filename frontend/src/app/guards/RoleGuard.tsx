@@ -1,7 +1,22 @@
-import React from 'react';
+import { Navigate, Outlet } from 'react-router-dom';
+import { useAuth, type AppRole } from '../../auth/AuthProvider';
+import { appRoutes } from '../../shared/constants/routes';
 
-const RoleGuard = () => {
-  return <div>RoleGuard</div>;
+type RoleGuardProps = {
+  roles: AppRole[];
 };
 
-export default RoleGuard;
+export function RoleGuard({ roles }: RoleGuardProps): JSX.Element {
+  const { user } = useAuth();
+
+  if (!user) {
+    return <Navigate replace to={appRoutes.home} />;
+  }
+
+  if (!roles.includes(user.role)) {
+    const fallback = user.role === 'super-admin' ? appRoutes.superAdmin : `/${user.role}`;
+    return <Navigate replace to={fallback} />;
+  }
+
+  return <Outlet />;
+}
