@@ -1,0 +1,12 @@
+node_modules/
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+frontend/node_modules/
+frontend/dist/
+backend/node_modules/
+backend/dist/
