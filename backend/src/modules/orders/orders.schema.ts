@@ -1,0 +1,247 @@
+// src/modules/orders/orders.schema.ts
+
+import mongoose, { Document, Schema } from "mongoose";
+
+export enum OrderStatus {
+  PENDING = "PENDING",
+  ACCEPTED = "ACCEPTED",
+  PREPARING = "PREPARING",
+  READY = "READY",
+  SERVED = "SERVED",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+  REJECTED = "REJECTED",
+}
+
+export enum PaymentStatus {
+  PENDING = "PENDING",
+  PAID = "PAID",
+  FAILED = "FAILED",
+  REFUNDED = "REFUNDED",
+}
+
+export interface IOrderItem {
+  menuItemId: mongoose.Types.ObjectId;
+  name: string;
+  quantity: number;
+  price: number;
+  totalPrice: number;
+  notes?: string;
+}
+
+export interface IOrder extends Document {
+  restaurantId: mongoose.Types.ObjectId;
+
+  customerId?: mongoose.Types.ObjectId;
+
+  tableId?: mongoose.Types.ObjectId;
+
+  sessionId?: mongoose.Types.ObjectId;
+
+  orderNumber: string;
+
+  items: IOrderItem[];
+
+  totalAmount: number;
+
+  taxAmount: number;
+
+  discountAmount: number;
+
+  finalAmount: number;
+
+  status: OrderStatus;
+
+  paymentStatus: PaymentStatus;
+
+  specialInstructions?: string;
+
+  estimatedPreparationTime?: number;
+
+  acceptedAt?: Date;
+
+  readyAt?: Date;
+
+  servedAt?: Date;
+
+  completedAt?: Date;
+
+  cancelledAt?: Date;
+
+  createdAt: Date;
+
+  updatedAt: Date;
+}
+
+const orderItemSchema = new Schema<IOrderItem>(
+  {
+    menuItemId: {
+      type: Schema.Types.ObjectId,
+      ref: "MenuItem",
+      required: true,
+    },
+
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    quantity: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+
+    price: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    totalPrice: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    notes: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+  },
+  {
+    _id: false,
+  }
+);
+
+export const orderSchema = new Schema<IOrder>(
+  {
+    restaurantId: {
+      type: Schema.Types.ObjectId,
+      ref: "Restaurant",
+      required: true,
+    },
+
+    customerId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    tableId: {
+      type: Schema.Types.ObjectId,
+      ref: "Table",
+      default: null,
+    },
+
+    sessionId: {
+      type: Schema.Types.ObjectId,
+      ref: "TableSession",
+      default: null,
+    },
+
+    orderNumber: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+
+    items: {
+      type: [orderItemSchema],
+      required: true,
+      validate: {
+        validator: (items: IOrderItem[]) => items.length > 0,
+        message: "Order must contain at least one item",
+      },
+    },
+
+    totalAmount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    taxAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    discountAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    finalAmount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    status: {
+      type: String,
+      enum: Object.values(OrderStatus),
+      default: OrderStatus.PENDING,
+    },
+
+    paymentStatus: {
+      type: String,
+      enum: Object.values(PaymentStatus),
+      default: PaymentStatus.PENDING,
+    },
+
+    specialInstructions: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    estimatedPreparationTime: {
+      type: Number,
+      default: null,
+    },
+
+    acceptedAt: {
+      type: Date,
+      default: null,
+    },
+
+    readyAt: {
+      type: Date,
+      default: null,
+    },
+
+    servedAt: {
+      type: Date,
+      default: null,
+    },
+
+    completedAt: {
+      type: Date,
+      default: null,
+    },
+
+    cancelledAt: {
+      type: Date,
+      default: null,
+    },
+  },
+  {
+    timestamps: true,
+    versionKey: false,
+  }
+);
+
+// Indexes
+orderSchema.index({ restaurantId: 1 });
+orderSchema.index({ customerId: 1 });
+orderSchema.index({ tableId: 1 });
+orderSchema.index({ status: 1 });
+orderSchema.index({ paymentStatus: 1 });
+orderSchema.index({ orderNumber: 1 });
+
+export default orderSchema;

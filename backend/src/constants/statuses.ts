@@ -1,0 +1,110 @@
+// src/constants/statuses.ts
+// Status enums for all domain entities
+
+export enum UserStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  SUSPENDED = 'SUSPENDED',
+  BLOCKED = 'BLOCKED',
+}
+
+export enum TableStatus {
+  AVAILABLE = 'AVAILABLE',
+  OCCUPIED = 'OCCUPIED',
+  RESERVED = 'RESERVED',
+  CLEANING = 'CLEANING',
+  MAINTENANCE = 'MAINTENANCE',
+}
+
+export enum SessionStatus {
+  ACTIVE = 'ACTIVE',
+  EXPIRED = 'EXPIRED',
+  CLOSED = 'CLOSED',
+  PAYMENT_PENDING = 'PAYMENT_PENDING',
+}
+
+export enum OrderStatus {
+  PLACED = 'PLACED',
+  CONFIRMED = 'CONFIRMED',
+  PREPARING = 'PREPARING',
+  READY = 'READY',
+  PICKED = 'PICKED',
+  SERVED = 'SERVED',
+  CANCELLED = 'CANCELLED',
+  REJECTED = 'REJECTED',
+  DELAYED = 'DELAYED',
+}
+
+export enum PaymentStatus {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+  REFUNDED = 'REFUNDED',
+}
+
+export enum CleaningStatus {
+  PENDING = 'PENDING',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  VERIFIED = 'VERIFIED',
+}
+
+export enum ReservationStatus {
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+  CHECKED_IN = 'CHECKED_IN',
+  CANCELLED = 'CANCELLED',
+  NO_SHOW = 'NO_SHOW',
+  COMPLETED = 'COMPLETED',
+}
+
+export enum QueueStatus {
+  WAITING = 'WAITING',
+  NOTIFIED = 'NOTIFIED',
+  SEATED = 'SEATED',
+  CANCELLED = 'CANCELLED',
+  EXPIRED = 'EXPIRED',
+}
+
+export enum RequestStatus {
+  PENDING = 'PENDING',
+  ACCEPTED = 'ACCEPTED',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum RequestType {
+  WAITER = 'WAITER',
+  WATER = 'WATER',
+  CUTLERY = 'CUTLERY',
+  CLEANING = 'CLEANING',
+  HELP = 'HELP',
+}
+
+export enum RestaurantStatus {
+  PENDING_APPROVAL = 'PENDING_APPROVAL',
+  ACTIVE = 'ACTIVE',
+  SUSPENDED = 'SUSPENDED',
+  CLOSED = 'CLOSED',
+}
+
+export enum BillStatus {
+  OPEN = 'OPEN',
+  REQUESTED = 'REQUESTED',
+  FINALIZED = 'FINALIZED',
+  PAID = 'PAID',
+}
+
+export enum BatchStatus {
+  PENDING = 'PENDING',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+}
+
+export enum Priority {
+  LOW = 'LOW',
+  NORMAL = 'NORMAL',
+  HIGH = 'HIGH',
+  URGENT = 'URGENT',
+}
