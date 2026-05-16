@@ -1,5 +1,5 @@
 // src/modules/users/users.service.ts
-// User business logic — all queries filter isDeleted: false by default
+// User business logic â€” all queries filter isDeleted: false by default
 
 import { UserModel, IUser } from './users.model';
 import { hashPassword, comparePassword } from '../../utils/crypto';

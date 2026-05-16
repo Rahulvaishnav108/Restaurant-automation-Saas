@@ -1,115 +1,110 @@
 // src/modules/orders/orders.routes.ts
+// Order route definitions — session-based customer + JWT staff/kitchen
 
-import { Router } from "express";
+import { Router } from 'express';
+import { requireAuth } from '../../middleware/requireAuth';
+import { requireSession } from '../../middleware/requireSession';
+import { roleGuard } from '../../middleware/roleGuard';
+import { UserRole } from '../../constants/roles';
+import { validate } from '../../middleware/validate';
+import {
+  placeOrderBodySchema,
+  acceptOrderBodySchema,
+  rejectOrderBodySchema,
+  delayOrderBodySchema,
+} from './orders.schema';
+import { OrdersController } from './orders.controller';
 
-const orderrouter = Router();
+const router = Router();
 
 /*
 |--------------------------------------------------------------------------
-| CUSTOMER ORDER APIs
+| SESSION-BASED CUSTOMER APIs (QR session token auth)
 |--------------------------------------------------------------------------
 */
 
 // Place Order
-// POST /customer/orders
-orderrouter.post("/customer/orders", (req, res) => {
-  res.send("Place Order");
-});
+router.post(
+  '/customer/orders',
+  requireSession,
+  validate({ body: placeOrderBodySchema }),
+  OrdersController.placeOrder
+);
 
 // Get Orders
-// GET /customer/orders
-orderrouter.get("/customer/orders", (req, res) => {
-  res.send("Get Customer Orders");
-});
+router.get('/customer/orders', requireSession, OrdersController.getOrders);
 
 // Get Single Order
-// GET /customer/orders/:id
-orderrouter.get("/customer/orders/:id", (req, res) => {
-  res.send(`Get Order ${req.params.id}`);
-});
+router.get('/customer/orders/:id', requireSession, OrdersController.getSingleOrder);
 
 // Reorder
-// POST /customer/orders/:id/reorder
-orderrouter.post("/customer/orders/:id/reorder", (req, res) => {
-  res.send(`Reorder ${req.params.id}`);
-});
+router.post('/customer/orders/:id/reorder', requireSession, OrdersController.reorder);
 
 // Cancel Order
-// POST /customer/orders/:id/cancel
-orderrouter.post("/customer/orders/:id/cancel", (req, res) => {
-  res.send(`Cancel Order ${req.params.id}`);
-});
+router.post('/customer/orders/:id/cancel', requireSession, OrdersController.cancelOrder);
 
 /*
 |--------------------------------------------------------------------------
-| KITCHEN ORDER APIs
+| KITCHEN ORDER APIs (JWT auth — kitchen staff + admin)
 |--------------------------------------------------------------------------
 */
+
+const kitchenRoles = [UserRole.KITCHEN_STAFF, UserRole.RESTAURANT_ADMIN, UserRole.SUPER_ADMIN];
 
 // Kitchen Dashboard Orders
-// GET /kitchen/orders
-orderrouter.get("/kitchen/orders", (req, res) => {
-  res.send("Kitchen Orders");
-});
+router.get('/kitchen/orders', requireAuth, roleGuard(...kitchenRoles), OrdersController.getKitchenOrders);
 
 // Kitchen Order Details
-// GET /kitchen/orders/:id
-orderrouter.get("/kitchen/orders/:id", (req, res) => {
-  res.send(`Kitchen Order Details ${req.params.id}`);
-});
+router.get('/kitchen/orders/:id', requireAuth, roleGuard(...kitchenRoles), OrdersController.getKitchenOrderDetails);
 
 // Accept Order
-// PATCH /kitchen/orders/:id/accept
-orderrouter.patch("/kitchen/orders/:id/accept", (req, res) => {
-  res.send(`Accept Order ${req.params.id}`);
-});
+router.patch(
+  '/kitchen/orders/:id/accept',
+  requireAuth,
+  roleGuard(...kitchenRoles),
+  validate({ body: acceptOrderBodySchema }),
+  OrdersController.acceptOrder
+);
 
 // Start Cooking
-// PATCH /kitchen/orders/:id/start
-orderrouter.patch("/kitchen/orders/:id/start", (req, res) => {
-  res.send(`Start Cooking ${req.params.id}`);
-});
+router.patch('/kitchen/orders/:id/start', requireAuth, roleGuard(...kitchenRoles), OrdersController.startCooking);
 
 // Mark Ready
-// PATCH /kitchen/orders/:id/ready
-orderrouter.patch("/kitchen/orders/:id/ready", (req, res) => {
-  res.send(`Mark Ready ${req.params.id}`);
-});
+router.patch('/kitchen/orders/:id/ready', requireAuth, roleGuard(...kitchenRoles), OrdersController.markReady);
 
 // Delay Order
-// PATCH /kitchen/orders/:id/delay
-orderrouter.patch("/kitchen/orders/:id/delay", (req, res) => {
-  res.send(`Delay Order ${req.params.id}`);
-});
+router.patch(
+  '/kitchen/orders/:id/delay',
+  requireAuth,
+  roleGuard(...kitchenRoles),
+  validate({ body: delayOrderBodySchema }),
+  OrdersController.delayOrder
+);
 
 // Reject Order
-// PATCH /kitchen/orders/:id/reject
-orderrouter.patch("/kitchen/orders/:id/reject", (req, res) => {
-  res.send(`Reject Order ${req.params.id}`);
-});
+router.patch(
+  '/kitchen/orders/:id/reject',
+  requireAuth,
+  roleGuard(...kitchenRoles),
+  validate({ body: rejectOrderBodySchema }),
+  OrdersController.rejectOrder
+);
 
 /*
 |--------------------------------------------------------------------------
-| SERVICE STAFF ORDER APIs
+| SERVICE STAFF ORDER APIs (JWT auth — service staff + admin)
 |--------------------------------------------------------------------------
 */
 
+const serviceRoles = [UserRole.SERVICE_STAFF, UserRole.RESTAURANT_ADMIN, UserRole.SUPER_ADMIN];
+
 // Ready Orders Queue
-// GET /staff/orders/ready
-orderrouter.get("/staff/orders/ready", (req, res) => {
-  res.send("Ready Orders Queue");
-});
+router.get('/staff/orders/ready', requireAuth, roleGuard(...serviceRoles), OrdersController.getReadyOrders);
 
 // Pick Food
-// PATCH /staff/orders/:id/pick
-orderrouter.patch("/staff/orders/:id/pick", (req, res) => {
-  res.send(`Pick Food ${req.params.id}`);
-});
+router.patch('/staff/orders/:id/pick', requireAuth, roleGuard(...serviceRoles), OrdersController.pickFood);
 
 // Mark Served
-// PATCH /staff/orders/:id/serve
-orderrouter.patch("/staff/orders/:id/serve", (req, res) => {
-  res.send(`Mark Served ${req.params.id}`);
-});
+router.patch('/staff/orders/:id/serve', requireAuth, roleGuard(...serviceRoles), OrdersController.markServed);
 
-export default orderrouter;
+export default router;

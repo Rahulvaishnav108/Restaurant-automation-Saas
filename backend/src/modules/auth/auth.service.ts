@@ -1,12 +1,12 @@
+import { env } from '../../config/env';
 import logger from '../../config/logger';
 import { ErrorCode } from '../../constants/errors';
+import { sendPasswordResetEmail } from '../../services/mail.service';
 import { generateTokenPair } from '../../services/jwt.service';
+import type { JwtPayload } from '../../types/auth.types';
 import { AppError } from '../../utils/AppError';
 import { compareToken, generateSecureToken, hashPassword, hashToken } from '../../utils/crypto';
 import { parseExpiry } from '../../utils/date';
-import { sendPasswordResetEmail } from '../../services/mail.service';
-import type { JwtPayload } from '../../types/auth.types';
-import { env } from '../../config/env';
 import { UserModel, type IUser } from '../users/users.model';
 import * as userService from '../users/users.service';
 import type { LoginInput, RegisterInput } from './auth.schema';

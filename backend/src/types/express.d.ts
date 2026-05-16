@@ -11,6 +11,13 @@ declare global {
         role: AppRole | string;
         restaurantId?: string;
       };
+      tableSession?: {
+        _id: string;
+        restaurantId: string;
+        tableId: string;
+        customerName: string;
+        mobile: string;
+      };
     }
   }
 }

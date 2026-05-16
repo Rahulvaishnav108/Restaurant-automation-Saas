@@ -1,48 +1,147 @@
-import { randomUUID } from 'crypto';
-import type { Request, Response } from 'express';
-import { AppError } from '../../middleware/errorHandler';
+import type { NextFunction, Request, Response } from 'express';
 import { ok } from '../../utils/responses';
-import {
-  createEntityId,
-  getTableByQrToken,
-  getTableSessionByToken,
-  isTableSessionExpired,
-  phase1Store,
-  type TableSessionRecord,
-} from '../../services/phase1Store';
+import * as tablesService from '../tables/tables.service';
+import type { StartSessionInput } from './tableSessions.schema';
+import * as sessionService from './tableSessions.service';
 
-export function validateTableSessionController(req: Request, res: Response): void {
-  const session = getTableSessionByToken(req.body.token);
+export async function startSession(req: Request, res: Response, next: NextFunction) {
+  try {
+    const input = req.body as StartSessionInput;
+    const meta = {
+      ipAddress: req.ip || req.socket.remoteAddress,
+      userAgent: req.headers['user-agent'],
+    };
 
-  if (!session || isTableSessionExpired(session)) {
-    throw new AppError(404, 'NOT_FOUND', 'Table session is invalid or expired');
+    const { session, sessionToken } = await sessionService.startSession(input, meta);
+
+    res.status(201).json({
+      success: true,
+      data: {
+        sessionId: session._id,
+        restaurantId: session.restaurantId,
+        tableId: session.tableId,
+        customerName: session.customerName,
+        sessionToken,
+        expiresAt: session.expiresAt,
+        status: session.status,
+      },
+      message: 'Session started successfully',
+    });
+  } catch (error) {
+    next(error);
   }
-
-  ok(res, { session });
 }
 
-export function createTableSessionController(req: Request, res: Response): void {
-  const table = getTableByQrToken(req.body.token);
-
-  if (!table) {
-    throw new AppError(404, 'NOT_FOUND', 'Table not found for supplied QR token');
+export async function validateTableSessionController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const session = await sessionService.validateSession(req.body.token);
+    ok(res, { session });
+  } catch (error) {
+    next(error);
   }
+}
 
-  const session: TableSessionRecord = {
-    id: createEntityId('ts'),
-    restaurantId: table.restaurantId,
-    tableId: table.id,
-    token: randomUUID(),
-    customerName: req.body.customerName,
-    partySize: req.body.partySize,
-    status: 'ACTIVE',
-    createdAt: new Date().toISOString(),
-    expiresAt: new Date(Date.now() + 90 * 60 * 1000).toISOString(),
-    endedAt: null,
-  };
+export async function createTableSessionController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const table = await tablesService.findByQrCode(req.body.token);
+    const { session, sessionToken } = await sessionService.startSession(
+      {
+        restaurantId: table.restaurantId.toString(),
+        tableId: table._id.toString(),
+        customerName: req.body.customerName,
+        mobile: req.body.mobile ?? '0000000000',
+      },
+      {
+        ipAddress: req.ip || req.socket.remoteAddress,
+        userAgent: req.headers['user-agent'],
+      },
+    );
 
-  phase1Store.tableSessions.push(session);
-  table.status = 'OCCUPIED';
+    ok(
+      res,
+      {
+        session,
+        sessionToken,
+      },
+      201,
+    );
+  } catch (error) {
+    next(error);
+  }
+}
 
-  ok(res, { session }, 201);
+export async function getCurrentSession(req: Request, res: Response, next: NextFunction) {
+  try {
+    const session = req.tableSession;
+
+    res.status(200).json({
+      success: true,
+      data: session,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function recoverSession(req: Request, res: Response, next: NextFunction) {
+  try {
+    const token = req.headers['x-session-token'] as string;
+    if (!token) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_REQUEST',
+          message: 'x-session-token header is required',
+        },
+      });
+      return;
+    }
+
+    const session = await sessionService.recoverSession(token);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        sessionId: session._id,
+        restaurantId: session.restaurantId,
+        tableId: session.tableId,
+        customerName: session.customerName,
+        expiresAt: session.expiresAt,
+        status: session.status,
+        lastActivityAt: session.lastActivityAt,
+      },
+      message: 'Session recovered successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function endSession(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { sessionId } = req.params;
+    const session = await sessionService.endSession(sessionId, 'staff_closed');
+
+    res.status(200).json({
+      success: true,
+      data: session,
+      message: 'Session ended successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getSession(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { sessionId } = req.params;
+    const session = await sessionService.getSessionById(sessionId);
+
+    res.status(200).json({
+      success: true,
+      data: session,
+    });
+  } catch (error) {
+    next(error);
+  }
 }

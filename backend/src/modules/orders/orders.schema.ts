@@ -1,6 +1,7 @@
 // src/modules/orders/orders.schema.ts
 
 import mongoose, { Document, Schema } from "mongoose";
+import { z } from "zod";
 
 export enum OrderStatus {
   PENDING = "PENDING",
@@ -67,6 +68,8 @@ export interface IOrder extends Document {
   completedAt?: Date;
 
   cancelledAt?: Date;
+
+  rejectionReason?: string;
 
   createdAt: Date;
 
@@ -229,6 +232,12 @@ export const orderSchema = new Schema<IOrder>(
       type: Date,
       default: null,
     },
+
+    rejectionReason: {
+      type: String,
+      trim: true,
+      default: "",
+    },
   },
   {
     timestamps: true,
@@ -245,3 +254,48 @@ orderSchema.index({ paymentStatus: 1 });
 orderSchema.index({ orderNumber: 1 });
 
 export default orderSchema;
+
+/*
+|--------------------------------------------------------------------------
+| ZOD VALIDATION SCHEMAS
+|--------------------------------------------------------------------------
+*/
+
+export const placeOrderBodySchema = z.object({
+  specialInstructions: z
+    .string()
+    .trim()
+    .max(500, 'Special instructions cannot exceed 500 characters')
+    .optional(),
+});
+
+export type PlaceOrderInput = z.infer<typeof placeOrderBodySchema>;
+
+export const acceptOrderBodySchema = z.object({
+  estimatedPreparationTime: z
+    .number()
+    .int()
+    .positive('Estimated time must be positive')
+    .optional(),
+});
+
+export type AcceptOrderInput = z.infer<typeof acceptOrderBodySchema>;
+
+export const rejectOrderBodySchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .min(1, 'Rejection reason is required')
+    .max(500, 'Reason cannot exceed 500 characters'),
+});
+
+export type RejectOrderInput = z.infer<typeof rejectOrderBodySchema>;
+
+export const delayOrderBodySchema = z.object({
+  delayMinutes: z
+    .number()
+    .int()
+    .positive('Delay minutes must be positive'),
+});
+
+export type DelayOrderInput = z.infer<typeof delayOrderBodySchema>;

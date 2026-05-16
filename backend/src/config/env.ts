@@ -34,6 +34,8 @@ const envSchema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().int().positive().optional(),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().optional(),
   AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(10),
+  SESSION_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(5),
+  SESSION_IDLE_TIMEOUT_MINUTES: z.coerce.number().int().positive().default(20),
   SOCKET_CORS_ORIGIN: z.string().default('http://localhost:5173'),
   UPLOAD_PROVIDER: z.enum(['local', 's3', 'cloudinary']).default('local'),
   UPLOAD_PATH: z.string().default('uploads'),

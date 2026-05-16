@@ -41,5 +41,20 @@ export const publicLimiter = rateLimit({
   message: defaultMessage,
 });
 
+export const sessionLimiter = rateLimit({
+  windowMs: 60_000,
+  max: env.SESSION_RATE_LIMIT_MAX_REQUESTS,
+  keyGenerator: (req) => req.ip || 'unknown',
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: {
+      code: ErrorCode.RATE_LIMIT_EXCEEDED,
+      message: 'Too many session creation attempts. Please wait before scanning again.',
+    },
+  },
+});
+
 export const apiRateLimiter = globalLimiter;
 export const authRateLimiter = authLimiter;
