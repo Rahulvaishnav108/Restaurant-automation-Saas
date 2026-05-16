@@ -1,67 +1,45 @@
 import jwt from 'jsonwebtoken';
-import { randomUUID } from 'crypto';
 import { env } from '../config/env';
-import type { AppRole } from '../constants/roles';
+import type { JwtPayload, TokenPair } from '../types/auth.types';
+import { generateSecureToken } from '../utils/crypto';
 
-type TokenPayloadInput = {
-  sub: string;
-  role: AppRole;
-  restaurantId?: string;
-  email?: string;
-  sessionId: string;
+type DecodedAccessToken = JwtPayload & {
+  sub?: string;
 };
 
-export type AccessTokenPayload = TokenPayloadInput & {
-  type: 'access';
-};
+function normalizePayload(payload: DecodedAccessToken): JwtPayload {
+  const id = payload._id ?? payload.sub;
 
-export type RefreshTokenPayload = TokenPayloadInput & {
-  type: 'refresh';
-  jti: string;
-};
-
-export function signAccessToken(payload: TokenPayloadInput): string {
-  return jwt.sign(
-    {
-      ...payload,
-      type: 'access',
-    } satisfies AccessTokenPayload,
-    env.JWT_SECRET,
-    { expiresIn: env.JWT_ACCESS_EXPIRY as jwt.SignOptions['expiresIn'] },
-  );
-}
-
-export function signRefreshToken(payload: TokenPayloadInput): { token: string; refreshTokenId: string } {
-  const refreshTokenId = randomUUID();
-  const token = jwt.sign(
-    {
-      ...payload,
-      type: 'refresh',
-      jti: refreshTokenId,
-    } satisfies RefreshTokenPayload,
-    env.REFRESH_TOKEN_SECRET,
-    { expiresIn: env.JWT_REFRESH_EXPIRY as jwt.SignOptions['expiresIn'] },
-  );
-
-  return { token, refreshTokenId };
-}
-
-export function verifyAccessToken(token: string): AccessTokenPayload {
-  const payload = jwt.verify(token, env.JWT_SECRET) as AccessTokenPayload;
-
-  if (payload.type !== 'access') {
-    throw new Error('Invalid access token type');
+  if (!id) {
+    throw new Error('Invalid access token payload');
   }
 
-  return payload;
+  return {
+    _id: id,
+    email: payload.email,
+    role: payload.role,
+    restaurantId: payload.restaurantId,
+  };
 }
 
-export function verifyRefreshToken(token: string): RefreshTokenPayload {
-  const payload = jwt.verify(token, env.REFRESH_TOKEN_SECRET) as RefreshTokenPayload;
+export function signAccessToken(payload: JwtPayload): string {
+  return jwt.sign(payload, env.JWT_SECRET, {
+    expiresIn: env.JWT_ACCESS_EXPIRES_IN as jwt.SignOptions['expiresIn'],
+  });
+}
 
-  if (payload.type !== 'refresh') {
-    throw new Error('Invalid refresh token type');
-  }
+export function generateRefreshToken(): string {
+  return generateSecureToken(64);
+}
 
-  return payload;
+export function verifyAccessToken(token: string): JwtPayload {
+  const payload = jwt.verify(token, env.JWT_SECRET) as DecodedAccessToken;
+  return normalizePayload(payload);
+}
+
+export function generateTokenPair(payload: JwtPayload): TokenPair {
+  return {
+    accessToken: signAccessToken(payload),
+    refreshToken: generateRefreshToken(),
+  };
 }

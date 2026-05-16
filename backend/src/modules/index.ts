@@ -11,10 +11,12 @@ import { cleaningRouter } from './routes/cleaning.routes';
 import { adminRouter } from './routes/admin.routes';
 import { superAdminRouter } from './routes/superAdmin.routes';
 import { sharedRouter } from './routes/shared.routes';
+import usersRouter from './users/users.routes';
 
 export const apiRouter = Router();
 
 apiRouter.use('/auth', authRouter);
+apiRouter.use('/users', usersRouter);
 apiRouter.use('/public', publicRouter);
 apiRouter.use('/customer', requireAuth, roleGuard(roles.customer), customerRouter);
 apiRouter.use('/staff', requireAuth, roleGuard(roles.serviceStaff, roles.restaurantAdmin), staffRouter);

@@ -2,18 +2,22 @@ import { createServer } from 'http';
 import app from './app';
 import { connectToDatabase, disconnectFromDatabase } from './config/db';
 import { env } from './config/env';
+import { initializeCollections } from './config/initDB';
 import { logger } from './config/logger';
 import { createSocketServer } from './sockets';
 
 const server = createServer(app);
 createSocketServer(server);
+
 let isDatabaseConnected = false;
+let shutdownStarted = false;
 
 async function bootstrap(): Promise<void> {
   try {
     try {
       await connectToDatabase();
       isDatabaseConnected = true;
+      await initializeCollections();
     } catch (error) {
       if (!env.allowNoDb) {
         throw error;
@@ -27,6 +31,7 @@ async function bootstrap(): Promise<void> {
 
     server.listen(env.PORT, () => {
       logger.info(`Server running in ${env.NODE_ENV} mode on port ${env.PORT}`, {
+        apiPrefix: env.API_PREFIX,
         databaseConnected: isDatabaseConnected,
       });
     });
@@ -37,12 +42,18 @@ async function bootstrap(): Promise<void> {
 }
 
 async function shutdown(signal: string): Promise<void> {
+  if (shutdownStarted) {
+    return;
+  }
+
+  shutdownStarted = true;
   logger.warn(`Received ${signal}. Starting graceful shutdown.`);
 
   server.close(async () => {
     if (isDatabaseConnected) {
       await disconnectFromDatabase();
     }
+
     logger.info('HTTP server closed');
     process.exit(0);
   });
@@ -56,4 +67,14 @@ process.on('SIGINT', () => {
 
 process.on('SIGTERM', () => {
   void shutdown('SIGTERM');
+});
+
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled rejection', { error: reason });
+  void shutdown('unhandledRejection');
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught exception', { error });
+  void shutdown('uncaughtException');
 });

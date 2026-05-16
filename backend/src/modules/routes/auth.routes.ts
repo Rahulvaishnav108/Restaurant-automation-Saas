@@ -1,24 +1,24 @@
 import { Router } from 'express';
 import { requireAuth } from '../../middleware/requireAuth';
 import { validate } from '../../middleware/validate';
+import { authLimiter } from '../../middleware/rateLimiters';
 import {
-  forgotPasswordController,
-  listSessionsController,
-  loginController,
-  logoutController,
-  meController,
-  refreshController,
-  registerController,
-  requestOtpController,
-  resetPasswordController,
-  revokeSessionController,
-  verifyOtpController,
+  forgotPassword,
+  getMe,
+  getSessions,
+  login,
+  logout,
+  refresh,
+  register,
+  requestOtp,
+  resetPassword,
+  revokeSession,
+  verifyOtp,
 } from '../auth/auth.controller';
 import {
   forgotPasswordSchema,
-  loginRequestSchema,
-  refreshRequestSchema,
-  registerRequestSchema,
+  loginSchema,
+  registerSchema,
   requestOtpSchema,
   resetPasswordSchema,
   verifyOtpSchema,
@@ -26,14 +26,16 @@ import {
 
 export const authRouter = Router();
 
-authRouter.post('/register', validate(registerRequestSchema), registerController);
-authRouter.post('/login', validate(loginRequestSchema), loginController);
-authRouter.post('/request-otp', validate(requestOtpSchema), requestOtpController);
-authRouter.post('/verify-otp', validate(verifyOtpSchema), verifyOtpController);
-authRouter.post('/refresh', validate(refreshRequestSchema), refreshController);
-authRouter.post('/logout', logoutController);
-authRouter.get('/me', requireAuth, meController);
-authRouter.post('/forgot-password', validate(forgotPasswordSchema), forgotPasswordController);
-authRouter.post('/reset-password', validate(resetPasswordSchema), resetPasswordController);
-authRouter.get('/sessions', requireAuth, listSessionsController);
-authRouter.delete('/sessions/:sessionId', requireAuth, revokeSessionController);
+authRouter.use(authLimiter);
+
+authRouter.post('/register', validate({ body: registerSchema }), register);
+authRouter.post('/login', validate({ body: loginSchema }), login);
+authRouter.post('/request-otp', validate({ body: requestOtpSchema }), requestOtp);
+authRouter.post('/verify-otp', validate({ body: verifyOtpSchema }), verifyOtp);
+authRouter.post('/refresh', refresh);
+authRouter.post('/logout', requireAuth, logout);
+authRouter.get('/me', requireAuth, getMe);
+authRouter.post('/forgot-password', validate({ body: forgotPasswordSchema }), forgotPassword);
+authRouter.post('/reset-password', validate({ body: resetPasswordSchema }), resetPassword);
+authRouter.get('/sessions', requireAuth, getSessions);
+authRouter.delete('/sessions/:sessionId', requireAuth, revokeSession);

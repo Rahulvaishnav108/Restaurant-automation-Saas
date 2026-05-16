@@ -1,25 +1,35 @@
-import express from 'express';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import express from 'express';
 import helmet from 'helmet';
-import morgan from 'morgan';
 import mongoSanitize from 'express-mongo-sanitize';
+import mongoose from 'mongoose';
+import morgan from 'morgan';
 import { env } from './config/env';
 import { logger } from './config/logger';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { requestId } from './middleware/requestId';
-import { apiRateLimiter, authRateLimiter } from './middleware/rateLimiters';
+import { apiRateLimiter } from './middleware/rateLimiters';
 import { apiRouter } from './modules';
 
 const app = express();
 
 app.disable('x-powered-by');
 
+if (env.TRUST_PROXY) {
+  app.set('trust proxy', 1);
+}
+
 app.use(requestId);
-app.use(
-  helmet({
-    crossOriginResourcePolicy: false,
-  }),
-);
+
+if (env.HELMET_ENABLED) {
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: false,
+    }),
+  );
+}
+
 app.use(
   cors({
     origin(origin, callback) {
@@ -31,45 +41,76 @@ app.use(
       callback(new Error('CORS origin denied'));
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
   }),
 );
+
 app.use(
   morgan(env.isProduction ? 'combined' : 'dev', {
     stream: {
       write: (message) => logger.http(message.trim()),
     },
+    skip: () => !env.ENABLE_REQUEST_LOGS,
   }),
 );
-app.use(express.json());
+
+app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser(env.COOKIE_SECRET));
 app.use(mongoSanitize());
-app.use('/api', apiRateLimiter);
-app.use('/api/v1/auth', authRateLimiter);
+
+app.get('/', (_req, res) => {
+  res.status(200).json({
+    success: true,
+    data: {
+      name: 'Restaurant Automation SaaS API',
+      version: 'v1',
+      docs: env.API_PREFIX,
+      health: '/health',
+      ready: '/ready',
+    },
+  });
+});
 
 app.get('/health', (_req, res) => {
-  res.json({
+  res.status(200).json({
     success: true,
     data: {
       status: 'ok',
       service: 'restaurant-automation-backend',
       timestamp: new Date().toISOString(),
       environment: env.NODE_ENV,
-    },
-  });
-});
-
-app.get('/ready', (_req, res) => {
-  res.json({
-    success: true,
-    data: {
-      status: 'ready',
       uptimeSeconds: Math.round(process.uptime()),
     },
   });
 });
 
-app.get('/api/v1', (_req, res) => {
-  res.json({
+app.get('/ready', (_req, res) => {
+  if (mongoose.connection.readyState === 1 || env.allowNoDb) {
+    res.status(200).json({
+      success: true,
+      data: {
+        status: 'ready',
+        database: mongoose.connection.readyState === 1 ? 'connected' : 'skipped',
+        uptimeSeconds: Math.round(process.uptime()),
+      },
+    });
+    return;
+  }
+
+  res.status(503).json({
+    success: false,
+    error: {
+      code: 'SERVICE_UNAVAILABLE',
+      message: 'Database not ready',
+    },
+  });
+});
+
+app.use('/api', apiRateLimiter);
+
+app.get(env.API_PREFIX, (_req, res) => {
+  res.status(200).json({
     success: true,
     data: {
       name: 'Restaurant Automation SaaS API',
@@ -79,10 +120,10 @@ app.get('/api/v1', (_req, res) => {
   });
 });
 
-app.use('/api/v1', apiRouter);
+app.use(env.API_PREFIX, apiRouter);
 
 app.get('/version', (_req, res) => {
-  res.json({
+  res.status(200).json({
     success: true,
     data: {
       version: 'v1',
