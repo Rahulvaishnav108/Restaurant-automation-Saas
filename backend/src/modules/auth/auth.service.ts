@@ -1,5 +1,6 @@
 // src/modules/auth/auth.service.ts
-// Authentication business logic
+// Authentication business logic — staff/admin only
+// Customers use temporary QR session tokens (see tableSessions module)
 
 import { UserModel, IUser } from '../users/users.model';
 import * as userService from '../users/users.service';
@@ -9,10 +10,14 @@ import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
 import { JwtPayload } from '../../types/auth.types';
 import { RegisterInput, LoginInput } from './auth.schema';
+import { UserRole, RESTAURANT_ROLES } from '../../constants/roles';
 import { env } from '../../config/env';
 import { parseExpiry } from '../../utils/date';
 import { sendPasswordResetEmail } from '../../services/mail.service';
 import logger from '../../config/logger';
+
+/** Valid staff roles that can be assigned during registration */
+const VALID_STAFF_ROLES = new Set<string>(Object.values(UserRole));
 
 /**
  * Build JWT payload from a user document.
@@ -27,9 +32,21 @@ function buildPayload(user: IUser): JwtPayload {
 }
 
 /**
- * Register a new user.
+ * Register a new staff/admin user.
+ * Only callable by RESTAURANT_ADMIN or SUPER_ADMIN.
+ * Customers do NOT register — they use QR session tokens.
  */
-export async function register(input: RegisterInput) {
+export async function register(input: RegisterInput & { role?: string }) {
+  // Validate and extract role
+  const role = input.role as UserRole;
+  if (!role || !VALID_STAFF_ROLES.has(role)) {
+    throw new AppError(
+      `Invalid role. Must be one of: ${Object.values(UserRole).join(', ')}`,
+      400,
+      ErrorCode.INVALID_REQUEST
+    );
+  }
+
   // Check for existing user
   if (await userService.emailExists(input.email)) {
     throw new AppError('Email already registered', 409, ErrorCode.CONFLICT);
@@ -38,8 +55,8 @@ export async function register(input: RegisterInput) {
     throw new AppError('Mobile number already registered', 409, ErrorCode.CONFLICT);
   }
 
-  // Create user
-  const user = await userService.createUser(input);
+  // Create staff user with explicit role
+  const user = await userService.createUser(input, role);
 
   // Generate tokens
   const payload = buildPayload(user);
@@ -61,6 +78,7 @@ export async function register(input: RegisterInput) {
 
 /**
  * Login with email/mobile + password.
+ * Staff/admin only — customers use QR session tokens.
  */
 export async function login(input: LoginInput, meta?: { userAgent?: string; ip?: string }) {
   // Find user by email or mobile

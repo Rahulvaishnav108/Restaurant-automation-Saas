@@ -88,7 +88,7 @@ const userSchema = new Schema<IUser>(
     role: {
       type: String,
       enum: Object.values(UserRole),
-      default: UserRole.CUSTOMER,
+      required: [true, 'User role is required'],
     },
 
     status: {

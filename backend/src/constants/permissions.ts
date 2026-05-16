@@ -1,5 +1,5 @@
 // src/constants/permissions.ts
-// Role-based permission matrix
+// Role-based permission matrix — staff/admin only (customers use session auth)
 
 import { UserRole } from './roles';
 
@@ -8,11 +8,14 @@ export const RoutePermissions = {
   // Public — no auth required
   PUBLIC: [] as UserRole[],
 
-  // Any authenticated user
-  AUTHENTICATED: Object.values(UserRole),
-
-  // Customer only
-  CUSTOMER_ONLY: [UserRole.CUSTOMER],
+  // Any authenticated staff/admin user
+  AUTHENTICATED: [
+    UserRole.SERVICE_STAFF,
+    UserRole.KITCHEN_STAFF,
+    UserRole.CLEANING_STAFF,
+    UserRole.RESTAURANT_ADMIN,
+    UserRole.SUPER_ADMIN,
+  ],
 
   // Service staff
   SERVICE_STAFF: [UserRole.SERVICE_STAFF, UserRole.RESTAURANT_ADMIN, UserRole.SUPER_ADMIN],

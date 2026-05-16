@@ -2,7 +2,6 @@
 // All user roles in the system — matches PRD Section 2
 
 export enum UserRole {
-  CUSTOMER = 'CUSTOMER',
   SERVICE_STAFF = 'SERVICE_STAFF',
   KITCHEN_STAFF = 'KITCHEN_STAFF',
   CLEANING_STAFF = 'CLEANING_STAFF',

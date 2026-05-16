@@ -11,7 +11,7 @@ import { UserRole } from '../../constants/roles';
 /**
  * Create a new user with hashed password.
  */
-export async function createUser(input: RegisterInput, role: UserRole = UserRole.CUSTOMER): Promise<IUser> {
+export async function createUser(input: RegisterInput, role: UserRole): Promise<IUser> {
   const hashedPassword = await hashPassword(input.password);
 
   const user = await UserModel.create({

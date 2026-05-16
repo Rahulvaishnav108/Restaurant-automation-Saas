@@ -49,3 +49,19 @@ export const publicLimiter = rateLimit({
     },
   },
 });
+
+/** Dedicated rate limiter for session creation (POST /sessions/start) */
+export const sessionLimiter = rateLimit({
+  windowMs: 60_000, // 1 minute
+  max: env.SESSION_RATE_LIMIT_MAX_REQUESTS, // default: 5
+  keyGenerator: (req) => req.ip || 'unknown',
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: {
+      code: 'RATE_LIMIT_EXCEEDED',
+      message: 'Too many session creation attempts. Please wait before scanning again.',
+    },
+  },
+});

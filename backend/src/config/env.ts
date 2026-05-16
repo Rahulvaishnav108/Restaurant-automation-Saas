@@ -40,6 +40,10 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default('900000'),
   RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).default('100'),
   AUTH_RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).default('10'),
+  SESSION_RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).default('5'),
+
+  // ── Session Idle Timeout ────────────────────────────────────────────
+  SESSION_IDLE_TIMEOUT_MINUTES: z.string().transform(Number).default('20'),
 
   // ── Socket.IO ───────────────────────────────────────────────────────
   SOCKET_CORS_ORIGIN: z.string().default('http://localhost:5173'),

@@ -17,6 +17,11 @@ import { errorHandler } from './middleware/errorHandler';
 // Route imports
 import authRoutes from './modules/auth/auth.routes';
 import userRoutes from './modules/users/users.routes';
+import tableRoutes from './modules/tables/tables.routes';
+import tableSessionRoutes from './modules/tableSessions/tableSessions.routes';
+import orderRoutes from './modules/orders/orders.routes';
+import menuRoutes from './modules/menu/menu.routes';
+import cartRoutes from './modules/cart/cart.routes';
 
 const app = express();
 
@@ -107,6 +112,11 @@ app.use('/api', globalLimiter);
 // ── 9. API Routes ─────────────────────────────────────────────────────
 app.use(`${env.API_PREFIX}/auth`, authRoutes);
 app.use(`${env.API_PREFIX}/users`, userRoutes);
+app.use(`${env.API_PREFIX}/tables`, tableRoutes);
+app.use(`${env.API_PREFIX}/sessions`, tableSessionRoutes);
+app.use(`${env.API_PREFIX}/orders`, orderRoutes);
+app.use(`${env.API_PREFIX}`, menuRoutes);
+app.use(`${env.API_PREFIX}/customer/cart`, cartRoutes);
 
 // ── 10. 404 handler for unknown routes ────────────────────────────────
 app.use((_req, res) => {
