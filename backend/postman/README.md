@@ -7,11 +7,14 @@ Import these files into the VS Code Postman extension:
 
 Recommended local flow:
 
-1. Start the backend with `npm run dev --workspace backend`
-2. Select the `Restaurant Automation Local` environment
-3. Run the login requests first to populate token variables
-4. Run the admin table requests to populate `createdTableId` and `createdQrToken`
-5. Run the public table-session create request to populate `createdSessionToken`
+1. Start MongoDB locally on `mongodb://[REDACTED]`
+2. Seed local backend data with `npm run seed --workspace backend`
+3. Start the backend with `npm run dev --workspace backend`
+4. Select the `Restaurant Automation Local` environment
+5. Run the login requests first to populate bearer token variables
+6. Run the admin table requests to populate `createdTableId` and `createdQrToken`
+7. Run the public table-session create request to populate `createdSessionToken`
+8. Use `createdSessionToken` as the `x-session-token` header for customer session routes
 
 Seeded credentials in the environment:
 
@@ -22,8 +25,7 @@ Seeded credentials in the environment:
 - Cleaning: `cleaning@ambertable.com` / `Cleaning@123`
 - Super Admin: `superadmin@graphura.com` / `Super@123`
 
-Automated full-suite verification was also added in:
+Notes:
 
-- `.codex/phase1-intense-test.mjs`
-
-That script exercises the broad API surface across auth, public, admin, customer, staff, kitchen, cleaning, super-admin, shared, and RBAC flows.
+- The backend now fails fast when MongoDB is unavailable unless `ALLOW_NO_DB=true` is explicitly set.
+- Local seed data is also applied automatically on backend startup when `SEED_ON_STARTUP=true`.

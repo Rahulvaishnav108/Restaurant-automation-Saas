@@ -157,6 +157,7 @@ const userSchema = new Schema<IUser>(
   {
     timestamps: true,
     versionKey: false,
+    collection: 'users',
   }
 );
 
@@ -170,19 +171,19 @@ userSchema.index({ lockUntil: 1 }, { expireAfterSeconds: 0, sparse: true });
 
 // ── Query middleware: exclude soft-deleted by default ──────────────────
 userSchema.pre('find', function () {
-  if (!this.getQuery().hasOwnProperty('isDeleted')) {
+  if (!Object.prototype.hasOwnProperty.call(this.getQuery(), 'isDeleted')) {
     this.where({ isDeleted: false });
   }
 });
 
 userSchema.pre('findOne', function () {
-  if (!this.getQuery().hasOwnProperty('isDeleted')) {
+  if (!Object.prototype.hasOwnProperty.call(this.getQuery(), 'isDeleted')) {
     this.where({ isDeleted: false });
   }
 });
 
 userSchema.pre('countDocuments', function () {
-  if (!this.getQuery().hasOwnProperty('isDeleted')) {
+  if (!Object.prototype.hasOwnProperty.call(this.getQuery(), 'isDeleted')) {
     this.where({ isDeleted: false });
   }
 });

@@ -1,38 +1,110 @@
 import { Router } from 'express';
-import { store } from '../../services/demoStore';
+import { CleaningTaskModel } from '../cleaning/cleaning.model';
 import { ok } from '../../utils/responses';
+import { CleaningStatus, TableStatus } from '../../constants/statuses';
+import { TableModel } from '../tables/tables.model';
 
 export const cleaningRouter = Router();
 
-cleaningRouter.get('/tasks', (req, res) => {
-  const { status, priority } = req.query;
-  let tasks = [...store.cleaningTasks];
-  if (status) tasks = tasks.filter((task) => task.status === String(status));
-  if (priority) tasks = tasks.filter((task) => task.priority === String(priority));
-  ok(res, { tasks, count: tasks.length });
-});
+cleaningRouter.get('/tasks', async (req, res, next) => {
+  try {
+    const { status, priority } = req.query;
+    const query: Record<string, unknown> = { restaurantId: req.user?.restaurantId };
 
-cleaningRouter.get('/tasks/:id', (req, res) => {
-  ok(res, { task: store.cleaningTasks.find((task) => task.id === req.params.id) ?? null });
-});
+    if (status) query.status = status;
+    if (priority) query.priority = priority;
 
-cleaningRouter.patch('/tasks/:id/start', (req, res) => {
-  const task = store.cleaningTasks.find((entry) => entry.id === req.params.id);
-  if (task) task.status = 'IN_PROGRESS';
-  ok(res, { task: task ?? null, startedBy: req.body?.staffId ?? 'usr_cleaning_1' });
-});
-
-cleaningRouter.patch('/tasks/:id/complete', (req, res) => {
-  const task = store.cleaningTasks.find((entry) => entry.id === req.params.id);
-  if (task) task.status = 'COMPLETED';
-  ok(res, { task: task ?? null });
-});
-
-cleaningRouter.patch('/tasks/:id/verify', (req, res) => {
-  const task = store.cleaningTasks.find((entry) => entry.id === req.params.id);
-  if (task) {
-    task.status = 'VERIFIED';
-    task.verifiedBy = req.body?.verifiedBy ?? 'usr_staff_1';
+    const tasks = await CleaningTaskModel.find(query).sort({ createdAt: -1 });
+    ok(res, { tasks, count: tasks.length });
+  } catch (error) {
+    next(error);
   }
-  ok(res, { task: task ?? null });
+});
+
+cleaningRouter.get('/tasks/:id', async (req, res, next) => {
+  try {
+    const task = await CleaningTaskModel.findOne({
+      _id: req.params.id,
+      restaurantId: req.user?.restaurantId,
+    });
+
+    ok(res, { task });
+  } catch (error) {
+    next(error);
+  }
+});
+
+cleaningRouter.patch('/tasks/:id/start', async (req, res, next) => {
+  try {
+    const task = await CleaningTaskModel.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        restaurantId: req.user?.restaurantId,
+      },
+      {
+        status: CleaningStatus.IN_PROGRESS,
+        startedAt: new Date(),
+      },
+      { new: true },
+    );
+
+    if (task) {
+      await TableModel.findByIdAndUpdate(task.tableId, { status: TableStatus.CLEANING_IN_PROGRESS });
+    }
+
+    ok(res, { task, startedBy: req.body?.staffId ?? req.user?.id ?? null });
+  } catch (error) {
+    next(error);
+  }
+});
+
+cleaningRouter.patch('/tasks/:id/complete', async (req, res, next) => {
+  try {
+    const task = await CleaningTaskModel.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        restaurantId: req.user?.restaurantId,
+      },
+      {
+        status: CleaningStatus.COMPLETED,
+        completedAt: new Date(),
+      },
+      { new: true },
+    );
+
+    if (task) {
+      await TableModel.findByIdAndUpdate(task.tableId, { status: TableStatus.NEEDS_CLEANING });
+    }
+
+    ok(res, { task });
+  } catch (error) {
+    next(error);
+  }
+});
+
+cleaningRouter.patch('/tasks/:id/verify', async (req, res, next) => {
+  try {
+    const task = await CleaningTaskModel.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        restaurantId: req.user?.restaurantId,
+      },
+      {
+        status: CleaningStatus.VERIFIED,
+        verifiedBy: req.body?.verifiedBy ?? req.user?.id ?? null,
+      },
+      { new: true },
+    );
+
+    if (task) {
+      await TableModel.findByIdAndUpdate(task.tableId, {
+        status: TableStatus.AVAILABLE,
+        currentSessionId: null,
+      });
+    }
+
+    ok(res, { task });
+  } catch (error) {
+    next(error);
+  }
 });

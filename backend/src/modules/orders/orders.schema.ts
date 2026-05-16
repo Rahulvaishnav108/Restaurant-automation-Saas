@@ -2,12 +2,15 @@
 
 import mongoose, { Document, Schema } from "mongoose";
 import { z } from "zod";
+import { Priority } from "../../constants/statuses";
 
 export enum OrderStatus {
   PENDING = "PENDING",
   ACCEPTED = "ACCEPTED",
   PREPARING = "PREPARING",
+  DELAYED = "DELAYED",
   READY = "READY",
+  PICKED = "PICKED",
   SERVED = "SERVED",
   COMPLETED = "COMPLETED",
   CANCELLED = "CANCELLED",
@@ -38,6 +41,7 @@ export interface IOrder extends Document {
   tableId?: mongoose.Types.ObjectId;
 
   sessionId?: mongoose.Types.ObjectId;
+  batchId?: mongoose.Types.ObjectId;
 
   orderNumber: string;
 
@@ -52,6 +56,7 @@ export interface IOrder extends Document {
   finalAmount: number;
 
   status: OrderStatus;
+  priority: Priority;
 
   paymentStatus: PaymentStatus;
 
@@ -145,6 +150,12 @@ export const orderSchema = new Schema<IOrder>(
       default: null,
     },
 
+    batchId: {
+      type: Schema.Types.ObjectId,
+      ref: "KitchenBatch",
+      default: null,
+    },
+
     orderNumber: {
       type: String,
       required: true,
@@ -189,6 +200,12 @@ export const orderSchema = new Schema<IOrder>(
       type: String,
       enum: Object.values(OrderStatus),
       default: OrderStatus.PENDING,
+    },
+
+    priority: {
+      type: String,
+      enum: Object.values(Priority),
+      default: Priority.NORMAL,
     },
 
     paymentStatus: {
@@ -242,6 +259,7 @@ export const orderSchema = new Schema<IOrder>(
   {
     timestamps: true,
     versionKey: false,
+    collection: 'orders',
   }
 );
 
@@ -250,8 +268,8 @@ orderSchema.index({ restaurantId: 1 });
 orderSchema.index({ customerId: 1 });
 orderSchema.index({ tableId: 1 });
 orderSchema.index({ status: 1 });
+orderSchema.index({ priority: 1 });
 orderSchema.index({ paymentStatus: 1 });
-orderSchema.index({ orderNumber: 1 });
 
 export default orderSchema;
 
@@ -298,4 +316,4 @@ export const delayOrderBodySchema = z.object({
     .positive('Delay minutes must be positive'),
 });
 
-export type DelayOrderInput = z.infer<typeof delayOrderBodySchema>;
+export type DelayOrderInput = z.infer<typeof delayOrderBodySchema>;

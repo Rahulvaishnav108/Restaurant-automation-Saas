@@ -12,13 +12,19 @@ import { adminRouter } from './routes/admin.routes';
 import { superAdminRouter } from './routes/superAdmin.routes';
 import { sharedRouter } from './routes/shared.routes';
 import usersRouter from './users/users.routes';
+import menuRouter from './menu/menu.routes';
+import ordersRouter from './orders/orders.routes';
+import cartRouter from './cart/cart.routes';
 
 export const apiRouter = Router();
 
 apiRouter.use('/auth', authRouter);
 apiRouter.use('/users', usersRouter);
 apiRouter.use('/public', publicRouter);
-apiRouter.use('/customer', requireAuth, roleGuard(roles.customer), customerRouter);
+apiRouter.use(menuRouter);
+apiRouter.use(ordersRouter);
+apiRouter.use('/customer/cart', cartRouter);
+apiRouter.use('/customer', customerRouter);
 apiRouter.use('/staff', requireAuth, roleGuard(roles.serviceStaff, roles.restaurantAdmin), staffRouter);
 apiRouter.use('/kitchen', requireAuth, roleGuard(roles.kitchenStaff, roles.restaurantAdmin), kitchenRouter);
 apiRouter.use('/cleaning', requireAuth, roleGuard(roles.cleaningStaff, roles.restaurantAdmin), cleaningRouter);

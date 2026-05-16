@@ -3,6 +3,7 @@ import app from './app';
 import { connectToDatabase, disconnectFromDatabase } from './config/db';
 import { env } from './config/env';
 import { initializeCollections } from './config/initDB';
+import { seedDevelopmentData } from './config/seed';
 import { logger } from './config/logger';
 import { createSocketServer } from './sockets';
 
@@ -18,6 +19,9 @@ async function bootstrap(): Promise<void> {
       await connectToDatabase();
       isDatabaseConnected = true;
       await initializeCollections();
+      if (env.seedOnStartup) {
+        await seedDevelopmentData();
+      }
     } catch (error) {
       if (!env.allowNoDb) {
         throw error;

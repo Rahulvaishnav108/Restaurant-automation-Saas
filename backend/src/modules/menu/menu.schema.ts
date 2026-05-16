@@ -93,7 +93,12 @@ export const reorderItemsSchema = z.object({
 
 // Menu Item Query Schema (Customers/Public)
 export const menuItemQuerySchema = paginationQuerySchema.extend({
-  category: objectIdSchema.optional(),
+  category: z.string().trim().min(1).optional(),
+  veg: z.enum(['true', 'false']).transform((val) => val === 'true').optional(),
   vegOnly: z.enum(['true', 'false']).transform((val) => val === 'true').optional(),
   available: z.enum(['true', 'false']).transform((val) => val === 'true').optional(),
+  popular: z.enum(['true', 'false']).transform((val) => val === 'true').optional(),
+  recommended: z.enum(['true', 'false']).transform((val) => val === 'true').optional(),
+  priceMin: z.string().regex(/^\d+$/).transform(Number).optional(),
+  priceMax: z.string().regex(/^\d+$/).transform(Number).optional(),
 });

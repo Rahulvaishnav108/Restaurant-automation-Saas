@@ -142,16 +142,16 @@ export class MenuController {
   static getCustomerItems = asyncHandler(async (req: Request, res: Response) => {
     const restaurantId = MenuController.getRestaurantIdFromReq(req);
     const pagination = parsePagination(req.query as any);
-    
-    // We already do basic type conversion in Zod query schema, but let's be explicit
-    const vegOnly = String(req.query.vegOnly) === 'true';
-    const availableOnly = String(req.query.available) === 'true';
 
     const data = await MenuService.getItems(restaurantId, {
       ...pagination,
-      categoryId: req.query.category as string,
-      vegOnly,
-      availableOnly,
+      category: req.query.category as string,
+      vegOnly: String(req.query.vegOnly ?? req.query.veg) === 'true',
+      availableOnly: String(req.query.available) === 'true',
+      popularOnly: String(req.query.popular) === 'true',
+      recommendedOnly: String(req.query.recommended) === 'true',
+      priceMin: req.query.priceMin ? Number(req.query.priceMin) : undefined,
+      priceMax: req.query.priceMax ? Number(req.query.priceMax) : undefined,
       search: req.query.search as string,
       sortBy: req.query.sortBy as string,
     });

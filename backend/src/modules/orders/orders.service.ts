@@ -4,6 +4,7 @@ import { Cart } from '../cart/cart.model';
 import { PlaceOrderInput, OrderStatus, PaymentStatus } from './orders.schema';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
+import { Priority } from '../../constants/statuses';
 
 export class OrdersService {
   static async placeOrder(
@@ -60,6 +61,7 @@ export class OrdersService {
       finalAmount: cart.grandTotal,
       status: OrderStatus.PENDING,
       paymentStatus: PaymentStatus.PENDING,
+      priority: Priority.NORMAL,
       specialInstructions: data.specialInstructions || '',
     });
 
@@ -74,6 +76,95 @@ export class OrdersService {
     return order;
   }
 
+  static async getCustomerOrders(
+    restaurantId: string | Types.ObjectId,
+    sessionId: string | Types.ObjectId,
+    options: { status?: string; page?: number; limit?: number } = {},
+  ) {
+    const page = Number(options.page ?? 1);
+    const limit = Number(options.limit ?? 10);
+    const skip = (page - 1) * limit;
+
+    const query: Record<string, unknown> = { restaurantId, sessionId };
+    if (options.status) {
+      query.status = options.status;
+    }
+
+    const [orders, total] = await Promise.all([
+      OrderModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      OrderModel.countDocuments(query),
+    ]);
+
+    return {
+      orders,
+      pagination: {
+        page,
+        limit,
+        total,
+      },
+    };
+  }
+
+  static async getCustomerOrderById(
+    restaurantId: string | Types.ObjectId,
+    sessionId: string | Types.ObjectId,
+    orderId: string | Types.ObjectId,
+  ) {
+    const order = await OrderModel.findOne({ _id: orderId, restaurantId, sessionId });
+    if (!order) {
+      throw new AppError('Order not found', 404, ErrorCode.NOT_FOUND);
+    }
+
+    return order;
+  }
+
+  static async reorder(
+    restaurantId: string | Types.ObjectId,
+    sessionId: string | Types.ObjectId,
+    tableId: string | Types.ObjectId,
+    orderId: string | Types.ObjectId,
+  ) {
+    const original = await this.getCustomerOrderById(restaurantId, sessionId, orderId);
+
+    const timestamp = Date.now().toString().slice(-6);
+    const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const orderNumber = `ORD-${timestamp}-${randomChars}`;
+
+    return OrderModel.create({
+      restaurantId,
+      tableId,
+      sessionId,
+      orderNumber,
+      items: original.items,
+      totalAmount: original.totalAmount,
+      taxAmount: original.taxAmount,
+      discountAmount: original.discountAmount,
+      finalAmount: original.finalAmount,
+      status: OrderStatus.PENDING,
+      paymentStatus: PaymentStatus.PENDING,
+      priority: original.priority ?? Priority.NORMAL,
+      specialInstructions: original.specialInstructions,
+    });
+  }
+
+  static async cancelOrder(
+    restaurantId: string | Types.ObjectId,
+    sessionId: string | Types.ObjectId,
+    orderId: string | Types.ObjectId,
+  ) {
+    const order = await this.getCustomerOrderById(restaurantId, sessionId, orderId);
+
+    if ([OrderStatus.READY, OrderStatus.SERVED, OrderStatus.COMPLETED].includes(order.status)) {
+      throw new AppError('Order cannot be cancelled in its current state', 400, ErrorCode.ORDER_NOT_MODIFIABLE);
+    }
+
+    order.status = OrderStatus.CANCELLED;
+    order.cancelledAt = new Date();
+    await order.save();
+
+    return order;
+  }
+
   // --- Kitchen Order APIs ---
 
   static async getKitchenOrders(restaurantId: string | Types.ObjectId) {
@@ -84,6 +175,7 @@ export class OrdersService {
           OrderStatus.PENDING,
           OrderStatus.ACCEPTED,
           OrderStatus.PREPARING,
+          OrderStatus.DELAYED,
           OrderStatus.READY,
         ],
       },
@@ -130,7 +222,7 @@ export class OrdersService {
   static async markReady(restaurantId: string | Types.ObjectId, orderId: string | Types.ObjectId) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    if (order.status !== OrderStatus.PREPARING) {
+    if (order.status !== OrderStatus.PREPARING && order.status !== OrderStatus.DELAYED) {
       throw new AppError('Only preparing orders can be marked ready', 400, ErrorCode.VALIDATION_ERROR);
     }
 
@@ -167,7 +259,37 @@ export class OrdersService {
     } else {
       order.estimatedPreparationTime = delayMinutes;
     }
+    order.status = OrderStatus.DELAYED;
 
+    await order.save();
+    return order;
+  }
+
+  static async getReadyOrders(restaurantId: string | Types.ObjectId) {
+    return OrderModel.find({ restaurantId, status: OrderStatus.READY }).sort({ updatedAt: 1 });
+  }
+
+  static async pickFood(restaurantId: string | Types.ObjectId, orderId: string | Types.ObjectId) {
+    const order = await this.getKitchenOrderDetails(restaurantId, orderId);
+
+    if (order.status !== OrderStatus.READY) {
+      throw new AppError('Only ready orders can be picked', 400, ErrorCode.ORDER_NOT_MODIFIABLE);
+    }
+
+    order.status = OrderStatus.PICKED;
+    await order.save();
+    return order;
+  }
+
+  static async markServed(restaurantId: string | Types.ObjectId, orderId: string | Types.ObjectId) {
+    const order = await this.getKitchenOrderDetails(restaurantId, orderId);
+
+    if (order.status !== OrderStatus.PICKED && order.status !== OrderStatus.READY) {
+      throw new AppError('Only picked or ready orders can be served', 400, ErrorCode.ORDER_NOT_MODIFIABLE);
+    }
+
+    order.status = OrderStatus.SERVED;
+    order.servedAt = new Date();
     await order.save();
     return order;
   }

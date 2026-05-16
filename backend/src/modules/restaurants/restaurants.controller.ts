@@ -1,10 +1,13 @@
 import type { Request, Response } from 'express';
 import { AppError } from '../../middleware/errorHandler';
 import { ok } from '../../utils/responses';
-import { getRestaurantById, getRestaurantBySlug, phase1Store } from '../../services/phase1Store';
+import { RestaurantModel } from './restaurants.model';
+import { TableModel } from '../tables/tables.model';
+import { TableSessionModel } from '../tableSessions/tableSessions.model';
+import { SessionStatus, TableStatus } from '../../constants/statuses';
 
-export function getPublicRestaurantController(req: Request, res: Response): void {
-  const restaurant = getRestaurantBySlug(req.params.slug);
+export async function getPublicRestaurantController(req: Request, res: Response): Promise<void> {
+  const restaurant = await RestaurantModel.findOne({ slug: req.params.slug }).lean();
 
   if (!restaurant) {
     throw new AppError(404, 'NOT_FOUND', 'Restaurant not found');
@@ -13,32 +16,33 @@ export function getPublicRestaurantController(req: Request, res: Response): void
   ok(res, { restaurant });
 }
 
-export function getRestaurantOverviewController(req: Request, res: Response): void {
-  const restaurantId = req.user?.restaurantId ?? 'rest_1';
-  const restaurant = getRestaurantById(restaurantId);
+export async function getRestaurantOverviewController(req: Request, res: Response): Promise<void> {
+  const restaurantId = req.user?.restaurantId;
+  const restaurant = restaurantId ? await RestaurantModel.findById(restaurantId).lean() : null;
 
   if (!restaurant) {
     throw new AppError(404, 'NOT_FOUND', 'Restaurant not found');
   }
 
-  const tables = phase1Store.tables.filter((table) => table.restaurantId === restaurantId);
-  const activeSessions = phase1Store.tableSessions.filter(
-    (session) => session.restaurantId === restaurantId && session.status === 'ACTIVE',
-  );
+  const [totalTables, activeSessions, occupiedTables] = await Promise.all([
+    TableModel.countDocuments({ restaurantId }),
+    TableSessionModel.countDocuments({ restaurantId, status: SessionStatus.ACTIVE }),
+    TableModel.countDocuments({ restaurantId, status: TableStatus.OCCUPIED }),
+  ]);
 
   ok(res, {
     restaurant,
     metrics: {
-      totalTables: tables.length,
-      activeSessions: activeSessions.length,
-      occupiedTables: tables.filter((table) => table.status === 'OCCUPIED').length,
+      totalTables,
+      activeSessions,
+      occupiedTables,
     },
   });
 }
 
-export function getRestaurantSettingsController(req: Request, res: Response): void {
-  const restaurantId = req.user?.restaurantId ?? 'rest_1';
-  const restaurant = getRestaurantById(restaurantId);
+export async function getRestaurantSettingsController(req: Request, res: Response): Promise<void> {
+  const restaurantId = req.user?.restaurantId;
+  const restaurant = restaurantId ? await RestaurantModel.findById(restaurantId).lean() : null;
 
   if (!restaurant) {
     throw new AppError(404, 'NOT_FOUND', 'Restaurant not found');
@@ -50,9 +54,9 @@ export function getRestaurantSettingsController(req: Request, res: Response): vo
   });
 }
 
-export function updateRestaurantSettingsController(req: Request, res: Response): void {
-  const restaurantId = req.user?.restaurantId ?? 'rest_1';
-  const restaurant = getRestaurantById(restaurantId);
+export async function updateRestaurantSettingsController(req: Request, res: Response): Promise<void> {
+  const restaurantId = req.user?.restaurantId;
+  const restaurant = restaurantId ? await RestaurantModel.findById(restaurantId) : null;
 
   if (!restaurant) {
     throw new AppError(404, 'NOT_FOUND', 'Restaurant not found');

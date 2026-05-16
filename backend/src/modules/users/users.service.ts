@@ -2,9 +2,7 @@
 // User business logic â€” all queries filter isDeleted: false by default
 
 import { UserModel, IUser } from './users.model';
-import { hashPassword, comparePassword } from '../../utils/crypto';
-import { AppError } from '../../utils/AppError';
-import { ErrorCode } from '../../constants/errors';
+import { hashPassword } from '../../utils/crypto';
 import { RegisterInput, UpdateProfileInput } from './users.schema';
 import { UserRole } from '../../constants/roles';
 

@@ -10,6 +10,7 @@ export enum UserStatus {
 
 export enum TableStatus {
   AVAILABLE = 'AVAILABLE',
+  RESERVED = 'RESERVED',
   OCCUPIED = 'OCCUPIED',
   PAYMENT_PENDING = 'PAYMENT_PENDING',
   NEEDS_CLEANING = 'NEEDS_CLEANING',

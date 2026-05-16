@@ -79,6 +79,24 @@ npm run dev --workspace backend
 npm run dev --workspace frontend
 ```
 
+### Backend local setup
+
+The backend now expects a real MongoDB connection by default and fails fast when the database is unavailable.
+
+Recommended local flow:
+
+```bash
+npm install
+npm run seed --workspace backend
+npm run dev --workspace backend
+```
+
+Important backend notes:
+
+- MongoDB should be available at `mongodb://[REDACTED]` unless you override `MONGODB_URI`
+- local seed data is applied on boot when `SEED_ON_STARTUP=true`
+- use `ALLOW_NO_DB=true` only for intentional no-database debugging, not normal Phase 1 development
+
 ## Quality Scripts
 
 ```bash
@@ -118,21 +136,26 @@ Important keys:
 
 ## API Baseline
 
-The backend currently exposes foundational endpoints for platform readiness and application wiring:
+The backend currently exposes a seeded Mongo-backed Phase 1 baseline for:
 
 - `GET /health`
 - `GET /ready`
 - `GET /api/v1`
 - `POST /api/v1/auth/login`
-- `GET /api/v1/me`
-- `GET /api/v1/admin/overview`
+- `GET /api/v1/public/restaurants/:slug`
+- `POST /api/v1/public/table-session/create`
+- `GET /api/v1/customer/menu/items`
+- `POST /api/v1/customer/orders`
+- `GET /api/v1/kitchen/orders`
+- `GET /api/v1/admin/restaurant/overview`
+- `GET /api/v1/super-admin/platform/overview`
 
 ## Next Recommended Milestones
 
 To move from strong scaffold to full product, the next high-value steps are:
 
-1. Implement real auth flows with refresh tokens and secure cookies.
-2. Add domain modules for orders, tables, reservations, billing, and inventory.
-3. Add integration tests for middleware and route contracts.
-4. Add database models, service layers, and tenant isolation rules.
-5. Add observability tooling such as metrics and error reporting.
+1. Add integration tests for middleware and route contracts.
+2. Expand Phase 1 persistence across the remaining admin, billing, and inventory domains.
+3. Tighten response contracts and frontend integration around session-based customer flows.
+4. Add observability tooling such as metrics and error reporting.
+5. Add CI-backed seeded API smoke verification.

@@ -20,6 +20,9 @@ export async function createTable(input: CreateTableInput): Promise<ITable> {
   const table = await TableModel.create({
     ...input,
     qrCode,
+    floor: input.floor ?? 1,
+    section: input.section ?? 'Main',
+    assignedStaffId: input.assignedStaffId ?? null,
     status: TableStatus.AVAILABLE,
     isActive: true,
   });

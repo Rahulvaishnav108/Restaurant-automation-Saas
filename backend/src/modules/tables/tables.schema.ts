@@ -40,12 +40,18 @@ export const createTableSchema = z.object({
   restaurantId: z.string().min(1, 'Restaurant ID is required'),
   tableNumber: z.string().min(1, 'Table number is required').max(20),
   capacity: z.coerce.number().int().min(1).max(50),
+  floor: z.coerce.number().int().min(0).optional(),
+  section: z.string().min(1).max(50).optional(),
+  assignedStaffId: z.string().min(1).nullable().optional(),
   qrCode: z.string().min(1, 'QR code identifier is required').optional(),
 });
 
 export const updateTableSchema = z.object({
   tableNumber: z.string().min(1).max(20).optional(),
   capacity: z.coerce.number().int().min(1).max(50).optional(),
+  floor: z.coerce.number().int().min(0).optional(),
+  section: z.string().min(1).max(50).optional(),
+  assignedStaffId: z.string().min(1).nullable().optional(),
   isActive: z.boolean().optional(),
 });
 

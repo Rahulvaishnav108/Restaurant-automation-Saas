@@ -11,7 +11,12 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
   CORS_ORIGINS: z.string().optional(),
   MONGODB_URI: z.string().min(1).default('mongodb://[REDACTED]'),
+  MONGODB_CONNECT_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
   ALLOW_NO_DB: z
+    .string()
+    .optional()
+    .transform((value) => value === 'true'),
+  SEED_ON_STARTUP: z
     .string()
     .optional()
     .transform((value) => value === 'true'),
@@ -102,7 +107,8 @@ export const env = {
   JWT_REFRESH_EXPIRES_IN: jwtRefreshExpiry,
   RATE_LIMIT_MAX: rateLimitMax,
   RATE_LIMIT_MAX_REQUESTS: rateLimitMax,
-  allowNoDb: rawEnv.ALLOW_NO_DB ?? rawEnv.NODE_ENV === 'development',
+  allowNoDb: rawEnv.ALLOW_NO_DB ?? false,
+  seedOnStartup: rawEnv.SEED_ON_STARTUP ?? rawEnv.NODE_ENV === 'development',
   isProduction: rawEnv.NODE_ENV === 'production',
   isDevelopment: rawEnv.NODE_ENV === 'development',
   corsOrigins: origins

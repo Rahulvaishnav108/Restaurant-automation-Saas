@@ -33,7 +33,7 @@ export async function connectToDatabase(): Promise<void> {
   }
 
   const connection = await mongoose.connect(env.MONGODB_URI, {
-    serverSelectionTimeoutMS: 5000,
+    serverSelectionTimeoutMS: env.MONGODB_CONNECT_TIMEOUT_MS,
   });
 
   isConnected = true;

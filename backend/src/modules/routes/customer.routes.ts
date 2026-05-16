@@ -1,221 +1,276 @@
 import { Router } from 'express';
-import { createId, getCurrentCustomerSession, store, type OrderStatus, type RequestStatus } from '../../services/demoStore';
+import { requireSession } from '../../middleware/requireSession';
 import { ok } from '../../utils/responses';
+import { endSession } from '../tableSessions/tableSessions.service';
+import { TableSessionModel } from '../tableSessions/tableSessions.model';
+import { OrderModel } from '../orders/orders.model';
+import { PaymentModel } from '../payments/payments.model';
+import { FeedbackModel } from '../feedback/feedback.model';
+import { OfferModel } from '../offers/offers.model';
+import { StaffRequestModel } from '../staff/staffRequest.model';
+import { Priority, RequestStatus, RequestType } from '../../constants/statuses';
+import { OrderStatus as OrderPaymentStatus } from '../orders/orders.schema';
+import { AppError } from '../../utils/AppError';
+import { ErrorCode } from '../../constants/errors';
 
 export const customerRouter = Router();
 
-customerRouter.get('/session', (_req, res) => {
-  ok(res, { session: getCurrentCustomerSession() });
-});
+customerRouter.use(requireSession);
 
-customerRouter.patch('/session/extend', (_req, res) => {
-  const session = store.tableSessions[0];
-  session.expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
-  ok(res, { session });
-});
-
-customerRouter.post('/session/end', (_req, res) => {
-  const session = store.tableSessions[0];
-  session.active = false;
-  ok(res, { ended: true, sessionId: session.id });
-});
-
-customerRouter.get('/menu/categories', (_req, res) => {
-  ok(res, { categories: store.menuCategories });
-});
-
-customerRouter.get('/menu/items', (req, res) => {
-  const { veg, category, available, popular, recommended, search, priceMin, priceMax, sortBy } = req.query;
-  let items = [...store.menuItems];
-  if (veg !== undefined) items = items.filter((item) => item.veg === (veg === 'true'));
-  if (category) items = items.filter((item) => item.category === String(category));
-  if (available !== undefined) items = items.filter((item) => item.available === (available === 'true'));
-  if (popular !== undefined) items = items.filter((item) => item.popular === (popular === 'true'));
-  if (recommended !== undefined) items = items.filter((item) => item.recommended === (recommended === 'true'));
-  if (search) items = items.filter((item) => item.name.toLowerCase().includes(String(search).toLowerCase()));
-  if (priceMin) items = items.filter((item) => item.price >= Number(priceMin));
-  if (priceMax) items = items.filter((item) => item.price <= Number(priceMax));
-  if (sortBy === 'price') items = items.sort((a, b) => a.price - b.price);
-  ok(res, { items, count: items.length });
-});
-
-customerRouter.get('/menu/items/:id', (req, res) => {
-  ok(res, { item: store.menuItems.find((item) => item.id === req.params.id) ?? null });
-});
-
-customerRouter.get('/cart', (_req, res) => {
-  ok(res, { items: store.cart, itemCount: store.cart.length });
-});
-
-customerRouter.post('/cart/items', (req, res) => {
-  const item = {
-    id: createId('cart'),
-    sessionId: store.tableSessions[0]?.id ?? 'ts_1',
-    itemId: req.body?.itemId ?? 'item_1',
-    quantity: Number(req.body?.quantity ?? 1),
-    addOns: Array.isArray(req.body?.addOns) ? req.body.addOns : [],
-    note: req.body?.note ?? '',
-  };
-  store.cart.push(item);
-  ok(res, { item }, 201);
-});
-
-customerRouter.patch('/cart/items/:itemId', (req, res) => {
-  const item = store.cart.find((entry) => entry.id === req.params.itemId);
-  if (item) {
-    item.quantity = Number(req.body?.quantity ?? item.quantity);
-    item.note = req.body?.note ?? item.note;
+customerRouter.get('/session', async (req, res, next) => {
+  try {
+    const session = await TableSessionModel.findById(req.tableSession!._id);
+    ok(res, { session });
+  } catch (error) {
+    next(error);
   }
-  ok(res, { item: item ?? null });
 });
 
-customerRouter.delete('/cart/items/:itemId', (req, res) => {
-  store.cart = store.cart.filter((entry) => entry.id !== req.params.itemId);
-  ok(res, { removedItemId: req.params.itemId });
+customerRouter.patch('/session/extend', async (req, res, next) => {
+  try {
+    const session = await TableSessionModel.findByIdAndUpdate(
+      req.tableSession!._id,
+      {
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+        lastActivityAt: new Date(),
+      },
+      { new: true },
+    );
+
+    ok(res, { session });
+  } catch (error) {
+    next(error);
+  }
 });
 
-customerRouter.delete('/cart', (_req, res) => {
-  store.cart = [];
-  ok(res, { cleared: true });
+customerRouter.post('/session/end', async (req, res, next) => {
+  try {
+    const session = await endSession(req.tableSession!._id, 'customer_closed');
+    ok(res, { ended: true, sessionId: session._id.toString(), session });
+  } catch (error) {
+    next(error);
+  }
 });
 
-customerRouter.post('/orders', (_req, res) => {
-  const order = {
-    id: createId('ord'),
-    restaurantId: 'rest_1',
-    sessionId: store.tableSessions[0]?.id ?? 'ts_1',
-    tableId: store.tableSessions[0]?.tableId ?? 'tbl_1',
-    status: 'PLACED' as OrderStatus,
-    priority: 'MEDIUM',
-    batchId: null as string | null,
-    total: store.cart.reduce((sum, item) => {
-      const menuItem = store.menuItems.find((entry) => entry.id === item.itemId);
-      return sum + (menuItem?.price ?? 0) * item.quantity;
-    }, 0),
-    createdAt: new Date().toISOString(),
-    picked: false,
-    served: false,
-  };
-  store.orders.push(order);
-  ok(res, { order }, 201);
-});
+const requestTypeMap: Record<string, RequestType> = {
+  waiter: RequestType.WAITER,
+  water: RequestType.WATER,
+  cutlery: RequestType.CUTLERY,
+  cleaning: RequestType.CLEANING,
+  help: RequestType.HELP,
+};
 
-customerRouter.get('/orders', (req, res) => {
-  const { status, page, limit } = req.query;
-  let orders = [...store.orders];
-  if (status) orders = orders.filter((order) => order.status === String(status));
-  const pageNumber = Number(page ?? 1);
-  const limitNumber = Number(limit ?? (orders.length || 10));
-  const paged = orders.slice((pageNumber - 1) * limitNumber, pageNumber * limitNumber);
-  ok(res, { orders: paged, pagination: { page: pageNumber, limit: limitNumber, total: orders.length } });
-});
+for (const [path, type] of Object.entries(requestTypeMap)) {
+  customerRouter.post(`/requests/${path}`, async (req, res, next) => {
+    try {
+      const request = await StaffRequestModel.create({
+        restaurantId: req.tableSession!.restaurantId,
+        sessionId: req.tableSession!._id,
+        tableId: req.tableSession!.tableId,
+        type,
+        status: RequestStatus.PENDING,
+        priority: type === RequestType.WAITER || type === RequestType.HELP ? Priority.HIGH : Priority.NORMAL,
+      });
 
-customerRouter.get('/orders/:id', (req, res) => {
-  ok(res, { order: store.orders.find((order) => order.id === req.params.id) ?? null });
-});
-
-customerRouter.post('/orders/:id/reorder', (req, res) => {
-  const original = store.orders.find((order) => order.id === req.params.id);
-  const order = original
-    ? { ...original, id: createId('ord'), createdAt: new Date().toISOString(), status: 'PLACED' as OrderStatus }
-    : null;
-  if (order) store.orders.push(order);
-  ok(res, { order });
-});
-
-customerRouter.post('/orders/:id/cancel', (req, res) => {
-  const order = store.orders.find((entry) => entry.id === req.params.id);
-  if (order) order.status = 'CANCELLED';
-  ok(res, { order: order ?? null });
-});
-
-['waiter', 'water', 'cutlery', 'cleaning', 'help'].forEach((type) => {
-  customerRouter.post(`/requests/${type}`, (_req, res) => {
-    const request = {
-      id: createId('req'),
-      restaurantId: 'rest_1',
-      sessionId: store.tableSessions[0]?.id ?? 'ts_1',
-      type,
-      status: 'PENDING' as RequestStatus,
-      priority: type === 'waiter' || type === 'help' ? 'HIGH' : 'MEDIUM',
-      tableId: store.tableSessions[0]?.tableId ?? 'tbl_1',
-    };
-    store.staffRequests.push(request);
-    ok(res, { request }, 201);
+      ok(res, { request }, 201);
+    } catch (error) {
+      next(error);
+    }
   });
+}
+
+customerRouter.get('/bill', async (req, res, next) => {
+  try {
+    const orders = await OrderModel.find({
+      restaurantId: req.tableSession!.restaurantId,
+      sessionId: req.tableSession!._id,
+      status: { $ne: OrderPaymentStatus.CANCELLED },
+    });
+
+    const subtotal = orders.reduce((sum, order) => sum + order.totalAmount, 0);
+    const tax = orders.reduce((sum, order) => sum + order.taxAmount, 0);
+    const discount = orders.reduce((sum, order) => sum + order.discountAmount, 0);
+
+    ok(res, {
+      bill: {
+        subtotal,
+        discount,
+        tax,
+        total: subtotal - discount + tax,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
-customerRouter.get('/bill', (_req, res) => {
-  const subtotal = store.orders.filter((order) => order.status !== 'CANCELLED').reduce((sum, order) => sum + order.total, 0);
-  const discount = 64;
-  const tax = subtotal * 0.05;
-  ok(res, { bill: { subtotal, discount, tax, total: subtotal - discount + tax } });
-});
-
-customerRouter.post('/bill/request', (_req, res) => {
+customerRouter.post('/bill/request', async (_req, res) => {
   ok(res, { requested: true, etaMinutes: 4 });
 });
 
-customerRouter.post('/bill/coupon', (req, res) => {
-  ok(res, { appliedCoupon: req.body?.code ?? 'LUNCH10', savings: 64 });
+customerRouter.post('/bill/coupon', async (req, res, next) => {
+  try {
+    const offer = await OfferModel.findOne({
+      restaurantId: req.tableSession!.restaurantId,
+      code: String(req.body?.code ?? '').toUpperCase(),
+      active: true,
+    });
+
+    const orders = await OrderModel.find({
+      restaurantId: req.tableSession!.restaurantId,
+      sessionId: req.tableSession!._id,
+      status: { $ne: OrderPaymentStatus.CANCELLED },
+    });
+    const subtotal = orders.reduce((sum, order) => sum + order.totalAmount, 0);
+    const savings = offer ? Math.round((subtotal * offer.discountPercent) / 100) : 0;
+
+    ok(res, { appliedCoupon: offer?.code ?? req.body?.code ?? null, savings });
+  } catch (error) {
+    next(error);
+  }
 });
 
 customerRouter.delete('/bill/coupon/:couponId', (req, res) => {
   ok(res, { removedCouponId: req.params.couponId });
 });
 
-customerRouter.post('/payments/create', (req, res) => {
-  const payment = {
-    id: createId('pay'),
-    orderId: req.body?.orderId ?? 'ord_1',
-    status: 'PENDING',
-    amount: Number(req.body?.amount ?? 640),
-    method: req.body?.method ?? 'UPI',
-  };
-  store.payments.push(payment);
-  ok(res, { payment }, 201);
+customerRouter.post('/payments/create', async (req, res, next) => {
+  try {
+    const order = await OrderModel.findOne({
+      _id: req.body?.orderId,
+      restaurantId: req.tableSession!.restaurantId,
+      sessionId: req.tableSession!._id,
+    });
+
+    if (!order) {
+      throw new AppError('Order not found', 404, ErrorCode.NOT_FOUND);
+    }
+
+    const payment = await PaymentModel.create({
+      restaurantId: req.tableSession!.restaurantId,
+      sessionId: req.tableSession!._id,
+      orderId: order._id,
+      amount: Number(req.body?.amount ?? order.finalAmount),
+      method: req.body?.method ?? 'UPI',
+    });
+
+    ok(res, { payment }, 201);
+  } catch (error) {
+    next(error);
+  }
 });
 
-customerRouter.post('/payments/verify', (req, res) => {
-  const payment = store.payments.find((entry) => entry.id === req.body?.paymentId);
-  if (payment) payment.status = 'CONFIRMED';
-  ok(res, { payment: payment ?? null, verified: Boolean(payment) });
+customerRouter.post('/payments/verify', async (req, res, next) => {
+  try {
+    const payment = await PaymentModel.findOneAndUpdate(
+      {
+        _id: req.body?.paymentId,
+        restaurantId: req.tableSession!.restaurantId,
+      },
+      {
+        status: 'COMPLETED',
+        verifiedAt: new Date(),
+      },
+      { new: true },
+    );
+
+    if (payment) {
+      await OrderModel.findByIdAndUpdate(payment.orderId, {
+        paymentStatus: 'PAID',
+      });
+    }
+
+    ok(res, { payment, verified: Boolean(payment) });
+  } catch (error) {
+    next(error);
+  }
 });
 
-customerRouter.get('/payments/:paymentId/status', (req, res) => {
-  ok(res, { payment: store.payments.find((entry) => entry.id === req.params.paymentId) ?? null });
+customerRouter.get('/payments/:paymentId/status', async (req, res, next) => {
+  try {
+    const payment = await PaymentModel.findOne({
+      _id: req.params.paymentId,
+      restaurantId: req.tableSession!.restaurantId,
+    });
+
+    ok(res, { payment });
+  } catch (error) {
+    next(error);
+  }
 });
 
-customerRouter.post('/feedback', (req, res) => {
-  const entry = {
-    id: createId('fb'),
-    restaurantId: 'rest_1',
-    sessionId: store.tableSessions[0]?.id ?? 'ts_1',
-    rating: Number(req.body?.rating ?? 5),
-    comment: req.body?.comment ?? '',
-  };
-  store.feedback.push(entry);
-  ok(res, { feedback: entry }, 201);
+customerRouter.post('/feedback', async (req, res, next) => {
+  try {
+    const feedback = await FeedbackModel.create({
+      restaurantId: req.tableSession!.restaurantId,
+      sessionId: req.tableSession!._id,
+      rating: Number(req.body?.rating ?? 5),
+      comment: req.body?.comment ?? '',
+    });
+
+    ok(res, { feedback }, 201);
+  } catch (error) {
+    next(error);
+  }
 });
 
-customerRouter.get('/feedback', (_req, res) => {
-  ok(res, { feedback: store.feedback });
+customerRouter.get('/feedback', async (req, res, next) => {
+  try {
+    const feedback = await FeedbackModel.find({
+      restaurantId: req.tableSession!.restaurantId,
+      sessionId: req.tableSession!._id,
+    }).sort({ createdAt: -1 });
+
+    ok(res, { feedback });
+  } catch (error) {
+    next(error);
+  }
 });
 
-customerRouter.get('/loyalty', (_req, res) => {
-  ok(res, {
-    wallet: {
-      points: 240,
-      tier: 'Silver',
-      nextRewardAt: 300,
-    },
-  });
+customerRouter.get('/loyalty', async (req, res, next) => {
+  try {
+    const visits = await TableSessionModel.countDocuments({
+      restaurantId: req.tableSession!.restaurantId,
+      mobile: req.tableSession!.mobile,
+    });
+
+    const points = visits * 120;
+    const tier = points >= 500 ? 'Gold' : points >= 250 ? 'Silver' : 'Bronze';
+
+    ok(res, {
+      wallet: {
+        points,
+        tier,
+        nextRewardAt: tier === 'Gold' ? points : tier === 'Silver' ? 500 : 250,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
-customerRouter.get('/offers', (_req, res) => {
-  ok(res, { offers: store.offers.filter((offer) => offer.active) });
+customerRouter.get('/offers', async (req, res, next) => {
+  try {
+    const offers = await OfferModel.find({
+      restaurantId: req.tableSession!.restaurantId,
+      active: true,
+    }).sort({ createdAt: -1 });
+
+    ok(res, { offers });
+  } catch (error) {
+    next(error);
+  }
 });
 
-customerRouter.get('/offers/eligibility', (_req, res) => {
-  ok(res, { eligibleOfferIds: store.offers.filter((offer) => offer.active).map((offer) => offer.id) });
+customerRouter.get('/offers/eligibility', async (req, res, next) => {
+  try {
+    const offers = await OfferModel.find({
+      restaurantId: req.tableSession!.restaurantId,
+      active: true,
+    }).select('_id');
+
+    ok(res, { eligibleOfferIds: offers.map((offer) => offer._id.toString()) });
+  } catch (error) {
+    next(error);
+  }
 });

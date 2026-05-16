@@ -42,13 +42,20 @@ export class OrdersController {
   static async getOrders(req: Request, res: Response) {
     try {
       const session = req.tableSession;
+      if (!session) {
+        return res.status(401).json({ success: false, message: 'Session required' });
+      }
+
+      const data = await OrdersService.getCustomerOrders(session.restaurantId, session._id, {
+        status: req.query.status as string | undefined,
+        page: Number(req.query.page ?? 1),
+        limit: Number(req.query.limit ?? 10),
+      });
+
       return res.status(200).json({
         success: true,
         message: 'Orders fetched successfully',
-        data: {
-          restaurantId: session?.restaurantId,
-          tableId: session?.tableId,
-        },
+        data,
       });
     } catch (error) {
       return res.status(500).json({
@@ -62,10 +69,17 @@ export class OrdersController {
   // GET /customer/orders/:id
   static async getSingleOrder(req: Request, res: Response) {
     try {
+      const session = req.tableSession;
+      if (!session) {
+        return res.status(401).json({ success: false, message: 'Session required' });
+      }
+
       const { id } = req.params;
+      const order = await OrdersService.getCustomerOrderById(session.restaurantId, session._id, id);
       return res.status(200).json({
         success: true,
         message: `Order ${id} fetched successfully`,
+        data: order,
       });
     } catch (error) {
       return res.status(500).json({
@@ -79,10 +93,17 @@ export class OrdersController {
   // POST /customer/orders/:id/reorder
   static async reorder(req: Request, res: Response) {
     try {
+      const session = req.tableSession;
+      if (!session) {
+        return res.status(401).json({ success: false, message: 'Session required' });
+      }
+
       const { id } = req.params;
+      const order = await OrdersService.reorder(session.restaurantId, session._id, session.tableId, id);
       return res.status(200).json({
         success: true,
         message: `Reorder created from order ${id}`,
+        data: order,
       });
     } catch (error) {
       return res.status(500).json({
@@ -96,10 +117,17 @@ export class OrdersController {
   // POST /customer/orders/:id/cancel
   static async cancelOrder(req: Request, res: Response) {
     try {
+      const session = req.tableSession;
+      if (!session) {
+        return res.status(401).json({ success: false, message: 'Session required' });
+      }
+
       const { id } = req.params;
+      const order = await OrdersService.cancelOrder(session.restaurantId, session._id, id);
       return res.status(200).json({
         success: true,
         message: `Order ${id} cancelled successfully`,
+        data: order,
       });
     } catch (error) {
       return res.status(500).json({
@@ -253,9 +281,14 @@ export class OrdersController {
   // GET /staff/orders/ready
   static async getReadyOrders(req: Request, res: Response) {
     try {
+      const restaurantId = req.user?.restaurantId;
+      if (!restaurantId) return res.status(403).json({ success: false, message: 'Restaurant ID required' });
+
+      const orders = await OrdersService.getReadyOrders(restaurantId);
       return res.status(200).json({
         success: true,
         message: 'Ready orders fetched successfully',
+        data: orders,
       });
     } catch (error) {
       return res.status(500).json({
@@ -269,10 +302,15 @@ export class OrdersController {
   // PATCH /staff/orders/:id/pick
   static async pickFood(req: Request, res: Response) {
     try {
+      const restaurantId = req.user?.restaurantId;
+      if (!restaurantId) return res.status(403).json({ success: false, message: 'Restaurant ID required' });
+
       const { id } = req.params;
+      const order = await OrdersService.pickFood(restaurantId, id);
       return res.status(200).json({
         success: true,
         message: `Food picked for order ${id}`,
+        data: order,
       });
     } catch (error) {
       return res.status(500).json({
@@ -286,10 +324,15 @@ export class OrdersController {
   // PATCH /staff/orders/:id/serve
   static async markServed(req: Request, res: Response) {
     try {
+      const restaurantId = req.user?.restaurantId;
+      if (!restaurantId) return res.status(403).json({ success: false, message: 'Restaurant ID required' });
+
       const { id } = req.params;
+      const order = await OrdersService.markServed(restaurantId, id);
       return res.status(200).json({
         success: true,
         message: `Order ${id} served successfully`,
+        data: order,
       });
     } catch (error) {
       return res.status(500).json({

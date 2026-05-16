@@ -107,6 +107,9 @@ export async function createTableController(req: Request, res: Response, next: N
       restaurantId: req.body.restaurantId ?? getRestaurantId(req),
       tableNumber: String(req.body.tableNumber ?? req.body.number ?? req.body.name ?? 'Table'),
       capacity: Number(req.body.capacity),
+      floor: req.body.floor !== undefined ? Number(req.body.floor) : undefined,
+      section: req.body.section,
+      assignedStaffId: req.body.assignedStaffId ?? null,
       qrCode: req.body.qrCode,
     });
 
@@ -125,6 +128,9 @@ export async function bulkCreateTablesController(req: Request, res: Response, ne
           restaurantId: payload.restaurantId ?? restaurantId,
           tableNumber: String(payload.tableNumber ?? payload.number ?? payload.name ?? 'Table'),
           capacity: Number(payload.capacity),
+          floor: payload.floor !== undefined ? Number(payload.floor) : undefined,
+          section: payload.section,
+          assignedStaffId: payload.assignedStaffId ?? null,
           qrCode: payload.qrCode,
         }),
       ),
@@ -159,6 +165,9 @@ export async function updateTableController(req: Request, res: Response, next: N
     const table = await tablesService.updateTable(req.params.id, {
       tableNumber: req.body.tableNumber ?? (req.body.number ? String(req.body.number) : undefined),
       capacity: req.body.capacity !== undefined ? Number(req.body.capacity) : undefined,
+      floor: req.body.floor !== undefined ? Number(req.body.floor) : undefined,
+      section: req.body.section,
+      assignedStaffId: req.body.assignedStaffId ?? null,
       isActive: req.body.isActive,
     });
 

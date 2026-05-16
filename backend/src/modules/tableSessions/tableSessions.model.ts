@@ -116,6 +116,7 @@ const tableSessionSchema = new Schema<ITableSession>(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
+    collection: 'tableSessions',
   }
 );
 

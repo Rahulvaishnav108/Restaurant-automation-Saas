@@ -1,4 +1,14 @@
 services:
+  mongo:
+    image: mongo:7
+    container_name: restaurant-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - restaurant-network
+
   backend:
     build:
       context: ./backend
@@ -13,6 +23,8 @@ services:
       - ./backend/.env
     networks:
       - restaurant-network
+    depends_on:
+      - mongo
 
   frontend:
     build:
@@ -33,3 +45,6 @@ services:
 networks:
   restaurant-network:
     driver: bridge
+
+volumes:
+  mongo-data:
