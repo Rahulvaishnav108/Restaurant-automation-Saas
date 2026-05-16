@@ -196,12 +196,12 @@ export async function revokeSession(userId: string, sessionId: string): Promise<
   });
 }
 
-export async function forgotPassword(email: string): Promise<void> {
+export async function forgotPassword(email: string): Promise<{ delivered: boolean; resetToken?: string }> {
   const user = await userService.findByEmail(email);
 
   if (!user) {
     logger.info(`Password reset requested for non-existent email: ${email}`);
-    return;
+    return { delivered: false };
   }
 
   const resetToken = generateSecureToken(32);
@@ -212,7 +212,12 @@ export async function forgotPassword(email: string): Promise<void> {
     passwordResetExpires: new Date(Date.now() + 60 * 60 * 1000),
   });
 
-  await sendPasswordResetEmail(email, resetToken);
+  const delivered = await sendPasswordResetEmail(email, resetToken);
+
+  return {
+    delivered,
+    ...(env.isProduction ? {} : { resetToken }),
+  };
 }
 
 export async function resetPassword(token: string, newPassword: string): Promise<void> {

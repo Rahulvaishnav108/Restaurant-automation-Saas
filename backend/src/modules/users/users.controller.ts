@@ -19,7 +19,7 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError('User not found', 404, ErrorCode.NOT_FOUND);
   }
 
-  sendSuccess(res, user);
+  sendSuccess(res, { user });
 });
 
 /**
@@ -32,7 +32,7 @@ export const updateProfile = asyncHandler(async (req: Request, res: Response) =>
     throw new AppError('User not found', 404, ErrorCode.NOT_FOUND);
   }
 
-  sendSuccess(res, user);
+  sendSuccess(res, { user });
 });
 
 /**

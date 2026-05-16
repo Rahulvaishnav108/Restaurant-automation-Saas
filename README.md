@@ -91,11 +91,18 @@ npm run seed --workspace backend
 npm run dev --workspace backend
 ```
 
+Backend verification flow:
+
+```bash
+npm run verify:phase1 --workspace backend
+```
+
 Important backend notes:
 
 - MongoDB should be available at `mongodb://[REDACTED]` unless you override `MONGODB_URI`
 - local seed data is applied on boot when `SEED_ON_STARTUP=true`
 - use `ALLOW_NO_DB=true` only for intentional no-database debugging, not normal Phase 1 development
+- `npm run verify:phase1 --workspace backend` spins up an in-memory MongoDB, runs the Postman collection, and executes a deeper seeded smoke suite
 
 ## Quality Scripts
 

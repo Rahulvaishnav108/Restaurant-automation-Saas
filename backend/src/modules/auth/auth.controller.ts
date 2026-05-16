@@ -38,6 +38,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     {
       user: result.user,
       accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
     },
     201,
   );
@@ -54,6 +55,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   sendSuccess(res, {
     user: result.user,
     accessToken: result.accessToken,
+    refreshToken: result.refreshToken,
   });
 });
 
@@ -70,11 +72,12 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
 
   sendSuccess(res, {
     accessToken: result.accessToken,
+    refreshToken: result.refreshToken,
   });
 });
 
 export const logout = asyncHandler(async (req: Request, res: Response) => {
-  const refreshToken = req.cookies?.[env.REFRESH_COOKIE_NAME];
+  const refreshToken = req.cookies?.[env.REFRESH_COOKIE_NAME] || req.body?.refreshToken;
 
   if (req.user && refreshToken) {
     await authService.logout(req.user._id, refreshToken);
@@ -86,10 +89,11 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
-  await authService.forgotPassword(req.body.email);
+  const result = await authService.forgotPassword(req.body.email);
 
   sendSuccess(res, {
     message: 'If an account with that email exists, a password reset link has been sent.',
+    ...(result.resetToken ? { resetToken: result.resetToken } : {}),
   });
 });
 
@@ -114,7 +118,7 @@ export const requestOtp = asyncHandler(async (req: Request, res: Response) => {
 
   sendSuccess(res, {
     message: `OTP sent to your ${type}`,
-    ...(env.NODE_ENV === 'development' && { otp }),
+    ...(!env.isProduction && { otp }),
   });
 });
 
@@ -135,7 +139,7 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
 
 export const getSessions = asyncHandler(async (req: Request, res: Response) => {
   const sessions = await authService.getSessions(req.user!._id);
-  sendSuccess(res, sessions);
+  sendSuccess(res, { sessions });
 });
 
 export const revokeSession = asyncHandler(async (req: Request, res: Response) => {

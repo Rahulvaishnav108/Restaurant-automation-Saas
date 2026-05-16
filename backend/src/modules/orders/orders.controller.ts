@@ -3,6 +3,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { OrdersService } from './orders.service';
+import { ok } from '../../utils/responses';
 
 export class OrdersController {
   /*
@@ -28,18 +29,15 @@ export class OrdersController {
         req.body
       );
 
-      return res.status(201).json({
-        success: true,
-        message: 'Order placed successfully',
-        data: order,
-      });
+      ok(res, { order }, 201);
+      return;
     } catch (error) {
       next(error);
     }
   }
 
   // GET /customer/orders
-  static async getOrders(req: Request, res: Response) {
+  static async getOrders(req: Request, res: Response, next: NextFunction) {
     try {
       const session = req.tableSession;
       if (!session) {
@@ -52,22 +50,15 @@ export class OrdersController {
         limit: Number(req.query.limit ?? 10),
       });
 
-      return res.status(200).json({
-        success: true,
-        message: 'Orders fetched successfully',
-        data,
-      });
+      ok(res, data);
+      return;
     } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch orders',
-        error,
-      });
+      next(error);
     }
   }
 
   // GET /customer/orders/:id
-  static async getSingleOrder(req: Request, res: Response) {
+  static async getSingleOrder(req: Request, res: Response, next: NextFunction) {
     try {
       const session = req.tableSession;
       if (!session) {
@@ -76,22 +67,15 @@ export class OrdersController {
 
       const { id } = req.params;
       const order = await OrdersService.getCustomerOrderById(session.restaurantId, session._id, id);
-      return res.status(200).json({
-        success: true,
-        message: `Order ${id} fetched successfully`,
-        data: order,
-      });
+      ok(res, { order });
+      return;
     } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch order',
-        error,
-      });
+      next(error);
     }
   }
 
   // POST /customer/orders/:id/reorder
-  static async reorder(req: Request, res: Response) {
+  static async reorder(req: Request, res: Response, next: NextFunction) {
     try {
       const session = req.tableSession;
       if (!session) {
@@ -100,22 +84,15 @@ export class OrdersController {
 
       const { id } = req.params;
       const order = await OrdersService.reorder(session.restaurantId, session._id, session.tableId, id);
-      return res.status(200).json({
-        success: true,
-        message: `Reorder created from order ${id}`,
-        data: order,
-      });
+      ok(res, { order });
+      return;
     } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to reorder',
-        error,
-      });
+      next(error);
     }
   }
 
   // POST /customer/orders/:id/cancel
-  static async cancelOrder(req: Request, res: Response) {
+  static async cancelOrder(req: Request, res: Response, next: NextFunction) {
     try {
       const session = req.tableSession;
       if (!session) {
@@ -124,17 +101,10 @@ export class OrdersController {
 
       const { id } = req.params;
       const order = await OrdersService.cancelOrder(session.restaurantId, session._id, id);
-      return res.status(200).json({
-        success: true,
-        message: `Order ${id} cancelled successfully`,
-        data: order,
-      });
+      ok(res, { order });
+      return;
     } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to cancel order',
-        error,
-      });
+      next(error);
     }
   }
 
@@ -151,11 +121,8 @@ export class OrdersController {
       if (!restaurantId) return res.status(403).json({ success: false, message: 'Restaurant ID required' });
 
       const orders = await OrdersService.getKitchenOrders(restaurantId);
-      return res.status(200).json({
-        success: true,
-        message: 'Kitchen orders fetched successfully',
-        data: orders,
-      });
+      ok(res, { orders });
+      return;
     } catch (error) {
       next(error);
     }
@@ -169,11 +136,8 @@ export class OrdersController {
 
       const { id } = req.params;
       const order = await OrdersService.getKitchenOrderDetails(restaurantId, id);
-      return res.status(200).json({
-        success: true,
-        message: `Kitchen order ${id} fetched successfully`,
-        data: order,
-      });
+      ok(res, { order });
+      return;
     } catch (error) {
       next(error);
     }
@@ -188,11 +152,8 @@ export class OrdersController {
       const { id } = req.params;
       const { estimatedPreparationTime } = req.body;
       const order = await OrdersService.acceptOrder(restaurantId, id, estimatedPreparationTime);
-      return res.status(200).json({
-        success: true,
-        message: `Order ${id} accepted`,
-        data: order,
-      });
+      ok(res, { order });
+      return;
     } catch (error) {
       next(error);
     }
@@ -206,11 +167,8 @@ export class OrdersController {
 
       const { id } = req.params;
       const order = await OrdersService.startCooking(restaurantId, id);
-      return res.status(200).json({
-        success: true,
-        message: `Cooking started for order ${id}`,
-        data: order,
-      });
+      ok(res, { order });
+      return;
     } catch (error) {
       next(error);
     }
@@ -224,11 +182,8 @@ export class OrdersController {
 
       const { id } = req.params;
       const order = await OrdersService.markReady(restaurantId, id);
-      return res.status(200).json({
-        success: true,
-        message: `Order ${id} marked as ready`,
-        data: order,
-      });
+      ok(res, { order });
+      return;
     } catch (error) {
       next(error);
     }
@@ -243,11 +198,8 @@ export class OrdersController {
       const { id } = req.params;
       const { delayMinutes } = req.body;
       const order = await OrdersService.delayOrder(restaurantId, id, delayMinutes);
-      return res.status(200).json({
-        success: true,
-        message: `Order ${id} delayed`,
-        data: order,
-      });
+      ok(res, { order });
+      return;
     } catch (error) {
       next(error);
     }
@@ -262,11 +214,8 @@ export class OrdersController {
       const { id } = req.params;
       const { reason } = req.body;
       const order = await OrdersService.rejectOrder(restaurantId, id, reason);
-      return res.status(200).json({
-        success: true,
-        message: `Order ${id} rejected`,
-        data: order,
-      });
+      ok(res, { order });
+      return;
     } catch (error) {
       next(error);
     }
@@ -279,67 +228,46 @@ export class OrdersController {
   */
 
   // GET /staff/orders/ready
-  static async getReadyOrders(req: Request, res: Response) {
+  static async getReadyOrders(req: Request, res: Response, next: NextFunction) {
     try {
       const restaurantId = req.user?.restaurantId;
       if (!restaurantId) return res.status(403).json({ success: false, message: 'Restaurant ID required' });
 
       const orders = await OrdersService.getReadyOrders(restaurantId);
-      return res.status(200).json({
-        success: true,
-        message: 'Ready orders fetched successfully',
-        data: orders,
-      });
+      ok(res, { orders });
+      return;
     } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch ready orders',
-        error,
-      });
+      next(error);
     }
   }
 
   // PATCH /staff/orders/:id/pick
-  static async pickFood(req: Request, res: Response) {
+  static async pickFood(req: Request, res: Response, next: NextFunction) {
     try {
       const restaurantId = req.user?.restaurantId;
       if (!restaurantId) return res.status(403).json({ success: false, message: 'Restaurant ID required' });
 
       const { id } = req.params;
       const order = await OrdersService.pickFood(restaurantId, id);
-      return res.status(200).json({
-        success: true,
-        message: `Food picked for order ${id}`,
-        data: order,
-      });
+      ok(res, { order });
+      return;
     } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to pick food',
-        error,
-      });
+      next(error);
     }
   }
 
   // PATCH /staff/orders/:id/serve
-  static async markServed(req: Request, res: Response) {
+  static async markServed(req: Request, res: Response, next: NextFunction) {
     try {
       const restaurantId = req.user?.restaurantId;
       if (!restaurantId) return res.status(403).json({ success: false, message: 'Restaurant ID required' });
 
       const { id } = req.params;
       const order = await OrdersService.markServed(restaurantId, id);
-      return res.status(200).json({
-        success: true,
-        message: `Order ${id} served successfully`,
-        data: order,
-      });
+      ok(res, { order });
+      return;
     } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to serve order',
-        error,
-      });
+      next(error);
     }
   }
 }

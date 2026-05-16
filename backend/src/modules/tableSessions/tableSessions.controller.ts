@@ -17,6 +17,10 @@ export async function startSession(req: Request, res: Response, next: NextFuncti
     res.status(201).json({
       success: true,
       data: {
+        session: {
+          ...session.toObject(),
+          token: sessionToken,
+        },
         sessionId: session._id,
         restaurantId: session.restaurantId,
         tableId: session.tableId,
@@ -60,7 +64,10 @@ export async function createTableSessionController(req: Request, res: Response, 
     ok(
       res,
       {
-        session,
+        session: {
+          ...session.toObject(),
+          token: sessionToken,
+        },
         sessionToken,
       },
       201,
