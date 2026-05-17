@@ -7,6 +7,25 @@ import { TableModel } from './tables.model';
 import type { CreateTableInput, UpdateTableInput, UpdateTableStatusInput } from './tables.schema';
 import * as tablesService from './tables.service';
 
+function resolveRestaurantId(
+  req: Request,
+  options: { allowBody?: boolean; allowParams?: boolean } = {}
+): string {
+  if (req.user?.restaurantId) {
+    return req.user.restaurantId;
+  }
+
+  if (options.allowBody && typeof req.body?.restaurantId === 'string' && req.body.restaurantId.trim()) {
+    return req.body.restaurantId;
+  }
+
+  if (options.allowParams && typeof req.params.restaurantId === 'string' && req.params.restaurantId.trim()) {
+    return req.params.restaurantId;
+  }
+
+  throw new AppError('Restaurant context required', 403, ErrorCode.FORBIDDEN);
+}
+
 export async function createTable(req: Request, res: Response, next: NextFunction) {
   try {
     const input = req.body as CreateTableInput;
@@ -26,7 +45,7 @@ export async function updateTable(req: Request, res: Response, next: NextFunctio
   try {
     const { id } = req.params;
     const input = req.body as UpdateTableInput;
-    const table = await tablesService.updateTable(id, input);
+    const table = await tablesService.updateTable(id, input, resolveRestaurantId(req));
 
     res.status(200).json({
       success: true,
@@ -56,7 +75,7 @@ export async function getTablesByRestaurant(req: Request, res: Response, next: N
 export async function getTableById(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
-    const table = await tablesService.getTableById(id);
+    const table = await tablesService.getTableById(id, resolveRestaurantId(req));
 
     res.status(200).json({
       success: true,
@@ -71,7 +90,7 @@ export async function updateTableStatus(req: Request, res: Response, next: NextF
   try {
     const { id } = req.params;
     const { status } = req.body as UpdateTableStatusInput;
-    const table = await tablesService.updateTableStatus(id, status);
+    const table = await tablesService.updateTableStatus(id, status, resolveRestaurantId(req));
 
     res.status(200).json({
       success: true,
@@ -98,7 +117,7 @@ export async function findByQrCode(req: Request, res: Response, next: NextFuncti
 }
 
 function getRestaurantId(req: Request): string {
-  return req.user?.restaurantId ?? 'rest_1';
+  return resolveRestaurantId(req, { allowBody: true });
 }
 
 export async function createTableController(req: Request, res: Response, next: NextFunction) {
@@ -145,7 +164,12 @@ export async function bulkCreateTablesController(req: Request, res: Response, ne
 export async function listTablesController(req: Request, res: Response, next: NextFunction) {
   try {
     const tables = await tablesService.getTablesByRestaurant(getRestaurantId(req));
-    ok(res, { tables });
+    ok(res, {
+      tables,
+      meta: {
+        count: tables.length,
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -153,7 +177,15 @@ export async function listTablesController(req: Request, res: Response, next: Ne
 
 export async function getTableController(req: Request, res: Response, next: NextFunction) {
   try {
-    const table = await tablesService.getTableById(req.params.id);
+    const table = await TableModel.findOne({
+      _id: req.params.id,
+      restaurantId: getRestaurantId(req),
+    });
+
+    if (!table) {
+      throw new AppError('Table not found', 404, ErrorCode.NOT_FOUND);
+    }
+
     ok(res, { table });
   } catch (error) {
     next(error);
@@ -162,14 +194,25 @@ export async function getTableController(req: Request, res: Response, next: Next
 
 export async function updateTableController(req: Request, res: Response, next: NextFunction) {
   try {
-    const table = await tablesService.updateTable(req.params.id, {
-      tableNumber: req.body.tableNumber ?? (req.body.number ? String(req.body.number) : undefined),
-      capacity: req.body.capacity !== undefined ? Number(req.body.capacity) : undefined,
-      floor: req.body.floor !== undefined ? Number(req.body.floor) : undefined,
-      section: req.body.section,
-      assignedStaffId: req.body.assignedStaffId ?? null,
-      isActive: req.body.isActive,
-    });
+    const table = await TableModel.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        restaurantId: getRestaurantId(req),
+      },
+      {
+        tableNumber: req.body.tableNumber ?? (req.body.number ? String(req.body.number) : undefined),
+        capacity: req.body.capacity !== undefined ? Number(req.body.capacity) : undefined,
+        floor: req.body.floor !== undefined ? Number(req.body.floor) : undefined,
+        section: req.body.section,
+        assignedStaffId: req.body.assignedStaffId ?? null,
+        isActive: req.body.isActive,
+      },
+      { new: true, runValidators: true },
+    );
+
+    if (!table) {
+      throw new AppError('Table not found', 404, ErrorCode.NOT_FOUND);
+    }
 
     ok(res, { table });
   } catch (error) {

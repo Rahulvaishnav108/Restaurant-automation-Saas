@@ -17,6 +17,9 @@ import {
   menuItemQuerySchema,
   idParamSchema,
   restaurantIdParamSchema,
+  restaurantIdQuerySchema,
+  toggleCategorySchema,
+  publicItemParamsSchema,
 } from './menu.schema';
 
 const router = Router();
@@ -54,6 +57,12 @@ router.get(
 */
 // Public APIs need the restaurantId in the URL path
 router.get(
+  '/public/menu/:restaurantId',
+  validate({ params: restaurantIdParamSchema, query: menuItemQuerySchema }),
+  MenuController.getCustomerItems
+);
+
+router.get(
   '/public/menu/:restaurantId/categories',
   validate({ params: restaurantIdParamSchema }),
   MenuController.getCustomerCategories
@@ -66,8 +75,14 @@ router.get(
 );
 
 router.get(
+  '/public/menu/:restaurantId/items/:id',
+  validate({ params: publicItemParamsSchema }),
+  MenuController.getPublicItemById
+);
+
+router.get(
   '/public/menu/items/:id',
-  validate({ params: idParamSchema }),
+  validate({ params: idParamSchema, query: restaurantIdQuerySchema }),
   MenuController.getPublicItemById
 );
 
@@ -130,7 +145,7 @@ router.patch(
   '/admin/menu/categories/:id/toggle',
   requireAuth,
   roleGuard(...adminRoles),
-  validate({ params: idParamSchema }), // missing body validate for isActive, handled simply
+  validate({ params: idParamSchema, body: toggleCategorySchema }),
   MenuController.toggleCategory
 );
 

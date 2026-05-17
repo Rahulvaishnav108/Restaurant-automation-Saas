@@ -18,6 +18,7 @@ import {
 import {
   bulkCreateTablesRequestSchema,
   createTableRequestSchema,
+  tableIdParamsSchema,
   updateTableRequestSchema,
 } from '../tables/tables.schema';
 
@@ -29,9 +30,9 @@ adminRouter.patch('/restaurant/settings', updateRestaurantSettingsController);
 
 adminRouter.post('/tables', validate(createTableRequestSchema), createTableController);
 adminRouter.get('/tables', listTablesController);
-adminRouter.get('/tables/:id', getTableController);
+adminRouter.get('/tables/:id', validate({ params: tableIdParamsSchema }), getTableController);
 adminRouter.patch('/tables/:id', validate(updateTableRequestSchema), updateTableController);
-adminRouter.delete('/tables/:id', deleteTableController);
+adminRouter.delete('/tables/:id', validate({ params: tableIdParamsSchema }), deleteTableController);
 adminRouter.post('/tables/bulk', validate(bulkCreateTablesRequestSchema), bulkCreateTablesController);
-adminRouter.post('/tables/:id/qr', generateTableQrController);
-adminRouter.get('/tables/:id/qr', getTableQrController);
+adminRouter.post('/tables/:id/qr', validate({ params: tableIdParamsSchema }), generateTableQrController);
+adminRouter.get('/tables/:id/qr', validate({ params: tableIdParamsSchema }), getTableQrController);

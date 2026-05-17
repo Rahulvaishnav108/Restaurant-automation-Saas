@@ -4,8 +4,26 @@
 import { Request, Response, NextFunction } from 'express';
 import { OrdersService } from './orders.service';
 import { ok } from '../../utils/responses';
+import { AppError } from '../../utils/AppError';
+import { ErrorCode } from '../../constants/errors';
 
 export class OrdersController {
+  private static getRequiredSession(req: Request) {
+    const session = req.tableSession;
+    if (!session) {
+      throw new AppError('Session required', 401, ErrorCode.UNAUTHORIZED);
+    }
+    return session;
+  }
+
+  private static getRequiredRestaurantId(req: Request) {
+    const restaurantId = req.user?.restaurantId;
+    if (!restaurantId) {
+      throw new AppError('Restaurant context required', 403, ErrorCode.FORBIDDEN);
+    }
+    return restaurantId;
+  }
+
   /*
   |--------------------------------------------------------------------------
   | SESSION-BASED CUSTOMER APIs
@@ -16,10 +34,7 @@ export class OrdersController {
   // POST /customer/orders
   static async placeOrder(req: Request, res: Response, next: NextFunction) {
     try {
-      const session = req.tableSession;
-      if (!session) {
-        return res.status(401).json({ success: false, message: 'Session required' });
-      }
+      const session = OrdersController.getRequiredSession(req);
 
       const order = await OrdersService.placeOrder(
         session.restaurantId,
@@ -30,7 +45,6 @@ export class OrdersController {
       );
 
       ok(res, { order }, 201);
-      return;
     } catch (error) {
       next(error);
     }
@@ -39,10 +53,7 @@ export class OrdersController {
   // GET /customer/orders
   static async getOrders(req: Request, res: Response, next: NextFunction) {
     try {
-      const session = req.tableSession;
-      if (!session) {
-        return res.status(401).json({ success: false, message: 'Session required' });
-      }
+      const session = OrdersController.getRequiredSession(req);
 
       const data = await OrdersService.getCustomerOrders(session.restaurantId, session._id, {
         status: req.query.status as string | undefined,
@@ -50,8 +61,12 @@ export class OrdersController {
         limit: Number(req.query.limit ?? 10),
       });
 
-      ok(res, data);
-      return;
+      ok(res, {
+        ...data,
+        meta: {
+          count: data.orders.length,
+        },
+      });
     } catch (error) {
       next(error);
     }
@@ -60,15 +75,11 @@ export class OrdersController {
   // GET /customer/orders/:id
   static async getSingleOrder(req: Request, res: Response, next: NextFunction) {
     try {
-      const session = req.tableSession;
-      if (!session) {
-        return res.status(401).json({ success: false, message: 'Session required' });
-      }
+      const session = OrdersController.getRequiredSession(req);
 
       const { id } = req.params;
       const order = await OrdersService.getCustomerOrderById(session.restaurantId, session._id, id);
       ok(res, { order });
-      return;
     } catch (error) {
       next(error);
     }
@@ -77,15 +88,11 @@ export class OrdersController {
   // POST /customer/orders/:id/reorder
   static async reorder(req: Request, res: Response, next: NextFunction) {
     try {
-      const session = req.tableSession;
-      if (!session) {
-        return res.status(401).json({ success: false, message: 'Session required' });
-      }
+      const session = OrdersController.getRequiredSession(req);
 
       const { id } = req.params;
       const order = await OrdersService.reorder(session.restaurantId, session._id, session.tableId, id);
       ok(res, { order });
-      return;
     } catch (error) {
       next(error);
     }
@@ -94,15 +101,11 @@ export class OrdersController {
   // POST /customer/orders/:id/cancel
   static async cancelOrder(req: Request, res: Response, next: NextFunction) {
     try {
-      const session = req.tableSession;
-      if (!session) {
-        return res.status(401).json({ success: false, message: 'Session required' });
-      }
+      const session = OrdersController.getRequiredSession(req);
 
       const { id } = req.params;
       const order = await OrdersService.cancelOrder(session.restaurantId, session._id, id);
       ok(res, { order });
-      return;
     } catch (error) {
       next(error);
     }
@@ -117,12 +120,27 @@ export class OrdersController {
   // GET /kitchen/orders
   static async getKitchenOrders(req: Request, res: Response, next: NextFunction) {
     try {
-      const restaurantId = req.user?.restaurantId;
-      if (!restaurantId) return res.status(403).json({ success: false, message: 'Restaurant ID required' });
+      const restaurantId = OrdersController.getRequiredRestaurantId(req);
+      const batchFilter = `${req.query.batch ?? ''}` === 'true';
 
-      const orders = await OrdersService.getKitchenOrders(restaurantId);
-      ok(res, { orders });
-      return;
+      const orders = await OrdersService.getKitchenOrders(restaurantId, {
+        status: req.query.status as string | undefined,
+        priority: req.query.priority as string | undefined,
+        table: req.query.table as string | undefined,
+        batch: batchFilter,
+      });
+      ok(res, {
+        orders,
+        meta: {
+          count: orders.length,
+          filters: {
+            status: req.query.status ?? null,
+            priority: req.query.priority ?? null,
+            table: req.query.table ?? null,
+            batch: req.query.batch ?? null,
+          },
+        },
+      });
     } catch (error) {
       next(error);
     }
@@ -131,13 +149,11 @@ export class OrdersController {
   // GET /kitchen/orders/:id
   static async getKitchenOrderDetails(req: Request, res: Response, next: NextFunction) {
     try {
-      const restaurantId = req.user?.restaurantId;
-      if (!restaurantId) return res.status(403).json({ success: false, message: 'Restaurant ID required' });
+      const restaurantId = OrdersController.getRequiredRestaurantId(req);
 
       const { id } = req.params;
       const order = await OrdersService.getKitchenOrderDetails(restaurantId, id);
       ok(res, { order });
-      return;
     } catch (error) {
       next(error);
     }
@@ -146,14 +162,12 @@ export class OrdersController {
   // PATCH /kitchen/orders/:id/accept
   static async acceptOrder(req: Request, res: Response, next: NextFunction) {
     try {
-      const restaurantId = req.user?.restaurantId;
-      if (!restaurantId) return res.status(403).json({ success: false, message: 'Restaurant ID required' });
+      const restaurantId = OrdersController.getRequiredRestaurantId(req);
 
       const { id } = req.params;
       const { estimatedPreparationTime } = req.body;
       const order = await OrdersService.acceptOrder(restaurantId, id, estimatedPreparationTime);
       ok(res, { order });
-      return;
     } catch (error) {
       next(error);
     }
@@ -162,13 +176,11 @@ export class OrdersController {
   // PATCH /kitchen/orders/:id/start
   static async startCooking(req: Request, res: Response, next: NextFunction) {
     try {
-      const restaurantId = req.user?.restaurantId;
-      if (!restaurantId) return res.status(403).json({ success: false, message: 'Restaurant ID required' });
+      const restaurantId = OrdersController.getRequiredRestaurantId(req);
 
       const { id } = req.params;
       const order = await OrdersService.startCooking(restaurantId, id);
       ok(res, { order });
-      return;
     } catch (error) {
       next(error);
     }
@@ -177,13 +189,11 @@ export class OrdersController {
   // PATCH /kitchen/orders/:id/ready
   static async markReady(req: Request, res: Response, next: NextFunction) {
     try {
-      const restaurantId = req.user?.restaurantId;
-      if (!restaurantId) return res.status(403).json({ success: false, message: 'Restaurant ID required' });
+      const restaurantId = OrdersController.getRequiredRestaurantId(req);
 
       const { id } = req.params;
       const order = await OrdersService.markReady(restaurantId, id);
       ok(res, { order });
-      return;
     } catch (error) {
       next(error);
     }
@@ -192,14 +202,12 @@ export class OrdersController {
   // PATCH /kitchen/orders/:id/delay
   static async delayOrder(req: Request, res: Response, next: NextFunction) {
     try {
-      const restaurantId = req.user?.restaurantId;
-      if (!restaurantId) return res.status(403).json({ success: false, message: 'Restaurant ID required' });
+      const restaurantId = OrdersController.getRequiredRestaurantId(req);
 
       const { id } = req.params;
       const { delayMinutes } = req.body;
       const order = await OrdersService.delayOrder(restaurantId, id, delayMinutes);
       ok(res, { order });
-      return;
     } catch (error) {
       next(error);
     }
@@ -208,14 +216,12 @@ export class OrdersController {
   // PATCH /kitchen/orders/:id/reject
   static async rejectOrder(req: Request, res: Response, next: NextFunction) {
     try {
-      const restaurantId = req.user?.restaurantId;
-      if (!restaurantId) return res.status(403).json({ success: false, message: 'Restaurant ID required' });
+      const restaurantId = OrdersController.getRequiredRestaurantId(req);
 
       const { id } = req.params;
       const { reason } = req.body;
       const order = await OrdersService.rejectOrder(restaurantId, id, reason);
       ok(res, { order });
-      return;
     } catch (error) {
       next(error);
     }
@@ -230,12 +236,15 @@ export class OrdersController {
   // GET /staff/orders/ready
   static async getReadyOrders(req: Request, res: Response, next: NextFunction) {
     try {
-      const restaurantId = req.user?.restaurantId;
-      if (!restaurantId) return res.status(403).json({ success: false, message: 'Restaurant ID required' });
+      const restaurantId = OrdersController.getRequiredRestaurantId(req);
 
       const orders = await OrdersService.getReadyOrders(restaurantId);
-      ok(res, { orders });
-      return;
+      ok(res, {
+        orders,
+        meta: {
+          count: orders.length,
+        },
+      });
     } catch (error) {
       next(error);
     }
@@ -244,13 +253,11 @@ export class OrdersController {
   // PATCH /staff/orders/:id/pick
   static async pickFood(req: Request, res: Response, next: NextFunction) {
     try {
-      const restaurantId = req.user?.restaurantId;
-      if (!restaurantId) return res.status(403).json({ success: false, message: 'Restaurant ID required' });
+      const restaurantId = OrdersController.getRequiredRestaurantId(req);
 
       const { id } = req.params;
       const order = await OrdersService.pickFood(restaurantId, id);
       ok(res, { order });
-      return;
     } catch (error) {
       next(error);
     }
@@ -259,13 +266,11 @@ export class OrdersController {
   // PATCH /staff/orders/:id/serve
   static async markServed(req: Request, res: Response, next: NextFunction) {
     try {
-      const restaurantId = req.user?.restaurantId;
-      if (!restaurantId) return res.status(403).json({ success: false, message: 'Restaurant ID required' });
+      const restaurantId = OrdersController.getRequiredRestaurantId(req);
 
       const { id } = req.params;
       const order = await OrdersService.markServed(restaurantId, id);
       ok(res, { order });
-      return;
     } catch (error) {
       next(error);
     }

@@ -30,7 +30,10 @@ export async function startSession(
   meta: SessionMeta = {}
 ): Promise<{ session: ITableSession; sessionToken: string }> {
   // 1. Verify table exists and is available
-  const table = await TableModel.findById(input.tableId);
+  const table = await TableModel.findOne({
+    _id: input.tableId,
+    restaurantId: input.restaurantId,
+  });
   if (!table) {
     throw new AppError('Table not found', 404, ErrorCode.NOT_FOUND);
   }
@@ -40,7 +43,7 @@ export async function startSession(
 
   // 2. Invalidate any existing active session for this table (single session enforcement)
   await TableSessionModel.updateMany(
-    { tableId: input.tableId, status: SessionStatus.ACTIVE },
+    { restaurantId: input.restaurantId, tableId: input.tableId, status: SessionStatus.ACTIVE },
     { $set: { status: SessionStatus.EXPIRED, expiresAt: new Date() } }
   );
 
@@ -148,9 +151,18 @@ export async function touchActivity(sessionId: string): Promise<void> {
 /**
  * End a session (staff action or bill payment).
  */
-export async function endSession(sessionId: string, reason: string = 'closed'): Promise<ITableSession> {
-  const session = await TableSessionModel.findByIdAndUpdate(
-    sessionId,
+export async function endSession(
+  sessionId: string,
+  reason: string = 'closed',
+  restaurantId?: string
+): Promise<ITableSession> {
+  const session = await TableSessionModel.findOneAndUpdate(
+    restaurantId
+      ? {
+          _id: sessionId,
+          restaurantId,
+        }
+      : { _id: sessionId },
     { status: SessionStatus.CLOSED },
     { new: true }
   );
@@ -160,7 +172,10 @@ export async function endSession(sessionId: string, reason: string = 'closed'): 
   }
 
   // Transition table to NEEDS_CLEANING
-  const table = await TableModel.findById(session.tableId);
+  const table = await TableModel.findOne({
+    _id: session.tableId,
+    restaurantId: session.restaurantId,
+  });
   if (table && table.status === TableStatus.OCCUPIED) {
     table.status = TableStatus.NEEDS_CLEANING;
     table.currentSessionId = undefined;
@@ -186,8 +201,8 @@ export async function endSession(sessionId: string, reason: string = 'closed'): 
  * Expire a session (due to inactivity or hard expiry).
  */
 export async function expireSession(sessionId: string): Promise<void> {
-  const session = await TableSessionModel.findByIdAndUpdate(
-    sessionId,
+  const session = await TableSessionModel.findOneAndUpdate(
+    { _id: sessionId },
     { status: SessionStatus.EXPIRED, expiresAt: new Date() },
     { new: true }
   );
@@ -195,7 +210,10 @@ export async function expireSession(sessionId: string): Promise<void> {
   if (!session) return;
 
   // Transition table to NEEDS_CLEANING
-  const table = await TableModel.findById(session.tableId);
+  const table = await TableModel.findOne({
+    _id: session.tableId,
+    restaurantId: session.restaurantId,
+  });
   if (table && table.status === TableStatus.OCCUPIED) {
     table.status = TableStatus.NEEDS_CLEANING;
     table.currentSessionId = undefined;
@@ -260,8 +278,15 @@ export async function getActiveSession(
 /**
  * Get session by ID (staff view).
  */
-export async function getSessionById(sessionId: string): Promise<ITableSession> {
-  const session = await TableSessionModel.findById(sessionId);
+export async function getSessionById(sessionId: string, restaurantId?: string): Promise<ITableSession> {
+  const session = await TableSessionModel.findOne(
+    restaurantId
+      ? {
+          _id: sessionId,
+          restaurantId,
+        }
+      : { _id: sessionId }
+  );
   if (!session) {
     throw new AppError('Session not found', 404, ErrorCode.NOT_FOUND);
   }

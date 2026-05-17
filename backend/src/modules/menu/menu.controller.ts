@@ -4,7 +4,6 @@ import { asyncHandler } from '../../utils/asyncHandler';
 import { parsePagination } from '../../utils/pagination';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
-import { MenuItem } from './menu.model';
 
 export class MenuController {
   /*
@@ -127,6 +126,7 @@ export class MenuController {
   private static getRestaurantIdFromReq(req: Request): string {
     if (req.tableSession) return req.tableSession.restaurantId.toString();
     if (req.params.restaurantId) return req.params.restaurantId;
+    if (typeof req.query.restaurantId === 'string') return req.query.restaurantId;
     throw new AppError('Restaurant ID is required', 400, ErrorCode.INVALID_REQUEST);
   }
 
@@ -165,11 +165,8 @@ export class MenuController {
   });
 
   static getPublicItemById = asyncHandler(async (req: Request, res: Response) => {
-    // Public fetch doesn't necessarily know restaurantId if only given the item ID,
-    // but in MongoDB, object IDs are globally unique. We can query without restaurantId.
-    // Let's create a getGlobalItemById in MenuService or just query it directly here.
-    const item = await MenuItem.findById(req.params.id);
-    if (!item) throw new AppError('Menu item not found', 404, ErrorCode.NOT_FOUND);
+    const restaurantId = MenuController.getRestaurantIdFromReq(req);
+    const item = await MenuService.getItemById(restaurantId, req.params.id);
     res.status(200).json({ success: true, data: item });
   });
 }

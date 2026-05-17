@@ -22,6 +22,10 @@ export const restaurantIdParamSchema = z.object({
   restaurantId: objectIdSchema,
 });
 
+export const restaurantIdQuerySchema = z.object({
+  restaurantId: objectIdSchema,
+});
+
 /*
 |--------------------------------------------------------------------------
 | CATEGORY SCHEMAS
@@ -38,6 +42,10 @@ export const createCategorySchema = z.object({
 });
 
 export const updateCategorySchema = createCategorySchema.partial();
+
+export const toggleCategorySchema = z.object({
+  isActive: z.boolean(),
+});
 
 export const reorderCategoriesSchema = z.object({
   categories: z.array(
@@ -101,4 +109,9 @@ export const menuItemQuerySchema = paginationQuerySchema.extend({
   recommended: z.enum(['true', 'false']).transform((val) => val === 'true').optional(),
   priceMin: z.string().regex(/^\d+$/).transform(Number).optional(),
   priceMax: z.string().regex(/^\d+$/).transform(Number).optional(),
+});
+
+export const publicItemParamsSchema = z.object({
+  restaurantId: objectIdSchema,
+  id: objectIdSchema,
 });

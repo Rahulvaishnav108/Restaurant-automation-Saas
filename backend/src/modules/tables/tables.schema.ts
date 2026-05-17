@@ -1,5 +1,10 @@
 import { z } from 'zod';
+import { Types } from 'mongoose';
 import { TableStatus } from '../../constants/statuses';
+
+const objectIdSchema = z.string().refine((value) => Types.ObjectId.isValid(value), {
+  message: 'Invalid id',
+});
 
 const tablePayloadSchema = z.object({
   name: z.string().trim().min(1).optional(),
@@ -57,6 +62,14 @@ export const updateTableSchema = z.object({
 
 export const updateTableStatusSchema = z.object({
   status: z.nativeEnum(TableStatus),
+});
+
+export const tableIdParamsSchema = z.object({
+  id: objectIdSchema,
+});
+
+export const restaurantTablesParamsSchema = z.object({
+  restaurantId: objectIdSchema,
 });
 
 export type CreateTableInput = z.infer<typeof createTableSchema>;

@@ -5,6 +5,7 @@ import { PlaceOrderInput, OrderStatus, PaymentStatus } from './orders.schema';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
 import { Priority } from '../../constants/statuses';
+import { TableModel } from '../tables/tables.model';
 
 export class OrdersService {
   static async placeOrder(
@@ -167,19 +168,51 @@ export class OrdersService {
 
   // --- Kitchen Order APIs ---
 
-  static async getKitchenOrders(restaurantId: string | Types.ObjectId) {
-    return OrderModel.find({
+  static async getKitchenOrders(
+    restaurantId: string | Types.ObjectId,
+    options: {
+      status?: string;
+      priority?: string;
+      table?: string;
+      batch?: boolean;
+    } = {}
+  ) {
+    const query: Record<string, unknown> = {
       restaurantId,
-      status: {
-        $in: [
-          OrderStatus.PENDING,
-          OrderStatus.ACCEPTED,
-          OrderStatus.PREPARING,
-          OrderStatus.DELAYED,
-          OrderStatus.READY,
-        ],
-      },
-    }).sort({ createdAt: 1 });
+      status: options.status
+        ? options.status
+        : {
+            $in: [
+              OrderStatus.PENDING,
+              OrderStatus.ACCEPTED,
+              OrderStatus.PREPARING,
+              OrderStatus.DELAYED,
+              OrderStatus.READY,
+            ],
+          },
+    };
+
+    if (options.priority) {
+      query.priority = options.priority;
+    }
+
+    if (options.batch) {
+      query.batchId = { $ne: null };
+    }
+
+    if (options.table) {
+      if (Types.ObjectId.isValid(options.table)) {
+        query.tableId = new Types.ObjectId(options.table);
+      } else {
+        const tableIds = await TableModel.find({
+          restaurantId,
+          tableNumber: options.table,
+        }).distinct('_id');
+        query.tableId = tableIds.length > 0 ? { $in: tableIds } : null;
+      }
+    }
+
+    return OrderModel.find(query).sort({ createdAt: 1 });
   }
 
   static async getKitchenOrderDetails(restaurantId: string | Types.ObjectId, orderId: string | Types.ObjectId) {

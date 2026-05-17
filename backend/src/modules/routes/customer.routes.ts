@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireSession } from '../../middleware/requireSession';
+import { validate } from '../../middleware/validate';
 import { ok } from '../../utils/responses';
 import { endSession } from '../tableSessions/tableSessions.service';
 import { TableSessionModel } from '../tableSessions/tableSessions.model';
@@ -12,14 +13,36 @@ import { Priority, RequestStatus, RequestType } from '../../constants/statuses';
 import { OrderStatus as OrderPaymentStatus } from '../orders/orders.schema';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
+import {
+  applyCouponBodySchema,
+  couponIdParamsSchema,
+  createPaymentBodySchema,
+  feedbackBodySchema,
+  paymentIdParamsSchema,
+  verifyPaymentBodySchema,
+} from './customer.schema';
 
 export const customerRouter = Router();
 
 customerRouter.use(requireSession);
 
+function ensureFound<T>(value: T | null | undefined, message: string): T {
+  if (!value) {
+    throw new AppError(message, 404, ErrorCode.NOT_FOUND);
+  }
+
+  return value;
+}
+
 customerRouter.get('/session', async (req, res, next) => {
   try {
-    const session = await TableSessionModel.findById(req.tableSession!._id);
+    const session = ensureFound(
+      await TableSessionModel.findOne({
+        _id: req.tableSession!._id,
+        restaurantId: req.tableSession!.restaurantId,
+      }),
+      'Session not found',
+    );
     ok(res, { session });
   } catch (error) {
     next(error);
@@ -28,13 +51,19 @@ customerRouter.get('/session', async (req, res, next) => {
 
 customerRouter.patch('/session/extend', async (req, res, next) => {
   try {
-    const session = await TableSessionModel.findByIdAndUpdate(
-      req.tableSession!._id,
-      {
-        expiresAt: new Date(Date.now() + 30 * 60 * 1000),
-        lastActivityAt: new Date(),
-      },
-      { new: true },
+    const session = ensureFound(
+      await TableSessionModel.findOneAndUpdate(
+        {
+          _id: req.tableSession!._id,
+          restaurantId: req.tableSession!.restaurantId,
+        },
+        {
+          expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+          lastActivityAt: new Date(),
+        },
+        { new: true },
+      ),
+      'Session not found',
     );
 
     ok(res, { session });
@@ -45,8 +74,12 @@ customerRouter.patch('/session/extend', async (req, res, next) => {
 
 customerRouter.post('/session/end', async (req, res, next) => {
   try {
-    const session = await endSession(req.tableSession!._id, 'customer_closed');
-    ok(res, { ended: true, sessionId: session._id.toString(), session });
+    const session = await endSession(
+      req.tableSession!._id,
+      'customer_closed',
+      req.tableSession!.restaurantId.toString(),
+    );
+    ok(res, { session });
   } catch (error) {
     next(error);
   }
@@ -108,11 +141,11 @@ customerRouter.post('/bill/request', async (_req, res) => {
   ok(res, { requested: true, etaMinutes: 4 });
 });
 
-customerRouter.post('/bill/coupon', async (req, res, next) => {
+customerRouter.post('/bill/coupon', validate({ body: applyCouponBodySchema }), async (req, res, next) => {
   try {
     const offer = await OfferModel.findOne({
       restaurantId: req.tableSession!.restaurantId,
-      code: String(req.body?.code ?? '').toUpperCase(),
+      code: String(req.body.code).toUpperCase(),
       active: true,
     });
 
@@ -130,14 +163,14 @@ customerRouter.post('/bill/coupon', async (req, res, next) => {
   }
 });
 
-customerRouter.delete('/bill/coupon/:couponId', (req, res) => {
+customerRouter.delete('/bill/coupon/:couponId', validate({ params: couponIdParamsSchema }), (req, res) => {
   ok(res, { removedCouponId: req.params.couponId });
 });
 
-customerRouter.post('/payments/create', async (req, res, next) => {
+customerRouter.post('/payments/create', validate({ body: createPaymentBodySchema }), async (req, res, next) => {
   try {
     const order = await OrderModel.findOne({
-      _id: req.body?.orderId,
+      _id: req.body.orderId,
       restaurantId: req.tableSession!.restaurantId,
       sessionId: req.tableSession!._id,
     });
@@ -150,8 +183,8 @@ customerRouter.post('/payments/create', async (req, res, next) => {
       restaurantId: req.tableSession!.restaurantId,
       sessionId: req.tableSession!._id,
       orderId: order._id,
-      amount: Number(req.body?.amount ?? order.finalAmount),
-      method: req.body?.method ?? 'UPI',
+      amount: Number(req.body.amount ?? order.finalAmount),
+      method: req.body.method ?? 'UPI',
     });
 
     ok(res, { payment }, 201);
@@ -160,12 +193,13 @@ customerRouter.post('/payments/create', async (req, res, next) => {
   }
 });
 
-customerRouter.post('/payments/verify', async (req, res, next) => {
+customerRouter.post('/payments/verify', validate({ body: verifyPaymentBodySchema }), async (req, res, next) => {
   try {
     const payment = await PaymentModel.findOneAndUpdate(
       {
-        _id: req.body?.paymentId,
+        _id: req.body.paymentId,
         restaurantId: req.tableSession!.restaurantId,
+        sessionId: req.tableSession!._id,
       },
       {
         status: 'COMPLETED',
@@ -174,24 +208,37 @@ customerRouter.post('/payments/verify', async (req, res, next) => {
       { new: true },
     );
 
-    if (payment) {
-      await OrderModel.findByIdAndUpdate(payment.orderId, {
-        paymentStatus: 'PAID',
-      });
+    if (!payment) {
+      throw new AppError('Payment not found', 404, ErrorCode.NOT_FOUND);
     }
 
-    ok(res, { payment, verified: Boolean(payment) });
+    await OrderModel.findOneAndUpdate(
+      {
+        _id: payment.orderId,
+        restaurantId: req.tableSession!.restaurantId,
+        sessionId: req.tableSession!._id,
+      },
+      {
+        paymentStatus: 'PAID',
+      },
+    );
+
+    ok(res, { payment, verified: true });
   } catch (error) {
     next(error);
   }
 });
 
-customerRouter.get('/payments/:paymentId/status', async (req, res, next) => {
+customerRouter.get('/payments/:paymentId/status', validate({ params: paymentIdParamsSchema }), async (req, res, next) => {
   try {
-    const payment = await PaymentModel.findOne({
-      _id: req.params.paymentId,
-      restaurantId: req.tableSession!.restaurantId,
-    });
+    const payment = ensureFound(
+      await PaymentModel.findOne({
+        _id: req.params.paymentId,
+        restaurantId: req.tableSession!.restaurantId,
+        sessionId: req.tableSession!._id,
+      }),
+      'Payment not found',
+    );
 
     ok(res, { payment });
   } catch (error) {
@@ -199,13 +246,13 @@ customerRouter.get('/payments/:paymentId/status', async (req, res, next) => {
   }
 });
 
-customerRouter.post('/feedback', async (req, res, next) => {
+customerRouter.post('/feedback', validate({ body: feedbackBodySchema }), async (req, res, next) => {
   try {
     const feedback = await FeedbackModel.create({
       restaurantId: req.tableSession!.restaurantId,
       sessionId: req.tableSession!._id,
-      rating: Number(req.body?.rating ?? 5),
-      comment: req.body?.comment ?? '',
+      rating: Number(req.body.rating),
+      comment: req.body.comment ?? '',
     });
 
     ok(res, { feedback }, 201);
@@ -221,7 +268,12 @@ customerRouter.get('/feedback', async (req, res, next) => {
       sessionId: req.tableSession!._id,
     }).sort({ createdAt: -1 });
 
-    ok(res, { feedback });
+    ok(res, {
+      feedback,
+      meta: {
+        count: feedback.length,
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -256,7 +308,12 @@ customerRouter.get('/offers', async (req, res, next) => {
       active: true,
     }).sort({ createdAt: -1 });
 
-    ok(res, { offers });
+    ok(res, {
+      offers,
+      meta: {
+        count: offers.length,
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -269,7 +326,14 @@ customerRouter.get('/offers/eligibility', async (req, res, next) => {
       active: true,
     }).select('_id');
 
-    ok(res, { eligibleOfferIds: offers.map((offer) => offer._id.toString()) });
+    const eligibleOfferIds = offers.map((offer) => offer._id.toString());
+
+    ok(res, {
+      eligibleOfferIds,
+      meta: {
+        count: eligibleOfferIds.length,
+      },
+    });
   } catch (error) {
     next(error);
   }

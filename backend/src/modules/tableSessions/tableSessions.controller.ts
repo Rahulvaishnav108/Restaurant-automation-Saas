@@ -1,4 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
+import { ErrorCode } from '../../constants/errors';
+import { AppError } from '../../utils/AppError';
 import { ok } from '../../utils/responses';
 import * as tablesService from '../tables/tables.service';
 import type { StartSessionInput } from './tableSessions.schema';
@@ -14,9 +16,9 @@ export async function startSession(req: Request, res: Response, next: NextFuncti
 
     const { session, sessionToken } = await sessionService.startSession(input, meta);
 
-    res.status(201).json({
-      success: true,
-      data: {
+    ok(
+      res,
+      {
         session: {
           ...session.toObject(),
           token: sessionToken,
@@ -29,8 +31,8 @@ export async function startSession(req: Request, res: Response, next: NextFuncti
         expiresAt: session.expiresAt,
         status: session.status,
       },
-      message: 'Session started successfully',
-    });
+      201,
+    );
   } catch (error) {
     next(error);
   }
@@ -68,7 +70,12 @@ export async function createTableSessionController(req: Request, res: Response, 
           ...session.toObject(),
           token: sessionToken,
         },
+        sessionId: session._id,
+        restaurantId: session.restaurantId,
+        tableId: session.tableId,
         sessionToken,
+        expiresAt: session.expiresAt,
+        status: session.status,
       },
       201,
     );
@@ -79,12 +86,7 @@ export async function createTableSessionController(req: Request, res: Response, 
 
 export async function getCurrentSession(req: Request, res: Response, next: NextFunction) {
   try {
-    const session = req.tableSession;
-
-    res.status(200).json({
-      success: true,
-      data: session,
-    });
+    ok(res, { session: req.tableSession });
   } catch (error) {
     next(error);
   }
@@ -94,21 +96,13 @@ export async function recoverSession(req: Request, res: Response, next: NextFunc
   try {
     const token = req.headers['x-session-token'] as string;
     if (!token) {
-      res.status(400).json({
-        success: false,
-        error: {
-          code: 'INVALID_REQUEST',
-          message: 'x-session-token header is required',
-        },
-      });
-      return;
+      throw new AppError('x-session-token header is required', 400, ErrorCode.INVALID_REQUEST);
     }
 
     const session = await sessionService.recoverSession(token);
 
-    res.status(200).json({
-      success: true,
-      data: {
+    ok(res, {
+      session: {
         sessionId: session._id,
         restaurantId: session.restaurantId,
         tableId: session.tableId,
@@ -117,7 +111,6 @@ export async function recoverSession(req: Request, res: Response, next: NextFunc
         status: session.status,
         lastActivityAt: session.lastActivityAt,
       },
-      message: 'Session recovered successfully',
     });
   } catch (error) {
     next(error);
@@ -127,13 +120,8 @@ export async function recoverSession(req: Request, res: Response, next: NextFunc
 export async function endSession(req: Request, res: Response, next: NextFunction) {
   try {
     const { sessionId } = req.params;
-    const session = await sessionService.endSession(sessionId, 'staff_closed');
-
-    res.status(200).json({
-      success: true,
-      data: session,
-      message: 'Session ended successfully',
-    });
+    const session = await sessionService.endSession(sessionId, 'staff_closed', req.user?.restaurantId);
+    ok(res, { session });
   } catch (error) {
     next(error);
   }
@@ -142,12 +130,8 @@ export async function endSession(req: Request, res: Response, next: NextFunction
 export async function getSession(req: Request, res: Response, next: NextFunction) {
   try {
     const { sessionId } = req.params;
-    const session = await sessionService.getSessionById(sessionId);
-
-    res.status(200).json({
-      success: true,
-      data: session,
-    });
+    const session = await sessionService.getSessionById(sessionId, req.user?.restaurantId);
+    ok(res, { session });
   } catch (error) {
     next(error);
   }

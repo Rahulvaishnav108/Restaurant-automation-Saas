@@ -1,11 +1,27 @@
 import { Router } from 'express';
+import { validate } from '../../middleware/validate';
 import { ok } from '../../utils/responses';
 import { KitchenBatchModel } from '../kitchen/kitchen.model';
 import { OrderModel } from '../orders/orders.model';
 import { BatchStatus } from '../../constants/statuses';
 import { OrderStatus } from '../orders/orders.schema';
+import {
+  createKitchenBatchBodySchema,
+  kitchenBatchParamsSchema,
+  updateKitchenBatchBodySchema,
+} from '../kitchen/kitchen.schema';
+import { AppError } from '../../utils/AppError';
+import { ErrorCode } from '../../constants/errors';
 
 export const kitchenRouter = Router();
+
+function ensureFound<T>(value: T | null | undefined, message: string): T {
+  if (!value) {
+    throw new AppError(message, 404, ErrorCode.NOT_FOUND);
+  }
+
+  return value;
+}
 
 kitchenRouter.get('/dashboard', async (req, res, next) => {
   try {
@@ -46,105 +62,32 @@ kitchenRouter.get('/dashboard', async (req, res, next) => {
   }
 });
 
-kitchenRouter.get('/orders', async (req, res, next) => {
-  try {
-    const { status, priority, table, batch } = req.query;
-    const query: Record<string, unknown> = {
-      restaurantId: req.user?.restaurantId,
-    };
-
-    if (status) query.status = status;
-    if (priority) query.priority = priority;
-    if (table) query.tableId = table;
-    if (batch === 'true') query.batchId = { $ne: null };
-
-    const orders = await OrderModel.find(query).sort({ createdAt: 1 });
-    ok(res, { orders, count: orders.length });
-  } catch (error) {
-    next(error);
-  }
-});
-
-kitchenRouter.get('/orders/:id', async (req, res, next) => {
-  try {
-    const order = await OrderModel.findOne({
-      _id: req.params.id,
-      restaurantId: req.user?.restaurantId,
-    });
-
-    ok(res, { order });
-  } catch (error) {
-    next(error);
-  }
-});
-
-const statusTransitions: Record<string, OrderStatus> = {
-  accept: OrderStatus.ACCEPTED,
-  start: OrderStatus.PREPARING,
-  ready: OrderStatus.READY,
-  delay: OrderStatus.DELAYED,
-  reject: OrderStatus.REJECTED,
-};
-
-for (const action of Object.keys(statusTransitions)) {
-  kitchenRouter.patch(`/orders/:id/${action}`, async (req, res, next) => {
-    try {
-      const update: Record<string, unknown> = {
-        status: statusTransitions[action],
-      };
-
-      if (action === 'accept' && req.body?.estimatedPreparationTime !== undefined) {
-        update.estimatedPreparationTime = Number(req.body.estimatedPreparationTime);
-        update.acceptedAt = new Date();
-      }
-
-      if (action === 'ready') {
-        update.readyAt = new Date();
-      }
-
-      if (action === 'delay' && req.body?.delayMinutes !== undefined) {
-        update.estimatedPreparationTime = Number(req.body.delayMinutes);
-      }
-
-      if (action === 'reject') {
-        update.rejectionReason = req.body?.reason ?? 'Rejected by kitchen';
-        update.cancelledAt = new Date();
-      }
-
-      const order = await OrderModel.findOneAndUpdate(
-        {
-          _id: req.params.id,
-          restaurantId: req.user?.restaurantId,
-        },
-        update,
-        { new: true },
-      );
-
-      ok(res, { order, updatedBy: req.body?.staffId ?? req.user?.id ?? null });
-    } catch (error) {
-      next(error);
-    }
-  });
-}
-
 kitchenRouter.get('/batches', async (req, res, next) => {
   try {
     const batches = await KitchenBatchModel.find({
       restaurantId: req.user?.restaurantId,
     }).sort({ createdAt: -1 });
 
-    ok(res, { batches });
+    ok(res, {
+      batches,
+      meta: {
+        count: batches.length,
+      },
+    });
   } catch (error) {
     next(error);
   }
 });
 
-kitchenRouter.get('/batches/:id', async (req, res, next) => {
+kitchenRouter.get('/batches/:id', validate({ params: kitchenBatchParamsSchema }), async (req, res, next) => {
   try {
-    const batch = await KitchenBatchModel.findOne({
-      _id: req.params.id,
-      restaurantId: req.user?.restaurantId,
-    });
+    const batch = ensureFound(
+      await KitchenBatchModel.findOne({
+        _id: req.params.id,
+        restaurantId: req.user?.restaurantId,
+      }),
+      'Kitchen batch not found',
+    );
 
     ok(res, { batch });
   } catch (error) {
@@ -152,20 +95,30 @@ kitchenRouter.get('/batches/:id', async (req, res, next) => {
   }
 });
 
-kitchenRouter.post('/batches', async (req, res, next) => {
+kitchenRouter.post('/batches', validate({ body: createKitchenBatchBodySchema }), async (req, res, next) => {
   try {
+    const restaurantId = req.user?.restaurantId;
+    const orders = await OrderModel.find({
+      _id: { $in: req.body.orderIds },
+      restaurantId,
+    }).select('_id');
+
+    if (orders.length !== req.body.orderIds.length) {
+      throw new AppError('One or more orders do not belong to this restaurant', 400, ErrorCode.INVALID_REQUEST);
+    }
+
     const batch = await KitchenBatchModel.create({
-      restaurantId: req.user?.restaurantId,
-      name: req.body?.name ?? 'New Batch',
-      orderIds: Array.isArray(req.body?.orderIds) ? req.body.orderIds : [],
+      restaurantId,
+      name: req.body.name,
+      orderIds: orders.map((order) => order._id),
       status: BatchStatus.IN_PROGRESS,
-      station: req.body?.station ?? 'Hot Line',
+      station: req.body.station,
     });
 
     await OrderModel.updateMany(
       {
         _id: { $in: batch.orderIds },
-        restaurantId: req.user?.restaurantId,
+        restaurantId,
       },
       {
         batchId: batch._id,
@@ -178,19 +131,25 @@ kitchenRouter.post('/batches', async (req, res, next) => {
   }
 });
 
-kitchenRouter.patch('/batches/:id', async (req, res, next) => {
+kitchenRouter.patch(
+  '/batches/:id',
+  validate({ params: kitchenBatchParamsSchema, body: updateKitchenBatchBodySchema }),
+  async (req, res, next) => {
   try {
-    const batch = await KitchenBatchModel.findOneAndUpdate(
-      {
-        _id: req.params.id,
-        restaurantId: req.user?.restaurantId,
-      },
-      {
-        name: req.body?.name,
-        status: req.body?.status,
-        station: req.body?.station,
-      },
-      { new: true },
+    const batch = ensureFound(
+      await KitchenBatchModel.findOneAndUpdate(
+        {
+          _id: req.params.id,
+          restaurantId: req.user?.restaurantId,
+        },
+        {
+          name: req.body.name,
+          status: req.body.status,
+          station: req.body.station,
+        },
+        { new: true, runValidators: true },
+      ),
+      'Kitchen batch not found',
     );
 
     ok(res, { batch });
@@ -213,7 +172,12 @@ kitchenRouter.get('/load', async (req, res, next) => {
       };
     });
 
-    ok(res, { stations });
+    ok(res, {
+      stations,
+      meta: {
+        count: stations.length,
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -226,7 +190,12 @@ kitchenRouter.get('/performance', async (req, res, next) => {
       { name: 'Tanya Prep', avgTicketMinutes: 13, completionRate: 0.91 },
     ];
 
-    ok(res, { chefs: kitchenUsers });
+    ok(res, {
+      chefs: kitchenUsers,
+      meta: {
+        count: kitchenUsers.length,
+      },
+    });
   } catch (error) {
     next(error);
   }

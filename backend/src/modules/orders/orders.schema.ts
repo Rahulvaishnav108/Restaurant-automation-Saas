@@ -317,3 +317,15 @@ export const delayOrderBodySchema = z.object({
 });
 
 export type DelayOrderInput = z.infer<typeof delayOrderBodySchema>;
+
+export const orderIdParamsSchema = z.object({
+  id: z.string().refine((value) => mongoose.Types.ObjectId.isValid(value), {
+    message: 'Invalid order id',
+  }),
+});
+
+export const customerOrdersQuerySchema = z.object({
+  status: z.nativeEnum(OrderStatus).optional(),
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+});

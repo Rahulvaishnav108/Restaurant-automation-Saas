@@ -1,0 +1,132 @@
+# Rahul Backend Task List
+
+## Rahul Scope
+- CRUD modules + operational APIs only
+- Focus on restaurant operations, not platform architecture
+- Keep the leader's `task.md` untouched and track Rahul-owned work here
+
+## Explicitly In Scope
+- Public restaurant and QR-session operational APIs
+- Table CRUD and table operational actions
+- Menu/category/item CRUD and menu-facing APIs
+- Cart and order operational APIs
+- Staff, kitchen, and cleaning operational APIs
+- Restaurant admin CRUD modules owned by Rahul
+- Postman sync and verification for Rahul-owned APIs
+
+## Explicitly Out of Scope
+- Billing architecture
+- Payment gateway integration architecture
+- Multi-tenant SaaS architecture
+- Deep transaction/security hardening ownership
+- Analytics architecture
+
+## Priority 0: Keep Rahul Lane Clean
+- [ ] Do not modify the leader's planning files except by request
+- [ ] Keep Rahul work tracked only in `rahultask.md`
+- [ ] Update Postman only for Rahul-owned APIs after route cleanup
+- [ ] Document blockers that depend on Om, Harshita, or Ramakant
+
+## Priority 1: API Wiring and Contract Cleanup
+- [x] Remove duplicate kitchen/staff order route definitions and keep one source of truth
+- [x] Standardize Rahul-owned response shapes across public, customer, staff, kitchen, and cleaning handlers
+- [x] Align mounted routes with PRD/Postman paths for owned services
+- [x] Add missing request validation to thin operational endpoints
+- [x] Recheck restaurant scoping on all Rahul-owned CRUD and operational queries
+
+## Priority 2: Public Service and Table Session Flow
+- [x] Public restaurant details endpoint exists
+- [x] Public table session create/validate flow exists
+- [x] Public reservation availability and queue join endpoints exist
+- [ ] Verify PRD path alignment for public menu/session contract
+- [ ] Verify session create, validate, recover, current, extend, and end flows end to end
+- [ ] Tighten session lifecycle handoff to table and cleaning workflow
+- [ ] Verify expiry and idle-timeout behavior against real DB data
+
+## Priority 3: Tables Service
+- [x] Admin table CRUD exists
+- [x] Bulk table create exists
+- [x] Table QR generate/fetch exists
+- [x] Staff table dashboard/detail/assign/reserve/occupy exists
+- [ ] Route all staff table status changes through validated lifecycle logic where needed
+- [ ] Verify delete/update edge cases and not-found behavior
+- [ ] Verify floor/section/status filtering for staff flow
+- [ ] Confirm restaurant scoping consistency in admin and staff table actions
+
+## Priority 4: Menu Service
+- [x] Admin category CRUD exists
+- [x] Admin menu item CRUD exists
+- [x] Category/item reorder exists
+- [x] Availability and visibility toggles exist
+- [x] Customer/public menu browsing and filters exist
+- [ ] Add `POST /admin/menu/items/:id/image`
+- [ ] Align public menu endpoints with PRD expectations
+- [ ] Verify category, veg, availability, popular, recommended, search, price, and sort filters
+- [ ] Verify admin/customer/public menu flows in Postman
+
+## Priority 5: Cart Service
+- [x] Persistent cart get/add/update/remove/clear flow exists
+- [ ] Verify invalid item, hidden item, unavailable item, and empty-cart edge cases
+- [ ] Recheck pricing snapshot behavior after menu item changes
+- [ ] Confirm cart totals behavior is acceptable until billing/tax owner finalizes deeper logic
+- [ ] Add Postman verification for full cart lifecycle
+
+## Priority 6: Orders Service
+- [x] Customer place/list/detail/reorder/cancel exists
+- [x] Kitchen accept/start/ready/delay/reject exists
+- [x] Staff ready/pick/serve exists
+- [x] Remove duplicate kitchen/staff order implementations and keep one order flow
+- [ ] Enforce one clear order state machine across all operational transitions
+- [ ] Verify reorder/cancel restrictions and timestamps
+- [ ] Verify kitchen-to-staff handoff through real DB flow
+- [ ] Keep billing/payment linkage limited to operational handoff, not architecture ownership
+
+## Priority 7: Staff Operations Service
+- [x] Queue list/detail/priority update exists
+- [x] Reservation list/detail/check-in exists
+- [x] Customer request list/accept/complete exists
+- [x] Issue escalation endpoint exists
+- [x] Add validation schemas for queue priority, reservation check-in, request accept/complete, and issue escalation
+- [ ] Verify staff request workflow against customer-created request records
+- [ ] Verify audit log side effects for issue escalation
+- [ ] Add Postman coverage for full staff operations flow
+
+## Priority 8: Kitchen Operations Service
+- [x] Kitchen dashboard exists
+- [x] Kitchen orders list/detail exists
+- [x] Kitchen batch list/detail/create/update exists
+- [x] Kitchen load/performance endpoints exist
+- [ ] Replace mock kitchen performance output with DB-backed metrics
+- [ ] Review batch validation and batch-to-order linkage behavior
+- [ ] Verify dashboard/load metrics against real order and batch data
+- [ ] Keep kitchen API source consolidated after route cleanup
+
+## Priority 9: Cleaning Operations Service
+- [x] Cleaning task list/detail/start/complete/verify exists
+- [ ] Auto-create cleaning tasks when session ends or table becomes cleaning-needed
+- [ ] Support customer-requested cleaning priority flow
+- [ ] Fix/verify cleaning lifecycle transitions against PRD expectations
+- [ ] Add validation, timing, and assignment details where needed
+- [ ] Verify cleaning workflow end to end in Postman
+
+## Priority 10: Rahul-Owned Admin CRUD Gaps
+- [ ] Mount and implement staff management CRUD APIs
+  Create, list, details, update, delete, and shift assignment.
+- [ ] Mount and implement offers CRUD APIs
+  Create, list, details, update, delete.
+- [ ] Mount and implement inventory CRUD APIs
+  List, add, update, stock alerts.
+- [ ] Confirm whether loyalty rule CRUD belongs in Rahul scope before implementing
+
+## Priority 11: Shared Utility Work in Rahul Scope
+- [x] Notifications read/read-all routes exist
+- [x] Shared search route exists
+- [x] Version route exists
+- [ ] Replace placeholder upload response with a real upload flow only if assigned to Rahul
+- [ ] Verify notifications/search behavior against seeded data
+
+## Rahul Definition of Done
+- [ ] Rahul-owned APIs are mounted, non-duplicated, and contract-aligned
+- [ ] Public, table, menu, cart, order, staff, kitchen, and cleaning flows are Postman-testable
+- [ ] Staff/offers/inventory CRUD gaps in Rahul scope are implemented or explicitly deferred
+- [ ] Known out-of-scope dependencies are listed clearly instead of mixed into Rahul delivery
