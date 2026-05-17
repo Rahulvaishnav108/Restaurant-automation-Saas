@@ -36,7 +36,7 @@ function clearRefreshCookie(res: Response): void {
 
 // ── POST /auth/register ──────────────────────────────────────────────
 export const register = asyncHandler(async (req: Request, res: Response) => {
-  const result = await authService.register(req.body);
+  const result = await authService.register(req.body, req.user);
 
   setRefreshCookie(res, result.refreshToken);
 

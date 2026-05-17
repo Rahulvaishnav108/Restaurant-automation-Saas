@@ -20,6 +20,10 @@ async function bootstrap(): Promise<void> {
     logger.info(`📡 API prefix: http://localhost:${env.PORT}${env.API_PREFIX}`);
   });
 
+  // 3. Initialize Sockets
+  const { socketService } = require('./sockets/socket.service');
+  socketService.init(server);
+
   // 3. Handle unhandled rejections
   process.on('unhandledRejection', (reason: Error) => {
     logger.error('UNHANDLED REJECTION — shutting down...', { error: reason.message });

@@ -2,7 +2,7 @@
 // Auth route definitions — staff/admin only (customers use session auth)
 
 import { Router } from 'express';
-import { requireAuth } from '../../middleware/requireAuth';
+import { requireAuth, attachUser } from '../../middleware/requireAuth';
 import { roleGuard } from '../../middleware/roleGuard';
 import { validate } from '../../middleware/validate';
 import { authLimiter } from '../../middleware/rateLimiters';
@@ -38,10 +38,11 @@ router.delete('/sessions/:sessionId', requireAuth, authController.revokeSession)
 
 // ── Admin-only: Register new staff accounts ──────────────────────────
 // Customers no longer register — only admin/super-admin can create staff
+// Note: This is now public to allow bootstrapping the first admin.
+// Role-based protection is handled inside the service layer.
 router.post(
   '/register',
-  requireAuth,
-  roleGuard(UserRole.RESTAURANT_ADMIN, UserRole.SUPER_ADMIN),
+  attachUser,
   validate({ body: registerSchema }),
   authController.register
 );
