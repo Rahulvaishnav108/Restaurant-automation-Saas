@@ -14,7 +14,7 @@ export enum PaymentMethod {
   UPI = "UPI",
   WALLET = "WALLET",
   ONLINE = "ONLINE",
-}
+} 
 
 export interface IAppliedCoupon {
   couponId: mongoose.Types.ObjectId;
@@ -101,7 +101,7 @@ export const billingSchema = new Schema<IBill>(
 
     orderIds: [
       {
-        type: Schema.Types.ObjectId,
+        type: Schema.Types.ObjectId,  
         ref: "Order",
         required: true,
       },
