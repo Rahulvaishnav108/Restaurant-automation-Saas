@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ErrorCode } from '../constants/errors';
-import { AppError } from '../utils/AppError';
 import { verifyAccessToken } from '../services/jwt.service';
+import { AppError } from '../utils/AppError';
 
 export function requireAuth(req: Request, _res: Response, next: NextFunction): void {
   const authHeader = req.header('authorization');
@@ -33,4 +33,30 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction): v
   } catch (error) {
     next(error as Error);
   }
+}
+
+export function attachUser(req: Request, _res: Response, next: NextFunction): void {
+  const authHeader = req.headers.authorization;
+
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+
+    if (token) {
+      try {
+        const decoded = verifyAccessToken(token);
+
+        req.user = {
+          _id: decoded._id,
+          id: decoded._id,
+          email: decoded.email,
+          role: decoded.role,
+          restaurantId: decoded.restaurantId,
+        };
+      } catch {
+        // Silent fail; req.user remains undefined.
+      }
+    }
+  }
+
+  next();
 }

@@ -2,20 +2,9 @@
 
 import mongoose, { Document, Schema } from "mongoose";
 import { z } from "zod";
-import { Priority } from "../../constants/statuses";
+import { OrderStatus, Priority } from "../../constants/statuses";
 
-export enum OrderStatus {
-  PENDING = "PENDING",
-  ACCEPTED = "ACCEPTED",
-  PREPARING = "PREPARING",
-  DELAYED = "DELAYED",
-  READY = "READY",
-  PICKED = "PICKED",
-  SERVED = "SERVED",
-  COMPLETED = "COMPLETED",
-  CANCELLED = "CANCELLED",
-  REJECTED = "REJECTED",
-}
+export { OrderStatus };
 
 export enum PaymentStatus {
   PENDING = "PENDING",
@@ -67,6 +56,8 @@ export interface IOrder extends Document {
   acceptedAt?: Date;
 
   readyAt?: Date;
+
+  pickedAt?: Date;
 
   servedAt?: Date;
 
@@ -199,7 +190,7 @@ export const orderSchema = new Schema<IOrder>(
     status: {
       type: String,
       enum: Object.values(OrderStatus),
-      default: OrderStatus.PENDING,
+      default: OrderStatus.PLACED,
     },
 
     priority: {
@@ -231,6 +222,11 @@ export const orderSchema = new Schema<IOrder>(
     },
 
     readyAt: {
+      type: Date,
+      default: null,
+    },
+
+    pickedAt: {
       type: Date,
       default: null,
     },

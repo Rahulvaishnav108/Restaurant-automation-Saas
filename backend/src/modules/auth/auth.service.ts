@@ -20,7 +20,7 @@ function buildPayload(user: IUser): JwtPayload {
   };
 }
 
-export async function register(input: RegisterInput) {
+export async function register(input: RegisterInput, _requester?: unknown) {
   if (await userService.emailExists(input.email)) {
     throw new AppError('Email already registered', 409, ErrorCode.CONFLICT);
   }

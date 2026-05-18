@@ -275,4 +275,17 @@ export class OrdersController {
       next(error);
     }
   }
+
+  // PATCH /staff/orders/:id/complete
+  static async markCompleted(req: Request, res: Response, next: NextFunction) {
+    try {
+      const restaurantId = OrdersController.getRequiredRestaurantId(req);
+
+      const { id } = req.params;
+      const order = await OrdersService.markCompleted(restaurantId, id);
+      ok(res, { order });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

@@ -30,7 +30,7 @@ kitchenRouter.get('/dashboard', async (req, res, next) => {
     const [activeOrders, readyOrders, activeBatches] = await Promise.all([
       OrderModel.countDocuments({
         restaurantId,
-        status: { $in: [OrderStatus.PENDING, OrderStatus.ACCEPTED, OrderStatus.PREPARING, OrderStatus.DELAYED] },
+        status: { $in: [OrderStatus.PLACED, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.DELAYED] },
       }),
       OrderModel.countDocuments({ restaurantId, status: OrderStatus.READY }),
       KitchenBatchModel.countDocuments({ restaurantId, status: BatchStatus.IN_PROGRESS }),

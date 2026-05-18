@@ -156,4 +156,12 @@ router.patch(
   OrdersController.markServed
 );
 
+router.patch(
+  '/staff/orders/:id/complete',
+  requireAuth,
+  roleGuard(...serviceRoles),
+  validate({ params: orderIdParamsSchema }),
+  OrdersController.markCompleted
+);
+
 export default router;

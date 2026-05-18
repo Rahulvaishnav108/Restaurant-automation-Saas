@@ -12,7 +12,7 @@ export class OrdersService {
     restaurantId: string | Types.ObjectId,
     sessionId: string | Types.ObjectId,
     tableId: string | Types.ObjectId,
-    customerName: string | undefined,
+    _customerName: string | undefined,
     data: PlaceOrderInput
   ) {
     // 1. Fetch Cart
@@ -60,7 +60,7 @@ export class OrdersService {
       taxAmount: cart.tax,
       discountAmount: cart.discount,
       finalAmount: cart.grandTotal,
-      status: OrderStatus.PENDING,
+      status: OrderStatus.PLACED,
       paymentStatus: PaymentStatus.PENDING,
       priority: Priority.NORMAL,
       specialInstructions: data.specialInstructions || '',
@@ -141,7 +141,7 @@ export class OrdersService {
       taxAmount: original.taxAmount,
       discountAmount: original.discountAmount,
       finalAmount: original.finalAmount,
-      status: OrderStatus.PENDING,
+      status: OrderStatus.PLACED,
       paymentStatus: PaymentStatus.PENDING,
       priority: original.priority ?? Priority.NORMAL,
       specialInstructions: original.specialInstructions,
@@ -183,8 +183,8 @@ export class OrdersService {
         ? options.status
         : {
             $in: [
-              OrderStatus.PENDING,
-              OrderStatus.ACCEPTED,
+              OrderStatus.PLACED,
+              OrderStatus.CONFIRMED,
               OrderStatus.PREPARING,
               OrderStatus.DELAYED,
               OrderStatus.READY,
@@ -226,11 +226,11 @@ export class OrdersService {
   static async acceptOrder(restaurantId: string | Types.ObjectId, orderId: string | Types.ObjectId, estimatedTime?: number) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    if (order.status !== OrderStatus.PENDING) {
-      throw new AppError('Only pending orders can be accepted', 400, ErrorCode.VALIDATION_ERROR);
+    if (order.status !== OrderStatus.PLACED) {
+      throw new AppError('Only placed orders can be accepted', 400, ErrorCode.VALIDATION_ERROR);
     }
 
-    order.status = OrderStatus.ACCEPTED;
+    order.status = OrderStatus.CONFIRMED;
     order.acceptedAt = new Date();
     if (estimatedTime) {
       order.estimatedPreparationTime = estimatedTime;
@@ -243,7 +243,7 @@ export class OrdersService {
   static async startCooking(restaurantId: string | Types.ObjectId, orderId: string | Types.ObjectId) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    if (order.status !== OrderStatus.ACCEPTED && order.status !== OrderStatus.PENDING) {
+    if (order.status !== OrderStatus.CONFIRMED && order.status !== OrderStatus.PLACED) {
       throw new AppError('Order cannot be prepared from current status', 400, ErrorCode.VALIDATION_ERROR);
     }
 
@@ -268,8 +268,8 @@ export class OrdersService {
   static async rejectOrder(restaurantId: string | Types.ObjectId, orderId: string | Types.ObjectId, reason: string) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    if (order.status !== OrderStatus.PENDING) {
-      throw new AppError('Only pending orders can be rejected', 400, ErrorCode.VALIDATION_ERROR);
+    if (order.status !== OrderStatus.PLACED) {
+      throw new AppError('Only placed orders can be rejected', 400, ErrorCode.VALIDATION_ERROR);
     }
 
     order.status = OrderStatus.REJECTED;
@@ -282,7 +282,7 @@ export class OrdersService {
   static async delayOrder(restaurantId: string | Types.ObjectId, orderId: string | Types.ObjectId, delayMinutes: number) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    const activeStatuses = [OrderStatus.PENDING, OrderStatus.ACCEPTED, OrderStatus.PREPARING];
+    const activeStatuses = [OrderStatus.PLACED, OrderStatus.CONFIRMED, OrderStatus.PREPARING];
     if (!activeStatuses.includes(order.status as OrderStatus)) {
       throw new AppError('Cannot delay order in current status', 400, ErrorCode.VALIDATION_ERROR);
     }
@@ -310,6 +310,7 @@ export class OrdersService {
     }
 
     order.status = OrderStatus.PICKED;
+    order.pickedAt = new Date();
     await order.save();
     return order;
   }
@@ -323,6 +324,19 @@ export class OrdersService {
 
     order.status = OrderStatus.SERVED;
     order.servedAt = new Date();
+    await order.save();
+    return order;
+  }
+
+  static async markCompleted(restaurantId: string | Types.ObjectId, orderId: string | Types.ObjectId) {
+    const order = await this.getKitchenOrderDetails(restaurantId, orderId);
+
+    if (order.status !== OrderStatus.SERVED) {
+      throw new AppError('Only served orders can be completed', 400, ErrorCode.ORDER_NOT_MODIFIABLE);
+    }
+
+    order.status = OrderStatus.COMPLETED;
+    order.completedAt = new Date();
     await order.save();
     return order;
   }
