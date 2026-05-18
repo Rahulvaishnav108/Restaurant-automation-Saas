@@ -150,9 +150,7 @@ const LandingPage: React.FC<Props> = ({ onEnterApp }) => {
       <section className="relative overflow-hidden py-24 sm:py-32">
         <div className="absolute inset-0" style={{ backgroundImage:'linear-gradient(rgba(5,8,20,0.75),rgba(5,8,20,0.9)),url(https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1600&q=80)', backgroundSize:'cover', backgroundPosition:'center' }} />
         <div className="relative mx-auto max-w-7xl px-6 lg:px-16 flex flex-col items-center text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/10 px-4 py-2 text-sm text-orange-300 mb-8">
-            <Zap className="h-4 w-4" /> Order directly from your table — no waiting
-          </div>
+        
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-tight tracking-tight">
             Find the best<br />restaurants <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-400">near you</span>
           </h1>
