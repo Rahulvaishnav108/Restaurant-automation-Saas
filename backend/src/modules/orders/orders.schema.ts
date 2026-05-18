@@ -2,77 +2,49 @@
 
 import mongoose, { Document, Schema } from "mongoose";
 import { z } from "zod";
-
-export enum OrderStatus {
-  PENDING = "PENDING",
-  ACCEPTED = "ACCEPTED",
-  PREPARING = "PREPARING",
-  READY = "READY",
-  SERVED = "SERVED",
-  COMPLETED = "COMPLETED",
-  CANCELLED = "CANCELLED",
-  REJECTED = "REJECTED",
-}
-
-export enum PaymentStatus {
-  PENDING = "PENDING",
-  PAID = "PAID",
-  FAILED = "FAILED",
-  REFUNDED = "REFUNDED",
-}
+import { OrderStatus, PaymentStatus } from "../../constants/statuses";
 
 export interface IOrderItem {
   menuItemId: mongoose.Types.ObjectId;
   name: string;
   quantity: number;
-  price: number;
-  totalPrice: number;
+  unitPrice: number;    // Requirement #6: Pricing snapshot
+  subtotal: number;     // Requirement #6
+  tax: number;          // Requirement #6
+  discount: number;     // Requirement #6
+  grandTotal: number;   // Requirement #6
   notes?: string;
 }
 
 export interface IOrder extends Document {
   restaurantId: mongoose.Types.ObjectId;
-
   customerId?: mongoose.Types.ObjectId;
-
   tableId?: mongoose.Types.ObjectId;
-
   sessionId?: mongoose.Types.ObjectId;
-
   orderNumber: string;
-
   items: IOrderItem[];
-
   totalAmount: number;
-
   taxAmount: number;
-
   discountAmount: number;
-
   finalAmount: number;
-
   status: OrderStatus;
-
   paymentStatus: PaymentStatus;
-
   specialInstructions?: string;
 
-  estimatedPreparationTime?: number;
+  // Requirement #7: Operational context for delays
+  delayReason?: string;
+  estimatedReadyTime?: Date;
 
-  acceptedAt?: Date;
-
+  // Timestamps for state machine tracking
+  acceptedAt?: Date;    // Becomes confirmedAt conceptually
   readyAt?: Date;
-
+  pickedAt?: Date;      // Requirement #1
   servedAt?: Date;
-
-  completedAt?: Date;
-
+  completedAt?: Date;   // Requirement #10
   cancelledAt?: Date;
-
   rejectionReason?: string;
 
   createdAt: Date;
-
   updatedAt: Date;
 }
 
@@ -83,31 +55,41 @@ const orderItemSchema = new Schema<IOrderItem>(
       ref: "MenuItem",
       required: true,
     },
-
     name: {
       type: String,
       required: true,
       trim: true,
     },
-
     quantity: {
       type: Number,
       required: true,
       min: 1,
     },
-
-    price: {
+    unitPrice: {
       type: Number,
       required: true,
       min: 0,
     },
-
-    totalPrice: {
+    subtotal: {
       type: Number,
       required: true,
       min: 0,
     },
-
+    tax: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    discount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    grandTotal: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
     notes: {
       type: String,
       trim: true,
@@ -126,32 +108,27 @@ export const orderSchema = new Schema<IOrder>(
       ref: "Restaurant",
       required: true,
     },
-
     customerId: {
       type: Schema.Types.ObjectId,
       ref: "User",
       default: null,
     },
-
     tableId: {
       type: Schema.Types.ObjectId,
       ref: "Table",
       default: null,
     },
-
     sessionId: {
       type: Schema.Types.ObjectId,
       ref: "TableSession",
       default: null,
     },
-
     orderNumber: {
       type: String,
       required: true,
       unique: true,
       trim: true,
     },
-
     items: {
       type: [orderItemSchema],
       required: true,
@@ -160,79 +137,74 @@ export const orderSchema = new Schema<IOrder>(
         message: "Order must contain at least one item",
       },
     },
-
     totalAmount: {
       type: Number,
       required: true,
       min: 0,
     },
-
     taxAmount: {
       type: Number,
       default: 0,
       min: 0,
     },
-
     discountAmount: {
       type: Number,
       default: 0,
       min: 0,
     },
-
     finalAmount: {
       type: Number,
       required: true,
       min: 0,
     },
-
     status: {
       type: String,
       enum: Object.values(OrderStatus),
-      default: OrderStatus.PENDING,
+      default: OrderStatus.PLACED,
     },
-
     paymentStatus: {
       type: String,
       enum: Object.values(PaymentStatus),
       default: PaymentStatus.PENDING,
     },
-
     specialInstructions: {
       type: String,
       trim: true,
       default: "",
     },
-
-    estimatedPreparationTime: {
-      type: Number,
+    delayReason: {
+      type: String,
+      trim: true,
       default: null,
     },
-
+    estimatedReadyTime: {
+      type: Date,
+      default: null,
+    },
     acceptedAt: {
       type: Date,
       default: null,
     },
-
     readyAt: {
       type: Date,
       default: null,
     },
-
+    pickedAt: {
+      type: Date,
+      default: null,
+    },
     servedAt: {
       type: Date,
       default: null,
     },
-
     completedAt: {
       type: Date,
       default: null,
     },
-
     cancelledAt: {
       type: Date,
       default: null,
     },
-
     rejectionReason: {
       type: String,
       trim: true,
@@ -272,7 +244,7 @@ export const placeOrderBodySchema = z.object({
 export type PlaceOrderInput = z.infer<typeof placeOrderBodySchema>;
 
 export const acceptOrderBodySchema = z.object({
-  estimatedPreparationTime: z
+  estimatedMinutes: z
     .number()
     .int()
     .positive('Estimated time must be positive')
@@ -296,6 +268,11 @@ export const delayOrderBodySchema = z.object({
     .number()
     .int()
     .positive('Delay minutes must be positive'),
+  reason: z
+    .string()
+    .trim()
+    .min(1, 'Delay reason is required')
+    .max(500, 'Reason cannot exceed 500 characters'),
 });
 
-export type DelayOrderInput = z.infer<typeof delayOrderBodySchema>;
+export type DelayOrderInput = z.infer<typeof delayOrderBodySchema>;

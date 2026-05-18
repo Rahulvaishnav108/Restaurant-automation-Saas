@@ -33,18 +33,40 @@ function buildPayload(user: IUser): JwtPayload {
 
 /**
  * Register a new staff/admin user.
- * Only callable by RESTAURANT_ADMIN or SUPER_ADMIN.
- * Customers do NOT register — they use QR session tokens.
+ * - If no users exist, allows public registration as SUPER_ADMIN (bootstrap).
+ * - If users exist, requires a SUPER_ADMIN or RESTAURANT_ADMIN requester.
  */
-export async function register(input: RegisterInput & { role?: string }) {
-  // Validate and extract role
-  const role = input.role as UserRole;
-  if (!role || !VALID_STAFF_ROLES.has(role)) {
-    throw new AppError(
-      `Invalid role. Must be one of: ${Object.values(UserRole).join(', ')}`,
-      400,
-      ErrorCode.INVALID_REQUEST
-    );
+export async function register(input: RegisterInput & { role?: string }, requester?: any) {
+  const userCount = await UserModel.countDocuments();
+  const isFirstUser = userCount === 0;
+
+  let roleToAssign: UserRole;
+
+  if (isFirstUser) {
+    // First user is always SUPER_ADMIN
+    roleToAssign = UserRole.SUPER_ADMIN;
+    logger.info(`🚀 Bootstrapping first user: ${input.email} as SUPER_ADMIN`);
+  } else {
+    // Subsequent users require an authorized requester
+    if (!requester) {
+      throw new AppError('Authentication required to register new staff', 401, ErrorCode.UNAUTHORIZED);
+    }
+
+    if (requester.role !== UserRole.SUPER_ADMIN && requester.role !== UserRole.RESTAURANT_ADMIN) {
+      throw new AppError('Only admins can register new staff accounts', 403, ErrorCode.FORBIDDEN);
+    }
+
+    // Role must be provided for subsequent registrations
+    const providedRole = input.role as UserRole;
+    if (!providedRole || !VALID_STAFF_ROLES.has(providedRole)) {
+      throw new AppError(
+        `Invalid role. Must be one of: ${Object.values(UserRole).join(', ')}`,
+        400,
+        ErrorCode.INVALID_REQUEST
+      );
+    }
+    roleToAssign = providedRole;
+    logger.info(`👤 Registering user: ${input.email} as ${roleToAssign} (Requested by: ${requester.email})`);
   }
 
   // Check for existing user
@@ -55,8 +77,8 @@ export async function register(input: RegisterInput & { role?: string }) {
     throw new AppError('Mobile number already registered', 409, ErrorCode.CONFLICT);
   }
 
-  // Create staff user with explicit role
-  const user = await userService.createUser(input, role);
+  // Create user with assigned role
+  const user = await userService.createUser(input, roleToAssign);
 
   // Generate tokens
   const payload = buildPayload(user);

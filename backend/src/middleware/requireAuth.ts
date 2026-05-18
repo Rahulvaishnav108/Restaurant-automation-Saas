@@ -47,3 +47,29 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction): v
     throw error;
   }
 }
+
+/**
+ * Middleware: Optionally attach user from JWT if present.
+ * Does NOT throw if token is missing or invalid.
+ */
+export function attachUser(req: Request, _res: Response, next: NextFunction): void {
+  const authHeader = req.headers.authorization;
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+        req.user = {
+          _id: decoded._id,
+          email: decoded.email,
+          role: decoded.role,
+          restaurantId: decoded.restaurantId,
+        };
+      } catch (error) {
+        // Silent fail — req.user remains undefined
+      }
+    }
+  }
+  next();
+}

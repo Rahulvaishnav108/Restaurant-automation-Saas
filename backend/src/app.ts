@@ -110,11 +110,37 @@ app.get('/ready', (_req, res) => {
 app.use('/api', globalLimiter);
 
 // ── 9. API Routes ─────────────────────────────────────────────────────
+app.get(`${env.API_PREFIX}`, (_req, res) => {
+  res.status(200).json({
+    success: true,
+    data: {
+      message: 'Restaurant Automation API v1',
+      modules: {
+        auth: '/auth',
+        users: '/users',
+        tables: '/tables',
+        sessions: '/sessions',
+        orders: {
+          customer: '/customer/orders',
+          kitchen: '/kitchen/orders',
+          staff: '/staff/orders',
+        },
+        menu: {
+          customer: '/customer/menu',
+          public: '/public/menu',
+          admin: '/admin/menu',
+        },
+        cart: '/customer/cart',
+      },
+    },
+  });
+});
+
 app.use(`${env.API_PREFIX}/auth`, authRoutes);
 app.use(`${env.API_PREFIX}/users`, userRoutes);
 app.use(`${env.API_PREFIX}/tables`, tableRoutes);
 app.use(`${env.API_PREFIX}/sessions`, tableSessionRoutes);
-app.use(`${env.API_PREFIX}/orders`, orderRoutes);
+app.use(`${env.API_PREFIX}`, orderRoutes);
 app.use(`${env.API_PREFIX}`, menuRoutes);
 app.use(`${env.API_PREFIX}/customer/cart`, cartRoutes);
 

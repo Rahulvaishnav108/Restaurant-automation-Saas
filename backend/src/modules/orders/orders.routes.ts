@@ -107,4 +107,7 @@ router.patch('/staff/orders/:id/pick', requireAuth, roleGuard(...serviceRoles), 
 // Mark Served
 router.patch('/staff/orders/:id/serve', requireAuth, roleGuard(...serviceRoles), OrdersController.markServed);
 
+// Mark Completed (Bill Settled / Final state)
+router.patch('/staff/orders/:id/complete', requireAuth, roleGuard(...serviceRoles), OrdersController.markCompleted);
+
 export default router;
