@@ -3,6 +3,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { MongoMemoryServer } from 'mongodb-memory-server';
+import mongoose from 'mongoose';
 import newman from 'newman';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -156,7 +157,11 @@ async function runNewmanSuite(url) {
   };
 }
 
-async function runSmokeSuite(url) {
+function toObjectId(id) {
+  return new mongoose.Types.ObjectId(id);
+}
+
+async function runSmokeSuite(url, db) {
   const results = [];
   const state = {
     admin: null,
@@ -169,7 +174,15 @@ async function runSmokeSuite(url) {
     restaurantId: '',
     createdTableId: '',
     createdQrToken: '',
+    createdSessionId: '',
     createdSessionToken: '',
+    createdSessionExpiresAt: '',
+    idleExpiryTableId: '',
+    idleExpiryQrToken: '',
+    idleExpirySessionToken: '',
+    hardExpiryTableId: '',
+    hardExpiryQrToken: '',
+    hardExpirySessionToken: '',
     createdCartItemId: '',
     createdOrderId: '',
     reorderedOrderId: '',
@@ -188,6 +201,12 @@ async function runSmokeSuite(url) {
     pendingRestaurantId: '',
   };
 
+  const tablesCollection = db.collection('tables');
+  const tableSessionsCollection = db.collection('tableSessions');
+  const cleaningTasksCollection = db.collection('cleaningTasks');
+  const menuCategoriesCollection = db.collection('menuCategories');
+  const menuItemsCollection = db.collection('menuItems');
+
   async function runStep(name, fn) {
     try {
       const detail = await fn();
@@ -199,6 +218,48 @@ async function runSmokeSuite(url) {
         detail: error instanceof Error ? error.message : String(error),
       });
     }
+  }
+
+  async function getTableDocument(tableId) {
+    return tablesCollection.findOne({ _id: toObjectId(tableId) });
+  }
+
+  async function getSessionDocumentByToken(sessionToken) {
+    return tableSessionsCollection.findOne({ sessionToken });
+  }
+
+  async function getLatestCleaningTask(tableId) {
+    return cleaningTasksCollection.findOne(
+      { tableId: toObjectId(tableId) },
+      { sort: { createdAt: -1 } },
+    );
+  }
+
+  function assertAscending(values, message) {
+    for (let index = 1; index < values.length; index += 1) {
+      assert(values[index - 1] <= values[index], message);
+    }
+  }
+
+  async function createTableWithQr({ name, number, floor, section, capacity }) {
+    const createTable = await request(url, 'POST', '/api/v1/admin/tables', {
+      token: state.admin.accessToken,
+      body: { name, number, floor, section, capacity },
+    });
+    assert(createTable.status === 201, `create table ${name} returned ${createTable.status}`);
+
+    const tableId = getId(createTable.json?.data?.table);
+    assert(tableId, `Created table id missing for ${name}`);
+
+    const generateQr = await request(url, 'POST', `/api/v1/admin/tables/${tableId}/qr`, {
+      token: state.admin.accessToken,
+    });
+    assert(generateQr.status === 200, `generate qr for ${name} returned ${generateQr.status}`);
+
+    const qrToken = generateQr.json?.data?.qrToken;
+    assert(qrToken, `QR token missing for ${name}`);
+
+    return { tableId, qrToken };
   }
 
   await runStep('system routes', async () => {
@@ -323,6 +384,9 @@ async function runSmokeSuite(url) {
     state.restaurantId = getId(restaurant.json?.data?.restaurant);
     assert(state.restaurantId, 'Public restaurant id missing');
 
+    const publicMenuRoot = await request(url, 'GET', `/api/v1/public/menu/${state.restaurantId}`);
+    assert(publicMenuRoot.status === 200, `public menu root returned ${publicMenuRoot.status}`);
+
     const publicMenu = await request(url, 'GET', `/api/v1/public/menu/${state.restaurantId}/items`);
     assert(publicMenu.status === 200, `public menu returned ${publicMenu.status}`);
 
@@ -356,13 +420,35 @@ async function runSmokeSuite(url) {
     });
     assert(updateSettings.status === 200, `admin settings patch returned ${updateSettings.status}`);
 
-    const createTable = await request(url, 'POST', '/api/v1/admin/tables', {
-      token: state.admin.accessToken,
-      body: { name: `VERIFY-T${uniqueTableNumber}`, number: uniqueTableNumber, floor: 2, section: 'Verify', capacity: 4 },
+    const primaryTable = await createTableWithQr({
+      name: `VERIFY-T${uniqueTableNumber}`,
+      number: uniqueTableNumber,
+      floor: 2,
+      section: 'Verify',
+      capacity: 4,
     });
-    assert(createTable.status === 201, `create table returned ${createTable.status}`);
-    state.createdTableId = getId(createTable.json?.data?.table);
-    assert(state.createdTableId, 'Created table id missing');
+    state.createdTableId = primaryTable.tableId;
+    state.createdQrToken = primaryTable.qrToken;
+
+    const idleExpiryTable = await createTableWithQr({
+      name: `VERIFY-IDLE-${uniqueTableNumber + 1}`,
+      number: uniqueTableNumber + 1,
+      floor: 2,
+      section: 'Verify Session',
+      capacity: 4,
+    });
+    state.idleExpiryTableId = idleExpiryTable.tableId;
+    state.idleExpiryQrToken = idleExpiryTable.qrToken;
+
+    const hardExpiryTable = await createTableWithQr({
+      name: `VERIFY-HARD-${uniqueTableNumber + 2}`,
+      number: uniqueTableNumber + 2,
+      floor: 2,
+      section: 'Verify Session',
+      capacity: 4,
+    });
+    state.hardExpiryTableId = hardExpiryTable.tableId;
+    state.hardExpiryQrToken = hardExpiryTable.qrToken;
 
     const listTables = await request(url, 'GET', '/api/v1/admin/tables', {
       token: state.admin.accessToken,
@@ -391,13 +477,6 @@ async function runSmokeSuite(url) {
     });
     assert(bulkCreate.status === 201, `bulk create tables returned ${bulkCreate.status}`);
 
-    const generateQr = await request(url, 'POST', `/api/v1/admin/tables/${state.createdTableId}/qr`, {
-      token: state.admin.accessToken,
-    });
-    assert(generateQr.status === 200, `generate qr returned ${generateQr.status}`);
-    state.createdQrToken = generateQr.json?.data?.qrToken;
-    assert(state.createdQrToken, 'QR token missing');
-
     const getQr = await request(url, 'GET', `/api/v1/admin/tables/${state.createdTableId}/qr`, {
       token: state.admin.accessToken,
     });
@@ -412,14 +491,617 @@ async function runSmokeSuite(url) {
       },
     });
     assert(createSession.status === 201, `create table session returned ${createSession.status}`);
+    state.createdSessionId = getId(createSession.json?.data?.session) ?? createSession.json?.data?.sessionId ?? '';
     state.createdSessionToken =
       createSession.json?.data?.session?.token ?? createSession.json?.data?.sessionToken ?? '';
+    state.createdSessionExpiresAt =
+      createSession.json?.data?.session?.expiresAt ?? createSession.json?.data?.expiresAt ?? '';
+    assert(state.createdSessionId, 'Created session id missing');
     assert(state.createdSessionToken, 'Created session token missing');
+    assert(state.createdSessionExpiresAt, 'Created session expiry missing');
 
     const validateSession = await request(url, 'POST', '/api/v1/public/table-session/validate', {
       body: { token: state.createdSessionToken },
     });
     assert(validateSession.status === 200, `validate table session returned ${validateSession.status}`);
+  });
+
+  await runStep('table edge cases and restaurant scoping', async () => {
+    const missingTableId = new mongoose.Types.ObjectId().toString();
+    const spoofedRestaurantId = new mongoose.Types.ObjectId().toString();
+    const spoofedTableNumber = (Date.now() % 1000) + 400;
+    const foreignTableId = new mongoose.Types.ObjectId();
+    const foreignTableIdString = foreignTableId.toString();
+    const foreignRestaurantId = new mongoose.Types.ObjectId();
+    const now = new Date();
+
+    const missingAdminTable = await request(url, 'GET', `/api/v1/admin/tables/${missingTableId}`, {
+      token: state.admin.accessToken,
+    });
+    assert(missingAdminTable.status === 404, `missing admin table should return 404, got ${missingAdminTable.status}`);
+
+    const missingAdminUpdate = await request(url, 'PATCH', `/api/v1/admin/tables/${missingTableId}`, {
+      token: state.admin.accessToken,
+      body: { section: 'Missing Table' },
+    });
+    assert(
+      missingAdminUpdate.status === 404,
+      `updating a missing admin table should return 404, got ${missingAdminUpdate.status}`,
+    );
+
+    const missingAdminDelete = await request(url, 'DELETE', `/api/v1/admin/tables/${missingTableId}`, {
+      token: state.admin.accessToken,
+    });
+    assert(
+      missingAdminDelete.status === 404,
+      `deleting a missing admin table should return 404, got ${missingAdminDelete.status}`,
+    );
+
+    const spoofedCreate = await request(url, 'POST', '/api/v1/admin/tables', {
+      token: state.admin.accessToken,
+      body: {
+        restaurantId: spoofedRestaurantId,
+        name: `VERIFY-SCOPE-${spoofedTableNumber}`,
+        number: spoofedTableNumber,
+        floor: 4,
+        section: 'Scope Guard',
+        capacity: 2,
+      },
+    });
+    assert(spoofedCreate.status === 201, `scoped create table returned ${spoofedCreate.status}`);
+
+    const spoofedCreatedTable = spoofedCreate.json?.data?.table;
+    const spoofedCreatedTableId = getId(spoofedCreatedTable);
+    assert(spoofedCreatedTableId, 'Scoped create table id missing');
+    assert(
+      String(spoofedCreatedTable?.restaurantId) === state.restaurantId,
+      'Restaurant admin create table request escaped its own restaurant scope',
+    );
+
+    const spoofedBulkCreate = await request(url, 'POST', '/api/v1/admin/tables/bulk', {
+      token: state.admin.accessToken,
+      body: {
+        tables: [
+          {
+            restaurantId: spoofedRestaurantId,
+            name: `VERIFY-SCOPE-BULK-${spoofedTableNumber + 1}`,
+            number: spoofedTableNumber + 1,
+            floor: 4,
+            section: 'Scope Guard',
+            capacity: 2,
+          },
+        ],
+      },
+    });
+    assert(spoofedBulkCreate.status === 201, `scoped bulk create returned ${spoofedBulkCreate.status}`);
+    const spoofedBulkTable = spoofedBulkCreate.json?.data?.tables?.[0];
+    const spoofedBulkTableId = getId(spoofedBulkTable);
+    assert(spoofedBulkTableId, 'Scoped bulk create table id missing');
+    assert(
+      String(spoofedBulkTable?.restaurantId) === state.restaurantId,
+      'Restaurant admin bulk create request escaped its own restaurant scope',
+    );
+
+    await tablesCollection.insertOne({
+      _id: foreignTableId,
+      restaurantId: foreignRestaurantId,
+      tableNumber: `VERIFY-FOREIGN-${spoofedTableNumber + 2}`,
+      capacity: 4,
+      floor: 9,
+      section: 'Foreign Scope',
+      status: 'AVAILABLE',
+      qrCode: `foreign-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`,
+      isActive: true,
+      currentSessionId: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const adminTables = await request(url, 'GET', '/api/v1/admin/tables', {
+      token: state.admin.accessToken,
+    });
+    assert(adminTables.status === 200, `admin tables list returned ${adminTables.status}`);
+    assert(
+      !(adminTables.json?.data?.tables ?? []).some((table) => getId(table) === foreignTableIdString),
+      'Admin table list leaked a table from another restaurant',
+    );
+
+    const foreignAdminTable = await request(url, 'GET', `/api/v1/admin/tables/${foreignTableIdString}`, {
+      token: state.admin.accessToken,
+    });
+    assert(
+      foreignAdminTable.status === 404,
+      `admin foreign table lookup should return 404, got ${foreignAdminTable.status}`,
+    );
+
+    const foreignStaffTable = await request(url, 'GET', `/api/v1/staff/tables/${foreignTableIdString}`, {
+      token: state.staff.accessToken,
+    });
+    assert(
+      foreignStaffTable.status === 404,
+      `staff foreign table lookup should return 404, got ${foreignStaffTable.status}`,
+    );
+
+    const foreignStaffAssign = await request(url, 'PATCH', `/api/v1/staff/tables/${foreignTableIdString}/assign`, {
+      token: state.staff.accessToken,
+      body: { staffId: state.staff.user.id ?? state.staff.user._id },
+    });
+    assert(
+      foreignStaffAssign.status === 404,
+      `staff foreign table assign should return 404, got ${foreignStaffAssign.status}`,
+    );
+
+    const cleanupScopedCreate = await request(url, 'DELETE', `/api/v1/admin/tables/${spoofedCreatedTableId}`, {
+      token: state.admin.accessToken,
+    });
+    assert(cleanupScopedCreate.status === 200, `cleanup scoped create returned ${cleanupScopedCreate.status}`);
+
+    const cleanupScopedBulk = await request(url, 'DELETE', `/api/v1/admin/tables/${spoofedBulkTableId}`, {
+      token: state.admin.accessToken,
+    });
+    assert(cleanupScopedBulk.status === 200, `cleanup scoped bulk create returned ${cleanupScopedBulk.status}`);
+
+    return 'Verified admin/staff table 404 behavior and restaurant scoping for create, bulk create, list, and detail actions';
+  });
+
+  await runStep('menu contract and filter flow', async () => {
+    const restaurantObjectId = toObjectId(state.restaurantId);
+    const [pizzaCategory, popularItem, recommendedItem] = await Promise.all([
+      menuCategoriesCollection.findOne({ restaurantId: restaurantObjectId, name: 'pizza' }),
+      menuItemsCollection.findOne({ restaurantId: restaurantObjectId, name: 'Tandoori Broccoli' }),
+      menuItemsCollection.findOne({ restaurantId: restaurantObjectId, name: 'Truffle Mushroom Pizza' }),
+    ]);
+
+    assert(pizzaCategory, 'Seed pizza category missing for menu verification');
+    assert(popularItem, 'Seed popular menu item missing for menu verification');
+    assert(recommendedItem, 'Seed recommended menu item missing for menu verification');
+
+    const adminCategories = await request(url, 'GET', '/api/v1/admin/menu/categories', {
+      token: state.admin.accessToken,
+    });
+    assert(adminCategories.status === 200, `admin menu categories returned ${adminCategories.status}`);
+    const adminCategoryRows = adminCategories.json?.data ?? [];
+    assert(adminCategoryRows.length >= 3, 'Admin menu categories did not include the seeded categories');
+
+    const adminItems = await request(url, 'GET', '/api/v1/admin/menu/items?page=1&limit=10', {
+      token: state.admin.accessToken,
+    });
+    assert(adminItems.status === 200, `admin menu items returned ${adminItems.status}`);
+    const adminItemRows = adminItems.json?.data?.items ?? [];
+    assert(adminItemRows.some((item) => item?.name === popularItem.name), 'Admin menu items missed the seeded popular item');
+
+    const publicCategories = await request(url, 'GET', `/api/v1/public/menu/${state.restaurantId}/categories`);
+    assert(publicCategories.status === 200, `public menu categories returned ${publicCategories.status}`);
+    const publicCategoryRows = publicCategories.json?.data ?? [];
+    assert(publicCategoryRows.every((category) => category?.isHidden === false), 'Public menu categories exposed hidden categories');
+
+    const publicMenuRoot = await request(url, 'GET', `/api/v1/public/menu/${state.restaurantId}`);
+    assert(publicMenuRoot.status === 200, `public menu root returned ${publicMenuRoot.status}`);
+    const publicRootItems = publicMenuRoot.json?.data?.items ?? [];
+    assert(publicRootItems.length >= 3, 'Public menu root did not return the seeded menu items');
+
+    const publicVeg = await request(url, 'GET', `/api/v1/public/menu/${state.restaurantId}?veg=true`);
+    assert(publicVeg.status === 200, `public veg filter returned ${publicVeg.status}`);
+    assert((publicVeg.json?.data?.items ?? []).every((item) => item?.isVeg === true), 'Public veg filter returned non-veg items');
+
+    const publicCategory = await request(url, 'GET', `/api/v1/public/menu/${state.restaurantId}?category=pizza`);
+    assert(publicCategory.status === 200, `public category filter returned ${publicCategory.status}`);
+    const publicCategoryItems = publicCategory.json?.data?.items ?? [];
+    assert(publicCategoryItems.length > 0, 'Public category filter returned no pizza items');
+    assert(
+      publicCategoryItems.every((item) => String(item?.categoryId) === String(pizzaCategory._id)),
+      'Public category filter returned items outside the pizza category',
+    );
+
+    const publicSpicyFalse = await request(url, 'GET', `/api/v1/public/menu/${state.restaurantId}?spicy=false`);
+    assert(publicSpicyFalse.status === 200, `public spicy=false filter returned ${publicSpicyFalse.status}`);
+    const publicSpicyRows = publicSpicyFalse.json?.data?.items ?? [];
+    assert(publicSpicyRows.length > 0, 'Public spicy=false filter returned no items');
+    assert(
+      publicSpicyRows.every((item) => Number(item?.spiceLevel ?? 0) === 0),
+      'Public spicy=false filter returned spicy items',
+    );
+
+    const publicAvailable = await request(url, 'GET', `/api/v1/public/menu/${state.restaurantId}?available=true`);
+    assert(publicAvailable.status === 200, `public availability filter returned ${publicAvailable.status}`);
+    const publicAvailableItems = publicAvailable.json?.data?.items ?? [];
+    assert(publicAvailableItems.every((item) => item?.isAvailable === true), 'Public availability filter returned unavailable items');
+    assert(
+      !publicAvailableItems.some((item) => item?.name === 'Saffron Tres Leches'),
+      'Public availability filter leaked the seeded unavailable item',
+    );
+
+    const publicPopular = await request(url, 'GET', `/api/v1/public/menu/${state.restaurantId}?popular=true`);
+    assert(publicPopular.status === 200, `public popular filter returned ${publicPopular.status}`);
+    const publicPopularItems = publicPopular.json?.data?.items ?? [];
+    assert(publicPopularItems.some((item) => item?.name === popularItem.name), 'Public popular filter missed the seeded popular item');
+    assert(
+      publicPopularItems.every((item) => Array.isArray(item?.tags) && item.tags.includes('popular')),
+      'Public popular filter returned non-popular items',
+    );
+
+    const publicRecommended = await request(url, 'GET', `/api/v1/public/menu/${state.restaurantId}?recommended=true`);
+    assert(publicRecommended.status === 200, `public recommended filter returned ${publicRecommended.status}`);
+    const publicRecommendedItems = publicRecommended.json?.data?.items ?? [];
+    assert(
+      publicRecommendedItems.some((item) => item?.name === recommendedItem.name),
+      'Public recommended filter missed the seeded recommended item',
+    );
+    assert(
+      publicRecommendedItems.every((item) => Array.isArray(item?.tags) && item.tags.includes('recommended')),
+      'Public recommended filter returned non-recommended items',
+    );
+
+    const publicSearch = await request(url, 'GET', `/api/v1/public/menu/${state.restaurantId}?search=pizza`);
+    assert(publicSearch.status === 200, `public search filter returned ${publicSearch.status}`);
+    const publicSearchItems = publicSearch.json?.data?.items ?? [];
+    assert(publicSearchItems.length > 0, 'Public search filter returned no pizza matches');
+    assert(
+      publicSearchItems.every((item) =>
+        `${item?.name ?? ''} ${item?.description ?? ''} ${Array.isArray(item?.tags) ? item.tags.join(' ') : ''}`
+          .toLowerCase()
+          .includes('pizza'),
+      ),
+      'Public search filter returned items unrelated to the search term',
+    );
+
+    const publicPrice = await request(url, 'GET', `/api/v1/public/menu/${state.restaurantId}?priceMin=300&priceMax=650`);
+    assert(publicPrice.status === 200, `public price filter returned ${publicPrice.status}`);
+    const publicPriceItems = publicPrice.json?.data?.items ?? [];
+    assert(publicPriceItems.length > 0, 'Public price filter returned no items');
+    assert(
+      publicPriceItems.every((item) => Number(item?.price) >= 300 && Number(item?.price) <= 650),
+      'Public price filter returned items outside the requested price range',
+    );
+
+    const publicSortPrice = await request(url, 'GET', `/api/v1/public/menu/${state.restaurantId}?sortBy=price`);
+    assert(publicSortPrice.status === 200, `public price sort returned ${publicSortPrice.status}`);
+    assertAscending(
+      (publicSortPrice.json?.data?.items ?? []).map((item) => Number(item?.price ?? 0)),
+      'Public price sort did not return ascending prices',
+    );
+
+    const publicSortName = await request(url, 'GET', `/api/v1/public/menu/${state.restaurantId}?sortBy=name_asc`);
+    assert(publicSortName.status === 200, `public name sort returned ${publicSortName.status}`);
+    assertAscending(
+      (publicSortName.json?.data?.items ?? []).map((item) => String(item?.name ?? '').toLowerCase()),
+      'Public name sort did not return ascending item names',
+    );
+
+    const publicItemDetail = await request(
+      url,
+      'GET',
+      `/api/v1/public/menu/${state.restaurantId}/items/${recommendedItem._id.toString()}`,
+    );
+    assert(publicItemDetail.status === 200, `public menu item detail returned ${publicItemDetail.status}`);
+
+    const customerCategories = await request(url, 'GET', '/api/v1/customer/menu/categories', {
+      sessionToken: state.createdSessionToken,
+    });
+    assert(customerCategories.status === 200, `customer menu categories returned ${customerCategories.status}`);
+
+    const customerSearch = await request(url, 'GET', '/api/v1/customer/menu/items?search=pizza&sortBy=price_desc', {
+      sessionToken: state.createdSessionToken,
+    });
+    assert(customerSearch.status === 200, `customer menu search returned ${customerSearch.status}`);
+    const customerSearchItems = customerSearch.json?.data?.items ?? [];
+    assert(customerSearchItems.length > 0, 'Customer menu search returned no pizza items');
+    assertAscending(
+      customerSearchItems.map((item) => -Number(item?.price ?? 0)),
+      'Customer menu price_desc sort did not return descending prices',
+    );
+
+    const customerItemDetail = await request(
+      url,
+      'GET',
+      `/api/v1/customer/menu/items/${recommendedItem._id.toString()}`,
+      { sessionToken: state.createdSessionToken },
+    );
+    assert(customerItemDetail.status === 200, `customer menu item detail returned ${customerItemDetail.status}`);
+
+    return 'Verified admin/public/customer menu paths plus category, veg, spicy, availability, popular, recommended, search, price, and sort filters';
+  });
+
+  await runStep('session lifecycle contract and expiry flow', async () => {
+    const session = await request(url, 'GET', '/api/v1/customer/session', {
+      sessionToken: state.createdSessionToken,
+    });
+    assert(session.status === 200, `customer session returned ${session.status}`);
+    assert(getId(session.json?.data?.session) === state.createdSessionId, 'customer session did not return the active session');
+
+    const recover = await request(url, 'GET', '/api/v1/public/table-session/recover', {
+      sessionToken: state.createdSessionToken,
+    });
+    assert(recover.status === 200, `recover session returned ${recover.status}`);
+    assert(
+      String(recover.json?.data?.session?.sessionId ?? '') === state.createdSessionId,
+      'recover session returned the wrong session id',
+    );
+
+    const beforeExtend = await getSessionDocumentByToken(state.createdSessionToken);
+    assert(beforeExtend, 'Primary session missing in database before extend');
+
+    const extend = await request(url, 'PATCH', '/api/v1/customer/session/extend', {
+      sessionToken: state.createdSessionToken,
+    });
+    assert(extend.status === 200, `customer session extend returned ${extend.status}`);
+
+    const extendedExpiry = new Date(extend.json?.data?.session?.expiresAt ?? 0).getTime();
+    assert(extendedExpiry > new Date(beforeExtend.expiresAt).getTime(), 'extend did not move session expiry forward');
+
+    const blockedNeedsCleaning = await request(url, 'POST', '/api/v1/public/table-session/create', {
+      body: {
+        token: 'amber-table-t3-seed',
+        customerName: 'Blocked Guest',
+        mobile: '9876543211',
+        partySize: 2,
+      },
+    });
+    assert(blockedNeedsCleaning.status === 400, `needs-cleaning table should reject session create, got ${blockedNeedsCleaning.status}`);
+
+    const idleSessionCreate = await request(url, 'POST', '/api/v1/public/table-session/create', {
+      body: {
+        token: state.idleExpiryQrToken,
+        customerName: 'Idle Timeout Guest',
+        mobile: '9876543212',
+        partySize: 2,
+      },
+    });
+    assert(idleSessionCreate.status === 201, `idle timeout session create returned ${idleSessionCreate.status}`);
+    state.idleExpirySessionToken =
+      idleSessionCreate.json?.data?.session?.token ?? idleSessionCreate.json?.data?.sessionToken ?? '';
+    assert(state.idleExpirySessionToken, 'Idle timeout session token missing');
+
+    const idleSessionDocument = await getSessionDocumentByToken(state.idleExpirySessionToken);
+    assert(idleSessionDocument, 'Idle timeout session missing in database');
+
+    await tableSessionsCollection.updateOne(
+      { _id: idleSessionDocument._id },
+      {
+        $set: {
+          lastActivityAt: new Date(Date.now() - 25 * 60 * 1000),
+        },
+      },
+    );
+
+    const idleRecover = await request(url, 'GET', '/api/v1/public/table-session/recover', {
+      sessionToken: state.idleExpirySessionToken,
+    });
+    assert(idleRecover.status === 401, `idle timeout should return 401, got ${idleRecover.status}`);
+
+    const expiredIdleSession = await getSessionDocumentByToken(state.idleExpirySessionToken);
+    assert(expiredIdleSession?.status === 'EXPIRED', 'Idle timeout session was not marked EXPIRED');
+
+    const idleTable = await getTableDocument(state.idleExpiryTableId);
+    assert(idleTable?.status === 'NEEDS_CLEANING', 'Idle timeout table did not move to NEEDS_CLEANING');
+    assert(idleTable?.currentSessionId == null, 'Idle timeout table still points to a session');
+
+    const idleCleaningTask = await getLatestCleaningTask(state.idleExpiryTableId);
+    assert(idleCleaningTask?.status === 'PENDING', 'Idle timeout did not create a pending cleaning task');
+
+    const blockedIdleRestart = await request(url, 'POST', '/api/v1/public/table-session/create', {
+      body: {
+        token: state.idleExpiryQrToken,
+        customerName: 'Retry Idle Guest',
+        mobile: '9876543213',
+        partySize: 2,
+      },
+    });
+    assert(blockedIdleRestart.status === 400, `idle-expired table should stay blocked until cleaning, got ${blockedIdleRestart.status}`);
+
+    const hardExpirySessionCreate = await request(url, 'POST', '/api/v1/public/table-session/create', {
+      body: {
+        token: state.hardExpiryQrToken,
+        customerName: 'Hard Expiry Guest',
+        mobile: '9876543214',
+        partySize: 2,
+      },
+    });
+    assert(hardExpirySessionCreate.status === 201, `hard expiry session create returned ${hardExpirySessionCreate.status}`);
+    state.hardExpirySessionToken =
+      hardExpirySessionCreate.json?.data?.session?.token ?? hardExpirySessionCreate.json?.data?.sessionToken ?? '';
+    assert(state.hardExpirySessionToken, 'Hard expiry session token missing');
+
+    const hardSessionDocument = await getSessionDocumentByToken(state.hardExpirySessionToken);
+    assert(hardSessionDocument, 'Hard expiry session missing in database');
+
+    await tableSessionsCollection.updateOne(
+      { _id: hardSessionDocument._id },
+      {
+        $set: {
+          expiresAt: new Date(Date.now() - 60 * 1000),
+        },
+      },
+    );
+
+    const hardValidate = await request(url, 'POST', '/api/v1/public/table-session/validate', {
+      body: { token: state.hardExpirySessionToken },
+    });
+    assert(hardValidate.status === 401, `hard expiry should return 401, got ${hardValidate.status}`);
+
+    const expiredHardSession = await getSessionDocumentByToken(state.hardExpirySessionToken);
+    assert(expiredHardSession?.status === 'EXPIRED', 'Hard expiry session was not marked EXPIRED');
+
+    const hardTable = await getTableDocument(state.hardExpiryTableId);
+    assert(hardTable?.status === 'NEEDS_CLEANING', 'Hard expiry table did not move to NEEDS_CLEANING');
+    assert(hardTable?.currentSessionId == null, 'Hard expiry table still points to a session');
+
+    const hardCleaningTask = await getLatestCleaningTask(state.hardExpiryTableId);
+    assert(hardCleaningTask?.status === 'PENDING', 'Hard expiry did not create a pending cleaning task');
+
+    return 'Verified PRD session contract, recover/current/extend flow, and DB-backed idle/hard expiry cleanup';
+  });
+
+  await runStep('cart edge cases and snapshot flow', async () => {
+    const restaurantObjectId = toObjectId(state.restaurantId);
+    const [starterCategory, snapshotItem, unavailableItem] = await Promise.all([
+      menuCategoriesCollection.findOne({ restaurantId: restaurantObjectId, name: 'starter' }),
+      menuItemsCollection.findOne({ restaurantId: restaurantObjectId, name: 'Tandoori Broccoli' }),
+      menuItemsCollection.findOne({ restaurantId: restaurantObjectId, name: 'Saffron Tres Leches' }),
+    ]);
+
+    assert(starterCategory, 'Seed starter category missing for cart verification');
+    assert(snapshotItem, 'Seed snapshot menu item missing for cart verification');
+    assert(unavailableItem, 'Seed unavailable menu item missing for cart verification');
+
+    const hiddenItemId = new mongoose.Types.ObjectId();
+    const hiddenItemName = `Hidden Verify ${Date.now()}`;
+    const snapshotItemId = snapshotItem._id.toString();
+    const unavailableItemId = unavailableItem._id.toString();
+    const originalSnapshotPrice = Number(snapshotItem.price);
+    const updatedSnapshotPrice = originalSnapshotPrice + 80;
+    const adminActorId = toObjectId(state.admin.user.id ?? state.admin.user._id);
+
+    await menuItemsCollection.insertOne({
+      _id: hiddenItemId,
+      restaurantId: restaurantObjectId,
+      categoryId: starterCategory._id,
+      name: hiddenItemName,
+      description: 'Hidden verification item',
+      shortDescription: 'Hidden verification item',
+      price: 450,
+      isVeg: true,
+      isAvailable: true,
+      isHidden: true,
+      spiceLevel: 0,
+      preparationTime: 5,
+      tags: ['hidden'],
+      displayOrder: 99,
+      createdBy: adminActorId,
+      updatedBy: adminActorId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    try {
+      const initialCart = await request(url, 'GET', '/api/v1/customer/cart', {
+        sessionToken: state.createdSessionToken,
+      });
+      assert(initialCart.status === 200, `initial cart fetch returned ${initialCart.status}`);
+      assert((initialCart.json?.data?.items ?? []).length === 0, 'Fresh verification cart should start empty');
+
+      const invalidAdd = await request(url, 'POST', '/api/v1/customer/cart/items', {
+        sessionToken: state.createdSessionToken,
+        body: {
+          menuItem: new mongoose.Types.ObjectId().toString(),
+          quantity: 1,
+        },
+      });
+      assert(invalidAdd.status === 404, `invalid cart item add should return 404, got ${invalidAdd.status}`);
+
+      const unavailableAdd = await request(url, 'POST', '/api/v1/customer/cart/items', {
+        sessionToken: state.createdSessionToken,
+        body: {
+          menuItem: unavailableItemId,
+          quantity: 1,
+        },
+      });
+      assert(
+        unavailableAdd.status === 400,
+        `unavailable cart item add should return 400, got ${unavailableAdd.status}`,
+      );
+
+      const hiddenAdd = await request(url, 'POST', '/api/v1/customer/cart/items', {
+        sessionToken: state.createdSessionToken,
+        body: {
+          menuItem: hiddenItemId.toString(),
+          quantity: 1,
+        },
+      });
+      assert(hiddenAdd.status === 400, `hidden cart item add should return 400, got ${hiddenAdd.status}`);
+
+      const snapshotAdd = await request(url, 'POST', '/api/v1/customer/cart/items', {
+        sessionToken: state.createdSessionToken,
+        body: {
+          menuItem: snapshotItemId,
+          quantity: 1,
+          notes: 'snapshot verify',
+        },
+      });
+      assert(snapshotAdd.status === 201, `snapshot cart add returned ${snapshotAdd.status}`);
+      const snapshotCart = snapshotAdd.json?.data;
+      const snapshotLines = (snapshotCart?.items ?? []).filter(
+        (item) => String(item?.menuItem?._id) === snapshotItemId && item?.notes === 'snapshot verify',
+      );
+      assert(snapshotLines.length === 1, 'Snapshot cart add should create exactly one matching line');
+      assert(
+        Number(snapshotLines[0]?.unitPrice) === originalSnapshotPrice,
+        'Snapshot cart add did not use the original menu price',
+      );
+      assert(Number(snapshotCart?.tax ?? -1) === 0, 'Cart tax should remain zero until billing ownership lands');
+      assert(
+        Number(snapshotCart?.discount ?? -1) === 0,
+        'Cart discount should remain zero until billing ownership lands',
+      );
+      assert(
+        Number(snapshotCart?.grandTotal ?? -1) === Number(snapshotCart?.subtotal ?? 0),
+        'Cart grandTotal should equal subtotal while tax and discount are zero',
+      );
+
+      await menuItemsCollection.updateOne(
+        { _id: snapshotItem._id },
+        {
+          $set: {
+            price: updatedSnapshotPrice,
+            updatedAt: new Date(),
+          },
+        },
+      );
+
+      const snapshotReAdd = await request(url, 'POST', '/api/v1/customer/cart/items', {
+        sessionToken: state.createdSessionToken,
+        body: {
+          menuItem: snapshotItemId,
+          quantity: 1,
+          notes: 'snapshot verify',
+        },
+      });
+      assert(snapshotReAdd.status === 201, `snapshot re-add returned ${snapshotReAdd.status}`);
+      const repricedLines = (snapshotReAdd.json?.data?.items ?? []).filter(
+        (item) => String(item?.menuItem?._id) === snapshotItemId && item?.notes === 'snapshot verify',
+      );
+      assert(
+        repricedLines.length === 2,
+        'Cart should preserve the original snapshot and create a new line when the menu price changes',
+      );
+      const linePrices = repricedLines
+        .map((item) => Number(item?.unitPrice ?? 0))
+        .sort((left, right) => left - right);
+      assert(
+        linePrices[0] === originalSnapshotPrice && linePrices[1] === updatedSnapshotPrice,
+        'Cart snapshot lines did not preserve both the original and updated prices',
+      );
+
+      const clearedCart = await request(url, 'DELETE', '/api/v1/customer/cart', {
+        sessionToken: state.createdSessionToken,
+      });
+      assert(clearedCart.status === 200, `clear cart edge-case cleanup returned ${clearedCart.status}`);
+      assert((clearedCart.json?.data?.items ?? []).length === 0, 'Clear cart should remove all cart items');
+      assert(Number(clearedCart.json?.data?.subtotal ?? -1) === 0, 'Cleared cart subtotal should be zero');
+      assert(Number(clearedCart.json?.data?.grandTotal ?? -1) === 0, 'Cleared cart grandTotal should be zero');
+
+      const emptyCartOrder = await request(url, 'POST', '/api/v1/customer/orders', {
+        sessionToken: state.createdSessionToken,
+        body: { specialInstructions: 'empty cart should fail' },
+      });
+      assert(emptyCartOrder.status === 400, `empty cart order should return 400, got ${emptyCartOrder.status}`);
+
+      return 'Verified invalid, hidden, unavailable, and empty-cart cases plus stable cart price snapshots and zero-tax totals';
+    } finally {
+      await menuItemsCollection.updateOne(
+        { _id: snapshotItem._id },
+        {
+          $set: {
+            price: originalSnapshotPrice,
+            updatedAt: new Date(),
+          },
+        },
+      );
+      await menuItemsCollection.deleteOne({ _id: hiddenItemId });
+      await request(url, 'DELETE', '/api/v1/customer/cart', {
+        sessionToken: state.createdSessionToken,
+      }).catch(() => null);
+    }
   });
 
   await runStep('customer menu cart order payment flow', async () => {
@@ -443,6 +1125,16 @@ async function runSmokeSuite(url) {
 
     const itemDetails = await request(url, 'GET', `/api/v1/customer/menu/items/${menuItemId}`, { sessionToken });
     assert(itemDetails.status === 200, `customer menu item details returned ${itemDetails.status}`);
+
+    const updateItemImage = await request(url, 'POST', `/api/v1/admin/menu/items/${menuItemId}/image`, {
+      token: state.admin.accessToken,
+      body: { image: 'https://example.com/phase1-verify-menu-item.png' },
+    });
+    assert(updateItemImage.status === 200, `menu item image update returned ${updateItemImage.status}`);
+    assert(
+      updateItemImage.json?.data?.image === 'https://example.com/phase1-verify-menu-item.png',
+      'menu item image update did not persist the primary image',
+    );
 
     const cart = await request(url, 'GET', '/api/v1/customer/cart', { sessionToken });
     assert(cart.status === 200, `customer cart returned ${cart.status}`);
@@ -575,10 +1267,34 @@ async function runSmokeSuite(url) {
   });
 
   await runStep('staff kitchen cleaning super-admin shared flows', async () => {
+    const filteredStaffTables = await request(
+      url,
+      'GET',
+      `/api/v1/staff/tables?status=OCCUPIED&floor=2&section=${encodeURIComponent('Verify Updated')}`,
+      { token: state.staff.accessToken },
+    );
+    assert(filteredStaffTables.status === 200, `filtered staff tables returned ${filteredStaffTables.status}`);
+    const filteredTables = filteredStaffTables.json?.data?.tables ?? [];
+    assert(filteredTables.some((table) => getId(table) === state.createdTableId), 'Filtered staff tables did not include the created occupied table');
+    assert(
+      filteredTables.every(
+        (table) => table?.status === 'OCCUPIED' && Number(table?.floor) === 2 && table?.section === 'Verify Updated',
+      ),
+      'Filtered staff tables response contained rows outside the requested filters',
+    );
+
     const staffTables = await request(url, 'GET', '/api/v1/staff/tables', { token: state.staff.accessToken });
     assert(staffTables.status === 200, `staff tables returned ${staffTables.status}`);
     const staffTableId = getId(staffTables.json?.data?.tables?.[0]);
     assert(staffTableId, 'No staff table id available');
+
+    const missingStaffTable = await request(
+      url,
+      'GET',
+      `/api/v1/staff/tables/${new mongoose.Types.ObjectId().toString()}`,
+      { token: state.staff.accessToken },
+    );
+    assert(missingStaffTable.status === 404, `missing staff table should return 404, got ${missingStaffTable.status}`);
 
     const staffTable = await request(url, 'GET', `/api/v1/staff/tables/${staffTableId}`, {
       token: state.staff.accessToken,
@@ -608,6 +1324,15 @@ async function runSmokeSuite(url) {
       token: state.staff.accessToken,
     });
     assert(occupyTable.status === 200, `occupy table returned ${occupyTable.status}`);
+
+    const invalidReserveTransition = await request(url, 'PATCH', `/api/v1/staff/tables/${staffTableId}/reserve`, {
+      token: state.staff.accessToken,
+      body: { reservationId: state.reservationId },
+    });
+    assert(
+      invalidReserveTransition.status === 400,
+      `reserve after occupy should be rejected by lifecycle validation, got ${invalidReserveTransition.status}`,
+    );
 
     const queue = await request(url, 'GET', '/api/v1/staff/queue', { token: state.staff.accessToken });
     assert(queue.status === 200, `staff queue returned ${queue.status}`);
@@ -905,15 +1630,32 @@ async function runSmokeSuite(url) {
     const unauthorized = await request(url, 'GET', '/api/v1/admin/tables');
     assert(unauthorized.status === 401, `missing token should be 401, got ${unauthorized.status}`);
 
+    await tablesCollection.updateOne(
+      { _id: toObjectId(state.createdTableId) },
+      { $set: { status: 'PAYMENT_PENDING' } },
+    );
+
     const endCustomerSession = await request(url, 'POST', '/api/v1/customer/session/end', {
       sessionToken: state.createdSessionToken,
     });
     assert(endCustomerSession.status === 200, `end session returned ${endCustomerSession.status}`);
 
+    const closedSession = await getSessionDocumentByToken(state.createdSessionToken);
+    assert(closedSession?.status === 'CLOSED', 'Ended session was not marked CLOSED');
+
+    const cleanedTable = await getTableDocument(state.createdTableId);
+    assert(cleanedTable?.status === 'NEEDS_CLEANING', 'Ended session did not move table to NEEDS_CLEANING');
+    assert(cleanedTable?.currentSessionId == null, 'Ended session did not clear currentSessionId');
+
+    const endCleaningTask = await getLatestCleaningTask(state.createdTableId);
+    assert(endCleaningTask?.status === 'PENDING', 'Ended session did not create a pending cleaning task');
+
     const deleteTable = await request(url, 'DELETE', `/api/v1/admin/tables/${state.createdTableId}`, {
       token: state.admin.accessToken,
     });
     assert(deleteTable.status === 200, `delete created table returned ${deleteTable.status}`);
+
+    return 'Verified RBAC plus end-session cleanup from PAYMENT_PENDING to cleaning handoff';
   });
 
   const passed = results.filter((entry) => entry.passed).length;
@@ -931,6 +1673,7 @@ async function main() {
       dbName: 'restaurant-automation-verify',
     },
   });
+  let verifyConnection = null;
 
   const server = spawn(process.execPath, [path.join(backendDir, 'dist', 'server.js')], {
     cwd: backendDir,
@@ -973,8 +1716,13 @@ async function main() {
 
   try {
     await waitForHealth(baseUrl);
+    verifyConnection = await mongoose.createConnection(mongod.getUri(), {
+      serverSelectionTimeoutMS: 5000,
+    }).asPromise();
+    assert(verifyConnection.db, 'Verification database connection is unavailable');
+
     const postman = await runNewmanSuite(baseUrl);
-    const smoke = await runSmokeSuite(baseUrl);
+    const smoke = await runSmokeSuite(baseUrl, verifyConnection.db);
 
     const summary = {
       postman,
@@ -1006,6 +1754,7 @@ async function main() {
   } finally {
     server.kill('SIGTERM');
     await new Promise((resolve) => server.on('exit', resolve));
+    await verifyConnection?.close();
     await mongod.stop();
   }
 }

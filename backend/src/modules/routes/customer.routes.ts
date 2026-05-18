@@ -51,20 +51,19 @@ customerRouter.get('/session', async (req, res, next) => {
 
 customerRouter.patch('/session/extend', async (req, res, next) => {
   try {
+    const existingSession = await TableSessionModel.findOne({
+      _id: req.tableSession!._id,
+      restaurantId: req.tableSession!.restaurantId,
+    });
     const session = ensureFound(
-      await TableSessionModel.findOneAndUpdate(
-        {
-          _id: req.tableSession!._id,
-          restaurantId: req.tableSession!.restaurantId,
-        },
-        {
-          expiresAt: new Date(Date.now() + 30 * 60 * 1000),
-          lastActivityAt: new Date(),
-        },
-        { new: true },
-      ),
+      existingSession,
       'Session not found',
     );
+
+    const baseline = session.expiresAt.getTime() > Date.now() ? session.expiresAt.getTime() : Date.now();
+    session.expiresAt = new Date(baseline + 30 * 60 * 1000);
+    session.lastActivityAt = new Date();
+    await session.save();
 
     ok(res, { session });
   } catch (error) {

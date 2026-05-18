@@ -13,10 +13,53 @@ import { SocketEvent } from '../../constants/events';
 import { env } from '../../config/env';
 import { StartSessionInput } from './tableSessions.schema';
 import logger from '../../config/logger';
+import { ensureCleaningTaskForTable } from '../cleaning/cleaning.service';
 
 interface SessionMeta {
   ipAddress?: string;
   userAgent?: string;
+}
+
+const ACTIVE_TABLE_SESSION_STATUSES = new Set<TableStatus>([
+  TableStatus.OCCUPIED,
+  TableStatus.PAYMENT_PENDING,
+]);
+
+async function transitionSessionTableToCleaning(
+  session: Pick<ITableSession, '_id' | 'restaurantId' | 'tableId'>
+): Promise<void> {
+  const table = await TableModel.findOne({
+    _id: session.tableId,
+    restaurantId: session.restaurantId,
+  });
+
+  if (!table) {
+    return;
+  }
+
+  const hasLinkedSession = table.currentSessionId?.toString() === session._id.toString();
+  const shouldTransition =
+    ACTIVE_TABLE_SESSION_STATUSES.has(table.status as TableStatus) || hasLinkedSession;
+
+  if (!shouldTransition) {
+    return;
+  }
+
+  table.status = TableStatus.NEEDS_CLEANING;
+  table.currentSessionId = undefined;
+  await table.save();
+
+  await ensureCleaningTaskForTable({
+    restaurantId: session.restaurantId,
+    tableId: session.tableId,
+    sessionId: session._id,
+  });
+
+  emitSessionEvent(session.restaurantId.toString(), SocketEvent.TABLE_NEEDS_CLEANING, {
+    tableId: session.tableId,
+    tableNumber: table.tableNumber,
+    status: TableStatus.NEEDS_CLEANING,
+  });
 }
 
 /**
@@ -39,6 +82,14 @@ export async function startSession(
   }
   if (!table.isActive) {
     throw new AppError('Table is inactive', 400, ErrorCode.TABLE_INACTIVE);
+  }
+  if (
+    table.status === TableStatus.OCCUPIED ||
+    table.status === TableStatus.PAYMENT_PENDING ||
+    table.status === TableStatus.NEEDS_CLEANING ||
+    table.status === TableStatus.CLEANING_IN_PROGRESS
+  ) {
+    throw new AppError('Table is not ready for a new session', 400, ErrorCode.TABLE_OCCUPIED);
   }
 
   // 2. Invalidate any existing active session for this table (single session enforcement)
@@ -171,22 +222,7 @@ export async function endSession(
     throw new AppError('Session not found', 404, ErrorCode.NOT_FOUND);
   }
 
-  // Transition table to NEEDS_CLEANING
-  const table = await TableModel.findOne({
-    _id: session.tableId,
-    restaurantId: session.restaurantId,
-  });
-  if (table && table.status === TableStatus.OCCUPIED) {
-    table.status = TableStatus.NEEDS_CLEANING;
-    table.currentSessionId = undefined;
-    await table.save();
-
-    emitSessionEvent(session.restaurantId.toString(), SocketEvent.TABLE_NEEDS_CLEANING, {
-      tableId: session.tableId,
-      tableNumber: table.tableNumber,
-      status: TableStatus.NEEDS_CLEANING,
-    });
-  }
+  await transitionSessionTableToCleaning(session);
 
   emitSessionEvent(session.restaurantId.toString(), SocketEvent.SESSION_CLOSED, {
     sessionId: session._id,
@@ -209,22 +245,7 @@ export async function expireSession(sessionId: string): Promise<void> {
 
   if (!session) return;
 
-  // Transition table to NEEDS_CLEANING
-  const table = await TableModel.findOne({
-    _id: session.tableId,
-    restaurantId: session.restaurantId,
-  });
-  if (table && table.status === TableStatus.OCCUPIED) {
-    table.status = TableStatus.NEEDS_CLEANING;
-    table.currentSessionId = undefined;
-    await table.save();
-
-    emitSessionEvent(session.restaurantId.toString(), SocketEvent.TABLE_NEEDS_CLEANING, {
-      tableId: session.tableId,
-      tableNumber: table.tableNumber,
-      status: TableStatus.NEEDS_CLEANING,
-    });
-  }
+  await transitionSessionTableToCleaning(session);
 
   emitSessionEvent(session.restaurantId.toString(), SocketEvent.SESSION_EXPIRED, {
     sessionId: session._id,

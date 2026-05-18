@@ -266,6 +266,81 @@
           }
         },
         {
+          "name": "Menu Categories",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/v1/admin/menu/categories"
+          }
+        },
+        {
+          "name": "Menu Items",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const items = (json.data && json.data.items) || [];",
+                  "const firstItem = items[0];",
+                  "if (firstItem) pm.environment.set('selectedAdminMenuItemId', firstItem.id || firstItem._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/v1/admin/menu/items?page=1&limit=10"
+          }
+        },
+        {
+          "name": "Upload Menu Item Image",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"image\": \"https://example.com/postman-menu-item.png\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/admin/menu/items/{{selectedAdminMenuItemId}}/image"
+          }
+        },
+        {
           "name": "Create Table",
           "event": [
             {
@@ -341,9 +416,29 @@
       "item": [
         {
           "name": "Get Restaurant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const restaurant = json.data && json.data.restaurant;",
+                  "if (restaurant) pm.environment.set('restaurantId', restaurant.id || restaurant._id);"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/v1/public/restaurants/amber-table"
+          }
+        },
+        {
+          "name": "Public Menu",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/public/menu/{{restaurantId}}?veg=true&search=pizza&sortBy=price"
           }
         },
         {
@@ -398,6 +493,29 @@
       "name": "Customer",
       "item": [
         {
+          "name": "Menu Categories",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/v1/customer/menu/categories",
+            "header": [
+              {
+                "key": "x-session-token",
+                "value": "{{createdSessionToken}}"
+              }
+            ]
+          }
+        },
+        {
           "name": "Menu Items",
           "request": {
             "method": "GET",
@@ -433,6 +551,29 @@
               }
             }
           ]
+        },
+        {
+          "name": "Menu Item Details",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/v1/customer/menu/items/{{selectedMenuItemId}}",
+            "header": [
+              {
+                "key": "x-session-token",
+                "value": "{{createdSessionToken}}"
+              }
+            ]
+          }
         },
         {
           "name": "Get Cart",

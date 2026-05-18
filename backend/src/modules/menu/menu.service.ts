@@ -155,6 +155,7 @@ export class MenuService {
       skip: number;
       category?: string;
       vegOnly?: boolean;
+      spicy?: boolean;
       availableOnly?: boolean;
       popularOnly?: boolean;
       recommendedOnly?: boolean;
@@ -185,6 +186,8 @@ export class MenuService {
       }
     }
     if (query.vegOnly) dbQuery.isVeg = true;
+    if (query.spicy === true) dbQuery.spiceLevel = { $gt: 0 };
+    if (query.spicy === false) dbQuery.spiceLevel = { $in: [0, null] };
     if (query.availableOnly) dbQuery.isAvailable = true;
     if (query.popularOnly) dbQuery.tags = { $in: ['popular'] };
     if (query.recommendedOnly) dbQuery.tags = { $in: ['recommended'] };
@@ -318,6 +321,26 @@ export class MenuService {
     if (!item) {
       throw new AppError('Menu item not found', 404, ErrorCode.NOT_FOUND);
     }
+    return item;
+  }
+
+  static async updateItemImage(
+    restaurantId: string | Types.ObjectId,
+    itemId: string | Types.ObjectId,
+    image: string,
+    userId: string | Types.ObjectId,
+    options: { addToGallery?: boolean } = {}
+  ): Promise<IMenuItem> {
+    const item = await this.getItemById(restaurantId, itemId);
+    const shouldAddToGallery = options.addToGallery !== false;
+
+    item.image = image;
+    if (shouldAddToGallery) {
+      item.images = Array.from(new Set([...(item.images ?? []), image]));
+    }
+    item.updatedBy = userId as Types.ObjectId;
+
+    await item.save();
     return item;
   }
 

@@ -111,6 +111,17 @@ export class MenuController {
     res.status(200).json({ success: true, data: item });
   });
 
+  static updateItemImage = asyncHandler(async (req: Request, res: Response) => {
+    const item = await MenuService.updateItemImage(
+      req.user!.restaurantId!,
+      req.params.id,
+      req.body.image ?? req.body.imageUrl,
+      req.user!._id,
+      { addToGallery: req.body.addToGallery },
+    );
+    res.status(200).json({ success: true, data: item });
+  });
+
   static reorderItems = asyncHandler(async (req: Request, res: Response) => {
     await MenuService.reorderItems(req.user!.restaurantId!, req.body.items, req.user!._id);
     res.status(200).json({ success: true, data: {} });
@@ -147,6 +158,7 @@ export class MenuController {
       ...pagination,
       category: req.query.category as string,
       vegOnly: String(req.query.vegOnly ?? req.query.veg) === 'true',
+      spicy: req.query.spicy === undefined ? undefined : String(req.query.spicy) === 'true',
       availableOnly: String(req.query.available) === 'true',
       popularOnly: String(req.query.popular) === 'true',
       recommendedOnly: String(req.query.recommended) === 'true',

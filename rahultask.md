@@ -38,20 +38,20 @@
 - [x] Public restaurant details endpoint exists
 - [x] Public table session create/validate flow exists
 - [x] Public reservation availability and queue join endpoints exist
-- [ ] Verify PRD path alignment for public menu/session contract
-- [ ] Verify session create, validate, recover, current, extend, and end flows end to end
-- [ ] Tighten session lifecycle handoff to table and cleaning workflow
-- [ ] Verify expiry and idle-timeout behavior against real DB data
+- [x] Verify PRD path alignment for public menu/session contract
+- [x] Verify session create, validate, recover, current, extend, and end flows end to end
+- [x] Tighten session lifecycle handoff to table and cleaning workflow
+- [x] Verify expiry and idle-timeout behavior against real DB data
 
 ## Priority 3: Tables Service
 - [x] Admin table CRUD exists
 - [x] Bulk table create exists
 - [x] Table QR generate/fetch exists
 - [x] Staff table dashboard/detail/assign/reserve/occupy exists
-- [ ] Route all staff table status changes through validated lifecycle logic where needed
-- [ ] Verify delete/update edge cases and not-found behavior
-- [ ] Verify floor/section/status filtering for staff flow
-- [ ] Confirm restaurant scoping consistency in admin and staff table actions
+- [x] Route all staff table status changes through validated lifecycle logic where needed
+- [x] Verify delete/update edge cases and not-found behavior
+- [x] Verify floor/section/status filtering for staff flow
+- [x] Confirm restaurant scoping consistency in admin and staff table actions
 
 ## Priority 4: Menu Service
 - [x] Admin category CRUD exists
@@ -59,16 +59,16 @@
 - [x] Category/item reorder exists
 - [x] Availability and visibility toggles exist
 - [x] Customer/public menu browsing and filters exist
-- [ ] Add `POST /admin/menu/items/:id/image`
-- [ ] Align public menu endpoints with PRD expectations
-- [ ] Verify category, veg, availability, popular, recommended, search, price, and sort filters
-- [ ] Verify admin/customer/public menu flows in Postman
+- [x] Add `POST /admin/menu/items/:id/image`
+- [x] Align public menu endpoints with PRD expectations
+- [x] Verify category, veg, availability, popular, recommended, search, price, and sort filters
+- [x] Verify admin/customer/public menu flows in Postman
 
 ## Priority 5: Cart Service
 - [x] Persistent cart get/add/update/remove/clear flow exists
-- [ ] Verify invalid item, hidden item, unavailable item, and empty-cart edge cases
-- [ ] Recheck pricing snapshot behavior after menu item changes
-- [ ] Confirm cart totals behavior is acceptable until billing/tax owner finalizes deeper logic
+- [x] Verify invalid item, hidden item, unavailable item, and empty-cart edge cases
+- [x] Recheck pricing snapshot behavior after menu item changes
+- [x] Confirm cart totals behavior is acceptable until billing/tax owner finalizes deeper logic
 - [ ] Add Postman verification for full cart lifecycle
 
 ## Priority 6: Orders Service

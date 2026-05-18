@@ -6,6 +6,14 @@ export const objectIdSchema = z.string().refine((val) => Types.ObjectId.isValid(
   message: 'Invalid ObjectId format',
 });
 
+const imageReferenceSchema = z
+  .string()
+  .trim()
+  .min(1, 'Image reference is required')
+  .refine((value) => value.startsWith('/') || /^https?:\/\//i.test(value), {
+    message: 'Image must be an absolute URL or upload path',
+  });
+
 // Generic query schemas
 export const paginationQuerySchema = z.object({
   page: z.string().regex(/^\d+$/).transform(Number).optional().default('1'),
@@ -99,11 +107,21 @@ export const reorderItemsSchema = z.object({
   ).min(1, 'At least one item is required for reordering'),
 });
 
+export const updateItemImageSchema = z.object({
+  image: imageReferenceSchema.optional(),
+  imageUrl: imageReferenceSchema.optional(),
+  addToGallery: z.boolean().optional().default(true),
+}).refine((value) => Boolean(value.image || value.imageUrl), {
+  message: 'Image is required',
+  path: ['image'],
+});
+
 // Menu Item Query Schema (Customers/Public)
 export const menuItemQuerySchema = paginationQuerySchema.extend({
   category: z.string().trim().min(1).optional(),
   veg: z.enum(['true', 'false']).transform((val) => val === 'true').optional(),
   vegOnly: z.enum(['true', 'false']).transform((val) => val === 'true').optional(),
+  spicy: z.enum(['true', 'false']).transform((val) => val === 'true').optional(),
   available: z.enum(['true', 'false']).transform((val) => val === 'true').optional(),
   popular: z.enum(['true', 'false']).transform((val) => val === 'true').optional(),
   recommended: z.enum(['true', 'false']).transform((val) => val === 'true').optional(),

@@ -9,6 +9,7 @@ import { emitSessionEvent } from '../../services/sessionEvents';
 import { SocketEvent } from '../../constants/events';
 import { CreateTableInput, UpdateTableInput } from './tables.schema';
 import crypto from 'crypto';
+import { ensureCleaningTaskForTable } from '../cleaning/cleaning.service';
 
 /**
  * Create a new table for a restaurant.
@@ -132,6 +133,14 @@ export async function updateTableStatus(
   }
 
   table.status = newStatus;
+
+  if (newStatus === TableStatus.NEEDS_CLEANING) {
+    await ensureCleaningTaskForTable({
+      restaurantId: table.restaurantId,
+      tableId: table._id,
+      sessionId: table.currentSessionId ?? null,
+    });
+  }
 
   // Clear session reference when table becomes available
   if (newStatus === TableStatus.AVAILABLE) {

@@ -13,6 +13,7 @@ import {
   updateItemSchema,
   toggleItemAvailabilitySchema,
   toggleItemVisibilitySchema,
+  updateItemImageSchema,
   reorderItemsSchema,
   menuItemQuerySchema,
   idParamSchema,
@@ -212,6 +213,14 @@ router.patch(
   roleGuard(...adminRoles),
   validate({ params: idParamSchema, body: toggleItemVisibilitySchema }),
   MenuController.toggleItemVisibility
+);
+
+router.post(
+  '/admin/menu/items/:id/image',
+  requireAuth,
+  roleGuard(...adminRoles),
+  validate({ params: idParamSchema, body: updateItemImageSchema }),
+  MenuController.updateItemImage
 );
 
 export default router;

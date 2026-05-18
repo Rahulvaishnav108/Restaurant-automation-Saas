@@ -120,13 +120,13 @@ export class CartService {
     const existingItemIndex = cart.items.findIndex(
       (item) => 
         item.menuItem._id.toString() === data.menuItem.toString() && 
-        (item.notes || '') === (data.notes || '')
+        (item.notes || '') === (data.notes || '') &&
+        Number(item.unitPrice) === Number(unitPrice)
     );
 
     if (existingItemIndex !== -1) {
       const existingItem = cart.items[existingItemIndex];
       existingItem.quantity += data.quantity;
-      existingItem.unitPrice = unitPrice; // Refresh price snapshot
       existingItem.subtotal = existingItem.quantity * existingItem.unitPrice;
     } else {
       cart.items.push({

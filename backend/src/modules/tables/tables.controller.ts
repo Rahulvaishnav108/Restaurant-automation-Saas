@@ -120,10 +120,22 @@ function getRestaurantId(req: Request): string {
   return resolveRestaurantId(req, { allowBody: true });
 }
 
+function getOwnedRestaurantId(req: Request, candidateRestaurantId?: unknown): string {
+  if (req.user?.restaurantId) {
+    return req.user.restaurantId;
+  }
+
+  if (typeof candidateRestaurantId === 'string' && candidateRestaurantId.trim()) {
+    return candidateRestaurantId.trim();
+  }
+
+  return resolveRestaurantId(req, { allowBody: true });
+}
+
 export async function createTableController(req: Request, res: Response, next: NextFunction) {
   try {
     const table = await tablesService.createTable({
-      restaurantId: req.body.restaurantId ?? getRestaurantId(req),
+      restaurantId: getOwnedRestaurantId(req, req.body.restaurantId),
       tableNumber: String(req.body.tableNumber ?? req.body.number ?? req.body.name ?? 'Table'),
       capacity: Number(req.body.capacity),
       floor: req.body.floor !== undefined ? Number(req.body.floor) : undefined,
@@ -140,11 +152,10 @@ export async function createTableController(req: Request, res: Response, next: N
 
 export async function bulkCreateTablesController(req: Request, res: Response, next: NextFunction) {
   try {
-    const restaurantId = getRestaurantId(req);
     const tables = await Promise.all(
       req.body.tables.map((payload: Request['body']) =>
         tablesService.createTable({
-          restaurantId: payload.restaurantId ?? restaurantId,
+          restaurantId: getOwnedRestaurantId(req, payload.restaurantId),
           tableNumber: String(payload.tableNumber ?? payload.number ?? payload.name ?? 'Table'),
           capacity: Number(payload.capacity),
           floor: payload.floor !== undefined ? Number(payload.floor) : undefined,

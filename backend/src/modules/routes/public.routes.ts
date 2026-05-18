@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { getPublicRestaurantController } from '../restaurants/restaurants.controller';
 import {
   createTableSessionController,
+  recoverSession,
   validateTableSessionController,
 } from '../tableSessions/tableSessions.controller';
 import {
@@ -32,6 +33,8 @@ publicRouter.post(
   validate(createTableSessionRequestSchema),
   createTableSessionController,
 );
+
+publicRouter.get('/table-session/recover', recoverSession);
 
 publicRouter.get('/reservations/availability', validate({ query: reservationAvailabilityQuerySchema }), async (req, res, next) => {
   try {

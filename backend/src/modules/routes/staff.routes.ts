@@ -7,6 +7,7 @@ import { AuditLogModel } from '../auditLogs/auditLogs.model';
 import { ok } from '../../utils/responses';
 import { RequestStatus, TableStatus } from '../../constants/statuses';
 import { validate } from '../../middleware/validate';
+import * as tablesService from '../tables/tables.service';
 import {
   assignTableBodySchema,
   entityIdParamsSchema,
@@ -104,19 +105,33 @@ staffRouter.patch(
   validate({ params: entityIdParamsSchema, body: reserveTableBodySchema }),
   async (req, res, next) => {
   try {
-    const table = ensureFound(
-      await TableModel.findOneAndUpdate(
+    if (req.body?.reservationId) {
+      ensureFound(
+        await ReservationModel.findOne({
+          _id: req.body.reservationId,
+          restaurantId: req.user?.restaurantId,
+        }),
+        'Reservation not found',
+      );
+    }
+
+    const table = await tablesService.updateTableStatus(
+      req.params.id,
+      TableStatus.RESERVED,
+      req.user?.restaurantId,
+    );
+
+    if (req.body?.reservationId) {
+      await ReservationModel.findOneAndUpdate(
         {
-          _id: req.params.id,
+          _id: req.body.reservationId,
           restaurantId: req.user?.restaurantId,
         },
         {
-          status: TableStatus.RESERVED,
+          tableId: table._id,
         },
-        { new: true },
-      ),
-      'Table not found',
-    );
+      );
+    }
 
     ok(res, { table, reservationId: req.body?.reservationId ?? null });
   } catch (error) {
@@ -129,21 +144,13 @@ staffRouter.patch(
   validate({ params: entityIdParamsSchema, body: occupyTableBodySchema }),
   async (req, res, next) => {
   try {
-    const table = ensureFound(
-      await TableModel.findOneAndUpdate(
-        {
-          _id: req.params.id,
-          restaurantId: req.user?.restaurantId,
-        },
-        {
-          status: TableStatus.OCCUPIED,
-        },
-        { new: true },
-      ),
-      'Table not found',
+    const table = await tablesService.updateTableStatus(
+      req.params.id,
+      TableStatus.OCCUPIED,
+      req.user?.restaurantId,
     );
 
-    ok(res, { table });
+    ok(res, { table, occupiedBy: req.body?.staffId ?? req.user?.id ?? null });
   } catch (error) {
     next(error);
   }
