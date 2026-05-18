@@ -172,13 +172,13 @@ export class MenuController {
 
   static getCustomerItemById = asyncHandler(async (req: Request, res: Response) => {
     const restaurantId = MenuController.getRestaurantIdFromReq(req);
-    const item = await MenuService.getItemById(restaurantId, req.params.id);
+    const item = await MenuService.getItemById(restaurantId, req.params.id, { excludeHidden: true });
     res.status(200).json({ success: true, data: item });
   });
 
   static getPublicItemById = asyncHandler(async (req: Request, res: Response) => {
     const restaurantId = MenuController.getRestaurantIdFromReq(req);
-    const item = await MenuService.getItemById(restaurantId, req.params.id);
+    const item = await MenuService.getItemById(restaurantId, req.params.id, { excludeHidden: true });
     res.status(200).json({ success: true, data: item });
   });
 }

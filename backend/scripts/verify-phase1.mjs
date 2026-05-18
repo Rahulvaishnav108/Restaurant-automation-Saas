@@ -1010,6 +1010,42 @@ async function runSmokeSuite(url, db) {
       });
       assert(hiddenAdd.status === 400, `hidden cart item add should return 400, got ${hiddenAdd.status}`);
 
+      const hiddenAdminDetail = await request(url, 'GET', `/api/v1/admin/menu/items/${hiddenItemId.toString()}`, {
+        token: state.admin.accessToken,
+      });
+      assert(hiddenAdminDetail.status === 200, `admin hidden menu item detail should remain accessible, got ${hiddenAdminDetail.status}`);
+
+      const hiddenCustomerDetail = await request(
+        url,
+        'GET',
+        `/api/v1/customer/menu/items/${hiddenItemId.toString()}`,
+        { sessionToken: state.createdSessionToken },
+      );
+      assert(
+        hiddenCustomerDetail.status === 404,
+        `customer hidden menu item detail should return 404, got ${hiddenCustomerDetail.status}`,
+      );
+
+      const hiddenPublicDetail = await request(
+        url,
+        'GET',
+        `/api/v1/public/menu/${state.restaurantId}/items/${hiddenItemId.toString()}`,
+      );
+      assert(
+        hiddenPublicDetail.status === 404,
+        `public hidden menu item detail should return 404, got ${hiddenPublicDetail.status}`,
+      );
+
+      const hiddenPublicQueryDetail = await request(
+        url,
+        'GET',
+        `/api/v1/public/menu/items/${hiddenItemId.toString()}?restaurantId=${state.restaurantId}`,
+      );
+      assert(
+        hiddenPublicQueryDetail.status === 404,
+        `public hidden menu query detail should return 404, got ${hiddenPublicQueryDetail.status}`,
+      );
+
       const snapshotAdd = await request(url, 'POST', '/api/v1/customer/cart/items', {
         sessionToken: state.createdSessionToken,
         body: {
@@ -1086,7 +1122,7 @@ async function runSmokeSuite(url, db) {
       });
       assert(emptyCartOrder.status === 400, `empty cart order should return 400, got ${emptyCartOrder.status}`);
 
-      return 'Verified invalid, hidden, unavailable, and empty-cart cases plus stable cart price snapshots and zero-tax totals';
+      return 'Verified invalid, hidden, unavailable, and empty-cart cases plus hidden-detail blocking, stable cart price snapshots, and zero-tax totals';
     } finally {
       await menuItemsCollection.updateOne(
         { _id: snapshotItem._id },

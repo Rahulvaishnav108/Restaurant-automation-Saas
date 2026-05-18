@@ -246,9 +246,15 @@ export class MenuService {
 
   static async getItemById(
     restaurantId: string | Types.ObjectId,
-    itemId: string | Types.ObjectId
+    itemId: string | Types.ObjectId,
+    options: { excludeHidden?: boolean } = {}
   ): Promise<IMenuItem> {
-    const item = await MenuItem.findOne({ _id: itemId, restaurantId });
+    const query: Record<string, unknown> = { _id: itemId, restaurantId };
+    if (options.excludeHidden) {
+      query.isHidden = false;
+    }
+
+    const item = await MenuItem.findOne(query);
     if (!item) {
       throw new AppError('Menu item not found', 404, ErrorCode.NOT_FOUND);
     }
