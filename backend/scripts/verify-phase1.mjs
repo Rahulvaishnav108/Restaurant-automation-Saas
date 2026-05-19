@@ -192,6 +192,7 @@ async function runSmokeSuite(url, db) {
     createdBatchId: '',
     createdPlanId: '',
     createdRequestId: '',
+    createdCleaningRequestId: '',
     queueId: '',
     reservationId: '',
     readyOrderId: '',
@@ -199,6 +200,12 @@ async function runSmokeSuite(url, db) {
     notificationId: '',
     featureFlagId: '',
     pendingRestaurantId: '',
+    createdAdminStaffId: '',
+    createdStaffShiftId: '',
+    createdOfferId: '',
+    createdInventoryItemId: '',
+    createdUploadUrl: '',
+    createdUploadFileName: '',
   };
 
   const tablesCollection = db.collection('tables');
@@ -206,6 +213,10 @@ async function runSmokeSuite(url, db) {
   const cleaningTasksCollection = db.collection('cleaningTasks');
   const menuCategoriesCollection = db.collection('menuCategories');
   const menuItemsCollection = db.collection('menuItems');
+  const staffRequestsCollection = db.collection('staffRequests');
+  const auditLogsCollection = db.collection('auditLogs');
+  const ordersCollection = db.collection('orders');
+  const notificationsCollection = db.collection('notifications');
 
   async function runStep(name, fn) {
     try {
@@ -231,6 +242,24 @@ async function runSmokeSuite(url, db) {
   async function getLatestCleaningTask(tableId) {
     return cleaningTasksCollection.findOne(
       { tableId: toObjectId(tableId) },
+      { sort: { createdAt: -1 } },
+    );
+  }
+
+  async function getOrderDocument(orderId) {
+    return ordersCollection.findOne({ _id: toObjectId(orderId) });
+  }
+
+  async function getStaffRequestDocument(requestId) {
+    return staffRequestsCollection.findOne({ _id: toObjectId(requestId) });
+  }
+
+  async function getLatestAuditLog(action, entityId) {
+    return auditLogsCollection.findOne(
+      {
+        action,
+        ...(entityId ? { entityId } : {}),
+      },
       { sort: { createdAt: -1 } },
     );
   }
@@ -504,6 +533,175 @@ async function runSmokeSuite(url, db) {
       body: { token: state.createdSessionToken },
     });
     assert(validateSession.status === 200, `validate table session returned ${validateSession.status}`);
+  });
+
+  await runStep('rahul admin CRUD routes', async () => {
+    const timestamp = Date.now();
+    const staffEmail = `phase1.staff.${timestamp}@example.com`;
+    const staffMobile = `8${String(timestamp).slice(-9)}`;
+    const offerCode = `P1${String(timestamp).slice(-6)}`;
+    const inventoryName = `Phase1 Inventory ${timestamp}`;
+
+    const createStaff = await request(url, 'POST', '/api/v1/admin/staff', {
+      token: state.admin.accessToken,
+      body: {
+        name: 'Phase1 Service Staff',
+        email: staffEmail,
+        mobile: staffMobile,
+        password: 'Phase1@123',
+        role: 'service-staff',
+      },
+    });
+    assert(createStaff.status === 201, `create staff returned ${createStaff.status}`);
+    state.createdAdminStaffId = getId(createStaff.json?.data?.staff);
+    assert(state.createdAdminStaffId, 'Created admin staff id missing');
+
+    const listStaff = await request(url, 'GET', '/api/v1/admin/staff?q=Phase1%20Service', {
+      token: state.admin.accessToken,
+    });
+    assert(listStaff.status === 200, `list staff returned ${listStaff.status}`);
+    assert(
+      (listStaff.json?.data?.staff ?? []).some((member) => getId(member) === state.createdAdminStaffId),
+      'Created admin staff member was not returned in list staff',
+    );
+
+    const getStaff = await request(url, 'GET', `/api/v1/admin/staff/${state.createdAdminStaffId}`, {
+      token: state.admin.accessToken,
+    });
+    assert(getStaff.status === 200, `get staff returned ${getStaff.status}`);
+    assert(getStaff.json?.data?.staff?.activeShift == null, 'Newly created staff should not have an active shift');
+
+    const assignShift = await request(url, 'POST', '/api/v1/admin/staff/shifts', {
+      token: state.admin.accessToken,
+      body: {
+        staffId: state.createdAdminStaffId,
+        name: 'Morning Service',
+        startTime: '09:00',
+        endTime: '17:00',
+        days: ['Mon', 'Tue', 'Wed'],
+      },
+    });
+    assert(assignShift.status === 201, `assign staff shift returned ${assignShift.status}`);
+    state.createdStaffShiftId = getId(assignShift.json?.data?.shift);
+    assert(state.createdStaffShiftId, 'Created staff shift id missing');
+
+    const getStaffWithShift = await request(url, 'GET', `/api/v1/admin/staff/${state.createdAdminStaffId}`, {
+      token: state.admin.accessToken,
+    });
+    assert(getStaffWithShift.status === 200, `get staff with shift returned ${getStaffWithShift.status}`);
+    assert(
+      getId(getStaffWithShift.json?.data?.staff?.activeShift) === state.createdStaffShiftId,
+      'Assigned staff shift was not returned as the active shift',
+    );
+
+    const updateStaff = await request(url, 'PATCH', `/api/v1/admin/staff/${state.createdAdminStaffId}`, {
+      token: state.admin.accessToken,
+      body: {
+        name: 'Phase1 Service Staff Updated',
+        status: 'INACTIVE',
+      },
+    });
+    assert(updateStaff.status === 200, `update staff returned ${updateStaff.status}`);
+    assert(updateStaff.json?.data?.staff?.status === 'INACTIVE', 'Updated staff status did not persist');
+
+    const deleteStaff = await request(url, 'DELETE', `/api/v1/admin/staff/${state.createdAdminStaffId}`, {
+      token: state.admin.accessToken,
+    });
+    assert(deleteStaff.status === 200, `delete staff returned ${deleteStaff.status}`);
+
+    const deletedStaff = await request(url, 'GET', `/api/v1/admin/staff/${state.createdAdminStaffId}`, {
+      token: state.admin.accessToken,
+    });
+    assert(deletedStaff.status === 404, `deleted staff should return 404, got ${deletedStaff.status}`);
+
+    const createOffer = await request(url, 'POST', '/api/v1/admin/offers', {
+      token: state.admin.accessToken,
+      body: {
+        name: 'Phase1 Offer',
+        code: offerCode,
+        discountPercent: 15,
+      },
+    });
+    assert(createOffer.status === 201, `create offer returned ${createOffer.status}`);
+    state.createdOfferId = getId(createOffer.json?.data?.offer);
+    assert(state.createdOfferId, 'Created offer id missing');
+
+    const listOffers = await request(url, 'GET', `/api/v1/admin/offers?q=${offerCode}`, {
+      token: state.admin.accessToken,
+    });
+    assert(listOffers.status === 200, `list offers returned ${listOffers.status}`);
+    assert(
+      (listOffers.json?.data?.offers ?? []).some((offer) => getId(offer) === state.createdOfferId),
+      'Created offer was not returned in offer listing',
+    );
+
+    const getOffer = await request(url, 'GET', `/api/v1/admin/offers/${state.createdOfferId}`, {
+      token: state.admin.accessToken,
+    });
+    assert(getOffer.status === 200, `get offer returned ${getOffer.status}`);
+
+    const updateOffer = await request(url, 'PATCH', `/api/v1/admin/offers/${state.createdOfferId}`, {
+      token: state.admin.accessToken,
+      body: {
+        discountPercent: 20,
+        active: false,
+      },
+    });
+    assert(updateOffer.status === 200, `update offer returned ${updateOffer.status}`);
+    assert(updateOffer.json?.data?.offer?.discountPercent === 20, 'Updated offer discount was not persisted');
+
+    const deleteOffer = await request(url, 'DELETE', `/api/v1/admin/offers/${state.createdOfferId}`, {
+      token: state.admin.accessToken,
+    });
+    assert(deleteOffer.status === 200, `delete offer returned ${deleteOffer.status}`);
+
+    const deletedOffer = await request(url, 'GET', `/api/v1/admin/offers/${state.createdOfferId}`, {
+      token: state.admin.accessToken,
+    });
+    assert(deletedOffer.status === 404, `deleted offer should return 404, got ${deletedOffer.status}`);
+
+    const createInventoryItem = await request(url, 'POST', '/api/v1/admin/inventory', {
+      token: state.admin.accessToken,
+      body: {
+        name: inventoryName,
+        stock: 3,
+        unit: 'kg',
+        threshold: 5,
+      },
+    });
+    assert(createInventoryItem.status === 201, `create inventory item returned ${createInventoryItem.status}`);
+    state.createdInventoryItemId = getId(createInventoryItem.json?.data?.item);
+    assert(state.createdInventoryItemId, 'Created inventory item id missing');
+
+    const listInventory = await request(url, 'GET', `/api/v1/admin/inventory?q=${encodeURIComponent(inventoryName)}`, {
+      token: state.admin.accessToken,
+    });
+    assert(listInventory.status === 200, `list inventory returned ${listInventory.status}`);
+    assert(
+      (listInventory.json?.data?.items ?? []).some((item) => getId(item) === state.createdInventoryItemId),
+      'Created inventory item was not returned in inventory listing',
+    );
+
+    const updateInventory = await request(url, 'PATCH', `/api/v1/admin/inventory/${state.createdInventoryItemId}`, {
+      token: state.admin.accessToken,
+      body: {
+        stock: 2,
+        threshold: 4,
+      },
+    });
+    assert(updateInventory.status === 200, `update inventory item returned ${updateInventory.status}`);
+    assert(updateInventory.json?.data?.item?.stock === 2, 'Updated inventory stock was not persisted');
+
+    const inventoryAlerts = await request(url, 'GET', '/api/v1/admin/inventory/alerts', {
+      token: state.admin.accessToken,
+    });
+    assert(inventoryAlerts.status === 200, `inventory alerts returned ${inventoryAlerts.status}`);
+    assert(
+      (inventoryAlerts.json?.data?.alerts ?? []).some((item) => getId(item) === state.createdInventoryItemId),
+      'Low-stock inventory item was not returned by alerts',
+    );
+
+    return 'Verified Rahul admin staff/offers/inventory routes including shift assignment and stock alerts';
   });
 
   await runStep('table edge cases and restaurant scoping', async () => {
@@ -1221,6 +1419,12 @@ async function runSmokeSuite(url, db) {
     const waiterRequest = await request(url, 'POST', '/api/v1/customer/requests/waiter', { sessionToken });
     assert(waiterRequest.status === 201, `customer waiter request returned ${waiterRequest.status}`);
     state.createdRequestId = getId(waiterRequest.json?.data?.request);
+    assert(state.createdRequestId, 'Customer waiter request id missing');
+
+    const cleaningRequest = await request(url, 'POST', '/api/v1/customer/requests/cleaning', { sessionToken });
+    assert(cleaningRequest.status === 201, `customer cleaning request returned ${cleaningRequest.status}`);
+    state.createdCleaningRequestId = getId(cleaningRequest.json?.data?.request);
+    assert(state.createdCleaningRequestId, 'Customer cleaning request id missing');
 
     const bill = await request(url, 'GET', '/api/v1/customer/bill', { sessionToken });
     assert(bill.status === 200, `customer bill returned ${bill.status}`);
@@ -1297,6 +1501,25 @@ async function runSmokeSuite(url, db) {
       sessionToken,
     });
     assert(cancel.status === 200, `cancel order returned ${cancel.status}`);
+    assert(cancel.json?.data?.order?.status === 'CANCELLED', 'Cancelled order did not return CANCELLED status');
+    assert(cancel.json?.data?.order?.cancelledAt, 'Cancelled order did not return cancelledAt');
+
+    const cancelledOrderDocument = await getOrderDocument(state.cancelCandidateOrderId);
+    assert(cancelledOrderDocument?.status === 'CANCELLED', 'Cancelled order was not persisted as CANCELLED');
+    assert(cancelledOrderDocument?.cancelledAt, 'Cancelled order was not persisted with cancelledAt');
+
+    const cancelAgain = await request(url, 'POST', `/api/v1/customer/orders/${state.cancelCandidateOrderId}/cancel`, {
+      sessionToken,
+    });
+    assert(cancelAgain.status === 400, `cancelling an already-cancelled order should return 400, got ${cancelAgain.status}`);
+
+    const reorderCancelled = await request(url, 'POST', `/api/v1/customer/orders/${state.cancelCandidateOrderId}/reorder`, {
+      sessionToken,
+    });
+    assert(
+      reorderCancelled.status === 400,
+      `reordering a cancelled order should return 400, got ${reorderCancelled.status}`,
+    );
 
     const clearCart = await request(url, 'DELETE', '/api/v1/customer/cart', { sessionToken });
     assert(clearCart.status === 200, `clear cart returned ${clearCart.status}`);
@@ -1408,20 +1631,57 @@ async function runSmokeSuite(url, db) {
       token: state.staff.accessToken,
     });
     assert(pickReadyOrder.status === 200, `pick ready order returned ${pickReadyOrder.status}`);
+    assert(pickReadyOrder.json?.data?.order?.status === 'PICKED', 'Picked order did not return PICKED status');
+    assert(pickReadyOrder.json?.data?.order?.pickedAt, 'Picked order did not return pickedAt');
 
     const serveReadyOrder = await request(url, 'PATCH', `/api/v1/staff/orders/${state.readyOrderId}/serve`, {
       token: state.staff.accessToken,
     });
     assert(serveReadyOrder.status === 200, `serve ready order returned ${serveReadyOrder.status}`);
+    assert(serveReadyOrder.json?.data?.order?.status === 'SERVED', 'Served order did not return SERVED status');
+    assert(serveReadyOrder.json?.data?.order?.servedAt, 'Served order did not return servedAt');
+
+    const completeReadyOrder = await request(url, 'PATCH', `/api/v1/staff/orders/${state.readyOrderId}/complete`, {
+      token: state.staff.accessToken,
+    });
+    assert(completeReadyOrder.status === 200, `complete ready order returned ${completeReadyOrder.status}`);
+    assert(
+      completeReadyOrder.json?.data?.order?.status === 'COMPLETED',
+      'Completed order did not return COMPLETED status',
+    );
+    assert(completeReadyOrder.json?.data?.order?.completedAt, 'Completed order did not return completedAt');
+    const completedReadyOrderDocument = await getOrderDocument(state.readyOrderId);
+    assert(completedReadyOrderDocument?.status === 'COMPLETED', 'Served order was not persisted as COMPLETED');
+    assert(completedReadyOrderDocument?.pickedAt, 'Served order did not persist pickedAt');
+    assert(completedReadyOrderDocument?.servedAt, 'Served order did not persist servedAt');
+    assert(completedReadyOrderDocument?.completedAt, 'Served order did not persist completedAt');
+    assert(
+      String(completedReadyOrderDocument?.serviceStaffId ?? '') === String(state.staff.user.id ?? state.staff.user._id),
+      'Served order did not persist serviceStaffId',
+    );
 
     const requests = await request(url, 'GET', '/api/v1/staff/requests', { token: state.staff.accessToken });
     assert(requests.status === 200, `staff requests returned ${requests.status}`);
+    const requestRows = requests.json?.data?.requests ?? [];
+    assert(
+      requestRows.some((entry) => getId(entry) === state.createdRequestId),
+      'Staff requests list did not include the created waiter request',
+    );
+    assert(
+      requestRows.some((entry) => getId(entry) === state.createdCleaningRequestId),
+      'Staff requests list did not include the created cleaning request',
+    );
 
     const acceptRequest = await request(url, 'PATCH', `/api/v1/staff/requests/${state.createdRequestId}/accept`, {
       token: state.staff.accessToken,
       body: { staffId: state.staff.user.id ?? state.staff.user._id },
     });
     assert(acceptRequest.status === 200, `accept request returned ${acceptRequest.status}`);
+    assert(acceptRequest.json?.data?.request?.status === 'ACCEPTED', 'Accepted request did not return ACCEPTED status');
+    assert(
+      String(acceptRequest.json?.data?.acceptedBy) === String(state.staff.user.id ?? state.staff.user._id),
+      'Accepted request did not record the accepting staff member',
+    );
 
     const completeRequest = await request(
       url,
@@ -1430,12 +1690,38 @@ async function runSmokeSuite(url, db) {
       { token: state.staff.accessToken },
     );
     assert(completeRequest.status === 200, `complete request returned ${completeRequest.status}`);
+    assert(completeRequest.json?.data?.request?.status === 'COMPLETED', 'Completed request did not return COMPLETED status');
+
+    const waiterRequestDocument = await getStaffRequestDocument(state.createdRequestId);
+    assert(waiterRequestDocument?.status === 'COMPLETED', 'Waiter request was not persisted as COMPLETED');
+    assert(
+      String(waiterRequestDocument?.acceptedBy ?? '') === String(state.staff.user.id ?? state.staff.user._id),
+      'Waiter request acceptedBy was not persisted correctly',
+    );
+    assert(
+      String(waiterRequestDocument?.completedBy ?? '') === String(state.staff.user.id ?? state.staff.user._id),
+      'Waiter request completedBy was not persisted correctly',
+    );
 
     const escalateIssue = await request(url, 'POST', '/api/v1/staff/issues/escalate', {
       token: state.staff.accessToken,
-      body: { staffId: state.staff.user.id ?? state.staff.user._id, entityId: staffTableId },
+      body: {
+        staffId: state.staff.user.id ?? state.staff.user._id,
+        entityId: staffTableId,
+        entityType: 'table',
+        notes: 'Phase1 escalation verification',
+      },
     });
     assert(escalateIssue.status === 201, `escalate issue returned ${escalateIssue.status}`);
+    const escalationDocument = await getLatestAuditLog('ESCALATE_ISSUE', staffTableId);
+    assert(escalationDocument, 'Issue escalation audit log was not created');
+    assert(
+      String(escalationDocument?.actorId ?? '') === String(state.staff.user.id ?? state.staff.user._id),
+      'Issue escalation actorId was not persisted correctly',
+    );
+    assert(escalationDocument?.metadata?.restaurantId === state.restaurantId, 'Escalation audit log restaurantId mismatch');
+    assert(escalationDocument?.metadata?.entityType === 'table', 'Escalation audit log entityType mismatch');
+    assert(escalationDocument?.metadata?.notes === 'Phase1 escalation verification', 'Escalation audit log notes mismatch');
 
     const kitchenDashboard = await request(url, 'GET', '/api/v1/kitchen/dashboard', {
       token: state.kitchen.accessToken,
@@ -1457,28 +1743,64 @@ async function runSmokeSuite(url, db) {
       body: { estimatedPreparationTime: 12 },
     });
     assert(acceptOrder.status === 200, `accept order returned ${acceptOrder.status}`);
+    assert(acceptOrder.json?.data?.order?.status === 'CONFIRMED', 'Accepted order did not return CONFIRMED status');
+    assert(acceptOrder.json?.data?.order?.acceptedAt, 'Accepted order did not return acceptedAt');
 
     const startCooking = await request(url, 'PATCH', `/api/v1/kitchen/orders/${state.createdOrderId}/start`, {
       token: state.kitchen.accessToken,
     });
     assert(startCooking.status === 200, `start cooking returned ${startCooking.status}`);
+    assert(startCooking.json?.data?.order?.status === 'PREPARING', 'Start cooking did not return PREPARING status');
+    assert(
+      startCooking.json?.data?.order?.preparingStartedAt,
+      'Start cooking did not return preparingStartedAt',
+    );
 
     const delayOrder = await request(url, 'PATCH', `/api/v1/kitchen/orders/${state.createdOrderId}/delay`, {
       token: state.kitchen.accessToken,
       body: { delayMinutes: 5 },
     });
     assert(delayOrder.status === 200, `delay order returned ${delayOrder.status}`);
+    assert(delayOrder.json?.data?.order?.status === 'DELAYED', 'Delayed order did not return DELAYED status');
+    assert(delayOrder.json?.data?.order?.delayedAt, 'Delayed order did not return delayedAt');
 
     const readyOrder = await request(url, 'PATCH', `/api/v1/kitchen/orders/${state.createdOrderId}/ready`, {
       token: state.kitchen.accessToken,
     });
     assert(readyOrder.status === 200, `ready order returned ${readyOrder.status}`);
+    assert(readyOrder.json?.data?.order?.status === 'READY', 'Ready order did not return READY status');
+    assert(readyOrder.json?.data?.order?.readyAt, 'Ready order did not return readyAt');
 
     const rejectOrder = await request(url, 'PATCH', `/api/v1/kitchen/orders/${state.reorderedOrderId}/reject`, {
       token: state.kitchen.accessToken,
       body: { reason: 'Verification reject path' },
     });
     assert(rejectOrder.status === 200, `reject order returned ${rejectOrder.status}`);
+    assert(rejectOrder.json?.data?.order?.status === 'REJECTED', 'Rejected order did not return REJECTED status');
+    assert(rejectOrder.json?.data?.order?.rejectedAt, 'Rejected order did not return rejectedAt');
+
+    const reorderRejected = await request(url, 'POST', `/api/v1/customer/orders/${state.reorderedOrderId}/reorder`, {
+      sessionToken: state.createdSessionToken,
+    });
+    assert(
+      reorderRejected.status === 400,
+      `reordering a rejected order should return 400, got ${reorderRejected.status}`,
+    );
+
+    const handledCreatedOrder = await getOrderDocument(state.createdOrderId);
+    assert(handledCreatedOrder?.batchId == null, 'Created order should not have a batch before batch creation');
+    assert(
+      String(handledCreatedOrder?.kitchenStaffId ?? '') === String(state.kitchen.user.id ?? state.kitchen.user._id),
+      'Kitchen order did not persist kitchenStaffId',
+    );
+    assert(handledCreatedOrder?.acceptedAt, 'Kitchen order did not persist acceptedAt');
+    assert(handledCreatedOrder?.preparingStartedAt, 'Kitchen order did not persist preparingStartedAt');
+    assert(handledCreatedOrder?.delayedAt, 'Kitchen order did not persist delayedAt');
+    assert(handledCreatedOrder?.readyAt, 'Kitchen order did not persist readyAt');
+
+    const rejectedOrderDocument = await getOrderDocument(state.reorderedOrderId);
+    assert(rejectedOrderDocument?.status === 'REJECTED', 'Rejected order was not persisted as REJECTED');
+    assert(rejectedOrderDocument?.rejectedAt, 'Rejected order did not persist rejectedAt');
 
     const createBatch = await request(url, 'POST', '/api/v1/kitchen/batches', {
       token: state.kitchen.accessToken,
@@ -1495,12 +1817,32 @@ async function runSmokeSuite(url, db) {
       token: state.kitchen.accessToken,
     });
     assert(batchDetails.status === 200, `batch details returned ${batchDetails.status}`);
+    assert(
+      (batchDetails.json?.data?.batch?.orderIds ?? []).some((orderId) => String(orderId) === state.createdOrderId),
+      'Batch details did not include the created order',
+    );
 
     const updateBatch = await request(url, 'PATCH', `/api/v1/kitchen/batches/${state.createdBatchId}`, {
       token: state.kitchen.accessToken,
       body: { name: 'Phase1 Verify Batch Updated', status: 'COMPLETE' },
     });
     assert(updateBatch.status === 200, `update batch returned ${updateBatch.status}`);
+    assert(updateBatch.json?.data?.batch?.status === 'COMPLETED', 'Batch update did not normalize COMPLETE to COMPLETED');
+
+    const batchedOrders = await request(url, 'GET', '/api/v1/kitchen/orders?batch=true', {
+      token: state.kitchen.accessToken,
+    });
+    assert(batchedOrders.status === 200, `batched kitchen orders returned ${batchedOrders.status}`);
+    assert(
+      (batchedOrders.json?.data?.orders ?? []).some((order) => getId(order) === state.createdOrderId),
+      'Batch-filtered kitchen orders did not include the batched order',
+    );
+
+    const batchedOrderDocument = await getOrderDocument(state.createdOrderId);
+    assert(
+      String(batchedOrderDocument?.batchId ?? '') === state.createdBatchId,
+      'Created batch was not linked back onto the order document',
+    );
 
     const kitchenLoad = await request(url, 'GET', '/api/v1/kitchen/load', { token: state.kitchen.accessToken });
     assert(kitchenLoad.status === 200, `kitchen load returned ${kitchenLoad.status}`);
@@ -1509,6 +1851,20 @@ async function runSmokeSuite(url, db) {
       token: state.kitchen.accessToken,
     });
     assert(kitchenPerformance.status === 200, `kitchen performance returned ${kitchenPerformance.status}`);
+    const kitchenChefMetrics = (kitchenPerformance.json?.data?.chefs ?? []).find(
+      (chef) => String(chef?.id) === String(state.kitchen.user.id ?? state.kitchen.user._id),
+    );
+    assert(kitchenChefMetrics, 'Kitchen performance did not include the acting kitchen user');
+    const handledOrdersCount = await ordersCollection.countDocuments({
+      restaurantId: toObjectId(state.restaurantId),
+      kitchenStaffId: toObjectId(state.kitchen.user.id ?? state.kitchen.user._id),
+    });
+    assert(
+      kitchenChefMetrics.handledOrders === handledOrdersCount,
+      `Kitchen performance handledOrders mismatch: expected ${handledOrdersCount}, got ${kitchenChefMetrics.handledOrders}`,
+    );
+    assert(kitchenChefMetrics.avgTicketMinutes >= 0, 'Kitchen performance avgTicketMinutes should be non-negative');
+    assert(kitchenChefMetrics.completionRate >= 0, 'Kitchen performance completionRate should be non-negative');
 
     const cleaningTasks = await request(url, 'GET', '/api/v1/cleaning/tasks', {
       token: state.cleaning.accessToken,
@@ -1527,6 +1883,27 @@ async function runSmokeSuite(url, db) {
       body: { staffId: state.cleaning.user.id ?? state.cleaning.user._id },
     });
     assert(startCleaning.status === 200, `start cleaning task returned ${startCleaning.status}`);
+    assert(startCleaning.json?.data?.task?.status === 'IN_PROGRESS', 'Start cleaning did not return IN_PROGRESS status');
+    assert(startCleaning.json?.data?.task?.startedAt, 'Start cleaning did not return startedAt');
+    assert(
+      String(startCleaning.json?.data?.task?.startedBy ?? '') === String(state.cleaning.user.id ?? state.cleaning.user._id),
+      'Start cleaning did not persist startedBy in the response',
+    );
+
+    const restartCleaning = await request(url, 'PATCH', `/api/v1/cleaning/tasks/${state.cleaningTaskId}/start`, {
+      token: state.cleaning.accessToken,
+      body: { staffId: state.cleaning.user.id ?? state.cleaning.user._id },
+    });
+    assert(
+      restartCleaning.status === 400,
+      `starting an in-progress cleaning task should return 400, got ${restartCleaning.status}`,
+    );
+
+    const cleaningTableAfterStart = await getTableDocument(String(cleaningTask.json?.data?.task?.tableId));
+    assert(
+      cleaningTableAfterStart?.status === 'CLEANING_IN_PROGRESS',
+      'Starting cleaning did not move the table to CLEANING_IN_PROGRESS',
+    );
 
     const completeCleaning = await request(
       url,
@@ -1535,12 +1912,39 @@ async function runSmokeSuite(url, db) {
       { token: state.cleaning.accessToken },
     );
     assert(completeCleaning.status === 200, `complete cleaning task returned ${completeCleaning.status}`);
+    assert(
+      completeCleaning.json?.data?.task?.status === 'COMPLETED',
+      'Complete cleaning did not return COMPLETED status',
+    );
+    assert(completeCleaning.json?.data?.task?.completedAt, 'Complete cleaning did not return completedAt');
+    assert(
+      String(completeCleaning.json?.data?.task?.completedBy ?? '') === String(state.cleaning.user.id ?? state.cleaning.user._id),
+      'Complete cleaning did not persist completedBy in the response',
+    );
+
+    const cleaningTableAfterComplete = await getTableDocument(String(cleaningTask.json?.data?.task?.tableId));
+    assert(
+      cleaningTableAfterComplete?.status === 'NEEDS_CLEANING',
+      'Completing cleaning did not move the table back to NEEDS_CLEANING for verification',
+    );
 
     const verifyCleaning = await request(url, 'PATCH', `/api/v1/cleaning/tasks/${state.cleaningTaskId}/verify`, {
       token: state.cleaning.accessToken,
       body: { verifiedBy: state.staff.user.id ?? state.staff.user._id },
     });
     assert(verifyCleaning.status === 200, `verify cleaning task returned ${verifyCleaning.status}`);
+    assert(verifyCleaning.json?.data?.task?.status === 'VERIFIED', 'Verify cleaning did not return VERIFIED status');
+    assert(verifyCleaning.json?.data?.task?.verifiedAt, 'Verify cleaning did not return verifiedAt');
+    assert(
+      String(verifyCleaning.json?.data?.task?.verifiedBy ?? '') === String(state.staff.user.id ?? state.staff.user._id),
+      'Verify cleaning did not persist verifiedBy in the response',
+    );
+
+    const verifiedCleaningTask = await getLatestCleaningTask(String(cleaningTask.json?.data?.task?.tableId));
+    assert(verifiedCleaningTask?.status === 'VERIFIED', 'Cleaning task was not persisted as VERIFIED');
+
+    const cleaningTableAfterVerify = await getTableDocument(String(cleaningTask.json?.data?.task?.tableId));
+    assert(cleaningTableAfterVerify?.status === 'AVAILABLE', 'Verified cleaning did not move the table to AVAILABLE');
 
     const platformOverview = await request(url, 'GET', '/api/v1/super-admin/platform/overview', {
       token: state.superAdmin.accessToken,
@@ -1634,6 +2038,11 @@ async function runSmokeSuite(url, db) {
       token: state.admin.accessToken,
     });
     assert(notifications.status === 200, `notifications returned ${notifications.status}`);
+    assert((notifications.json?.data?.notifications ?? []).length > 0, 'Notifications list should not be empty for the admin user');
+    assert(
+      (notifications.json?.data?.notifications ?? []).some((notification) => notification?.title === 'Low stock alert'),
+      'Expected seeded low stock alert notification was not returned',
+    );
     state.notificationId = getId(notifications.json?.data?.notifications?.[0]);
     assert(state.notificationId, 'Notification id missing');
 
@@ -1641,20 +2050,47 @@ async function runSmokeSuite(url, db) {
       token: state.admin.accessToken,
     });
     assert(readNotification.status === 200, `mark notification read returned ${readNotification.status}`);
+    assert(readNotification.json?.data?.notification?.read === true, 'Read notification response did not mark the notification as read');
 
     const readAllNotifications = await request(url, 'PATCH', '/api/v1/notifications/read-all', {
       token: state.admin.accessToken,
     });
     assert(readAllNotifications.status === 200, `mark all notifications read returned ${readAllNotifications.status}`);
+    const unreadNotificationCount = await notificationsCollection.countDocuments({
+      userId: toObjectId(state.admin.user.id ?? state.admin.user._id),
+      read: false,
+    });
+    assert(unreadNotificationCount === 0, `Expected all notifications to be read, found ${unreadNotificationCount} unread`);
 
     const upload = await request(url, 'POST', '/api/v1/uploads', {
       token: state.admin.accessToken,
-      body: { fileName: 'phase1-verify.png' },
+      body: {
+        fileName: 'phase1-verify.txt',
+        text: 'Phase1 upload verification',
+        mimeType: 'text/plain',
+      },
     });
     assert(upload.status === 201, `upload returned ${upload.status}`);
+    state.createdUploadUrl = upload.json?.data?.upload?.url ?? '';
+    state.createdUploadFileName = upload.json?.data?.upload?.fileName ?? '';
+    assert(state.createdUploadUrl, 'Upload URL missing from upload response');
+    assert(state.createdUploadFileName, 'Stored upload filename missing from upload response');
+    const uploadDiskPath = path.join(backendDir, state.createdUploadUrl.replace(/^\/+/, '').replaceAll('/', path.sep));
+    assert(fs.existsSync(uploadDiskPath), `Uploaded file was not written to disk at ${uploadDiskPath}`);
+    const uploadedFile = await request(url, 'GET', state.createdUploadUrl);
+    assert(uploadedFile.status === 200, `uploaded file GET returned ${uploadedFile.status}`);
+    assert(uploadedFile.raw.includes('Phase1 upload verification'), 'Uploaded file contents did not match the submitted body');
 
     const search = await request(url, 'GET', '/api/v1/search?q=pizza', { token: state.admin.accessToken });
     assert(search.status === 200, `search returned ${search.status}`);
+    assert((search.json?.data?.menuItems ?? []).length > 0, 'Search did not return any menu items');
+
+    const restaurantSearch = await request(url, 'GET', '/api/v1/search?q=amber', { token: state.admin.accessToken });
+    assert(restaurantSearch.status === 200, `restaurant search returned ${restaurantSearch.status}`);
+    assert(
+      (restaurantSearch.json?.data?.restaurants ?? []).some((restaurant) => restaurant?.slug === 'amber-table'),
+      'Restaurant search did not return the seeded Amber Table restaurant',
+    );
   });
 
   await runStep('rbac and cleanup flow', async () => {
@@ -1685,6 +2121,7 @@ async function runSmokeSuite(url, db) {
 
     const endCleaningTask = await getLatestCleaningTask(state.createdTableId);
     assert(endCleaningTask?.status === 'PENDING', 'Ended session did not create a pending cleaning task');
+    assert(endCleaningTask?.priority === 'HIGH', 'Customer cleaning request did not elevate the resulting cleaning task priority');
 
     const deleteTable = await request(url, 'DELETE', `/api/v1/admin/tables/${state.createdTableId}`, {
       token: state.admin.accessToken,
@@ -1757,8 +2194,8 @@ async function main() {
     }).asPromise();
     assert(verifyConnection.db, 'Verification database connection is unavailable');
 
-    const postman = await runNewmanSuite(baseUrl);
     const smoke = await runSmokeSuite(baseUrl, verifyConnection.db);
+    const postman = await runNewmanSuite(baseUrl);
 
     const summary = {
       postman,

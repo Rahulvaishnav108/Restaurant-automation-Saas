@@ -6,9 +6,12 @@ export interface ICleaningTask extends Document {
   tableId: Types.ObjectId;
   priority: Priority;
   status: CleaningStatus;
+  startedBy?: Types.ObjectId | null;
+  completedBy?: Types.ObjectId | null;
   verifiedBy?: Types.ObjectId | null;
   startedAt?: Date | null;
   completedAt?: Date | null;
+  verifiedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,9 +30,12 @@ const cleaningTaskSchema = new Schema<ICleaningTask>(
       enum: Object.values(CleaningStatus),
       default: CleaningStatus.PENDING,
     },
+    startedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    completedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     verifiedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     startedAt: { type: Date, default: null },
     completedAt: { type: Date, default: null },
+    verifiedAt: { type: Date, default: null },
   },
   {
     timestamps: true,

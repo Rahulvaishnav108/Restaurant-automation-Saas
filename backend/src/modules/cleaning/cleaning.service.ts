@@ -40,9 +40,12 @@ export async function ensureCleaningTaskForTable(input: EnsureCleaningTaskInput)
   if (existingTask && existingTask.status !== CleaningStatus.VERIFIED) {
     existingTask.priority = priority;
     existingTask.status = CleaningStatus.PENDING;
+    existingTask.startedBy = null;
+    existingTask.completedBy = null;
     existingTask.verifiedBy = null;
     existingTask.startedAt = null;
     existingTask.completedAt = null;
+    existingTask.verifiedAt = null;
     await existingTask.save();
     return existingTask;
   }
@@ -52,8 +55,11 @@ export async function ensureCleaningTaskForTable(input: EnsureCleaningTaskInput)
     tableId: input.tableId,
     priority,
     status: CleaningStatus.PENDING,
+    startedBy: null,
+    completedBy: null,
     verifiedBy: null,
     startedAt: null,
     completedAt: null,
+    verifiedAt: null,
   });
 }

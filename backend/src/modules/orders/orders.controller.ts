@@ -166,7 +166,7 @@ export class OrdersController {
 
       const { id } = req.params;
       const { estimatedPreparationTime } = req.body;
-      const order = await OrdersService.acceptOrder(restaurantId, id, estimatedPreparationTime);
+      const order = await OrdersService.acceptOrder(restaurantId, id, estimatedPreparationTime, req.user?.id);
       ok(res, { order });
     } catch (error) {
       next(error);
@@ -179,7 +179,7 @@ export class OrdersController {
       const restaurantId = OrdersController.getRequiredRestaurantId(req);
 
       const { id } = req.params;
-      const order = await OrdersService.startCooking(restaurantId, id);
+      const order = await OrdersService.startCooking(restaurantId, id, req.user?.id);
       ok(res, { order });
     } catch (error) {
       next(error);
@@ -192,7 +192,7 @@ export class OrdersController {
       const restaurantId = OrdersController.getRequiredRestaurantId(req);
 
       const { id } = req.params;
-      const order = await OrdersService.markReady(restaurantId, id);
+      const order = await OrdersService.markReady(restaurantId, id, req.user?.id);
       ok(res, { order });
     } catch (error) {
       next(error);
@@ -206,7 +206,7 @@ export class OrdersController {
 
       const { id } = req.params;
       const { delayMinutes } = req.body;
-      const order = await OrdersService.delayOrder(restaurantId, id, delayMinutes);
+      const order = await OrdersService.delayOrder(restaurantId, id, delayMinutes, req.user?.id);
       ok(res, { order });
     } catch (error) {
       next(error);
@@ -220,7 +220,7 @@ export class OrdersController {
 
       const { id } = req.params;
       const { reason } = req.body;
-      const order = await OrdersService.rejectOrder(restaurantId, id, reason);
+      const order = await OrdersService.rejectOrder(restaurantId, id, reason, req.user?.id);
       ok(res, { order });
     } catch (error) {
       next(error);
@@ -256,7 +256,7 @@ export class OrdersController {
       const restaurantId = OrdersController.getRequiredRestaurantId(req);
 
       const { id } = req.params;
-      const order = await OrdersService.pickFood(restaurantId, id);
+      const order = await OrdersService.pickFood(restaurantId, id, req.user?.id);
       ok(res, { order });
     } catch (error) {
       next(error);
@@ -269,7 +269,7 @@ export class OrdersController {
       const restaurantId = OrdersController.getRequiredRestaurantId(req);
 
       const { id } = req.params;
-      const order = await OrdersService.markServed(restaurantId, id);
+      const order = await OrdersService.markServed(restaurantId, id, req.user?.id);
       ok(res, { order });
     } catch (error) {
       next(error);
@@ -282,7 +282,7 @@ export class OrdersController {
       const restaurantId = OrdersController.getRequiredRestaurantId(req);
 
       const { id } = req.params;
-      const order = await OrdersService.markCompleted(restaurantId, id);
+      const order = await OrdersService.markCompleted(restaurantId, id, req.user?.id);
       ok(res, { order });
     } catch (error) {
       next(error);

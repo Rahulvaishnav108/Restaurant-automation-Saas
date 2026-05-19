@@ -21,6 +21,9 @@ import {
   tableIdParamsSchema,
   updateTableRequestSchema,
 } from '../tables/tables.schema';
+import staffManagementRouter from '../staff/staff.routes';
+import offersRouter from '../offers/offers.routes';
+import inventoryRouter from '../inventory/inventory.routes';
 
 export const adminRouter = Router();
 
@@ -36,3 +39,6 @@ adminRouter.delete('/tables/:id', validate({ params: tableIdParamsSchema }), del
 adminRouter.post('/tables/bulk', validate(bulkCreateTablesRequestSchema), bulkCreateTablesController);
 adminRouter.post('/tables/:id/qr', validate({ params: tableIdParamsSchema }), generateTableQrController);
 adminRouter.get('/tables/:id/qr', validate({ params: tableIdParamsSchema }), getTableQrController);
+adminRouter.use('/staff', staffManagementRouter);
+adminRouter.use('/offers', offersRouter);
+adminRouter.use('/inventory', inventoryRouter);

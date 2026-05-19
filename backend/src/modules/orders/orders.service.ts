@@ -6,6 +6,32 @@ import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
 import { Priority } from '../../constants/statuses';
 import { TableModel } from '../tables/tables.model';
+import mongoose from 'mongoose';
+
+const ORDER_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus[]>> = {
+  [OrderStatus.PLACED]: [OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.DELAYED, OrderStatus.REJECTED, OrderStatus.CANCELLED],
+  [OrderStatus.CONFIRMED]: [OrderStatus.PREPARING, OrderStatus.DELAYED, OrderStatus.CANCELLED],
+  [OrderStatus.PREPARING]: [OrderStatus.DELAYED, OrderStatus.READY],
+  [OrderStatus.DELAYED]: [OrderStatus.PREPARING, OrderStatus.READY],
+  [OrderStatus.READY]: [OrderStatus.PICKED, OrderStatus.SERVED],
+  [OrderStatus.PICKED]: [OrderStatus.SERVED],
+  [OrderStatus.SERVED]: [OrderStatus.COMPLETED],
+};
+
+function ensureOrderTransition(currentStatus: OrderStatus, nextStatus: OrderStatus, message: string): void {
+  const allowed = ORDER_TRANSITIONS[currentStatus] ?? [];
+  if (!allowed.includes(nextStatus)) {
+    throw new AppError(message, 400, ErrorCode.ORDER_NOT_MODIFIABLE);
+  }
+}
+
+function toNullableObjectId(value?: string | Types.ObjectId | null): Types.ObjectId | null {
+  if (!value) {
+    return null;
+  }
+
+  return typeof value === 'string' ? new mongoose.Types.ObjectId(value) : value;
+}
 
 export class OrdersService {
   static async placeOrder(
@@ -127,6 +153,10 @@ export class OrdersService {
   ) {
     const original = await this.getCustomerOrderById(restaurantId, sessionId, orderId);
 
+    if (original.status === OrderStatus.CANCELLED || original.status === OrderStatus.REJECTED) {
+      throw new AppError('Cancelled or rejected orders cannot be reordered', 400, ErrorCode.ORDER_NOT_MODIFIABLE);
+    }
+
     const timestamp = Date.now().toString().slice(-6);
     const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
     const orderNumber = `ORD-${timestamp}-${randomChars}`;
@@ -155,9 +185,7 @@ export class OrdersService {
   ) {
     const order = await this.getCustomerOrderById(restaurantId, sessionId, orderId);
 
-    if ([OrderStatus.READY, OrderStatus.SERVED, OrderStatus.COMPLETED].includes(order.status)) {
-      throw new AppError('Order cannot be cancelled in its current state', 400, ErrorCode.ORDER_NOT_MODIFIABLE);
-    }
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.CANCELLED, 'Order cannot be cancelled in its current state');
 
     order.status = OrderStatus.CANCELLED;
     order.cancelledAt = new Date();
@@ -223,15 +251,19 @@ export class OrdersService {
     return order;
   }
 
-  static async acceptOrder(restaurantId: string | Types.ObjectId, orderId: string | Types.ObjectId, estimatedTime?: number) {
+  static async acceptOrder(
+    restaurantId: string | Types.ObjectId,
+    orderId: string | Types.ObjectId,
+    estimatedTime?: number,
+    actorId?: string | Types.ObjectId | null,
+  ) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    if (order.status !== OrderStatus.PLACED) {
-      throw new AppError('Only placed orders can be accepted', 400, ErrorCode.VALIDATION_ERROR);
-    }
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.CONFIRMED, 'Only placed orders can be accepted');
 
     order.status = OrderStatus.CONFIRMED;
     order.acceptedAt = new Date();
+    order.kitchenStaffId = toNullableObjectId(actorId);
     if (estimatedTime) {
       order.estimatedPreparationTime = estimatedTime;
     }
@@ -240,52 +272,66 @@ export class OrdersService {
     return order;
   }
 
-  static async startCooking(restaurantId: string | Types.ObjectId, orderId: string | Types.ObjectId) {
+  static async startCooking(
+    restaurantId: string | Types.ObjectId,
+    orderId: string | Types.ObjectId,
+    actorId?: string | Types.ObjectId | null,
+  ) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    if (order.status !== OrderStatus.CONFIRMED && order.status !== OrderStatus.PLACED) {
-      throw new AppError('Order cannot be prepared from current status', 400, ErrorCode.VALIDATION_ERROR);
-    }
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.PREPARING, 'Order cannot be prepared from current status');
 
     order.status = OrderStatus.PREPARING;
+    order.preparingStartedAt = new Date();
+    order.kitchenStaffId = toNullableObjectId(actorId);
     await order.save();
     return order;
   }
 
-  static async markReady(restaurantId: string | Types.ObjectId, orderId: string | Types.ObjectId) {
+  static async markReady(
+    restaurantId: string | Types.ObjectId,
+    orderId: string | Types.ObjectId,
+    actorId?: string | Types.ObjectId | null,
+  ) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    if (order.status !== OrderStatus.PREPARING && order.status !== OrderStatus.DELAYED) {
-      throw new AppError('Only preparing orders can be marked ready', 400, ErrorCode.VALIDATION_ERROR);
-    }
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.READY, 'Only preparing orders can be marked ready');
 
     order.status = OrderStatus.READY;
     order.readyAt = new Date();
+    order.kitchenStaffId = toNullableObjectId(actorId);
     await order.save();
     return order;
   }
 
-  static async rejectOrder(restaurantId: string | Types.ObjectId, orderId: string | Types.ObjectId, reason: string) {
+  static async rejectOrder(
+    restaurantId: string | Types.ObjectId,
+    orderId: string | Types.ObjectId,
+    reason: string,
+    actorId?: string | Types.ObjectId | null,
+  ) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    if (order.status !== OrderStatus.PLACED) {
-      throw new AppError('Only placed orders can be rejected', 400, ErrorCode.VALIDATION_ERROR);
-    }
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.REJECTED, 'Only placed orders can be rejected');
 
     order.status = OrderStatus.REJECTED;
     order.cancelledAt = new Date();
+    order.rejectedAt = new Date();
+    order.kitchenStaffId = toNullableObjectId(actorId);
     order.rejectionReason = reason;
     await order.save();
     return order;
   }
 
-  static async delayOrder(restaurantId: string | Types.ObjectId, orderId: string | Types.ObjectId, delayMinutes: number) {
+  static async delayOrder(
+    restaurantId: string | Types.ObjectId,
+    orderId: string | Types.ObjectId,
+    delayMinutes: number,
+    actorId?: string | Types.ObjectId | null,
+  ) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    const activeStatuses = [OrderStatus.PLACED, OrderStatus.CONFIRMED, OrderStatus.PREPARING];
-    if (!activeStatuses.includes(order.status as OrderStatus)) {
-      throw new AppError('Cannot delay order in current status', 400, ErrorCode.VALIDATION_ERROR);
-    }
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.DELAYED, 'Cannot delay order in current status');
 
     if (order.estimatedPreparationTime) {
       order.estimatedPreparationTime += delayMinutes;
@@ -293,6 +339,8 @@ export class OrdersService {
       order.estimatedPreparationTime = delayMinutes;
     }
     order.status = OrderStatus.DELAYED;
+    order.delayedAt = new Date();
+    order.kitchenStaffId = toNullableObjectId(actorId);
 
     await order.save();
     return order;
@@ -302,41 +350,50 @@ export class OrdersService {
     return OrderModel.find({ restaurantId, status: OrderStatus.READY }).sort({ updatedAt: 1 });
   }
 
-  static async pickFood(restaurantId: string | Types.ObjectId, orderId: string | Types.ObjectId) {
+  static async pickFood(
+    restaurantId: string | Types.ObjectId,
+    orderId: string | Types.ObjectId,
+    actorId?: string | Types.ObjectId | null,
+  ) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    if (order.status !== OrderStatus.READY) {
-      throw new AppError('Only ready orders can be picked', 400, ErrorCode.ORDER_NOT_MODIFIABLE);
-    }
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.PICKED, 'Only ready orders can be picked');
 
     order.status = OrderStatus.PICKED;
     order.pickedAt = new Date();
+    order.serviceStaffId = toNullableObjectId(actorId);
     await order.save();
     return order;
   }
 
-  static async markServed(restaurantId: string | Types.ObjectId, orderId: string | Types.ObjectId) {
+  static async markServed(
+    restaurantId: string | Types.ObjectId,
+    orderId: string | Types.ObjectId,
+    actorId?: string | Types.ObjectId | null,
+  ) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    if (order.status !== OrderStatus.PICKED && order.status !== OrderStatus.READY) {
-      throw new AppError('Only picked or ready orders can be served', 400, ErrorCode.ORDER_NOT_MODIFIABLE);
-    }
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.SERVED, 'Only picked or ready orders can be served');
 
     order.status = OrderStatus.SERVED;
     order.servedAt = new Date();
+    order.serviceStaffId = toNullableObjectId(actorId);
     await order.save();
     return order;
   }
 
-  static async markCompleted(restaurantId: string | Types.ObjectId, orderId: string | Types.ObjectId) {
+  static async markCompleted(
+    restaurantId: string | Types.ObjectId,
+    orderId: string | Types.ObjectId,
+    actorId?: string | Types.ObjectId | null,
+  ) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    if (order.status !== OrderStatus.SERVED) {
-      throw new AppError('Only served orders can be completed', 400, ErrorCode.ORDER_NOT_MODIFIABLE);
-    }
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.COMPLETED, 'Only served orders can be completed');
 
     order.status = OrderStatus.COMPLETED;
     order.completedAt = new Date();
+    order.serviceStaffId = toNullableObjectId(actorId);
     await order.save();
     return order;
   }

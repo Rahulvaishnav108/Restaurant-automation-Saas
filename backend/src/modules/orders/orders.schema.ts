@@ -52,10 +52,15 @@ export interface IOrder extends Document {
   specialInstructions?: string;
 
   estimatedPreparationTime?: number;
+  kitchenStaffId?: mongoose.Types.ObjectId | null;
+  serviceStaffId?: mongoose.Types.ObjectId | null;
 
   acceptedAt?: Date;
+  preparingStartedAt?: Date;
+  delayedAt?: Date;
 
   readyAt?: Date;
+  rejectedAt?: Date;
 
   pickedAt?: Date;
 
@@ -216,12 +221,39 @@ export const orderSchema = new Schema<IOrder>(
       default: null,
     },
 
+    kitchenStaffId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+
+    serviceStaffId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+
     acceptedAt: {
       type: Date,
       default: null,
     },
 
+    preparingStartedAt: {
+      type: Date,
+      default: null,
+    },
+
+    delayedAt: {
+      type: Date,
+      default: null,
+    },
+
     readyAt: {
+      type: Date,
+      default: null,
+    },
+
+    rejectedAt: {
       type: Date,
       default: null,
     },
@@ -266,6 +298,8 @@ orderSchema.index({ tableId: 1 });
 orderSchema.index({ status: 1 });
 orderSchema.index({ priority: 1 });
 orderSchema.index({ paymentStatus: 1 });
+orderSchema.index({ kitchenStaffId: 1 });
+orderSchema.index({ serviceStaffId: 1 });
 
 export default orderSchema;
 

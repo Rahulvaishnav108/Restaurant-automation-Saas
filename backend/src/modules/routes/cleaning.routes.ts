@@ -16,12 +16,10 @@ import { ErrorCode } from '../../constants/errors';
 
 export const cleaningRouter = Router();
 
-function ensureFound<T>(value: T | null | undefined, message: string): T {
-  if (!value) {
-    throw new AppError(message, 404, ErrorCode.NOT_FOUND);
+function ensureCleaningStatus(currentStatus: CleaningStatus, allowedStatuses: CleaningStatus[], message: string): void {
+  if (!allowedStatuses.includes(currentStatus)) {
+    throw new AppError(message, 400, ErrorCode.INVALID_REQUEST);
   }
-
-  return value;
 }
 
 cleaningRouter.get('/tasks', validate({ query: cleaningTaskQuerySchema }), async (req, res, next) => {
@@ -50,13 +48,14 @@ cleaningRouter.get('/tasks', validate({ query: cleaningTaskQuerySchema }), async
 
 cleaningRouter.get('/tasks/:id', validate({ params: cleaningTaskParamsSchema }), async (req, res, next) => {
   try {
-    const task = ensureFound(
-      await CleaningTaskModel.findOne({
-        _id: req.params.id,
-        restaurantId: req.user?.restaurantId,
-      }),
-      'Cleaning task not found',
-    );
+    const task = await CleaningTaskModel.findOne({
+      _id: req.params.id,
+      restaurantId: req.user?.restaurantId,
+    });
+
+    if (!task) {
+      throw new AppError('Cleaning task not found', 404, ErrorCode.NOT_FOUND);
+    }
 
     ok(res, { task });
   } catch (error) {
@@ -69,21 +68,25 @@ cleaningRouter.patch(
   validate({ params: cleaningTaskParamsSchema, body: startCleaningBodySchema }),
   async (req, res, next) => {
   try {
-    const task = await CleaningTaskModel.findOneAndUpdate(
-      {
-        _id: req.params.id,
-        restaurantId: req.user?.restaurantId,
-      },
-      {
-        status: CleaningStatus.IN_PROGRESS,
-        startedAt: new Date(),
-      },
-      { new: true },
-    );
+    const task = await CleaningTaskModel.findOne({
+      _id: req.params.id,
+      restaurantId: req.user?.restaurantId,
+    });
 
     if (!task) {
       throw new AppError('Cleaning task not found', 404, ErrorCode.NOT_FOUND);
     }
+
+    ensureCleaningStatus(task.status, [CleaningStatus.PENDING], 'Only pending cleaning tasks can be started');
+
+    task.status = CleaningStatus.IN_PROGRESS;
+    task.startedAt = new Date();
+    task.startedBy = req.body?.staffId ?? req.user?.id ?? null;
+    task.completedAt = null;
+    task.completedBy = null;
+    task.verifiedAt = null;
+    task.verifiedBy = null;
+    await task.save();
 
     await TableModel.findOneAndUpdate(
       { _id: task.tableId, restaurantId: task.restaurantId },
@@ -101,21 +104,23 @@ cleaningRouter.patch(
   validate({ params: cleaningTaskParamsSchema, body: completeCleaningBodySchema }),
   async (req, res, next) => {
   try {
-    const task = await CleaningTaskModel.findOneAndUpdate(
-      {
-        _id: req.params.id,
-        restaurantId: req.user?.restaurantId,
-      },
-      {
-        status: CleaningStatus.COMPLETED,
-        completedAt: new Date(),
-      },
-      { new: true },
-    );
+    const task = await CleaningTaskModel.findOne({
+      _id: req.params.id,
+      restaurantId: req.user?.restaurantId,
+    });
 
     if (!task) {
       throw new AppError('Cleaning task not found', 404, ErrorCode.NOT_FOUND);
     }
+
+    ensureCleaningStatus(task.status, [CleaningStatus.IN_PROGRESS], 'Only in-progress cleaning tasks can be completed');
+
+    task.status = CleaningStatus.COMPLETED;
+    task.completedAt = new Date();
+    task.completedBy = req.body?.staffId ?? req.user?.id ?? null;
+    task.verifiedAt = null;
+    task.verifiedBy = null;
+    await task.save();
 
     await TableModel.findOneAndUpdate(
       { _id: task.tableId, restaurantId: task.restaurantId },
@@ -133,21 +138,21 @@ cleaningRouter.patch(
   validate({ params: cleaningTaskParamsSchema, body: verifyCleaningBodySchema }),
   async (req, res, next) => {
   try {
-    const task = await CleaningTaskModel.findOneAndUpdate(
-      {
-        _id: req.params.id,
-        restaurantId: req.user?.restaurantId,
-      },
-      {
-        status: CleaningStatus.VERIFIED,
-        verifiedBy: req.body?.verifiedBy ?? req.user?.id ?? null,
-      },
-      { new: true },
-    );
+    const task = await CleaningTaskModel.findOne({
+      _id: req.params.id,
+      restaurantId: req.user?.restaurantId,
+    });
 
     if (!task) {
       throw new AppError('Cleaning task not found', 404, ErrorCode.NOT_FOUND);
     }
+
+    ensureCleaningStatus(task.status, [CleaningStatus.COMPLETED], 'Only completed cleaning tasks can be verified');
+
+    task.status = CleaningStatus.VERIFIED;
+    task.verifiedAt = new Date();
+    task.verifiedBy = req.body?.verifiedBy ?? req.user?.id ?? null;
+    await task.save();
 
     await TableModel.findOneAndUpdate(
       { _id: task.tableId, restaurantId: task.restaurantId },

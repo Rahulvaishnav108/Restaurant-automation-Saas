@@ -5,6 +5,8 @@ import { KitchenBatchModel } from '../kitchen/kitchen.model';
 import { OrderModel } from '../orders/orders.model';
 import { BatchStatus } from '../../constants/statuses';
 import { OrderStatus } from '../orders/orders.schema';
+import { UserModel } from '../users/users.model';
+import { UserRole } from '../../constants/roles';
 import {
   createKitchenBatchBodySchema,
   kitchenBatchParamsSchema,
@@ -185,15 +187,83 @@ kitchenRouter.get('/load', async (req, res, next) => {
 
 kitchenRouter.get('/performance', async (req, res, next) => {
   try {
-    const kitchenUsers = [
-      { name: 'Kabir Kitchen', avgTicketMinutes: 11, completionRate: 0.94 },
-      { name: 'Tanya Prep', avgTicketMinutes: 13, completionRate: 0.91 },
-    ];
+    const restaurantId = req.user?.restaurantId;
+    const [kitchenUsers, handledOrders] = await Promise.all([
+      UserModel.find({
+        restaurantId,
+        role: { $in: [UserRole.KITCHEN_STAFF, UserRole.RESTAURANT_ADMIN] },
+      })
+        .select('name role')
+        .lean(),
+      OrderModel.find({
+        restaurantId,
+        kitchenStaffId: { $ne: null },
+      })
+        .select('kitchenStaffId status acceptedAt readyAt rejectedAt')
+        .lean(),
+    ]);
+
+    const metrics = new Map<string, { handledOrders: number; completedKitchenFlow: number; totalMinutes: number; measuredOrders: number }>();
+
+    handledOrders.forEach((order) => {
+      const staffId = order.kitchenStaffId ? String(order.kitchenStaffId) : null;
+      if (!staffId) {
+        return;
+      }
+
+      const current = metrics.get(staffId) ?? {
+        handledOrders: 0,
+        completedKitchenFlow: 0,
+        totalMinutes: 0,
+        measuredOrders: 0,
+      };
+
+      current.handledOrders += 1;
+
+      if (
+        [OrderStatus.READY, OrderStatus.PICKED, OrderStatus.SERVED, OrderStatus.COMPLETED, OrderStatus.REJECTED].includes(
+          order.status as OrderStatus,
+        )
+      ) {
+        current.completedKitchenFlow += 1;
+      }
+
+      const finishedAt = order.readyAt ?? order.rejectedAt ?? null;
+      if (order.acceptedAt && finishedAt) {
+        const durationMinutes = Math.max(
+          0,
+          Math.round((new Date(finishedAt).getTime() - new Date(order.acceptedAt).getTime()) / 60000),
+        );
+        current.totalMinutes += durationMinutes;
+        current.measuredOrders += 1;
+      }
+
+      metrics.set(staffId, current);
+    });
+
+    const chefs = kitchenUsers.map((user) => {
+      const current = metrics.get(String(user._id)) ?? {
+        handledOrders: 0,
+        completedKitchenFlow: 0,
+        totalMinutes: 0,
+        measuredOrders: 0,
+      };
+
+      return {
+        id: String(user._id),
+        name: user.name,
+        role: user.role,
+        handledOrders: current.handledOrders,
+        completedKitchenFlow: current.completedKitchenFlow,
+        avgTicketMinutes: current.measuredOrders > 0 ? Math.round(current.totalMinutes / current.measuredOrders) : 0,
+        completionRate: current.handledOrders > 0 ? Number((current.completedKitchenFlow / current.handledOrders).toFixed(2)) : 0,
+      };
+    });
 
     ok(res, {
-      chefs: kitchenUsers,
+      chefs,
       meta: {
-        count: kitchenUsers.length,
+        count: chefs.length,
       },
     });
   } catch (error) {

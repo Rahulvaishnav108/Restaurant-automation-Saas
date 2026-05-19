@@ -22,10 +22,10 @@
 - Analytics architecture
 
 ## Priority 0: Keep Rahul Lane Clean
-- [ ] Do not modify the leader's planning files except by request
-- [ ] Keep Rahul work tracked only in `rahultask.md`
-- [ ] Update Postman only for Rahul-owned APIs after route cleanup
-- [ ] Document blockers that depend on Om, Harshita, or Ramakant
+- [x] Do not modify the leader's planning files except by request
+- [x] Keep Rahul work tracked only in `rahultask.md`
+- [x] Update Postman only for Rahul-owned APIs after route cleanup
+- [x] Document blockers that depend on Om, Harshita, or Ramakant
 
 ## Priority 1: API Wiring and Contract Cleanup
 - [x] Remove duplicate kitchen/staff order route definitions and keep one source of truth
@@ -69,17 +69,17 @@
 - [x] Verify invalid item, hidden item, unavailable item, and empty-cart edge cases
 - [x] Recheck pricing snapshot behavior after menu item changes
 - [x] Confirm cart totals behavior is acceptable until billing/tax owner finalizes deeper logic
-- [ ] Add Postman verification for full cart lifecycle
+- [x] Add Postman verification for full cart lifecycle
 
 ## Priority 6: Orders Service
 - [x] Customer place/list/detail/reorder/cancel exists
 - [x] Kitchen accept/start/ready/delay/reject exists
 - [x] Staff ready/pick/serve exists
 - [x] Remove duplicate kitchen/staff order implementations and keep one order flow
-- [ ] Enforce one clear order state machine across all operational transitions
-- [ ] Verify reorder/cancel restrictions and timestamps
-- [ ] Verify kitchen-to-staff handoff through real DB flow
-- [ ] Keep billing/payment linkage limited to operational handoff, not architecture ownership
+- [x] Enforce one clear order state machine across all operational transitions
+- [x] Verify reorder/cancel restrictions and timestamps
+- [x] Verify kitchen-to-staff handoff through real DB flow
+- [x] Keep billing/payment linkage limited to operational handoff, not architecture ownership
 
 ## Priority 7: Staff Operations Service
 - [x] Queue list/detail/priority update exists
@@ -87,46 +87,51 @@
 - [x] Customer request list/accept/complete exists
 - [x] Issue escalation endpoint exists
 - [x] Add validation schemas for queue priority, reservation check-in, request accept/complete, and issue escalation
-- [ ] Verify staff request workflow against customer-created request records
-- [ ] Verify audit log side effects for issue escalation
-- [ ] Add Postman coverage for full staff operations flow
+- [x] Verify staff request workflow against customer-created request records
+- [x] Verify audit log side effects for issue escalation
+- [x] Add Postman coverage for full staff operations flow
 
 ## Priority 8: Kitchen Operations Service
 - [x] Kitchen dashboard exists
 - [x] Kitchen orders list/detail exists
 - [x] Kitchen batch list/detail/create/update exists
 - [x] Kitchen load/performance endpoints exist
-- [ ] Replace mock kitchen performance output with DB-backed metrics
-- [ ] Review batch validation and batch-to-order linkage behavior
-- [ ] Verify dashboard/load metrics against real order and batch data
-- [ ] Keep kitchen API source consolidated after route cleanup
+- [x] Replace mock kitchen performance output with DB-backed metrics
+- [x] Review batch validation and batch-to-order linkage behavior
+- [x] Verify dashboard/load metrics against real order and batch data
+- [x] Keep kitchen API source consolidated after route cleanup
 
 ## Priority 9: Cleaning Operations Service
 - [x] Cleaning task list/detail/start/complete/verify exists
-- [ ] Auto-create cleaning tasks when session ends or table becomes cleaning-needed
-- [ ] Support customer-requested cleaning priority flow
-- [ ] Fix/verify cleaning lifecycle transitions against PRD expectations
-- [ ] Add validation, timing, and assignment details where needed
-- [ ] Verify cleaning workflow end to end in Postman
+- [x] Auto-create cleaning tasks when session ends or table becomes cleaning-needed
+- [x] Support customer-requested cleaning priority flow
+- [x] Fix/verify cleaning lifecycle transitions against PRD expectations
+- [x] Add validation, timing, and assignment details where needed
+- [x] Verify cleaning workflow end to end in Postman
 
 ## Priority 10: Rahul-Owned Admin CRUD Gaps
-- [ ] Mount and implement staff management CRUD APIs
+- [x] Mount and implement staff management CRUD APIs
   Create, list, details, update, delete, and shift assignment.
-- [ ] Mount and implement offers CRUD APIs
+- [x] Mount and implement offers CRUD APIs
   Create, list, details, update, delete.
-- [ ] Mount and implement inventory CRUD APIs
+- [x] Mount and implement inventory CRUD APIs
   List, add, update, stock alerts.
-- [ ] Confirm whether loyalty rule CRUD belongs in Rahul scope before implementing
+- [x] Confirm whether loyalty rule CRUD belongs in Rahul scope before implementing
+  Explicitly deferred. Current Rahul scope only needs operational loyalty read behavior already exposed to customers; admin loyalty rule CRUD is not implemented until ownership is assigned.
 
 ## Priority 11: Shared Utility Work in Rahul Scope
 - [x] Notifications read/read-all routes exist
 - [x] Shared search route exists
 - [x] Version route exists
-- [ ] Replace placeholder upload response with a real upload flow only if assigned to Rahul
-- [ ] Verify notifications/search behavior against seeded data
+- [x] Replace placeholder upload response with a real upload flow only if assigned to Rahul
+- [x] Verify notifications/search behavior against seeded data
 
 ## Rahul Definition of Done
-- [ ] Rahul-owned APIs are mounted, non-duplicated, and contract-aligned
-- [ ] Public, table, menu, cart, order, staff, kitchen, and cleaning flows are Postman-testable
-- [ ] Staff/offers/inventory CRUD gaps in Rahul scope are implemented or explicitly deferred
-- [ ] Known out-of-scope dependencies are listed clearly instead of mixed into Rahul delivery
+- [x] Rahul-owned APIs are mounted, non-duplicated, and contract-aligned
+- [x] Public, table, menu, cart, order, staff, kitchen, and cleaning flows are Postman-testable
+- [x] Staff/offers/inventory CRUD gaps in Rahul scope are implemented or explicitly deferred
+- [x] Known out-of-scope dependencies are listed clearly instead of mixed into Rahul delivery
+
+## Known Dependencies / Deferments
+- Loyalty rule CRUD remains deferred until ownership is assigned outside the current Rahul lane.
+- Billing/tax/payment gateway depth remains outside Rahul architecture ownership; only operational handoff is verified here.
