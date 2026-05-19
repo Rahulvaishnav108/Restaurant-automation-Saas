@@ -112,7 +112,7 @@ export class BillingService {
   }
 
   static async applyCoupon(restaurantId: string, sessionId: string, couponCode: string) {
-    let bill = await BillingModel.findOne({ restaurantId, sessionId });
+    const bill = await BillingModel.findOne({ restaurantId, sessionId });
     if (!bill) {
       throw new AppError('Bill not found. Please request bill first.', 404, ErrorCode.NOT_FOUND);
     }
@@ -146,7 +146,7 @@ export class BillingService {
   }
 
   static async removeCoupon(restaurantId: string, sessionId: string, couponCode: string) {
-    let bill = await BillingModel.findOne({ restaurantId, sessionId });
+    const bill = await BillingModel.findOne({ restaurantId, sessionId });
     if (!bill) {
       throw new AppError('Bill not found.', 404, ErrorCode.NOT_FOUND);
     }
@@ -171,7 +171,7 @@ export class BillingService {
   }
 
   static async createPayment(restaurantId: string, sessionId: string, paymentMethod: PaymentMethod) {
-    let bill = await BillingModel.findOne({ restaurantId, sessionId });
+    const bill = await BillingModel.findOne({ restaurantId, sessionId });
     if (!bill) {
       throw new AppError('Bill not found.', 404, ErrorCode.NOT_FOUND);
     }
@@ -195,7 +195,7 @@ export class BillingService {
   }
 
   static async verifyPayment(restaurantId: string, sessionId: string, paymentId: string) {
-    let bill = await BillingModel.findOne({ restaurantId, sessionId });
+    const bill = await BillingModel.findOne({ restaurantId, sessionId });
     if (!bill) {
       throw new AppError('Bill not found.', 404, ErrorCode.NOT_FOUND);
     }

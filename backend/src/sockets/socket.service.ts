@@ -2,7 +2,6 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { Server as HTTPServer } from 'http';
 import logger from '../config/logger';
-import { SocketEvent } from '../constants/events';
 
 class SocketService {
   private io: SocketIOServer | null = null;

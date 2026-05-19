@@ -99,8 +99,24 @@ const CustomerDashboard: React.FC<Props> = ({ onBack = () => undefined }) => {
 
       {/* Cart Drawer */}
       {cartOpen && (
-        <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm" onClick={() => setCartOpen(false)}>
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md rounded-t-3xl bg-[#0e1221] border-t border-white/10 p-5 pb-8" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm"
+          role="button"
+          tabIndex={0}
+          aria-label="Close cart drawer"
+          onClick={event => {
+            if (event.target === event.currentTarget) {
+              setCartOpen(false);
+            }
+          }}
+          onKeyDown={event => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              setCartOpen(false);
+            }
+          }}
+        >
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md rounded-t-3xl bg-[#0e1221] border-t border-white/10 p-5 pb-8">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold">Your Cart ({totalItems})</h3>
               <button onClick={() => setCartOpen(false)}><X className="h-5 w-5" /></button>
