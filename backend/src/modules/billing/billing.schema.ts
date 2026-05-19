@@ -1,11 +1,20 @@
 import mongoose, { Document, Schema } from "mongoose";
 
 export enum BillStatus {
-  PENDING = "PENDING",
+  DRAFT = "DRAFT",
   GENERATED = "GENERATED",
+  PENDING_PAYMENT = "PENDING_PAYMENT",
   PAID = "PAID",
+  FAILED = "FAILED",
   CANCELLED = "CANCELLED",
   REFUNDED = "REFUNDED",
+}
+
+export enum PaymentStatus {
+  PENDING = "PENDING",
+  PAID = "PAID",
+  FAILED = "FAILED",
+  EXPIRED = "EXPIRED",
 }
 
 export enum PaymentMethod {
@@ -48,6 +57,8 @@ export interface IBill extends Document {
   paymentMethod?: PaymentMethod;
 
   paymentId?: string;
+
+  paymentStatus?: PaymentStatus;
 
   status: BillStatus;
 
@@ -165,10 +176,16 @@ export const billingSchema = new Schema<IBill>(
       default: null,
     },
 
+    paymentStatus: {
+      type: String,
+      enum: Object.values(PaymentStatus),
+      default: null,
+    },
+
     status: {
       type: String,
       enum: Object.values(BillStatus),
-      default: BillStatus.PENDING,
+      default: BillStatus.DRAFT,
     },
 
     requestedAt: {

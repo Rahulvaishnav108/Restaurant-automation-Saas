@@ -22,7 +22,9 @@ import tableSessionRoutes from './modules/tableSessions/tableSessions.routes';
 import orderRoutes from './modules/orders/orders.routes';
 import menuRoutes from './modules/menu/menu.routes';
 import cartRoutes from './modules/cart/cart.routes';
-
+import billingRoutes from './modules/billing/billing.routes';
+import customerRequestsRoutes from './modules/notifications/customerRequests.routes';
+import notificationsRoutes from './modules/notifications/notifications.routes';
 const app = express();
 
 // ── 1. Request ID (for log correlation) ───────────────────────────────
@@ -143,6 +145,9 @@ app.use(`${env.API_PREFIX}/sessions`, tableSessionRoutes);
 app.use(`${env.API_PREFIX}`, orderRoutes);
 app.use(`${env.API_PREFIX}`, menuRoutes);
 app.use(`${env.API_PREFIX}/customer/cart`, cartRoutes);
+app.use(`${env.API_PREFIX}`, billingRoutes);
+app.use(`${env.API_PREFIX}/customer/requests`, customerRequestsRoutes);
+app.use(`${env.API_PREFIX}/notifications`, notificationsRoutes);
 
 // ── 10. 404 handler for unknown routes ────────────────────────────────
 app.use((_req, res) => {

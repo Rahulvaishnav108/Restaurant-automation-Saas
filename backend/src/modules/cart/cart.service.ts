@@ -111,6 +111,14 @@ export class CartService {
       throw new AppError('Menu item is hidden and cannot be ordered', 400, ErrorCode.VALIDATION_ERROR);
     }
 
+    // 1.5 Check if bill is generated
+    const { BillingModel } = require('../billing/billing.model');
+    const { BillStatus } = require('../billing/billing.schema');
+    const existingBill = await BillingModel.findOne({ sessionId });
+    if (existingBill && [BillStatus.GENERATED, BillStatus.PENDING_PAYMENT, BillStatus.PAID].includes(existingBill.status)) {
+      throw new AppError('Cannot modify cart after bill has been generated', 400, ErrorCode.INVALID_REQUEST);
+    }
+
     const cart = await this.getOrCreateCart(restaurantId, sessionId);
 
     // Snapshot price

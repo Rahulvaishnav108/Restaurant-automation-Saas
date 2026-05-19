@@ -96,10 +96,10 @@ export class BillingController {
       const session = req.tableSession;
       if (!session) throw new AppError("Session required", 401, ErrorCode.UNAUTHORIZED);
 
-      const { paymentId } = req.body;
+      const { paymentId, simulateStatus } = req.body;
       if (!paymentId) throw new AppError("Payment ID is required", 400, ErrorCode.VALIDATION_ERROR);
 
-      const data = await BillingService.verifyPayment(session.restaurantId.toString(), session._id.toString(), paymentId);
+      const data = await BillingService.verifyPayment(session.restaurantId.toString(), session._id.toString(), paymentId, simulateStatus);
       return res.status(200).json({
         success: true,
         message: "Payment verified successfully",
