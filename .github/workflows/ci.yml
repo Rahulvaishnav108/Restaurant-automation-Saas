@@ -19,5 +19,10 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
       - run: npm install
+      - name: Install Rollup Linux native binary
+        if: runner.os == 'Linux'
+        run: |
+          ROLLUP_VERSION=$(node -p "require('./node_modules/rollup/package.json').version")
+          npm install --no-save "@rollup/rollup-linux-x64-gnu@$ROLLUP_VERSION"
       - run: npm run lint
       - run: npm run build
