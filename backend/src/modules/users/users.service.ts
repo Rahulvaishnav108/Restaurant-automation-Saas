@@ -1,17 +1,18 @@
 // src/modules/users/users.service.ts
-// User business logic — all queries filter isDeleted: false by default
+// User business logic â€” all queries filter isDeleted: false by default
 
 import { UserModel, IUser } from './users.model';
-import { hashPassword, comparePassword } from '../../utils/crypto';
-import { AppError } from '../../utils/AppError';
-import { ErrorCode } from '../../constants/errors';
+import { hashPassword } from '../../utils/crypto';
 import { RegisterInput, UpdateProfileInput } from './users.schema';
 import { UserRole } from '../../constants/roles';
 
 /**
  * Create a new user with hashed password.
  */
-export async function createUser(input: RegisterInput, role: UserRole): Promise<IUser> {
+export async function createUser(
+  input: RegisterInput & { role?: UserRole },
+  role: UserRole = input.role ?? UserRole.CUSTOMER
+): Promise<IUser> {
   const hashedPassword = await hashPassword(input.password);
 
   const user = await UserModel.create({

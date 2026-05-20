@@ -1,7 +1,7 @@
-import React from 'react';
+import { type PropsWithChildren } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '../../lib/queryClient';
 
-const QueryProvider = ({ children }: any) => {
-  return <>{children}</>;
-};
-
-export default QueryProvider;
+export function QueryProvider({ children }: PropsWithChildren): JSX.Element {
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+}

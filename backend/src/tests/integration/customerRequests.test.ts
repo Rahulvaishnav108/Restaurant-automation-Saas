@@ -288,7 +288,7 @@ describe('Customer Requests Integration Tests', () => {
       const firstNotificationId = res1.body.data._id;
 
       // 2. Manually backdate the first notification in the database to 61 seconds ago
-      const updateResult = await Notification.collection.updateOne(
+      await Notification.collection.updateOne(
         { _id: new mongoose.Types.ObjectId(firstNotificationId) },
         { $set: { createdAt: new Date(Date.now() - 61 * 1000) } }
       );

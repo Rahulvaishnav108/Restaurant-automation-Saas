@@ -45,6 +45,7 @@ export async function requireUserOrSession(req: Request, res: Response, next: Ne
         const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
         req.user = {
           _id: decoded._id,
+          id: decoded._id,
           email: decoded.email,
           role: decoded.role,
           restaurantId: decoded.restaurantId,

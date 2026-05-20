@@ -1,43 +1,84 @@
-// src/server.ts
-// Entry point: Validate env → Connect DB → Start listening
-
-import { env } from './config/env';   // Validates env on import — crashes if bad config
-import { connectDB } from './config/db';
-import { initializeCollections } from './config/initDB';
-import logger from './config/logger';
+import { createServer } from 'http';
 import app from './app';
+import { connectToDatabase, disconnectFromDatabase } from './config/db';
+import { env } from './config/env';
+import { initializeCollections } from './config/initDB';
+import { seedDevelopmentData } from './config/seed';
+import { logger } from './config/logger';
+import { createSocketServer } from './sockets';
+
+const server = createServer(app);
+createSocketServer(server);
+
+let isDatabaseConnected = false;
+let shutdownStarted = false;
 
 async function bootstrap(): Promise<void> {
-  // 1. Connect to MongoDB
-  await connectDB();
+  try {
+    try {
+      await connectToDatabase();
+      isDatabaseConnected = true;
+      await initializeCollections();
+      if (env.seedOnStartup) {
+        await seedDevelopmentData();
+      }
+    } catch (error) {
+      if (!env.allowNoDb) {
+        throw error;
+      }
 
-  // 2. Initialize collections (so they appear in Compass)
-  await initializeCollections();
+      logger.warn('Database connection failed, continuing in no-db development mode', {
+        error,
+        mongoUri: env.MONGODB_URI,
+      });
+    }
 
-  // 2. Start HTTP server
-  const server = app.listen(env.PORT, () => {
-    logger.info(`🚀 Server running in ${env.NODE_ENV} mode on port http://localhost:${env.PORT}`);
-    logger.info(`📡 API prefix: http://localhost:${env.PORT}${env.API_PREFIX}`);
-  });
+    server.listen(env.PORT, () => {
+      logger.info(`Server running in ${env.NODE_ENV} mode on port ${env.PORT}`, {
+        apiPrefix: env.API_PREFIX,
+        databaseConnected: isDatabaseConnected,
+      });
+    });
+  } catch (error) {
+    logger.error('Failed to start server', { error });
+    process.exit(1);
+  }
+}
 
-  // 3. Initialize Sockets
-  const { socketService } = require('./sockets/socket.service');
-  socketService.init(server);
+async function shutdown(signal: string): Promise<void> {
+  if (shutdownStarted) {
+    return;
+  }
 
-  // 3. Handle unhandled rejections
-  process.on('unhandledRejection', (reason: Error) => {
-    logger.error('UNHANDLED REJECTION — shutting down...', { error: reason.message });
-    server.close(() => process.exit(1));
-  });
+  shutdownStarted = true;
+  logger.warn(`Received ${signal}. Starting graceful shutdown.`);
 
-  // 4. Handle uncaught exceptions
-  process.on('uncaughtException', (error: Error) => {
-    logger.error('UNCAUGHT EXCEPTION — shutting down...', { error: error.message });
-    server.close(() => process.exit(1));
+  server.close(async () => {
+    if (isDatabaseConnected) {
+      await disconnectFromDatabase();
+    }
+
+    logger.info('HTTP server closed');
+    process.exit(0);
   });
 }
 
-bootstrap().catch((err) => {
-  logger.error('Failed to start server:', { error: err });
-  process.exit(1);
+void bootstrap();
+
+process.on('SIGINT', () => {
+  void shutdown('SIGINT');
+});
+
+process.on('SIGTERM', () => {
+  void shutdown('SIGTERM');
+});
+
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled rejection', { error: reason });
+  void shutdown('unhandledRejection');
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught exception', { error });
+  void shutdown('uncaughtException');
 });

@@ -1,13 +1,10 @@
-// src/modules/notifications/notifications.model.ts
-// Notification entity — handles real-time alerts and staff-targeted messages
-
-import mongoose, { Schema, Document, Types } from 'mongoose';
+import mongoose, { Document, Schema, Types } from 'mongoose';
 import { UserRole } from '../../constants/roles';
 import { NotificationCategory, NotificationPriority } from './notifications.schema';
 
 export interface INotification extends Document {
   restaurantId: Types.ObjectId;
-  tableSessionId?: Types.ObjectId;
+  tableSessionId?: Types.ObjectId | null;
   recipientRole: UserRole;
   title: string;
   message: string;
@@ -15,10 +12,10 @@ export interface INotification extends Document {
   category: NotificationCategory;
   priority: NotificationPriority;
   expiresAt: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   isRead: boolean;
-  readAt?: Date;
-  readBy?: Types.ObjectId;
+  readAt?: Date | null;
+  readBy?: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -96,13 +93,15 @@ const notificationSchema = new Schema<INotification>(
   },
   {
     timestamps: true,
+    versionKey: false,
+    collection: 'notifications',
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
-// Compound indexes for optimization and deduplication checks
 notificationSchema.index({ restaurantId: 1, tableSessionId: 1, type: 1, createdAt: -1 });
 notificationSchema.index({ restaurantId: 1, recipientRole: 1, isRead: 1 });
 
 export const Notification = mongoose.model<INotification>('Notification', notificationSchema);
+export const NotificationModel = Notification;

@@ -9,6 +9,7 @@ import { emitSessionEvent } from '../../services/sessionEvents';
 import { SocketEvent } from '../../constants/events';
 import { CreateTableInput, UpdateTableInput } from './tables.schema';
 import crypto from 'crypto';
+import { ensureCleaningTaskForTable } from '../cleaning/cleaning.service';
 
 /**
  * Create a new table for a restaurant.
@@ -20,6 +21,9 @@ export async function createTable(input: CreateTableInput): Promise<ITable> {
   const table = await TableModel.create({
     ...input,
     qrCode,
+    floor: input.floor ?? 1,
+    section: input.section ?? 'Main',
+    assignedStaffId: input.assignedStaffId ?? null,
     status: TableStatus.AVAILABLE,
     isActive: true,
   });
@@ -30,11 +34,24 @@ export async function createTable(input: CreateTableInput): Promise<ITable> {
 /**
  * Update table properties (not status — use updateTableStatus for that).
  */
-export async function updateTable(tableId: string, input: UpdateTableInput): Promise<ITable> {
-  const table = await TableModel.findByIdAndUpdate(tableId, input, {
+export async function updateTable(
+  tableId: string,
+  input: UpdateTableInput,
+  restaurantId?: string
+): Promise<ITable> {
+  const table = await TableModel.findOneAndUpdate(
+    restaurantId
+      ? {
+          _id: tableId,
+          restaurantId,
+        }
+      : { _id: tableId },
+    input,
+    {
     new: true,
     runValidators: true,
-  });
+    }
+  );
 
   if (!table) {
     throw new AppError('Table not found', 404, ErrorCode.NOT_FOUND);
@@ -53,8 +70,15 @@ export async function getTablesByRestaurant(restaurantId: string): Promise<ITabl
 /**
  * Get a single table by ID.
  */
-export async function getTableById(tableId: string): Promise<ITable> {
-  const table = await TableModel.findById(tableId);
+export async function getTableById(tableId: string, restaurantId?: string): Promise<ITable> {
+  const table = await TableModel.findOne(
+    restaurantId
+      ? {
+          _id: tableId,
+          restaurantId,
+        }
+      : { _id: tableId }
+  );
   if (!table) {
     throw new AppError('Table not found', 404, ErrorCode.NOT_FOUND);
   }
@@ -78,9 +102,17 @@ export async function findByQrCode(qrCode: string): Promise<ITable> {
  */
 export async function updateTableStatus(
   tableId: string,
-  newStatus: TableStatus
+  newStatus: TableStatus,
+  restaurantId?: string
 ): Promise<ITable> {
-  const table = await TableModel.findById(tableId);
+  const table = await TableModel.findOne(
+    restaurantId
+      ? {
+          _id: tableId,
+          restaurantId,
+        }
+      : { _id: tableId }
+  );
   if (!table) {
     throw new AppError('Table not found', 404, ErrorCode.NOT_FOUND);
   }
@@ -101,6 +133,14 @@ export async function updateTableStatus(
   }
 
   table.status = newStatus;
+
+  if (newStatus === TableStatus.NEEDS_CLEANING) {
+    await ensureCleaningTaskForTable({
+      restaurantId: table.restaurantId,
+      tableId: table._id,
+      sessionId: table.currentSessionId ?? null,
+    });
+  }
 
   // Clear session reference when table becomes available
   if (newStatus === TableStatus.AVAILABLE) {

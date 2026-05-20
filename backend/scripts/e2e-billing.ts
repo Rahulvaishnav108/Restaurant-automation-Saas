@@ -32,7 +32,6 @@ async function runE2E() {
   const Restaurant = mongoose.model('Restaurant', new mongoose.Schema({}, { strict: false }));
   const TableSession = mongoose.models.TableSession || mongoose.model('TableSession', new mongoose.Schema({}, { strict: false }));
   const Table = mongoose.model('Table', new mongoose.Schema({}, { strict: false }));
-  const User = mongoose.model('User', new mongoose.Schema({}, { strict: false }));
   
   let restaurant = await Restaurant.findOne({});
   if (!restaurant) {
@@ -46,13 +45,6 @@ async function runE2E() {
     table = await Table.create({ restaurantId: (restaurant as any)._id, tableNumber: 'T1', capacity: 4, qrCode: 'mockqr', status: 'AVAILABLE' });
   }
   const tableId = (table as any)._id.toString();
-
-  const superadmin = await User.findOne({ role: 'SUPER_ADMIN' });
-  let adminToken = '';
-  if (superadmin) {
-    // Generate a quick token for admin if needed
-    // Not strictly needed if we just want to test customer flow
-  }
 
   // 2. Start Session
   console.log('\n[2] Start Table Session');
@@ -69,7 +61,7 @@ async function runE2E() {
   if (!menuItem) {
     console.log('No menu item found. Seeding menu item...');
     const Category = mongoose.model('MenuCategory', new mongoose.Schema({}, { strict: false }));
-    let category = await Category.create({ restaurantId: (restaurant as any)._id, name: 'E2E Category' });
+    const category = await Category.create({ restaurantId: (restaurant as any)._id, name: 'E2E Category' });
     menuItem = await MenuItem.create({ restaurantId: (restaurant as any)._id, categoryId: (category as any)._id, name: 'E2E Burger', price: 200, isAvailable: true, isVeg: true, type: 'FOOD' });
   }
   const menuItemId = (menuItem as any)._id.toString();

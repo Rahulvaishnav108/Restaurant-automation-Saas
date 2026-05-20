@@ -7,6 +7,14 @@ import { UserRole } from '../../constants/roles';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
 
+function serializeNotification(notification: any) {
+  const value = typeof notification?.toObject === 'function' ? notification.toObject() : notification;
+  return {
+    ...value,
+    read: value?.isRead ?? value?.read ?? false,
+  };
+}
+
 export class NotificationsController {
   /**
    * Get active notifications for the current restaurant.
@@ -37,7 +45,9 @@ export class NotificationsController {
 
       res.status(200).json({
         success: true,
-        data: notifications,
+        data: {
+          notifications: notifications.map((notification) => serializeNotification(notification)),
+        },
       });
     } catch (error) {
       next(error);
@@ -67,7 +77,9 @@ export class NotificationsController {
 
       res.status(200).json({
         success: true,
-        data: notification,
+        data: {
+          notification: serializeNotification(notification),
+        },
       });
     } catch (error) {
       next(error);

@@ -1,110 +1,111 @@
 // src/modules/orders/orders.controller.ts
+// Order route handlers — session-based customer + JWT staff/kitchen
 
 import { Request, Response, NextFunction } from 'express';
 import { OrdersService } from './orders.service';
-import { OrderStatus } from '../../constants/statuses';
+import { ok } from '../../utils/responses';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
 
 export class OrdersController {
+  private static getRequiredSession(req: Request) {
+    const session = req.tableSession;
+    if (!session) {
+      throw new AppError('Session required', 401, ErrorCode.UNAUTHORIZED);
+    }
+    return session;
+  }
+
+  private static getRequiredRestaurantId(req: Request) {
+    const restaurantId = req.user?.restaurantId;
+    if (!restaurantId) {
+      throw new AppError('Restaurant context required', 403, ErrorCode.FORBIDDEN);
+    }
+    return restaurantId;
+  }
+
   /*
   |--------------------------------------------------------------------------
-  | CUSTOMER APIs (Session-based)
+  | SESSION-BASED CUSTOMER APIs
+  | Customer authenticated via QR session token (req.tableSession)
   |--------------------------------------------------------------------------
   */
 
+  // POST /customer/orders
   static async placeOrder(req: Request, res: Response, next: NextFunction) {
     try {
-      const session = req.tableSession;
-      if (!session) throw new AppError('Session required', 401, ErrorCode.UNAUTHORIZED);
+      const session = OrdersController.getRequiredSession(req);
 
       const order = await OrdersService.placeOrder(
         session.restaurantId,
         session._id,
         session.tableId,
+        session.customerName,
         req.body
       );
 
-      return res.status(201).json({
-        success: true,
-        message: 'Order placed successfully',
-        data: order,
-      });
+      ok(res, { order }, 201);
     } catch (error) {
       next(error);
     }
   }
 
+  // GET /customer/orders
   static async getOrders(req: Request, res: Response, next: NextFunction) {
     try {
-      const session = req.tableSession;
-      if (!session) throw new AppError('Session required', 401, ErrorCode.UNAUTHORIZED);
+      const session = OrdersController.getRequiredSession(req);
 
-      const orders = await OrdersService.getOrders({ sessionId: session._id });
-      return res.status(200).json({
-        success: true,
-        data: orders,
+      const data = await OrdersService.getCustomerOrders(session.restaurantId, session._id, {
+        status: req.query.status as string | undefined,
+        page: Number(req.query.page ?? 1),
+        limit: Number(req.query.limit ?? 10),
+      });
+
+      ok(res, {
+        ...data,
+        meta: {
+          count: data.orders.length,
+        },
       });
     } catch (error) {
       next(error);
     }
   }
 
+  // GET /customer/orders/:id
   static async getSingleOrder(req: Request, res: Response, next: NextFunction) {
     try {
-      const session = req.tableSession;
-      if (!session) throw new AppError('Session required', 401, ErrorCode.UNAUTHORIZED);
+      const session = OrdersController.getRequiredSession(req);
 
       const { id } = req.params;
-      const order = await OrdersService.getOrderById(id, session.restaurantId);
-      
-      // Secondary security check for session-based access
-      if (order.sessionId?.toString() !== session._id.toString()) {
-        throw new AppError('Access denied to this order', 403, ErrorCode.FORBIDDEN);
-      }
-
-      return res.status(200).json({
-        success: true,
-        data: order,
-      });
+      const order = await OrdersService.getCustomerOrderById(session.restaurantId, session._id, id);
+      ok(res, { order });
     } catch (error) {
       next(error);
     }
   }
 
+  // POST /customer/orders/:id/reorder
   static async reorder(req: Request, res: Response, next: NextFunction) {
     try {
-      const session = req.tableSession;
-      if (!session) throw new AppError('Session required', 401, ErrorCode.UNAUTHORIZED);
+      const session = OrdersController.getRequiredSession(req);
 
       const { id } = req.params;
-      const result = await OrdersService.reorder(session.restaurantId, session._id, id);
-
-      return res.status(200).json({
-        success: true,
-        message: `Items from previous order processed. Items added: ${result.reorderResults.successCount}, Skipped: ${result.reorderResults.skippedItems.length}`,
-        data: result,
-      });
+      const order = await OrdersService.reorder(session.restaurantId, session._id, session.tableId, id);
+      ok(res, { order });
     } catch (error) {
       next(error);
     }
   }
 
+  // POST /customer/orders/:id/cancel
   static async cancelOrder(req: Request, res: Response, next: NextFunction) {
     try {
-      const session = req.tableSession;
-      if (!session) throw new AppError('Session required', 401, ErrorCode.UNAUTHORIZED);
+      const session = OrdersController.getRequiredSession(req);
 
       const { id } = req.params;
-      const order = await OrdersService.updateOrderStatus(session.restaurantId, id, OrderStatus.CANCELLED, {
-        reason: 'Cancelled by customer',
-      });
-
-      return res.status(200).json({
-        success: true,
-        message: 'Order cancelled successfully',
-        data: order,
-      });
+      const order = await OrdersService.cancelOrder(session.restaurantId, session._id, id);
+      ok(res, { order });
     } catch (error) {
       next(error);
     }
@@ -112,171 +113,177 @@ export class OrdersController {
 
   /*
   |--------------------------------------------------------------------------
-  | KITCHEN APIs (JWT-based)
+  | KITCHEN ORDER APIs (JWT auth — req.user)
   |--------------------------------------------------------------------------
   */
 
+  // GET /kitchen/orders
   static async getKitchenOrders(req: Request, res: Response, next: NextFunction) {
     try {
-      const restaurantId = req.user?.restaurantId;
-      if (!restaurantId) throw new AppError('Restaurant ID required', 403, ErrorCode.FORBIDDEN);
+      const restaurantId = OrdersController.getRequiredRestaurantId(req);
+      const batchFilter = `${req.query.batch ?? ''}` === 'true';
 
-      const orders = await OrdersService.getOrders({
-        restaurantId,
-        status: { $in: [OrderStatus.PLACED, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.DELAYED] },
+      const orders = await OrdersService.getKitchenOrders(restaurantId, {
+        status: req.query.status as string | undefined,
+        priority: req.query.priority as string | undefined,
+        table: req.query.table as string | undefined,
+        batch: batchFilter,
       });
-
-      return res.status(200).json({
-        success: true,
-        data: orders,
+      ok(res, {
+        orders,
+        meta: {
+          count: orders.length,
+          filters: {
+            status: req.query.status ?? null,
+            priority: req.query.priority ?? null,
+            table: req.query.table ?? null,
+            batch: req.query.batch ?? null,
+          },
+        },
       });
     } catch (error) {
       next(error);
     }
   }
 
-  static async acceptOrder(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { id } = req.params;
-      const { estimatedMinutes } = req.body;
-      const restaurantId = req.user?.restaurantId;
-      if (!restaurantId) throw new AppError('Unauthorized', 401, ErrorCode.UNAUTHORIZED);
-
-      const order = await OrdersService.updateOrderStatus(restaurantId, id, OrderStatus.CONFIRMED, { estimatedMinutes });
-      
-      return res.status(200).json({ success: true, message: 'Order confirmed', data: order });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  static async startCooking(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { id } = req.params;
-      const restaurantId = req.user?.restaurantId;
-      if (!restaurantId) throw new AppError('Unauthorized', 401, ErrorCode.UNAUTHORIZED);
-
-      const order = await OrdersService.updateOrderStatus(restaurantId, id, OrderStatus.PREPARING);
-      return res.status(200).json({ success: true, message: 'Cooking started', data: order });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  static async markReady(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { id } = req.params;
-      const restaurantId = req.user?.restaurantId;
-      if (!restaurantId) throw new AppError('Unauthorized', 401, ErrorCode.UNAUTHORIZED);
-
-      const order = await OrdersService.updateOrderStatus(restaurantId, id, OrderStatus.READY);
-      return res.status(200).json({ success: true, message: 'Order ready for pickup', data: order });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  static async delayOrder(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { id } = req.params;
-      const { delayMinutes, reason } = req.body;
-      const restaurantId = req.user?.restaurantId;
-      if (!restaurantId) throw new AppError('Unauthorized', 401, ErrorCode.UNAUTHORIZED);
-
-      const order = await OrdersService.updateOrderStatus(restaurantId, id, OrderStatus.DELAYED, { delayMinutes, reason });
-      return res.status(200).json({ success: true, message: 'Order delayed', data: order });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  static async rejectOrder(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { id } = req.params;
-      const { reason } = req.body;
-      const restaurantId = req.user?.restaurantId;
-      if (!restaurantId) throw new AppError('Unauthorized', 401, ErrorCode.UNAUTHORIZED);
-
-      const order = await OrdersService.updateOrderStatus(restaurantId, id, OrderStatus.REJECTED, { reason });
-      return res.status(200).json({ success: true, message: 'Order rejected', data: order });
-    } catch (error) {
-      next(error);
-    }
-  }
-
+  // GET /kitchen/orders/:id
   static async getKitchenOrderDetails(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
-      const restaurantId = req.user?.restaurantId;
-      if (!restaurantId) throw new AppError('Unauthorized', 401, ErrorCode.UNAUTHORIZED);
+      const restaurantId = OrdersController.getRequiredRestaurantId(req);
 
-      const order = await OrdersService.getOrderById(id, restaurantId);
-      return res.status(200).json({ success: true, data: order });
+      const { id } = req.params;
+      const order = await OrdersService.getKitchenOrderDetails(restaurantId, id);
+      ok(res, { order });
     } catch (error) {
       next(error);
     }
   }
 
+  // PATCH /kitchen/orders/:id/accept
+  static async acceptOrder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const restaurantId = OrdersController.getRequiredRestaurantId(req);
+
+      const { id } = req.params;
+      const { estimatedPreparationTime } = req.body;
+      const order = await OrdersService.acceptOrder(restaurantId, id, estimatedPreparationTime, req.user?.id);
+      ok(res, { order });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // PATCH /kitchen/orders/:id/start
+  static async startCooking(req: Request, res: Response, next: NextFunction) {
+    try {
+      const restaurantId = OrdersController.getRequiredRestaurantId(req);
+
+      const { id } = req.params;
+      const order = await OrdersService.startCooking(restaurantId, id, req.user?.id);
+      ok(res, { order });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // PATCH /kitchen/orders/:id/ready
+  static async markReady(req: Request, res: Response, next: NextFunction) {
+    try {
+      const restaurantId = OrdersController.getRequiredRestaurantId(req);
+
+      const { id } = req.params;
+      const order = await OrdersService.markReady(restaurantId, id, req.user?.id);
+      ok(res, { order });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // PATCH /kitchen/orders/:id/delay
+  static async delayOrder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const restaurantId = OrdersController.getRequiredRestaurantId(req);
+
+      const { id } = req.params;
+      const { delayMinutes } = req.body;
+      const order = await OrdersService.delayOrder(restaurantId, id, delayMinutes, req.user?.id);
+      ok(res, { order });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // PATCH /kitchen/orders/:id/reject
+  static async rejectOrder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const restaurantId = OrdersController.getRequiredRestaurantId(req);
+
+      const { id } = req.params;
+      const { reason } = req.body;
+      const order = await OrdersService.rejectOrder(restaurantId, id, reason, req.user?.id);
+      ok(res, { order });
+    } catch (error) {
+      next(error);
+    }
+  }
 
   /*
   |--------------------------------------------------------------------------
-  | STAFF APIs (JWT-based)
+  | SERVICE STAFF ORDER APIs (JWT auth — req.user)
   |--------------------------------------------------------------------------
   */
 
+  // GET /staff/orders/ready
   static async getReadyOrders(req: Request, res: Response, next: NextFunction) {
     try {
-      const restaurantId = req.user?.restaurantId;
-      if (!restaurantId) throw new AppError('Restaurant ID required', 403, ErrorCode.FORBIDDEN);
+      const restaurantId = OrdersController.getRequiredRestaurantId(req);
 
-      const orders = await OrdersService.getOrders({
-        restaurantId,
-        status: OrderStatus.READY,
-      });
-
-      return res.status(200).json({
-        success: true,
-        data: orders,
+      const orders = await OrdersService.getReadyOrders(restaurantId);
+      ok(res, {
+        orders,
+        meta: {
+          count: orders.length,
+        },
       });
     } catch (error) {
       next(error);
     }
   }
 
+  // PATCH /staff/orders/:id/pick
   static async pickFood(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
-      const restaurantId = req.user?.restaurantId;
-      if (!restaurantId) throw new AppError('Unauthorized', 401, ErrorCode.UNAUTHORIZED);
+      const restaurantId = OrdersController.getRequiredRestaurantId(req);
 
-      const order = await OrdersService.updateOrderStatus(restaurantId, id, OrderStatus.PICKED);
-      return res.status(200).json({ success: true, message: 'Food picked up', data: order });
+      const { id } = req.params;
+      const order = await OrdersService.pickFood(restaurantId, id, req.user?.id);
+      ok(res, { order });
     } catch (error) {
       next(error);
     }
   }
 
+  // PATCH /staff/orders/:id/serve
   static async markServed(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
-      const restaurantId = req.user?.restaurantId;
-      if (!restaurantId) throw new AppError('Unauthorized', 401, ErrorCode.UNAUTHORIZED);
+      const restaurantId = OrdersController.getRequiredRestaurantId(req);
 
-      const order = await OrdersService.updateOrderStatus(restaurantId, id, OrderStatus.SERVED);
-      return res.status(200).json({ success: true, message: 'Order served', data: order });
+      const { id } = req.params;
+      const order = await OrdersService.markServed(restaurantId, id, req.user?.id);
+      ok(res, { order });
     } catch (error) {
       next(error);
     }
   }
 
+  // PATCH /staff/orders/:id/complete
   static async markCompleted(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
-      const restaurantId = req.user?.restaurantId;
-      if (!restaurantId) throw new AppError('Unauthorized', 401, ErrorCode.UNAUTHORIZED);
+      const restaurantId = OrdersController.getRequiredRestaurantId(req);
 
-      const order = await OrdersService.updateOrderStatus(restaurantId, id, OrderStatus.COMPLETED);
-      return res.status(200).json({ success: true, message: 'Order completed', data: order });
+      const { id } = req.params;
+      const order = await OrdersService.markCompleted(restaurantId, id, req.user?.id);
+      ok(res, { order });
     } catch (error) {
       next(error);
     }

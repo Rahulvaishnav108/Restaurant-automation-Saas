@@ -1,15 +1,23 @@
-// src/constants/roles.ts
-// All user roles in the system — matches PRD Section 2
-
 export enum UserRole {
-  SERVICE_STAFF = 'SERVICE_STAFF',
-  KITCHEN_STAFF = 'KITCHEN_STAFF',
-  CLEANING_STAFF = 'CLEANING_STAFF',
-  RESTAURANT_ADMIN = 'RESTAURANT_ADMIN',
-  SUPER_ADMIN = 'SUPER_ADMIN',
+  CUSTOMER = 'customer',
+  SERVICE_STAFF = 'service-staff',
+  KITCHEN_STAFF = 'kitchen-staff',
+  CLEANING_STAFF = 'cleaning-staff',
+  RESTAURANT_ADMIN = 'restaurant-admin',
+  SUPER_ADMIN = 'super-admin',
 }
 
-/** Roles that belong to a specific restaurant */
+export const roles = {
+  customer: UserRole.CUSTOMER,
+  serviceStaff: UserRole.SERVICE_STAFF,
+  kitchenStaff: UserRole.KITCHEN_STAFF,
+  cleaningStaff: UserRole.CLEANING_STAFF,
+  restaurantAdmin: UserRole.RESTAURANT_ADMIN,
+  superAdmin: UserRole.SUPER_ADMIN,
+} as const;
+
+export type AppRole = (typeof roles)[keyof typeof roles];
+
 export const RESTAURANT_ROLES = [
   UserRole.RESTAURANT_ADMIN,
   UserRole.SERVICE_STAFF,
@@ -17,15 +25,10 @@ export const RESTAURANT_ROLES = [
   UserRole.CLEANING_STAFF,
 ] as const;
 
-/** Staff roles (all restaurant roles except admin) */
 export const STAFF_ROLES = [
   UserRole.SERVICE_STAFF,
   UserRole.KITCHEN_STAFF,
   UserRole.CLEANING_STAFF,
 ] as const;
 
-/** Admin-level roles */
-export const ADMIN_ROLES = [
-  UserRole.RESTAURANT_ADMIN,
-  UserRole.SUPER_ADMIN,
-] as const;
+export const ADMIN_ROLES = [UserRole.RESTAURANT_ADMIN, UserRole.SUPER_ADMIN] as const;

@@ -26,7 +26,7 @@ const CategorySchema = new Schema<ICategory>(
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
-  { timestamps: true }
+  { timestamps: true, collection: 'menuCategories' }
 );
 
 CategorySchema.index({ restaurantId: 1, displayOrder: 1 });
@@ -78,7 +78,7 @@ const MenuItemSchema = new Schema<IMenuItem>(
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
-  { timestamps: true }
+  { timestamps: true, collection: 'menuItems' }
 );
 
 MenuItemSchema.index({ restaurantId: 1, categoryId: 1 });

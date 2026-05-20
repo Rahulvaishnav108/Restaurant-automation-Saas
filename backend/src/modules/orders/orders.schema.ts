@@ -2,49 +2,78 @@
 
 import mongoose, { Document, Schema } from "mongoose";
 import { z } from "zod";
-import { OrderStatus, PaymentStatus } from "../../constants/statuses";
+import { OrderStatus, Priority } from "../../constants/statuses";
+
+export { OrderStatus };
+
+export enum PaymentStatus {
+  PENDING = "PENDING",
+  PAID = "PAID",
+  FAILED = "FAILED",
+  REFUNDED = "REFUNDED",
+}
 
 export interface IOrderItem {
   menuItemId: mongoose.Types.ObjectId;
   name: string;
   quantity: number;
-  unitPrice: number;    // Requirement #6: Pricing snapshot
-  subtotal: number;     // Requirement #6
-  tax: number;          // Requirement #6
-  discount: number;     // Requirement #6
-  grandTotal: number;   // Requirement #6
+  price: number;
+  totalPrice: number;
   notes?: string;
 }
 
 export interface IOrder extends Document {
   restaurantId: mongoose.Types.ObjectId;
+
   customerId?: mongoose.Types.ObjectId;
+
   tableId?: mongoose.Types.ObjectId;
+
   sessionId?: mongoose.Types.ObjectId;
+  batchId?: mongoose.Types.ObjectId;
+
   orderNumber: string;
+
   items: IOrderItem[];
+
   totalAmount: number;
+
   taxAmount: number;
+
   discountAmount: number;
+
   finalAmount: number;
+
   status: OrderStatus;
+  priority: Priority;
+
   paymentStatus: PaymentStatus;
+
   specialInstructions?: string;
 
-  // Requirement #7: Operational context for delays
-  delayReason?: string;
-  estimatedReadyTime?: Date;
+  estimatedPreparationTime?: number;
+  kitchenStaffId?: mongoose.Types.ObjectId | null;
+  serviceStaffId?: mongoose.Types.ObjectId | null;
 
-  // Timestamps for state machine tracking
-  acceptedAt?: Date;    // Becomes confirmedAt conceptually
+  acceptedAt?: Date;
+  preparingStartedAt?: Date;
+  delayedAt?: Date;
+
   readyAt?: Date;
-  pickedAt?: Date;      // Requirement #1
+  rejectedAt?: Date;
+
+  pickedAt?: Date;
+
   servedAt?: Date;
-  completedAt?: Date;   // Requirement #10
+
+  completedAt?: Date;
+
   cancelledAt?: Date;
+
   rejectionReason?: string;
 
   createdAt: Date;
+
   updatedAt: Date;
 }
 
@@ -55,41 +84,31 @@ const orderItemSchema = new Schema<IOrderItem>(
       ref: "MenuItem",
       required: true,
     },
+
     name: {
       type: String,
       required: true,
       trim: true,
     },
+
     quantity: {
       type: Number,
       required: true,
       min: 1,
     },
-    unitPrice: {
+
+    price: {
       type: Number,
       required: true,
       min: 0,
     },
-    subtotal: {
+
+    totalPrice: {
       type: Number,
       required: true,
       min: 0,
     },
-    tax: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    discount: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    grandTotal: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
+
     notes: {
       type: String,
       trim: true,
@@ -108,27 +127,38 @@ export const orderSchema = new Schema<IOrder>(
       ref: "Restaurant",
       required: true,
     },
+
     customerId: {
       type: Schema.Types.ObjectId,
       ref: "User",
       default: null,
     },
+
     tableId: {
       type: Schema.Types.ObjectId,
       ref: "Table",
       default: null,
     },
+
     sessionId: {
       type: Schema.Types.ObjectId,
       ref: "TableSession",
       default: null,
     },
+
+    batchId: {
+      type: Schema.Types.ObjectId,
+      ref: "KitchenBatch",
+      default: null,
+    },
+
     orderNumber: {
       type: String,
       required: true,
       unique: true,
       trim: true,
     },
+
     items: {
       type: [orderItemSchema],
       required: true,
@@ -137,74 +167,117 @@ export const orderSchema = new Schema<IOrder>(
         message: "Order must contain at least one item",
       },
     },
+
     totalAmount: {
       type: Number,
       required: true,
       min: 0,
     },
+
     taxAmount: {
       type: Number,
       default: 0,
       min: 0,
     },
+
     discountAmount: {
       type: Number,
       default: 0,
       min: 0,
     },
+
     finalAmount: {
       type: Number,
       required: true,
       min: 0,
     },
+
     status: {
       type: String,
       enum: Object.values(OrderStatus),
       default: OrderStatus.PLACED,
     },
+
+    priority: {
+      type: String,
+      enum: Object.values(Priority),
+      default: Priority.NORMAL,
+    },
+
     paymentStatus: {
       type: String,
       enum: Object.values(PaymentStatus),
       default: PaymentStatus.PENDING,
     },
+
     specialInstructions: {
       type: String,
       trim: true,
       default: "",
     },
-    delayReason: {
-      type: String,
-      trim: true,
+
+    estimatedPreparationTime: {
+      type: Number,
       default: null,
     },
-    estimatedReadyTime: {
-      type: Date,
+
+    kitchenStaffId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
       default: null,
     },
+
+    serviceStaffId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+
     acceptedAt: {
       type: Date,
       default: null,
     },
+
+    preparingStartedAt: {
+      type: Date,
+      default: null,
+    },
+
+    delayedAt: {
+      type: Date,
+      default: null,
+    },
+
     readyAt: {
       type: Date,
       default: null,
     },
+
+    rejectedAt: {
+      type: Date,
+      default: null,
+    },
+
     pickedAt: {
       type: Date,
       default: null,
     },
+
     servedAt: {
       type: Date,
       default: null,
     },
+
     completedAt: {
       type: Date,
       default: null,
     },
+
     cancelledAt: {
       type: Date,
       default: null,
     },
+
     rejectionReason: {
       type: String,
       trim: true,
@@ -214,6 +287,7 @@ export const orderSchema = new Schema<IOrder>(
   {
     timestamps: true,
     versionKey: false,
+    collection: 'orders',
   }
 );
 
@@ -222,8 +296,10 @@ orderSchema.index({ restaurantId: 1 });
 orderSchema.index({ customerId: 1 });
 orderSchema.index({ tableId: 1 });
 orderSchema.index({ status: 1 });
+orderSchema.index({ priority: 1 });
 orderSchema.index({ paymentStatus: 1 });
-orderSchema.index({ orderNumber: 1 });
+orderSchema.index({ kitchenStaffId: 1 });
+orderSchema.index({ serviceStaffId: 1 });
 
 export default orderSchema;
 
@@ -244,7 +320,7 @@ export const placeOrderBodySchema = z.object({
 export type PlaceOrderInput = z.infer<typeof placeOrderBodySchema>;
 
 export const acceptOrderBodySchema = z.object({
-  estimatedMinutes: z
+  estimatedPreparationTime: z
     .number()
     .int()
     .positive('Estimated time must be positive')
@@ -268,11 +344,18 @@ export const delayOrderBodySchema = z.object({
     .number()
     .int()
     .positive('Delay minutes must be positive'),
-  reason: z
-    .string()
-    .trim()
-    .min(1, 'Delay reason is required')
-    .max(500, 'Reason cannot exceed 500 characters'),
 });
 
 export type DelayOrderInput = z.infer<typeof delayOrderBodySchema>;
+
+export const orderIdParamsSchema = z.object({
+  id: z.string().refine((value) => mongoose.Types.ObjectId.isValid(value), {
+    message: 'Invalid order id',
+  }),
+});
+
+export const customerOrdersQuerySchema = z.object({
+  status: z.nativeEnum(OrderStatus).optional(),
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+});

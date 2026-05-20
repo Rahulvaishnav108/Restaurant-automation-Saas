@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { Search, MapPin, Bell, Star, ChevronDown, Heart, Clock3, X, ShoppingBag, Flame, Zap, Menu as MenuIcon, Moon, Sun } from 'lucide-react';
+import { Search, MapPin, Bell, Star, ChevronDown, Heart, Clock3, X, ShoppingBag, Flame, Menu as MenuIcon, Moon, Sun } from 'lucide-react';
 
 interface Props { onEnterApp: () => void; }
 
@@ -226,7 +226,7 @@ const LandingPage: React.FC<Props> = ({ onEnterApp }) => {
           <button onClick={() => setActiveCat('All')} className={`px-4 py-2 rounded-full border text-sm transition ${isLightMode ? 'border-slate-200 bg-white text-slate-800 shadow-sm hover:bg-orange-50 hover:text-orange-600' : 'border-white/10 bg-white/5 text-white hover:bg-white/10'}`}>View all</button>
         </div>
         {filtered.length === 0 ? (
-          <div className={`text-center py-20 ${isLightMode ? 'text-slate-600' : 'text-slate-400'}`}>No restaurants found for "<span className={isLightMode ? 'text-slate-950' : 'text-white'}>{query}</span>"</div>
+          <div className={`text-center py-20 ${isLightMode ? 'text-slate-600' : 'text-slate-400'}`}>No restaurants found for &quot;<span className={isLightMode ? 'text-slate-950' : 'text-white'}>{query}</span>&quot;</div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map(r => (
@@ -308,7 +308,7 @@ const LandingPage: React.FC<Props> = ({ onEnterApp }) => {
           {TESTIMONIALS.map(t => (
             <div key={t.name} className={`rounded-3xl border p-6 backdrop-blur-sm hover:border-orange-500/20 transition ${isLightMode ? 'border-slate-200 bg-white shadow-sm' : 'border-white/10 bg-white/5'}`}>
               <div className="flex gap-1 mb-4">{Array.from({length:t.rating}).map((_,i) => <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />)}</div>
-              <p className={`leading-relaxed ${isLightMode ? 'text-slate-700' : 'text-slate-300'}`}>"{t.msg}"</p>
+              <p className={`leading-relaxed ${isLightMode ? 'text-slate-700' : 'text-slate-300'}`}> &ldquo;{t.msg}&rdquo;</p>
               <div className={`mt-5 flex items-center gap-3 border-t pt-4 ${isLightMode ? 'border-slate-200' : 'border-white/10'}`}>
                 <div className="h-9 w-9 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold text-sm">{t.name[0]}</div>
                 <div>

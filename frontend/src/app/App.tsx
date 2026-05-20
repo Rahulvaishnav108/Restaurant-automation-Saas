@@ -1,21 +1,21 @@
-import React, { useState } from 'react';
-import LandingPage from '../features/customer/pages/LandingPage';
-import CustomerDashboard from '../features/customer/pages/CustomerDashboard';
+import { QueryProvider } from './providers/QueryProvider';
+import { ThemeProvider } from './providers/ThemeProvider';
+import { AuthProvider } from './providers/AuthProvider';
+import { SocketProvider } from './providers/SocketProvider';
+import AppRouter from './router';
 
-export type AppPage = 'landing' | 'dashboard';
-
-const App = () => {
-  const [page, setPage] = useState<AppPage>('landing');
-
+function App(): JSX.Element {
   return (
-    <main className="min-h-screen bg-[#050814] text-white">
-      {page === 'landing' ? (
-        <LandingPage onEnterApp={() => setPage('dashboard')} />
-      ) : (
-        <CustomerDashboard onBack={() => setPage('landing')} />
-      )}
-    </main>
+    <ThemeProvider>
+      <QueryProvider>
+        <AuthProvider>
+          <SocketProvider>
+            <AppRouter />
+          </SocketProvider>
+        </AuthProvider>
+      </QueryProvider>
+    </ThemeProvider>
   );
-};
+}
 
 export default App;

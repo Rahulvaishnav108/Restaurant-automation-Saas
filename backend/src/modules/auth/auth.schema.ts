@@ -1,7 +1,3 @@
-// src/modules/auth/auth.schema.ts
-// Re-export user schemas that are used in auth routes
-// Auth-specific schemas live here too
-
 export {
   registerSchema,
   loginSchema,

@@ -1,33 +1,34 @@
 // src/tests/setup.ts
 import { env } from '../config/env';
 import mongoose from 'mongoose';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 import { connectDB, disconnectDB } from '../config/db';
 
-// Set a longer timeout for tests running against a remote DB instance
-jest.setTimeout(30000);
+// Allow enough time for first-run mongodb-memory-server binary download on fresh machines/CI.
+jest.setTimeout(300000);
 
 // Ensure we are in test mode and use the test database
 process.env.NODE_ENV = 'test';
 env.NODE_ENV = 'test';
 
-if (env.MONGODB_URI) {
-  // Replace the db name with RestaurantAutomationTest to avoid polluting development data
-  env.MONGODB_URI = env.MONGODB_URI.replace(
-    '/RestaurantAutomation',
-    '/RestaurantAutomationTest'
-  );
-} else {
-  env.MONGODB_URI = 'mongodb://[REDACTED]';
-}
+let mongoServer: MongoMemoryServer | null = null;
 
 beforeAll(async () => {
-  // Connect to the test database
+  mongoServer = await MongoMemoryServer.create({
+    instance: {
+      dbName: 'RestaurantAutomationTest',
+    },
+  });
+
+  env.MONGODB_URI = mongoServer.getUri();
   await connectDB();
 });
 
 afterAll(async () => {
-  // Clean up and disconnect
   await disconnectDB();
+  if (mongoServer) {
+    await mongoServer.stop();
+  }
 });
 
 afterEach(async () => {

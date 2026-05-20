@@ -1,5 +1,7 @@
 import { Types } from 'mongoose';
 import { Cart, ICart } from './cart.model';
+import { BillingModel } from '../billing/billing.model';
+import { BillStatus } from '../billing/billing.schema';
 import { MenuItem } from '../menu/menu.model';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
@@ -112,8 +114,6 @@ export class CartService {
     }
 
     // 1.5 Check if bill is generated
-    const { BillingModel } = require('../billing/billing.model');
-    const { BillStatus } = require('../billing/billing.schema');
     const existingBill = await BillingModel.findOne({ sessionId });
     if (existingBill && [BillStatus.GENERATED, BillStatus.PENDING_PAYMENT, BillStatus.PAID].includes(existingBill.status)) {
       throw new AppError('Cannot modify cart after bill has been generated', 400, ErrorCode.INVALID_REQUEST);
@@ -128,13 +128,13 @@ export class CartService {
     const existingItemIndex = cart.items.findIndex(
       (item) => 
         item.menuItem._id.toString() === data.menuItem.toString() && 
-        (item.notes || '') === (data.notes || '')
+        (item.notes || '') === (data.notes || '') &&
+        Number(item.unitPrice) === Number(unitPrice)
     );
 
     if (existingItemIndex !== -1) {
       const existingItem = cart.items[existingItemIndex];
       existingItem.quantity += data.quantity;
-      existingItem.unitPrice = unitPrice; // Refresh price snapshot
       existingItem.subtotal = existingItem.quantity * existingItem.unitPrice;
     } else {
       cart.items.push({

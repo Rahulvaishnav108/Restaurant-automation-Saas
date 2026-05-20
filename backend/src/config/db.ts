@@ -1,60 +1,58 @@
-// src/config/db.ts
-// MongoDB connection with Mongoose — graceful shutdown support
-
 import mongoose from 'mongoose';
 import { env } from './env';
 import logger from './logger';
 
-/**
- * Connect to MongoDB Atlas / local instance.
- * Exits process on initial connection failure (fail-fast).
- */
-export async function connectDB(): Promise<void> {
-  try {
-    const conn = await mongoose.connect(env.MONGODB_URI, {
-      // Mongoose 8 uses the new driver defaults — no deprecated options needed
-    });
+let isConnected = false;
+let listenersBound = false;
 
-    logger.info(`✅ MongoDB connected: ${conn.connection.host}`);
-    logger.info(`📦 Database: ${conn.connection.name}`);
-  } catch (error) {
-    logger.error('❌ MongoDB connection failed:', { error });
-    process.exit(1); // Crash on initial connection failure
+function bindConnectionListeners(): void {
+  if (listenersBound) {
+    return;
   }
 
-  // Connection event listeners
-  mongoose.connection.on('error', (err) => {
-    logger.error('MongoDB connection error:', { error: err.message });
+  listenersBound = true;
+
+  mongoose.connection.on('error', (error) => {
+    logger.error('MongoDB connection error', { error: error.message });
   });
 
   mongoose.connection.on('disconnected', () => {
-    logger.warn('⚠️  MongoDB disconnected');
+    isConnected = false;
+    logger.warn('MongoDB disconnected');
   });
 
   mongoose.connection.on('reconnected', () => {
-    logger.info('🔄 MongoDB reconnected');
+    isConnected = true;
+    logger.info('MongoDB reconnected');
   });
 }
 
-/**
- * Gracefully close MongoDB connection.
- * Called on SIGINT / SIGTERM for clean shutdown.
- */
-export async function disconnectDB(): Promise<void> {
-  try {
-    await mongoose.connection.close();
-    logger.info('MongoDB connection closed gracefully');
-  } catch (error) {
-    logger.error('Error closing MongoDB connection:', { error });
+export async function connectToDatabase(): Promise<void> {
+  if (isConnected) {
+    return;
   }
+
+  const connection = await mongoose.connect(env.MONGODB_URI, {
+    serverSelectionTimeoutMS: env.MONGODB_CONNECT_TIMEOUT_MS,
+  });
+
+  isConnected = true;
+  bindConnectionListeners();
+  logger.info('MongoDB connection established', {
+    host: connection.connection.host,
+    database: connection.connection.name,
+  });
 }
 
-// Graceful shutdown handlers
-const shutdown = async (signal: string): Promise<void> => {
-  logger.info(`${signal} received — shutting down gracefully...`);
-  await disconnectDB();
-  process.exit(0);
-};
+export async function disconnectFromDatabase(): Promise<void> {
+  if (!isConnected) {
+    return;
+  }
 
-process.on('SIGINT', () => shutdown('SIGINT'));
-process.on('SIGTERM', () => shutdown('SIGTERM'));
+  await mongoose.disconnect();
+  isConnected = false;
+  logger.info('MongoDB connection closed');
+}
+
+export const connectDB = connectToDatabase;
+export const disconnectDB = disconnectFromDatabase;

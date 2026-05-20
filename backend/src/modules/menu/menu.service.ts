@@ -153,18 +153,49 @@ export class MenuService {
       page: number;
       limit: number;
       skip: number;
-      categoryId?: string | Types.ObjectId;
+      category?: string;
       vegOnly?: boolean;
+      spicy?: boolean;
       availableOnly?: boolean;
+      popularOnly?: boolean;
+      recommendedOnly?: boolean;
+      priceMin?: number;
+      priceMax?: number;
       search?: string;
       sortBy?: string;
     }
   ) {
     const dbQuery: any = { restaurantId, isHidden: false };
 
-    if (query.categoryId) dbQuery.categoryId = query.categoryId;
+    if (query.category) {
+      const categoryLookup = query.category.trim().toLowerCase();
+      const categoryFilters: Array<Record<string, unknown>> = [{ name: categoryLookup }];
+      if (Types.ObjectId.isValid(query.category)) {
+        categoryFilters.push({ _id: query.category });
+      }
+
+      const category = await Category.findOne({
+        restaurantId,
+        $or: categoryFilters,
+      }).select('_id');
+
+      if (category) {
+        dbQuery.categoryId = category._id;
+      } else {
+        dbQuery.categoryId = null;
+      }
+    }
     if (query.vegOnly) dbQuery.isVeg = true;
+    if (query.spicy === true) dbQuery.spiceLevel = { $gt: 0 };
+    if (query.spicy === false) dbQuery.spiceLevel = { $in: [0, null] };
     if (query.availableOnly) dbQuery.isAvailable = true;
+    if (query.popularOnly) dbQuery.tags = { $in: ['popular'] };
+    if (query.recommendedOnly) dbQuery.tags = { $in: ['recommended'] };
+    if (query.priceMin !== undefined || query.priceMax !== undefined) {
+      dbQuery.price = {};
+      if (query.priceMin !== undefined) dbQuery.price.$gte = query.priceMin;
+      if (query.priceMax !== undefined) dbQuery.price.$lte = query.priceMax;
+    }
     
     if (query.search) {
       dbQuery.$or = [
@@ -175,7 +206,7 @@ export class MenuService {
     }
 
     let sort: any = { displayOrder: 1 };
-    if (query.sortBy === 'price_asc') sort = { price: 1 };
+    if (query.sortBy === 'price' || query.sortBy === 'price_asc') sort = { price: 1 };
     if (query.sortBy === 'price_desc') sort = { price: -1 };
     if (query.sortBy === 'name_asc') sort = { name: 1 };
 
@@ -215,9 +246,15 @@ export class MenuService {
 
   static async getItemById(
     restaurantId: string | Types.ObjectId,
-    itemId: string | Types.ObjectId
+    itemId: string | Types.ObjectId,
+    options: { excludeHidden?: boolean } = {}
   ): Promise<IMenuItem> {
-    const item = await MenuItem.findOne({ _id: itemId, restaurantId });
+    const query: Record<string, unknown> = { _id: itemId, restaurantId };
+    if (options.excludeHidden) {
+      query.isHidden = false;
+    }
+
+    const item = await MenuItem.findOne(query);
     if (!item) {
       throw new AppError('Menu item not found', 404, ErrorCode.NOT_FOUND);
     }
@@ -290,6 +327,26 @@ export class MenuService {
     if (!item) {
       throw new AppError('Menu item not found', 404, ErrorCode.NOT_FOUND);
     }
+    return item;
+  }
+
+  static async updateItemImage(
+    restaurantId: string | Types.ObjectId,
+    itemId: string | Types.ObjectId,
+    image: string,
+    userId: string | Types.ObjectId,
+    options: { addToGallery?: boolean } = {}
+  ): Promise<IMenuItem> {
+    const item = await this.getItemById(restaurantId, itemId);
+    const shouldAddToGallery = options.addToGallery !== false;
+
+    item.image = image;
+    if (shouldAddToGallery) {
+      item.images = Array.from(new Set([...(item.images ?? []), image]));
+    }
+    item.updatedBy = userId as Types.ObjectId;
+
+    await item.save();
     return item;
   }
 

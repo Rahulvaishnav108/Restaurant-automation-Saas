@@ -96,6 +96,7 @@ const cartSchema = new Schema<ICart>(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
+    collection: 'carts',
   }
 );
 

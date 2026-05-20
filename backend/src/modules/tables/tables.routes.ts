@@ -6,7 +6,13 @@ import { requireAuth } from '../../middleware/requireAuth';
 import { roleGuard } from '../../middleware/roleGuard';
 import { validate } from '../../middleware/validate';
 import { UserRole } from '../../constants/roles';
-import { createTableSchema, updateTableSchema, updateTableStatusSchema } from './tables.schema';
+import {
+  createTableSchema,
+  restaurantTablesParamsSchema,
+  tableIdParamsSchema,
+  updateTableSchema,
+  updateTableStatusSchema,
+} from './tables.schema';
 import * as tablesController from './tables.controller';
 
 const router = Router();
@@ -20,6 +26,7 @@ router.use(requireAuth);
 // Get all tables for a restaurant
 router.get(
   '/restaurant/:restaurantId',
+  validate({ params: restaurantTablesParamsSchema }),
   roleGuard(UserRole.SERVICE_STAFF, UserRole.RESTAURANT_ADMIN, UserRole.SUPER_ADMIN),
   tablesController.getTablesByRestaurant
 );
@@ -27,6 +34,7 @@ router.get(
 // Get single table
 router.get(
   '/:id',
+  validate({ params: tableIdParamsSchema }),
   roleGuard(UserRole.SERVICE_STAFF, UserRole.RESTAURANT_ADMIN, UserRole.SUPER_ADMIN),
   tablesController.getTableById
 );
@@ -43,7 +51,7 @@ router.post(
 router.patch(
   '/:id',
   roleGuard(UserRole.RESTAURANT_ADMIN, UserRole.SUPER_ADMIN),
-  validate({ body: updateTableSchema }),
+  validate({ params: tableIdParamsSchema, body: updateTableSchema }),
   tablesController.updateTable
 );
 
@@ -51,7 +59,7 @@ router.patch(
 router.patch(
   '/:id/status',
   roleGuard(UserRole.SERVICE_STAFF, UserRole.CLEANING_STAFF, UserRole.RESTAURANT_ADMIN, UserRole.SUPER_ADMIN),
-  validate({ body: updateTableStatusSchema }),
+  validate({ params: tableIdParamsSchema, body: updateTableStatusSchema }),
   tablesController.updateTableStatus
 );
 

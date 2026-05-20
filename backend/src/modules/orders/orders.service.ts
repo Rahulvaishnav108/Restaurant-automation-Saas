@@ -1,301 +1,400 @@
-import mongoose, { Types } from 'mongoose';
+import { Types } from 'mongoose';
 import { OrderModel } from './orders.model';
 import { Cart } from '../cart/cart.model';
-import { MenuItem } from '../menu/menu.model';
-import { OrderStatus, PaymentStatus } from '../../constants/statuses';
+import { PlaceOrderInput, OrderStatus, PaymentStatus } from './orders.schema';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
-import { PlaceOrderInput } from './orders.schema';
-import { socketService } from '../../sockets/socket.service';
-import { InventoryService } from '../inventory/inventory.service';
-import { SocketEvent } from '../../constants/events';
+import { Priority } from '../../constants/statuses';
+import { TableModel } from '../tables/tables.model';
+import mongoose from 'mongoose';
 
-/**
- * Requirement #1: Strict Order State Machine Rules
- */
-const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  [OrderStatus.PLACED]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED, OrderStatus.REJECTED],
-  [OrderStatus.CONFIRMED]: [OrderStatus.PREPARING, OrderStatus.CANCELLED, OrderStatus.DELAYED],
-  [OrderStatus.PREPARING]: [OrderStatus.READY, OrderStatus.DELAYED],
-  [OrderStatus.READY]: [OrderStatus.PICKED, OrderStatus.DELAYED],
+const ORDER_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus[]>> = {
+  [OrderStatus.PLACED]: [OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.DELAYED, OrderStatus.REJECTED, OrderStatus.CANCELLED],
+  [OrderStatus.CONFIRMED]: [OrderStatus.PREPARING, OrderStatus.DELAYED, OrderStatus.CANCELLED],
+  [OrderStatus.PREPARING]: [OrderStatus.DELAYED, OrderStatus.READY],
+  [OrderStatus.DELAYED]: [OrderStatus.PREPARING, OrderStatus.READY],
+  [OrderStatus.READY]: [OrderStatus.PICKED, OrderStatus.SERVED],
   [OrderStatus.PICKED]: [OrderStatus.SERVED],
   [OrderStatus.SERVED]: [OrderStatus.COMPLETED],
-  [OrderStatus.DELAYED]: [OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.CANCELLED],
-  [OrderStatus.CANCELLED]: [],
-  [OrderStatus.REJECTED]: [],
-  [OrderStatus.COMPLETED]: [],
 };
 
+function ensureOrderTransition(currentStatus: OrderStatus, nextStatus: OrderStatus, message: string): void {
+  const allowed = ORDER_TRANSITIONS[currentStatus] ?? [];
+  if (!allowed.includes(nextStatus)) {
+    throw new AppError(message, 400, ErrorCode.ORDER_NOT_MODIFIABLE);
+  }
+}
+
+function toNullableObjectId(value?: string | Types.ObjectId | null): Types.ObjectId | null {
+  if (!value) {
+    return null;
+  }
+
+  return typeof value === 'string' ? new mongoose.Types.ObjectId(value) : value;
+}
+
 export class OrdersService {
-  /**
-   * Helper to validate state transitions (Requirement #1)
-   * and ensure idempotency (Requirement #2)
-   */
-  private static validateTransition(current: OrderStatus, next: OrderStatus) {
-    if (current === next) return; // Idempotent: already in target state
-
-    const allowed = ALLOWED_TRANSITIONS[current] || [];
-    if (!allowed.includes(next)) {
-      throw new AppError(
-        `Invalid transition from ${current} to ${next}`,
-        400,
-        ErrorCode.VALIDATION_ERROR
-      );
-    }
-  }
-
-  /**
-   * Requirement #3: Ownership Validation Helper
-   */
-  private static async getOrderAndVerifyOwnership(
-    orderId: string | Types.ObjectId,
-    restaurantId: string | Types.ObjectId
-  ) {
-    const order = await OrderModel.findOne({ _id: orderId, restaurantId });
-    if (!order) {
-      throw new AppError('Order not found or access denied', 404, ErrorCode.NOT_FOUND);
-    }
-    return order;
-  }
-
-  /**
-   * Requirement #5: Place Order with Transaction support
-   */
   static async placeOrder(
     restaurantId: string | Types.ObjectId,
     sessionId: string | Types.ObjectId,
     tableId: string | Types.ObjectId,
+    _customerName: string | undefined,
     data: PlaceOrderInput
   ) {
-    const mongoSession = await mongoose.startSession();
-    mongoSession.startTransaction();
+    // 1. Fetch Cart
+    const cart = await Cart.findOne({ restaurantId, sessionId }).populate('items.menuItem');
 
-    try {
-      // 1. Fetch Cart
-      const cart = await Cart.findOne({ restaurantId, sessionId }).session(mongoSession).populate('items.menuItem');
-
-      if (!cart || cart.items.length === 0) {
-        throw new AppError('Cart is empty or not found', 400, ErrorCode.VALIDATION_ERROR);
-      }
-
-      // Idempotency Check (Requirement #2): Prevent duplicate orders for the same session within 5 seconds
-      const recentOrder = await OrderModel.findOne({
-        sessionId,
-        createdAt: { $gte: new Date(Date.now() - 5000) },
-      }).session(mongoSession);
-
-      if (recentOrder) {
-        return recentOrder; // Return the existing order instead of creating a new one
-      }
-
-      // 2. Snapshot pricing (Requirement #6)
-      const orderItems = cart.items.map((item: any) => {
-        if (!item.menuItem) {
-          throw new AppError('Invalid menu item in cart', 400, ErrorCode.VALIDATION_ERROR);
-        }
-        return {
-          menuItemId: item.menuItem._id,
-          name: item.menuItem.name,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          subtotal: item.subtotal,
-          tax: (item.subtotal * 0.05), // Example tax logic, should be centralized
-          discount: 0,
-          grandTotal: item.subtotal + (item.subtotal * 0.05),
-          notes: item.notes || '',
-        };
-      });
-
-      const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
-
-      // 3. Create Order
-      const order = await OrderModel.create(
-        [
-          {
-            restaurantId,
-            tableId,
-            sessionId,
-            orderNumber,
-            items: orderItems,
-            totalAmount: cart.subtotal,
-            taxAmount: cart.subtotal * 0.05,
-            discountAmount: 0,
-            finalAmount: cart.subtotal * 1.05,
-            status: OrderStatus.PLACED,
-            paymentStatus: PaymentStatus.PENDING,
-            specialInstructions: data.specialInstructions,
-          },
-        ],
-        { session: mongoSession }
-      );
-
-      // 4. Clear Cart
-      cart.items = [] as any;
-      cart.subtotal = 0;
-      cart.grandTotal = 0;
-      await cart.save({ session: mongoSession });
-
-      await mongoSession.commitTransaction();
-      
-      // Notify (Requirement #9: Real-time Integration)
-      socketService.emitToRestaurant(restaurantId.toString(), SocketEvent.ORDER_NEW, order[0]);
-
-      return order[0];
-    } catch (error) {
-      await mongoSession.abortTransaction();
-      throw error;
-    } finally {
-      mongoSession.endSession();
+    if (!cart) {
+      throw new AppError('Cart not found', 404, ErrorCode.NOT_FOUND);
     }
+
+    if (!cart.items || cart.items.length === 0) {
+      throw new AppError('Cannot place order with an empty cart', 400, ErrorCode.VALIDATION_ERROR);
+    }
+
+    // 2. Map CartItems to OrderItems
+    const orderItems = cart.items.map((item: any) => {
+      if (!item.menuItem) {
+        throw new AppError('Invalid menu item in cart', 400, ErrorCode.VALIDATION_ERROR);
+      }
+      return {
+        menuItemId: item.menuItem._id,
+        name: item.menuItem.name,
+        quantity: item.quantity,
+        price: item.unitPrice,
+        totalPrice: item.subtotal,
+        notes: item.notes || '',
+      };
+    });
+
+    // 3. Generate Order Number
+    // A simple order number: e.g., ORD-12345678 (could be improved)
+    const timestamp = Date.now().toString().slice(-6);
+    const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const orderNumber = `ORD-${timestamp}-${randomChars}`;
+
+    // 4. Create Order
+    const order = await OrderModel.create({
+      restaurantId,
+      tableId,
+      sessionId,
+      // If customer is registered, we could map customerId here.
+      // But currently session tracks customerName and mobile. The schema has customerId which is User ref.
+      orderNumber,
+      items: orderItems,
+      totalAmount: cart.subtotal,
+      taxAmount: cart.tax,
+      discountAmount: cart.discount,
+      finalAmount: cart.grandTotal,
+      status: OrderStatus.PLACED,
+      paymentStatus: PaymentStatus.PENDING,
+      priority: Priority.NORMAL,
+      specialInstructions: data.specialInstructions || '',
+    });
+
+    // 5. Clear Cart
+    cart.items = [] as any;
+    cart.subtotal = 0;
+    cart.tax = 0;
+    cart.discount = 0;
+    cart.grandTotal = 0;
+    await cart.save();
+
+    return order;
   }
 
-  /**
-   * Requirement #4: Safe Reorder Logic
-   */
+  static async getCustomerOrders(
+    restaurantId: string | Types.ObjectId,
+    sessionId: string | Types.ObjectId,
+    options: { status?: string; page?: number; limit?: number } = {},
+  ) {
+    const page = Number(options.page ?? 1);
+    const limit = Number(options.limit ?? 10);
+    const skip = (page - 1) * limit;
+
+    const query: Record<string, unknown> = { restaurantId, sessionId };
+    if (options.status) {
+      query.status = options.status;
+    }
+
+    const [orders, total] = await Promise.all([
+      OrderModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      OrderModel.countDocuments(query),
+    ]);
+
+    return {
+      orders,
+      pagination: {
+        page,
+        limit,
+        total,
+      },
+    };
+  }
+
+  static async getCustomerOrderById(
+    restaurantId: string | Types.ObjectId,
+    sessionId: string | Types.ObjectId,
+    orderId: string | Types.ObjectId,
+  ) {
+    const order = await OrderModel.findOne({ _id: orderId, restaurantId, sessionId });
+    if (!order) {
+      throw new AppError('Order not found', 404, ErrorCode.NOT_FOUND);
+    }
+
+    return order;
+  }
+
   static async reorder(
     restaurantId: string | Types.ObjectId,
     sessionId: string | Types.ObjectId,
-    orderId: string | Types.ObjectId
+    tableId: string | Types.ObjectId,
+    orderId: string | Types.ObjectId,
   ) {
-    const oldOrder = await this.getOrderAndVerifyOwnership(orderId, restaurantId);
-    
-    const mongoSession = await mongoose.startSession();
-    mongoSession.startTransaction();
+    const original = await this.getCustomerOrderById(restaurantId, sessionId, orderId);
 
-    try {
-      const cart = await Cart.findOne({ restaurantId, sessionId }).session(mongoSession);
-      if (!cart) throw new AppError('Active session cart not found', 404, ErrorCode.NOT_FOUND);
-
-      const reorderResults = {
-        successCount: 0,
-        skippedItems: [] as string[],
-      };
-
-      for (const item of oldOrder.items) {
-        // Check if item still exists and is available
-        const menuItem = await MenuItem.findOne({ _id: item.menuItemId, restaurantId, isAvailable: true }).session(mongoSession);
-        
-        if (!menuItem) {
-          reorderResults.skippedItems.push(item.name);
-          continue;
-        }
-
-        // Add to cart with LATEST pricing (not old snapshot)
-        // This logic would normally call CartService.addItem, but we implement it here for transaction safety
-        const existingItem = cart.items.find(i => i.menuItem.toString() === menuItem._id.toString());
-        if (existingItem) {
-          existingItem.quantity += item.quantity;
-          existingItem.subtotal = existingItem.quantity * menuItem.price;
-        } else {
-          cart.items.push({
-            menuItem: menuItem._id,
-            quantity: item.quantity,
-            unitPrice: menuItem.price,
-            subtotal: item.quantity * menuItem.price,
-            notes: `Reordered from ${oldOrder.orderNumber}`,
-          } as any);
-        }
-        reorderResults.successCount++;
-      }
-
-      if (reorderResults.successCount === 0) {
-        throw new AppError('None of the items from the previous order are currently available', 400, ErrorCode.VALIDATION_ERROR);
-      }
-
-      // Recalculate cart totals
-      cart.subtotal = cart.items.reduce((sum, i) => sum + i.subtotal, 0);
-      cart.grandTotal = cart.subtotal; // Simplify for now
-      await cart.save({ session: mongoSession });
-
-      await mongoSession.commitTransaction();
-      return { cart, reorderResults };
-    } catch (error) {
-      await mongoSession.abortTransaction();
-      throw error;
-    } finally {
-      mongoSession.endSession();
+    if (original.status === OrderStatus.CANCELLED || original.status === OrderStatus.REJECTED) {
+      throw new AppError('Cancelled or rejected orders cannot be reordered', 400, ErrorCode.ORDER_NOT_MODIFIABLE);
     }
+
+    const timestamp = Date.now().toString().slice(-6);
+    const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const orderNumber = `ORD-${timestamp}-${randomChars}`;
+
+    return OrderModel.create({
+      restaurantId,
+      tableId,
+      sessionId,
+      orderNumber,
+      items: original.items,
+      totalAmount: original.totalAmount,
+      taxAmount: original.taxAmount,
+      discountAmount: original.discountAmount,
+      finalAmount: original.finalAmount,
+      status: OrderStatus.PLACED,
+      paymentStatus: PaymentStatus.PENDING,
+      priority: original.priority ?? Priority.NORMAL,
+      specialInstructions: original.specialInstructions,
+    });
   }
 
-  /**
-   * Kitchen/Staff Status Updates with State Machine & Ownership
-   */
-  static async updateOrderStatus(
+  static async cancelOrder(
+    restaurantId: string | Types.ObjectId,
+    sessionId: string | Types.ObjectId,
+    orderId: string | Types.ObjectId,
+  ) {
+    const order = await this.getCustomerOrderById(restaurantId, sessionId, orderId);
+
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.CANCELLED, 'Order cannot be cancelled in its current state');
+
+    order.status = OrderStatus.CANCELLED;
+    order.cancelledAt = new Date();
+    await order.save();
+
+    return order;
+  }
+
+  // --- Kitchen Order APIs ---
+
+  static async getKitchenOrders(
+    restaurantId: string | Types.ObjectId,
+    options: {
+      status?: string;
+      priority?: string;
+      table?: string;
+      batch?: boolean;
+    } = {}
+  ) {
+    const query: Record<string, unknown> = {
+      restaurantId,
+      status: options.status
+        ? options.status
+        : {
+            $in: [
+              OrderStatus.PLACED,
+              OrderStatus.CONFIRMED,
+              OrderStatus.PREPARING,
+              OrderStatus.DELAYED,
+              OrderStatus.READY,
+            ],
+          },
+    };
+
+    if (options.priority) {
+      query.priority = options.priority;
+    }
+
+    if (options.batch) {
+      query.batchId = { $ne: null };
+    }
+
+    if (options.table) {
+      if (Types.ObjectId.isValid(options.table)) {
+        query.tableId = new Types.ObjectId(options.table);
+      } else {
+        const tableIds = await TableModel.find({
+          restaurantId,
+          tableNumber: options.table,
+        }).distinct('_id');
+        query.tableId = tableIds.length > 0 ? { $in: tableIds } : null;
+      }
+    }
+
+    return OrderModel.find(query).sort({ createdAt: 1 });
+  }
+
+  static async getKitchenOrderDetails(restaurantId: string | Types.ObjectId, orderId: string | Types.ObjectId) {
+    const order = await OrderModel.findOne({ _id: orderId, restaurantId }).populate('items.menuItemId');
+    if (!order) {
+      throw new AppError('Order not found', 404, ErrorCode.NOT_FOUND);
+    }
+    return order;
+  }
+
+  static async acceptOrder(
     restaurantId: string | Types.ObjectId,
     orderId: string | Types.ObjectId,
-    nextStatus: OrderStatus,
-    metadata: { reason?: string; delayMinutes?: number; estimatedMinutes?: number } = {}
+    estimatedTime?: number,
+    actorId?: string | Types.ObjectId | null,
   ) {
-    const order = await this.getOrderAndVerifyOwnership(orderId, restaurantId);
-    
-    // Idempotency check + Transition validation
-    this.validateTransition(order.status, nextStatus);
-    if (order.status === nextStatus) return order;
+    const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    const mongoSession = await mongoose.startSession();
-    mongoSession.startTransaction();
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.CONFIRMED, 'Only placed orders can be accepted');
 
-    try {
-      order.status = nextStatus;
-
-      // Requirement #8: Inventory Hook
-      if (nextStatus === OrderStatus.PREPARING) {
-        await InventoryService.deductStock(order.items);
-      }
-
-      // Update timestamps and metadata
-      switch (nextStatus) {
-        case OrderStatus.CONFIRMED:
-          order.acceptedAt = new Date();
-          if (metadata.estimatedMinutes) {
-            order.estimatedReadyTime = new Date(Date.now() + metadata.estimatedMinutes * 60000);
-          }
-          break;
-        case OrderStatus.READY:
-          order.readyAt = new Date();
-          break;
-        case OrderStatus.PICKED:
-          order.pickedAt = new Date();
-          break;
-        case OrderStatus.SERVED:
-          order.servedAt = new Date();
-          break;
-        case OrderStatus.COMPLETED:
-          order.completedAt = new Date();
-          break;
-        case OrderStatus.CANCELLED:
-          order.cancelledAt = new Date();
-          break;
-        case OrderStatus.DELAYED:
-          order.delayReason = metadata.reason;
-          if (metadata.delayMinutes) {
-            const currentETR = order.estimatedReadyTime || new Date();
-            order.estimatedReadyTime = new Date(currentETR.getTime() + metadata.delayMinutes * 60000);
-          }
-          break;
-      }
-
-      await order.save({ session: mongoSession });
-      await mongoSession.commitTransaction();
-      
-      // Notify (Requirement #9: Real-time Integration)
-      socketService.emitToSession(order.sessionId!.toString(), SocketEvent.ORDER_STATUS_UPDATED, order);
-      socketService.emitToRestaurant(restaurantId.toString(), SocketEvent.ORDER_STATUS_UPDATED, order);
-
-      return order;
-    } catch (error) {
-      await mongoSession.abortTransaction();
-      throw error;
-    } finally {
-      mongoSession.endSession();
+    order.status = OrderStatus.CONFIRMED;
+    order.acceptedAt = new Date();
+    order.kitchenStaffId = toNullableObjectId(actorId);
+    if (estimatedTime) {
+      order.estimatedPreparationTime = estimatedTime;
     }
+
+    await order.save();
+    return order;
   }
 
-  static async getOrders(filter: object) {
-    return OrderModel.find(filter).sort({ createdAt: -1 });
+  static async startCooking(
+    restaurantId: string | Types.ObjectId,
+    orderId: string | Types.ObjectId,
+    actorId?: string | Types.ObjectId | null,
+  ) {
+    const order = await this.getKitchenOrderDetails(restaurantId, orderId);
+
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.PREPARING, 'Order cannot be prepared from current status');
+
+    order.status = OrderStatus.PREPARING;
+    order.preparingStartedAt = new Date();
+    order.kitchenStaffId = toNullableObjectId(actorId);
+    await order.save();
+    return order;
   }
 
-  static async getOrderById(orderId: string | Types.ObjectId, restaurantId: string | Types.ObjectId) {
-    return this.getOrderAndVerifyOwnership(orderId, restaurantId);
+  static async markReady(
+    restaurantId: string | Types.ObjectId,
+    orderId: string | Types.ObjectId,
+    actorId?: string | Types.ObjectId | null,
+  ) {
+    const order = await this.getKitchenOrderDetails(restaurantId, orderId);
+
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.READY, 'Only preparing orders can be marked ready');
+
+    order.status = OrderStatus.READY;
+    order.readyAt = new Date();
+    order.kitchenStaffId = toNullableObjectId(actorId);
+    await order.save();
+    return order;
+  }
+
+  static async rejectOrder(
+    restaurantId: string | Types.ObjectId,
+    orderId: string | Types.ObjectId,
+    reason: string,
+    actorId?: string | Types.ObjectId | null,
+  ) {
+    const order = await this.getKitchenOrderDetails(restaurantId, orderId);
+
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.REJECTED, 'Only placed orders can be rejected');
+
+    order.status = OrderStatus.REJECTED;
+    order.cancelledAt = new Date();
+    order.rejectedAt = new Date();
+    order.kitchenStaffId = toNullableObjectId(actorId);
+    order.rejectionReason = reason;
+    await order.save();
+    return order;
+  }
+
+  static async delayOrder(
+    restaurantId: string | Types.ObjectId,
+    orderId: string | Types.ObjectId,
+    delayMinutes: number,
+    actorId?: string | Types.ObjectId | null,
+  ) {
+    const order = await this.getKitchenOrderDetails(restaurantId, orderId);
+
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.DELAYED, 'Cannot delay order in current status');
+
+    if (order.estimatedPreparationTime) {
+      order.estimatedPreparationTime += delayMinutes;
+    } else {
+      order.estimatedPreparationTime = delayMinutes;
+    }
+    order.status = OrderStatus.DELAYED;
+    order.delayedAt = new Date();
+    order.kitchenStaffId = toNullableObjectId(actorId);
+
+    await order.save();
+    return order;
+  }
+
+  static async getReadyOrders(restaurantId: string | Types.ObjectId) {
+    return OrderModel.find({ restaurantId, status: OrderStatus.READY }).sort({ updatedAt: 1 });
+  }
+
+  static async pickFood(
+    restaurantId: string | Types.ObjectId,
+    orderId: string | Types.ObjectId,
+    actorId?: string | Types.ObjectId | null,
+  ) {
+    const order = await this.getKitchenOrderDetails(restaurantId, orderId);
+
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.PICKED, 'Only ready orders can be picked');
+
+    order.status = OrderStatus.PICKED;
+    order.pickedAt = new Date();
+    order.serviceStaffId = toNullableObjectId(actorId);
+    await order.save();
+    return order;
+  }
+
+  static async markServed(
+    restaurantId: string | Types.ObjectId,
+    orderId: string | Types.ObjectId,
+    actorId?: string | Types.ObjectId | null,
+  ) {
+    const order = await this.getKitchenOrderDetails(restaurantId, orderId);
+
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.SERVED, 'Only picked or ready orders can be served');
+
+    order.status = OrderStatus.SERVED;
+    order.servedAt = new Date();
+    order.serviceStaffId = toNullableObjectId(actorId);
+    await order.save();
+    return order;
+  }
+
+  static async markCompleted(
+    restaurantId: string | Types.ObjectId,
+    orderId: string | Types.ObjectId,
+    actorId?: string | Types.ObjectId | null,
+  ) {
+    const order = await this.getKitchenOrderDetails(restaurantId, orderId);
+
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.COMPLETED, 'Only served orders can be completed');
+
+    order.status = OrderStatus.COMPLETED;
+    order.completedAt = new Date();
+    order.serviceStaffId = toNullableObjectId(actorId);
+    await order.save();
+    return order;
   }
 }

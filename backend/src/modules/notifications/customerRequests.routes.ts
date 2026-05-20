@@ -4,8 +4,10 @@ import { NotificationsService } from './notifications.service';
 import { NotificationCategory, NotificationPriority } from './notifications.schema';
 import { TableModel } from '../tables/tables.model';
 import { UserRole } from '../../constants/roles';
+import { Priority, RequestStatus, RequestType } from '../../constants/statuses';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
+import { StaffRequestModel } from '../staff/staffRequest.model';
 import { z } from 'zod';
 
 const router = Router();
@@ -31,6 +33,8 @@ async function executeCustomerRequest(
     let recipientRole: UserRole = UserRole.SERVICE_STAFF;
     let category = NotificationCategory.STAFF;
     let priority = NotificationPriority.NORMAL;
+    let staffRequestType = RequestType.WAITER;
+    let staffRequestPriority = Priority.NORMAL;
     let title = '';
     let message = '';
     let notificationType = '';
@@ -42,18 +46,22 @@ async function executeCustomerRequest(
         message = `Table ${tableNum} is requesting a waiter.`;
         notificationType = 'CALL_WAITER';
         priority = NotificationPriority.HIGH;
+        staffRequestType = RequestType.WAITER;
+        staffRequestPriority = Priority.HIGH;
         responseMessage = 'Waiter Call submitted successfully';
         break;
       case 'water':
         title = 'Water Requested';
         message = `Table ${tableNum} is requesting water.`;
         notificationType = 'REQUEST_WATER';
+        staffRequestType = RequestType.WATER;
         responseMessage = 'Water Request submitted successfully';
         break;
       case 'cutlery':
         title = 'Cutlery Requested';
         message = `Table ${tableNum} is requesting cutlery.`;
         notificationType = 'REQUEST_CUTLERY';
+        staffRequestType = RequestType.CUTLERY;
         responseMessage = 'Cutlery Request submitted successfully';
         break;
       case 'cleaning':
@@ -62,12 +70,15 @@ async function executeCustomerRequest(
         recipientRole = UserRole.CLEANING_STAFF;
         category = NotificationCategory.CLEANING;
         notificationType = 'REQUEST_CLEANING';
+        staffRequestType = RequestType.CLEANING;
         responseMessage = 'Cleaning Request submitted successfully';
         break;
       case 'help':
         title = 'Assistance Needed';
         message = `Table ${tableNum} requested help/assistance.`;
         notificationType = 'REQUEST_HELP';
+        staffRequestType = RequestType.HELP;
+        staffRequestPriority = Priority.HIGH;
         responseMessage = 'Help/Other Request submitted successfully';
         break;
     }
@@ -90,10 +101,34 @@ async function executeCustomerRequest(
       },
     });
 
+    let staffRequest = await StaffRequestModel.findOne({
+      restaurantId: session.restaurantId,
+      sessionId: session._id,
+      tableId: session.tableId,
+      type: staffRequestType,
+      status: { $in: [RequestStatus.PENDING, RequestStatus.ACCEPTED] },
+      createdAt: { $gte: new Date(Date.now() - 60 * 1000) },
+    }).sort({ createdAt: -1 });
+
+    if (!staffRequest) {
+      staffRequest = await StaffRequestModel.create({
+        restaurantId: session.restaurantId,
+        sessionId: session._id,
+        tableId: session.tableId,
+        type: staffRequestType,
+        status: RequestStatus.PENDING,
+        priority: staffRequestPriority,
+      });
+    }
+
     res.status(201).json({
       success: true,
       message: responseMessage,
-      data: notification,
+      data: {
+        ...notification.toObject(),
+        notification,
+        request: staffRequest,
+      },
     });
   } catch (error) {
     next(error);

@@ -1,10 +1,12 @@
+import type { AppRole } from '../constants/roles';
+
 // src/types/auth.types.ts
 // Authentication-related type definitions
 
 export interface JwtPayload {
   _id: string;
   email: string;
-  role: string;
+  role: AppRole;
   restaurantId?: string;
 }
 

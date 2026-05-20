@@ -1,7 +1,5 @@
-import React from 'react';
+import { type PropsWithChildren } from 'react';
 
-const ThemeProvider = ({ children }: any) => {
+export function ThemeProvider({ children }: PropsWithChildren): JSX.Element {
   return <>{children}</>;
-};
-
-export default ThemeProvider;
+}

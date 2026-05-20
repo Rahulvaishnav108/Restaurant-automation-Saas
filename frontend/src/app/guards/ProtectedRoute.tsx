@@ -1,7 +1,14 @@
-import React from 'react';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { useAuth } from '../../auth/AuthProvider';
+import { appRoutes } from '../../shared/constants/routes';
 
-const ProtectedRoute = () => {
-  return <div>ProtectedRoute</div>;
-};
+export function ProtectedRoute(): JSX.Element {
+  const { isAuthenticated } = useAuth();
+  const location = useLocation();
 
-export default ProtectedRoute;
+  if (!isAuthenticated) {
+    return <Navigate replace state={{ from: location }} to={appRoutes.home} />;
+  }
+
+  return <Outlet />;
+}

@@ -1,27 +1,25 @@
-// src/middleware/rateLimiters.ts
-// Rate limit configurations for different route groups
-
 import rateLimit from 'express-rate-limit';
 import { env } from '../config/env';
+import { ErrorCode } from '../constants/errors';
 
-/** Global API rate limiter */
+const defaultMessage = {
+  success: false,
+  error: {
+    code: ErrorCode.RATE_LIMIT_EXCEEDED,
+    message: 'Too many requests, please try again later',
+  },
+};
+
 export const globalLimiter = rateLimit({
   windowMs: env.RATE_LIMIT_WINDOW_MS,
   max: env.RATE_LIMIT_MAX_REQUESTS,
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: 'Too many requests, please try again later',
-    },
-  },
+  message: defaultMessage,
 });
 
-/** Strict rate limiter for auth endpoints */
 export const authLimiter = rateLimit({
-  windowMs: 60_000, // 1 minute
+  windowMs: 60_000,
   max: env.AUTH_RATE_LIMIT_MAX_REQUESTS,
   skipSuccessfulRequests: true,
   standardHeaders: true,
@@ -29,39 +27,34 @@ export const authLimiter = rateLimit({
   message: {
     success: false,
     error: {
-      code: 'RATE_LIMIT_EXCEEDED',
+      code: ErrorCode.RATE_LIMIT_EXCEEDED,
       message: 'Too many authentication attempts, please try again later',
     },
   },
 });
 
-/** Rate limiter for public endpoints (QR scan, booking, etc.) */
 export const publicLimiter = rateLimit({
   windowMs: 60_000,
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: 'Too many requests, please try again later',
-    },
-  },
+  message: defaultMessage,
 });
 
-/** Dedicated rate limiter for session creation (POST /sessions/start) */
 export const sessionLimiter = rateLimit({
-  windowMs: 60_000, // 1 minute
-  max: env.SESSION_RATE_LIMIT_MAX_REQUESTS, // default: 5
+  windowMs: 60_000,
+  max: env.SESSION_RATE_LIMIT_MAX_REQUESTS,
   keyGenerator: (req) => req.ip || 'unknown',
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     success: false,
     error: {
-      code: 'RATE_LIMIT_EXCEEDED',
+      code: ErrorCode.RATE_LIMIT_EXCEEDED,
       message: 'Too many session creation attempts. Please wait before scanning again.',
     },
   },
 });
+
+export const apiRateLimiter = globalLimiter;
+export const authRateLimiter = authLimiter;

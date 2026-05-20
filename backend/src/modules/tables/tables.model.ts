@@ -8,6 +8,9 @@ export interface ITable extends Document {
   restaurantId: Types.ObjectId;
   tableNumber: string;
   capacity: number;
+  floor: number;
+  section: string;
+  assignedStaffId?: Types.ObjectId | null;
   status: TableStatus;
   qrCode: string;
   isActive: boolean;
@@ -18,7 +21,8 @@ export interface ITable extends Document {
 
 /** Valid state transitions for the table lifecycle */
 export const TABLE_TRANSITIONS: Record<TableStatus, TableStatus[]> = {
-  [TableStatus.AVAILABLE]: [TableStatus.OCCUPIED],
+  [TableStatus.AVAILABLE]: [TableStatus.RESERVED, TableStatus.OCCUPIED],
+  [TableStatus.RESERVED]: [TableStatus.AVAILABLE, TableStatus.OCCUPIED],
   [TableStatus.OCCUPIED]: [TableStatus.PAYMENT_PENDING],
   [TableStatus.PAYMENT_PENDING]: [TableStatus.NEEDS_CLEANING],
   [TableStatus.NEEDS_CLEANING]: [TableStatus.CLEANING_IN_PROGRESS],
@@ -43,6 +47,21 @@ const tableSchema = new Schema<ITable>(
       required: [true, 'Table capacity is required'],
       min: [1, 'Capacity must be at least 1'],
       max: [50, 'Capacity cannot exceed 50'],
+    },
+    floor: {
+      type: Number,
+      default: 1,
+      min: 0,
+    },
+    section: {
+      type: String,
+      default: 'Main',
+      trim: true,
+    },
+    assignedStaffId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
     },
     status: {
       type: String,
@@ -69,12 +88,14 @@ const tableSchema = new Schema<ITable>(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
+    collection: 'tables',
   }
 );
 
 // Compound unique index: one table number per restaurant
 tableSchema.index({ restaurantId: 1, tableNumber: 1 }, { unique: true });
 tableSchema.index({ status: 1 });
+tableSchema.index({ restaurantId: 1, floor: 1, section: 1 });
 
 /**
  * Check if a status transition is valid.

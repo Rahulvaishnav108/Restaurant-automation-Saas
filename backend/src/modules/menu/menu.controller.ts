@@ -4,7 +4,6 @@ import { asyncHandler } from '../../utils/asyncHandler';
 import { parsePagination } from '../../utils/pagination';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
-import { MenuItem } from './menu.model';
 
 export class MenuController {
   /*
@@ -112,6 +111,17 @@ export class MenuController {
     res.status(200).json({ success: true, data: item });
   });
 
+  static updateItemImage = asyncHandler(async (req: Request, res: Response) => {
+    const item = await MenuService.updateItemImage(
+      req.user!.restaurantId!,
+      req.params.id,
+      req.body.image ?? req.body.imageUrl,
+      req.user!._id,
+      { addToGallery: req.body.addToGallery },
+    );
+    res.status(200).json({ success: true, data: item });
+  });
+
   static reorderItems = asyncHandler(async (req: Request, res: Response) => {
     await MenuService.reorderItems(req.user!.restaurantId!, req.body.items, req.user!._id);
     res.status(200).json({ success: true, data: {} });
@@ -127,6 +137,7 @@ export class MenuController {
   private static getRestaurantIdFromReq(req: Request): string {
     if (req.tableSession) return req.tableSession.restaurantId.toString();
     if (req.params.restaurantId) return req.params.restaurantId;
+    if (typeof req.query.restaurantId === 'string') return req.query.restaurantId;
     throw new AppError('Restaurant ID is required', 400, ErrorCode.INVALID_REQUEST);
   }
 
@@ -142,16 +153,17 @@ export class MenuController {
   static getCustomerItems = asyncHandler(async (req: Request, res: Response) => {
     const restaurantId = MenuController.getRestaurantIdFromReq(req);
     const pagination = parsePagination(req.query as any);
-    
-    // We already do basic type conversion in Zod query schema, but let's be explicit
-    const vegOnly = String(req.query.vegOnly) === 'true';
-    const availableOnly = String(req.query.available) === 'true';
 
     const data = await MenuService.getItems(restaurantId, {
       ...pagination,
-      categoryId: req.query.category as string,
-      vegOnly,
-      availableOnly,
+      category: req.query.category as string,
+      vegOnly: String(req.query.vegOnly ?? req.query.veg) === 'true',
+      spicy: req.query.spicy === undefined ? undefined : String(req.query.spicy) === 'true',
+      availableOnly: String(req.query.available) === 'true',
+      popularOnly: String(req.query.popular) === 'true',
+      recommendedOnly: String(req.query.recommended) === 'true',
+      priceMin: req.query.priceMin ? Number(req.query.priceMin) : undefined,
+      priceMax: req.query.priceMax ? Number(req.query.priceMax) : undefined,
       search: req.query.search as string,
       sortBy: req.query.sortBy as string,
     });
@@ -160,16 +172,13 @@ export class MenuController {
 
   static getCustomerItemById = asyncHandler(async (req: Request, res: Response) => {
     const restaurantId = MenuController.getRestaurantIdFromReq(req);
-    const item = await MenuService.getItemById(restaurantId, req.params.id);
+    const item = await MenuService.getItemById(restaurantId, req.params.id, { excludeHidden: true });
     res.status(200).json({ success: true, data: item });
   });
 
   static getPublicItemById = asyncHandler(async (req: Request, res: Response) => {
-    // Public fetch doesn't necessarily know restaurantId if only given the item ID,
-    // but in MongoDB, object IDs are globally unique. We can query without restaurantId.
-    // Let's create a getGlobalItemById in MenuService or just query it directly here.
-    const item = await MenuItem.findById(req.params.id);
-    if (!item) throw new AppError('Menu item not found', 404, ErrorCode.NOT_FOUND);
+    const restaurantId = MenuController.getRestaurantIdFromReq(req);
+    const item = await MenuService.getItemById(restaurantId, req.params.id, { excludeHidden: true });
     res.status(200).json({ success: true, data: item });
   });
 }

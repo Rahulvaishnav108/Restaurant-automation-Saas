@@ -1,13 +1,11 @@
-// src/modules/tableSessions/tableSessions.controller.ts
-// Route handlers for table session lifecycle
-
-import { Request, Response, NextFunction } from 'express';
+import type { NextFunction, Request, Response } from 'express';
+import { ErrorCode } from '../../constants/errors';
+import { AppError } from '../../utils/AppError';
+import { ok } from '../../utils/responses';
+import * as tablesService from '../tables/tables.service';
+import type { StartSessionInput } from './tableSessions.schema';
 import * as sessionService from './tableSessions.service';
-import { StartSessionInput } from './tableSessions.schema';
 
-/**
- * POST /sessions/start — QR scan entry point (public, rate-limited)
- */
 export async function startSession(req: Request, res: Response, next: NextFunction) {
   try {
     const input = req.body as StartSessionInput;
@@ -18,62 +16,93 @@ export async function startSession(req: Request, res: Response, next: NextFuncti
 
     const { session, sessionToken } = await sessionService.startSession(input, meta);
 
-    res.status(201).json({
-      success: true,
-      data: {
+    ok(
+      res,
+      {
+        session: {
+          ...session.toObject(),
+          token: sessionToken,
+        },
         sessionId: session._id,
         restaurantId: session.restaurantId,
         tableId: session.tableId,
         customerName: session.customerName,
-        sessionToken, // Client stores this in localStorage for recovery
+        sessionToken,
         expiresAt: session.expiresAt,
         status: session.status,
       },
-      message: 'Session started successfully',
-    });
+      201,
+    );
   } catch (error) {
     next(error);
   }
 }
 
-/**
- * GET /sessions/current — Get current session info (requireSession)
- */
+export async function validateTableSessionController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const session = await sessionService.validateSession(req.body.token);
+    ok(res, { session });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function createTableSessionController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const table = await tablesService.findByQrCode(req.body.token);
+    const { session, sessionToken } = await sessionService.startSession(
+      {
+        restaurantId: table.restaurantId.toString(),
+        tableId: table._id.toString(),
+        customerName: req.body.customerName,
+        mobile: req.body.mobile ?? '0000000000',
+      },
+      {
+        ipAddress: req.ip || req.socket.remoteAddress,
+        userAgent: req.headers['user-agent'],
+      },
+    );
+
+    ok(
+      res,
+      {
+        session: {
+          ...session.toObject(),
+          token: sessionToken,
+        },
+        sessionId: session._id,
+        restaurantId: session.restaurantId,
+        tableId: session.tableId,
+        sessionToken,
+        expiresAt: session.expiresAt,
+        status: session.status,
+      },
+      201,
+    );
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function getCurrentSession(req: Request, res: Response, next: NextFunction) {
   try {
-    // req.tableSession is set by requireSession middleware
-    const session = req.tableSession;
-
-    res.status(200).json({
-      success: true,
-      data: session,
-    });
+    ok(res, { session: req.tableSession });
   } catch (error) {
     next(error);
   }
 }
 
-/**
- * GET /sessions/recover — Recover session from stored token (public)
- */
 export async function recoverSession(req: Request, res: Response, next: NextFunction) {
   try {
     const token = req.headers['x-session-token'] as string;
     if (!token) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'INVALID_REQUEST',
-          message: 'x-session-token header is required',
-        },
-      });
+      throw new AppError('x-session-token header is required', 400, ErrorCode.INVALID_REQUEST);
     }
 
     const session = await sessionService.recoverSession(token);
 
-    res.status(200).json({
-      success: true,
-      data: {
+    ok(res, {
+      session: {
         sessionId: session._id,
         restaurantId: session.restaurantId,
         tableId: session.tableId,
@@ -82,43 +111,27 @@ export async function recoverSession(req: Request, res: Response, next: NextFunc
         status: session.status,
         lastActivityAt: session.lastActivityAt,
       },
-      message: 'Session recovered successfully',
     });
   } catch (error) {
     next(error);
   }
 }
 
-/**
- * POST /sessions/:sessionId/end — Staff ends a session
- */
 export async function endSession(req: Request, res: Response, next: NextFunction) {
   try {
     const { sessionId } = req.params;
-    const session = await sessionService.endSession(sessionId, 'staff_closed');
-
-    res.status(200).json({
-      success: true,
-      data: session,
-      message: 'Session ended successfully',
-    });
+    const session = await sessionService.endSession(sessionId, 'staff_closed', req.user?.restaurantId);
+    ok(res, { session });
   } catch (error) {
     next(error);
   }
 }
 
-/**
- * GET /sessions/:sessionId — Staff views a session
- */
 export async function getSession(req: Request, res: Response, next: NextFunction) {
   try {
     const { sessionId } = req.params;
-    const session = await sessionService.getSessionById(sessionId);
-
-    res.status(200).json({
-      success: true,
-      data: session,
-    });
+    const session = await sessionService.getSessionById(sessionId, req.user?.restaurantId);
+    ok(res, { session });
   } catch (error) {
     next(error);
   }

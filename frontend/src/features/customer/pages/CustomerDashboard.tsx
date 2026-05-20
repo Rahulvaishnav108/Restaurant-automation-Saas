@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Bell, User, Home, ShoppingBag, QrCode, ClipboardList, Heart, Star, Clock3, Plus, Minus, X, ChevronLeft, SlidersHorizontal, Truck, Leaf, Wifi, Percent } from 'lucide-react';
 
-interface Props { onBack: () => void; }
+interface Props {
+  onBack?: () => void;
+}
 
 const CATS = [
   { label:'All', icon:'🍽️' }, { label:'Biryani', icon:'🍛' }, { label:'Pizza', icon:'🍕' },
@@ -22,7 +24,7 @@ const MENU = [
 type CartItem = { id: number; qty: number };
 type Tab = 'home' | 'menu' | 'orders' | 'profile';
 
-const CustomerDashboard: React.FC<Props> = ({ onBack }) => {
+const CustomerDashboard: React.FC<Props> = ({ onBack = () => undefined }) => {
   const [tab, setTab] = useState<Tab>('home');
   const [cat, setCat] = useState('All');
   const [search, setSearch] = useState('');
@@ -97,8 +99,24 @@ const CustomerDashboard: React.FC<Props> = ({ onBack }) => {
 
       {/* Cart Drawer */}
       {cartOpen && (
-        <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm" onClick={() => setCartOpen(false)}>
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md rounded-t-3xl bg-[#0e1221] border-t border-white/10 p-5 pb-8" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm"
+          role="button"
+          tabIndex={0}
+          aria-label="Close cart drawer"
+          onClick={event => {
+            if (event.target === event.currentTarget) {
+              setCartOpen(false);
+            }
+          }}
+          onKeyDown={event => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              setCartOpen(false);
+            }
+          }}
+        >
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md rounded-t-3xl bg-[#0e1221] border-t border-white/10 p-5 pb-8">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold">Your Cart ({totalItems})</h3>
               <button onClick={() => setCartOpen(false)}><X className="h-5 w-5" /></button>

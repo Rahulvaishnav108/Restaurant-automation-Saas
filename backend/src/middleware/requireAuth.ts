@@ -1,75 +1,62 @@
-// src/middleware/requireAuth.ts
-// JWT authentication middleware — verifies access token and attaches user to request
-
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { env } from '../config/env';
-import { JwtPayload } from '../types/auth.types';
-import { AppError } from '../utils/AppError';
+import type { NextFunction, Request, Response } from 'express';
 import { ErrorCode } from '../constants/errors';
+import { verifyAccessToken } from '../services/jwt.service';
+import { AppError } from '../utils/AppError';
 
-/**
- * Middleware: Require a valid JWT access token.
- * Extracts from Authorization: Bearer <token> header.
- * Attaches decoded user to req.user.
- */
 export function requireAuth(req: Request, _res: Response, next: NextFunction): void {
-  const authHeader = req.headers.authorization;
+  const authHeader = req.header('authorization');
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new AppError('Authentication required', 401, ErrorCode.UNAUTHORIZED);
+  if (!authHeader?.startsWith('Bearer ')) {
+    next(new AppError('Authentication required', 401, ErrorCode.UNAUTHORIZED));
+    return;
   }
 
-  const token = authHeader.split(' ')[1];
+  const token = authHeader.slice(7).trim();
 
   if (!token) {
-    throw new AppError('Authentication required', 401, ErrorCode.UNAUTHORIZED);
+    next(new AppError('Authentication required', 401, ErrorCode.UNAUTHORIZED));
+    return;
   }
 
   try {
-    const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+    const payload = verifyAccessToken(token);
 
     req.user = {
-      _id: decoded._id,
-      email: decoded.email,
-      role: decoded.role,
-      restaurantId: decoded.restaurantId,
+      _id: payload._id,
+      id: payload._id,
+      email: payload.email,
+      role: payload.role,
+      restaurantId: payload.restaurantId,
     };
 
     next();
   } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) {
-      throw new AppError('Access token expired', 401, ErrorCode.TOKEN_EXPIRED);
-    }
-    if (error instanceof jwt.JsonWebTokenError) {
-      throw new AppError('Invalid token', 401, ErrorCode.TOKEN_INVALID);
-    }
-    throw error;
+    next(error as Error);
   }
 }
 
-/**
- * Middleware: Optionally attach user from JWT if present.
- * Does NOT throw if token is missing or invalid.
- */
 export function attachUser(req: Request, _res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
 
-  if (authHeader && authHeader.startsWith('Bearer ')) {
+  if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.split(' ')[1];
+
     if (token) {
       try {
-        const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+        const decoded = verifyAccessToken(token);
+
         req.user = {
           _id: decoded._id,
+          id: decoded._id,
           email: decoded.email,
           role: decoded.role,
           restaurantId: decoded.restaurantId,
         };
-      } catch (error) {
-        // Silent fail — req.user remains undefined
+      } catch {
+        // Silent fail; req.user remains undefined.
       }
     }
   }
+
   next();
 }
