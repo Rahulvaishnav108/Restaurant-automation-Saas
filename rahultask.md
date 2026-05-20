@@ -135,3 +135,68 @@
 ## Known Dependencies / Deferments
 - Loyalty rule CRUD remains deferred until ownership is assigned outside the current Rahul lane.
 - Billing/tax/payment gateway depth remains outside Rahul architecture ownership; only operational handoff is verified here.
+
+## Rahul Status Snapshot
+- Current Rahul Phase 1 backend scope is complete and verified.
+- Use the backlog below for the next Rahul-owned work instead of reopening completed Phase 1 items.
+
+## Next Rahul Scope Backlog
+
+## Priority 12: Mainline Integration and Regression Safety
+- [x] Merge the latest `origin/main` into the Rahul branch once GitHub connectivity is available
+- [x] Resolve route and middleware overlap after mainline merge
+  Focus first on `backend/src/app.ts`, notifications, and shared route wiring.
+- [x] Re-run full Rahul verification after the mainline merge
+  `lint`, `typecheck`, `build`, and `verify:phase1`.
+- [x] Add a short merge-risk note in `rahultask.md` whenever shared route ownership changes
+  Merge-risk note: `backend/src/app.ts` now keeps Rahul customer/session contract routes ahead of overlapping mainline billing paths, while mainline admin billing and persisted notification flows remain mounted; future shared-route edits should re-check `customer/requests`, `customer/payments`, and notification response contracts together.
+
+## Priority 13: Staff Admin Expansion
+- [ ] Implement `GET /admin/staff/attendance`
+- [ ] Implement `GET /admin/staff/performance`
+- [ ] Decide whether attendance should be DB-derived, shift-derived, or explicitly stored in Phase 2
+- [ ] Seed enough staff operational data to make attendance/performance endpoints meaningful
+- [ ] Add Postman and smoke verification for attendance and performance APIs
+
+## Priority 14: Notification and Event Flow Maturity
+- [ ] Emit persisted notifications when customers create waiter, help, or cleaning requests
+- [ ] Emit notifications when kitchen marks orders ready for service staff pickup
+- [ ] Emit notifications when sessions end and tables move into cleaning-needed state
+- [ ] Verify role-wise notification fanout against real DB records and seeded users
+- [ ] Keep notification creation logic consolidated instead of scattering it across unrelated handlers
+
+## Priority 15: Upload and Search Hardening
+- [ ] Enforce upload MIME-type and file-size validation on `/uploads`
+- [ ] Add upload failure-path verification
+  Invalid MIME type, oversize payload, empty payload, and unsafe filename cases.
+- [ ] Decide whether local upload retention/cleanup belongs in Rahul lane or platform lane
+- [ ] Tighten search scoping if cross-restaurant or cross-role leakage becomes possible
+- [ ] Add Postman coverage for search edge cases and upload validation failures
+
+## Priority 16: Order and Kitchen Operational History
+- [ ] Add an order transition history trail for kitchen and service actions
+- [ ] Capture actor, from-status, to-status, and timestamp for each operational transition
+- [ ] Expose batch detail enrichment for kitchen consumers
+  Include linked order summaries and station-level context where useful.
+- [ ] Add SLA-style metrics for accepted-to-ready and ready-to-served durations
+- [ ] Verify transition history and SLA metrics through seeded smoke coverage
+
+## Priority 17: Inventory and Offer Maturity
+- [ ] Decide whether inventory detail/delete/stock-adjustment history belongs in Rahul scope for the next phase
+- [ ] If kept in scope, add inventory item detail and stock-adjustment history endpoints
+- [ ] Add operational offer constraints
+  Activation window, active schedule, or simple usage-limit behavior if Phase 2 needs them.
+- [ ] Verify customer offer eligibility behavior against richer offer rules if those rules are introduced
+
+## Priority 18: Rahul Backend Test Depth
+- [ ] Add backend integration tests for Rahul-owned route contracts
+- [ ] Add role-guard and session-guard regression tests for owned APIs
+- [ ] Split `verify:phase1` into reusable focused suites if runtime becomes too heavy
+  Public/session, customer ordering, staff-kitchen-cleaning, and admin/shared.
+- [ ] Add CI reporting that makes Rahul-owned failures faster to isolate from unrelated platform failures
+
+## Priority 19: Deferred Scope Watchlist
+- [ ] Reconfirm loyalty rule CRUD ownership before implementation
+- [ ] If loyalty rules move into Rahul scope, implement `GET /admin/loyalty/rules`
+- [ ] If loyalty rules move into Rahul scope, implement `POST /admin/loyalty/rules`
+- [ ] If loyalty rules move into Rahul scope, add validation, Postman coverage, and smoke verification
