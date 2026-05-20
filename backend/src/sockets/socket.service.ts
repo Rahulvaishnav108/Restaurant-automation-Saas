@@ -32,6 +32,22 @@ class SocketService {
         logger.info(`👤 Socket ${socket.id} joined session room: ${sessionId}`);
       });
 
+      // Join room based on role (for specific staff role updates)
+      socket.on('join:role', ({ restaurantId, role }: { restaurantId: string; role: string }) => {
+        if (restaurantId && role) {
+          socket.join(`restaurant:${restaurantId}:role:${role}`);
+          logger.info(`👤 Socket ${socket.id} joined role room: restaurant:${restaurantId}:role:${role}`);
+        }
+      });
+
+      // Join room based on userId (for direct user updates)
+      socket.on('join:user', (userId: string) => {
+        if (userId) {
+          socket.join(`user:${userId}`);
+          logger.info(`👤 Socket ${socket.id} joined user room: user:${userId}`);
+        }
+      });
+
       socket.on('disconnect', () => {
         logger.info(`🔌 Socket disconnected: ${socket.id}`);
       });
@@ -54,6 +70,22 @@ class SocketService {
   public emitToSession(sessionId: string, event: string, data: any): void {
     if (!this.io) return;
     this.io.to(`session:${sessionId}`).emit(event, data);
+  }
+
+  /**
+   * Emit event to a specific role in a restaurant
+   */
+  public emitToRole(restaurantId: string, role: string, event: string, data: any): void {
+    if (!this.io) return;
+    this.io.to(`restaurant:${restaurantId}:role:${role}`).emit(event, data);
+  }
+
+  /**
+   * Emit event to a specific user
+   */
+  public emitToUser(userId: string, event: string, data: any): void {
+    if (!this.io) return;
+    this.io.to(`user:${userId}`).emit(event, data);
   }
 
   /**

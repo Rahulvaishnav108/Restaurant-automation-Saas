@@ -1,5 +1,7 @@
 import { Types } from 'mongoose';
 import { Cart, ICart } from './cart.model';
+import { BillingModel } from '../billing/billing.model';
+import { BillStatus } from '../billing/billing.schema';
 import { MenuItem } from '../menu/menu.model';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
@@ -109,6 +111,12 @@ export class CartService {
     }
     if (menuItem.isHidden) {
       throw new AppError('Menu item is hidden and cannot be ordered', 400, ErrorCode.VALIDATION_ERROR);
+    }
+
+    // 1.5 Check if bill is generated
+    const existingBill = await BillingModel.findOne({ sessionId });
+    if (existingBill && [BillStatus.GENERATED, BillStatus.PENDING_PAYMENT, BillStatus.PAID].includes(existingBill.status)) {
+      throw new AppError('Cannot modify cart after bill has been generated', 400, ErrorCode.INVALID_REQUEST);
     }
 
     const cart = await this.getOrCreateCart(restaurantId, sessionId);

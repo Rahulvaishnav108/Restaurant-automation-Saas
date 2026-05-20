@@ -5,7 +5,6 @@ import { z } from 'zod';
 import { env } from '../../config/env';
 import { validate } from '../../middleware/validate';
 import { ok } from '../../utils/responses';
-import { NotificationModel } from '../notifications/notifications.model';
 import { MenuItem } from '../menu/menu.model';
 import { RestaurantModel } from '../restaurants/restaurants.model';
 
@@ -16,50 +15,6 @@ const uploadBodySchema = z.object({
   text: z.string().max(100_000).optional(),
   contentBase64: z.string().max(1_000_000).optional(),
   mimeType: z.string().trim().min(1).max(100).optional(),
-});
-
-sharedRouter.get('/notifications', async (req, res, next) => {
-  try {
-    const notifications = await NotificationModel.find({
-      userId: req.user?.id,
-    }).sort({ createdAt: -1 });
-
-    ok(res, { notifications });
-  } catch (error) {
-    next(error);
-  }
-});
-
-sharedRouter.patch('/notifications/:id/read', async (req, res, next) => {
-  try {
-    const notification = await NotificationModel.findOneAndUpdate(
-      {
-        _id: req.params.id,
-        userId: req.user?.id,
-      },
-      { read: true },
-      { new: true },
-    );
-
-    ok(res, { notification });
-  } catch (error) {
-    next(error);
-  }
-});
-
-sharedRouter.patch('/notifications/read-all', async (req, res, next) => {
-  try {
-    await NotificationModel.updateMany(
-      {
-        userId: req.user?.id,
-      },
-      { read: true },
-    );
-
-    ok(res, { readAll: true });
-  } catch (error) {
-    next(error);
-  }
 });
 
 sharedRouter.post('/uploads', validate({ body: uploadBodySchema }), async (req, res, next) => {

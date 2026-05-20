@@ -12,6 +12,11 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { requestId } from './middleware/requestId';
 import { apiRateLimiter } from './middleware/rateLimiters';
 import { apiRouter } from './modules';
+import billingRoutes from './modules/billing/billing.routes';
+import customerRequestsRoutes from './modules/notifications/customerRequests.routes';
+import notificationsRoutes from './modules/notifications/notifications.routes';
+import tableSessionRoutes from './modules/tableSessions/tableSessions.routes';
+import tableRoutes from './modules/tables/tables.routes';
 
 const app = express();
 
@@ -122,7 +127,12 @@ app.get(env.API_PREFIX, (_req, res) => {
   });
 });
 
+app.use(`${env.API_PREFIX}/tables`, tableRoutes);
+app.use(`${env.API_PREFIX}/sessions`, tableSessionRoutes);
+app.use(`${env.API_PREFIX}/customer/requests`, customerRequestsRoutes);
+app.use(`${env.API_PREFIX}/notifications`, notificationsRoutes);
 app.use(env.API_PREFIX, apiRouter);
+app.use(`${env.API_PREFIX}`, billingRoutes);
 
 app.get('/version', (_req, res) => {
   res.status(200).json({

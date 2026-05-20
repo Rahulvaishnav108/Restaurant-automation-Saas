@@ -1,10 +1,11 @@
 import mongoose from 'mongoose';
 import { BillingModel } from './billing.model';
 import { OrderModel } from '../orders/orders.model';
-import { BillStatus, PaymentMethod } from './billing.schema';
+import { BillStatus, PaymentMethod, PaymentStatus } from './billing.schema';
 import { OrderStatus } from '../../constants/statuses';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
+import { endSession } from '../tableSessions/tableSessions.service';
 
 export class BillingService {
   /**
@@ -77,8 +78,8 @@ export class BillingService {
     let bill = await BillingModel.findOne({ restaurantId, sessionId });
 
     if (bill) {
-      if (bill.status === BillStatus.PAID) {
-        throw new AppError('Bill is already paid.', 400, ErrorCode.INVALID_REQUEST);
+      if (bill.status === BillStatus.PAID || bill.status === BillStatus.PENDING_PAYMENT) {
+        throw new AppError('Bill is already finalized or paid.', 400, ErrorCode.INVALID_REQUEST);
       }
       
       bill.subtotal = liveBill.subtotal;
@@ -117,8 +118,8 @@ export class BillingService {
       throw new AppError('Bill not found. Please request bill first.', 404, ErrorCode.NOT_FOUND);
     }
 
-    if (bill.status === BillStatus.PAID) {
-      throw new AppError('Cannot apply coupon to a paid bill.', 400, ErrorCode.INVALID_REQUEST);
+    if (bill.status === BillStatus.PAID || bill.status === BillStatus.PENDING_PAYMENT) {
+      throw new AppError('Cannot apply coupon to a finalized or paid bill.', 400, ErrorCode.INVALID_REQUEST);
     }
 
     if (couponCode !== 'DISCOUNT10') {
@@ -151,8 +152,8 @@ export class BillingService {
       throw new AppError('Bill not found.', 404, ErrorCode.NOT_FOUND);
     }
 
-    if (bill.status === BillStatus.PAID) {
-      throw new AppError('Cannot modify a paid bill.', 400, ErrorCode.INVALID_REQUEST);
+    if (bill.status === BillStatus.PAID || bill.status === BillStatus.PENDING_PAYMENT) {
+      throw new AppError('Cannot modify a finalized or paid bill.', 400, ErrorCode.INVALID_REQUEST);
     }
 
     const couponIndex = bill.appliedCoupons.findIndex(c => c.code === couponCode);
@@ -180,10 +181,12 @@ export class BillingService {
       throw new AppError('Bill is already paid.', 400, ErrorCode.INVALID_REQUEST);
     }
 
-    const intentId = `pi_mock_${Date.now()}`;
+    const intentId = `pay_mock_${restaurantId}_${Date.now()}`;
     
     bill.paymentId = intentId;
     bill.paymentMethod = paymentMethod;
+    bill.status = BillStatus.PENDING_PAYMENT;
+    bill.paymentStatus = PaymentStatus.PENDING;
     await bill.save();
 
     return {
@@ -194,19 +197,53 @@ export class BillingService {
     };
   }
 
-  static async verifyPayment(restaurantId: string, sessionId: string, paymentId: string) {
+  static async verifyPayment(restaurantId: string, sessionId: string, paymentId: string, simulateStatus?: PaymentStatus) {
     const bill = await BillingModel.findOne({ restaurantId, sessionId });
     if (!bill) {
       throw new AppError('Bill not found.', 404, ErrorCode.NOT_FOUND);
+    }
+
+    // Idempotency check
+    if (bill.paymentId === paymentId && bill.status === BillStatus.PAID && bill.paymentStatus === PaymentStatus.PAID) {
+      return bill; // Already processed
     }
 
     if (bill.paymentId !== paymentId) {
       throw new AppError('Invalid payment ID.', 400, ErrorCode.VALIDATION_ERROR);
     }
 
+    // Mock failure behavior
+    if (simulateStatus === PaymentStatus.FAILED || paymentId.includes('fail')) {
+      bill.paymentStatus = PaymentStatus.FAILED;
+      bill.status = BillStatus.FAILED;
+      await bill.save();
+      throw new AppError('Payment processing failed.', 400, ErrorCode.PAYMENT_FAILED);
+    }
+
+    // Mock expired behavior
+    if (simulateStatus === PaymentStatus.EXPIRED) {
+      bill.paymentStatus = PaymentStatus.EXPIRED;
+      bill.status = BillStatus.DRAFT; // Revert to a pre-payment state
+      await bill.save();
+      throw new AppError('Payment session expired.', 400, ErrorCode.PAYMENT_FAILED);
+    }
+
+    // Mock pending behavior (doing nothing and waiting)
+    if (simulateStatus === PaymentStatus.PENDING) {
+      return bill;
+    }
+
     bill.status = BillStatus.PAID;
+    bill.paymentStatus = PaymentStatus.PAID;
     bill.paidAt = new Date();
     await bill.save();
+
+    // End session automatically upon successful payment
+    try {
+      await endSession(sessionId, 'Bill paid successfully');
+    } catch (error) {
+      console.error(`Failed to close session ${sessionId} after payment:`, error);
+    }
 
     return bill;
   }
@@ -219,6 +256,7 @@ export class BillingService {
 
     return {
       status: bill.status,
+      paymentStatus: bill.paymentStatus,
       paidAt: bill.paidAt,
       paymentMethod: bill.paymentMethod
     };

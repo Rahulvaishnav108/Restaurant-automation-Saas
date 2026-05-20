@@ -27,6 +27,7 @@ import {
   PaymentStatus as OrderPaymentStatus,
 } from '../modules/orders/orders.schema';
 import { NotificationModel } from '../modules/notifications/notifications.model';
+import { NotificationCategory, NotificationPriority } from '../modules/notifications/notifications.schema';
 import { QueueEntryModel } from '../modules/queue/queue.model';
 import { ReservationModel } from '../modules/reservations/reservations.model';
 import { StaffRequestModel } from '../modules/staff/staffRequest.model';
@@ -552,25 +553,43 @@ export async function seedDevelopmentData(): Promise<void> {
       { new: true, upsert: true, setDefaultsOnInsert: true },
     ),
     NotificationModel.findOneAndUpdate(
-      { userId: adminUser._id, title: 'Low stock alert' },
+      { restaurantId: amberTable._id, recipientRole: UserRole.RESTAURANT_ADMIN, title: 'Low stock alert' },
       {
         $set: {
-          userId: adminUser._id,
+          restaurantId: amberTable._id,
+          tableSessionId: null,
+          recipientRole: UserRole.RESTAURANT_ADMIN,
           title: 'Low stock alert',
           message: 'Mozzarella below threshold.',
-          read: false,
+          type: 'LOW_STOCK_ALERT',
+          category: NotificationCategory.SYSTEM,
+          priority: NotificationPriority.NORMAL,
+          expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
+          metadata: { sku: 'mozzarella', userId: adminUser._id },
+          isRead: false,
+          readAt: null,
+          readBy: null,
         },
       },
       { new: true, upsert: true, setDefaultsOnInsert: true },
     ),
     NotificationModel.findOneAndUpdate(
-      { userId: staffUser._id, title: 'New waiter request' },
+      { restaurantId: amberTable._id, recipientRole: UserRole.SERVICE_STAFF, title: 'New waiter request' },
       {
         $set: {
-          userId: staffUser._id,
+          restaurantId: amberTable._id,
+          tableSessionId: activeSession._id,
+          recipientRole: UserRole.SERVICE_STAFF,
           title: 'New waiter request',
           message: 'Table T2 requested assistance.',
-          read: false,
+          type: 'REQUEST_WAITER',
+          category: NotificationCategory.STAFF,
+          priority: NotificationPriority.HIGH,
+          expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
+          metadata: { tableNumber: 'T2', userId: staffUser._id },
+          isRead: false,
+          readAt: null,
+          readBy: null,
         },
       },
       { new: true, upsert: true, setDefaultsOnInsert: true },
