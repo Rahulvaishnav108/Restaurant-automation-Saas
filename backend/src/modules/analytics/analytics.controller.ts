@@ -1,0 +1,63 @@
+import type { NextFunction, Request, Response } from 'express';
+import { ok } from '../../utils/responses';
+import { AnalyticsService } from './analytics.service';
+import { AppError } from '../../utils/AppError';
+import { ErrorCode } from '../../constants/errors';
+
+function getRestaurantId(req: Request): string {
+  const restaurantId = req.user?.restaurantId || req.query.restaurantId;
+  if (!restaurantId || typeof restaurantId !== 'string') {
+    throw new AppError('Restaurant context required', 403, ErrorCode.FORBIDDEN);
+  }
+  return restaurantId;
+}
+
+export async function getRevenueAnalytics(req: Request, res: Response, next: NextFunction) {
+  try {
+    const restaurantId = getRestaurantId(req);
+    const data = await AnalyticsService.getAdminOverview(restaurantId);
+    ok(res, data);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getPeakHoursAnalytics(req: Request, res: Response, next: NextFunction) {
+  try {
+    const restaurantId = getRestaurantId(req);
+    const data = await AnalyticsService.getPeakHours(restaurantId);
+    ok(res, { peakHours: data });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getRepeatCustomersAnalytics(req: Request, res: Response, next: NextFunction) {
+  try {
+    const restaurantId = getRestaurantId(req);
+    const data = await AnalyticsService.getRepeatCustomers(restaurantId);
+    ok(res, { repeatCustomers: data });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getKitchenPerformanceAnalytics(req: Request, res: Response, next: NextFunction) {
+  try {
+    const restaurantId = getRestaurantId(req);
+    const data = await AnalyticsService.getKitchenPerformance(restaurantId);
+    ok(res, { kitchenPerformance: data });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getTableUtilizationAnalytics(req: Request, res: Response, next: NextFunction) {
+  try {
+    const restaurantId = getRestaurantId(req);
+    const data = await AnalyticsService.getTableUtilization(restaurantId);
+    ok(res, { tableUtilization: data });
+  } catch (error) {
+    next(error);
+  }
+}

@@ -6,6 +6,7 @@ import { OrderStatus } from '../../constants/statuses';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
 import { endSession } from '../tableSessions/tableSessions.service';
+import { InventoryService } from '../inventory/inventory.service';
 
 export class BillingService {
   /**
@@ -237,6 +238,21 @@ export class BillingService {
     bill.paymentStatus = PaymentStatus.PAID;
     bill.paidAt = new Date();
     await bill.save();
+
+    // Trigger stock deduction hook
+    try {
+      const orders = await OrderModel.find({
+        restaurantId,
+        sessionId,
+        status: { $ne: OrderStatus.CANCELLED }
+      });
+      const orderItems = orders.flatMap(order => order.items);
+      if (orderItems.length > 0) {
+        await InventoryService.deductStock(orderItems);
+      }
+    } catch (inventoryError) {
+      console.error(`Failed to deduct inventory for session ${sessionId}:`, inventoryError);
+    }
 
     // End session automatically upon successful payment
     try {

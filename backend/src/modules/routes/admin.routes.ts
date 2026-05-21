@@ -24,6 +24,7 @@ import {
 import staffManagementRouter from '../staff/staff.routes';
 import offersRouter from '../offers/offers.routes';
 import inventoryRouter from '../inventory/inventory.routes';
+import analyticsRouter from '../analytics/analytics.routes';
 
 export const adminRouter = Router();
 
@@ -42,3 +43,4 @@ adminRouter.get('/tables/:id/qr', validate({ params: tableIdParamsSchema }), get
 adminRouter.use('/staff', staffManagementRouter);
 adminRouter.use('/offers', offersRouter);
 adminRouter.use('/inventory', inventoryRouter);
+adminRouter.use('/analytics', analyticsRouter);

@@ -9,13 +9,9 @@ import { UserRole } from '../../constants/roles';
 import { validate } from '../../middleware/validate';
 import {
   placeOrderBodySchema,
-  acceptOrderBodySchema,
-  rejectOrderBodySchema,
-  delayOrderBodySchema,
   orderIdParamsSchema,
   customerOrdersQuerySchema,
 } from './orders.schema';
-import { kitchenOrdersQuerySchema } from '../kitchen/kitchen.schema';
 import { OrdersController } from './orders.controller';
 
 const router = Router();
@@ -56,76 +52,7 @@ router.post(
   OrdersController.cancelOrder
 );
 
-/*
-|--------------------------------------------------------------------------
-| KITCHEN ORDER APIs (JWT auth — kitchen staff + admin)
-|--------------------------------------------------------------------------
-*/
 
-const kitchenRoles = [UserRole.KITCHEN_STAFF, UserRole.RESTAURANT_ADMIN, UserRole.SUPER_ADMIN];
-
-// Kitchen Dashboard Orders
-router.get(
-  '/kitchen/orders',
-  requireAuth,
-  roleGuard(...kitchenRoles),
-  validate({ query: kitchenOrdersQuerySchema }),
-  OrdersController.getKitchenOrders
-);
-
-// Kitchen Order Details
-router.get(
-  '/kitchen/orders/:id',
-  requireAuth,
-  roleGuard(...kitchenRoles),
-  validate({ params: orderIdParamsSchema }),
-  OrdersController.getKitchenOrderDetails
-);
-
-// Accept Order
-router.patch(
-  '/kitchen/orders/:id/accept',
-  requireAuth,
-  roleGuard(...kitchenRoles),
-  validate({ params: orderIdParamsSchema, body: acceptOrderBodySchema }),
-  OrdersController.acceptOrder
-);
-
-// Start Cooking
-router.patch(
-  '/kitchen/orders/:id/start',
-  requireAuth,
-  roleGuard(...kitchenRoles),
-  validate({ params: orderIdParamsSchema }),
-  OrdersController.startCooking
-);
-
-// Mark Ready
-router.patch(
-  '/kitchen/orders/:id/ready',
-  requireAuth,
-  roleGuard(...kitchenRoles),
-  validate({ params: orderIdParamsSchema }),
-  OrdersController.markReady
-);
-
-// Delay Order
-router.patch(
-  '/kitchen/orders/:id/delay',
-  requireAuth,
-  roleGuard(...kitchenRoles),
-  validate({ params: orderIdParamsSchema, body: delayOrderBodySchema }),
-  OrdersController.delayOrder
-);
-
-// Reject Order
-router.patch(
-  '/kitchen/orders/:id/reject',
-  requireAuth,
-  roleGuard(...kitchenRoles),
-  validate({ params: orderIdParamsSchema, body: rejectOrderBodySchema }),
-  OrdersController.rejectOrder
-);
 
 /*
 |--------------------------------------------------------------------------

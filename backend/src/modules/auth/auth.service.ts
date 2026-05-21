@@ -66,7 +66,7 @@ export async function login(input: LoginInput, meta?: { userAgent?: string; ip?:
     throw new AppError('Account is not active', 403, ErrorCode.FORBIDDEN);
   }
 
-  const { comparePassword } = await import('../../utils/crypto');
+  const { comparePassword } = await import('../../utils/crypto.js');
   const isValid = await comparePassword(input.password, user.password);
 
   if (!isValid) {

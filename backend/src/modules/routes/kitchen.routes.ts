@@ -11,7 +11,15 @@ import {
   createKitchenBatchBodySchema,
   kitchenBatchParamsSchema,
   updateKitchenBatchBodySchema,
+  kitchenOrdersQuerySchema,
 } from '../kitchen/kitchen.schema';
+import { OrdersController } from '../orders/orders.controller';
+import {
+  orderIdParamsSchema,
+  acceptOrderBodySchema,
+  rejectOrderBodySchema,
+  delayOrderBodySchema,
+} from '../orders/orders.schema';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
 
@@ -270,3 +278,46 @@ kitchenRouter.get('/performance', async (req, res, next) => {
     next(error);
   }
 });
+
+// ── Kitchen Order Dashboard & Lifecycle Transition endpoints ────────────────────
+kitchenRouter.get(
+  '/orders',
+  validate({ query: kitchenOrdersQuerySchema }),
+  OrdersController.getKitchenOrders
+);
+
+kitchenRouter.get(
+  '/orders/:id',
+  validate({ params: orderIdParamsSchema }),
+  OrdersController.getKitchenOrderDetails
+);
+
+kitchenRouter.patch(
+  '/orders/:id/accept',
+  validate({ params: orderIdParamsSchema, body: acceptOrderBodySchema }),
+  OrdersController.acceptOrder
+);
+
+kitchenRouter.patch(
+  '/orders/:id/start',
+  validate({ params: orderIdParamsSchema }),
+  OrdersController.startCooking
+);
+
+kitchenRouter.patch(
+  '/orders/:id/ready',
+  validate({ params: orderIdParamsSchema }),
+  OrdersController.markReady
+);
+
+kitchenRouter.patch(
+  '/orders/:id/delay',
+  validate({ params: orderIdParamsSchema, body: delayOrderBodySchema }),
+  OrdersController.delayOrder
+);
+
+kitchenRouter.patch(
+  '/orders/:id/reject',
+  validate({ params: orderIdParamsSchema, body: rejectOrderBodySchema }),
+  OrdersController.rejectOrder
+);

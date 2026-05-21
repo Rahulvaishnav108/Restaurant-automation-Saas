@@ -26,98 +26,29 @@ function resolveRestaurantId(
   throw new AppError('Restaurant context required', 403, ErrorCode.FORBIDDEN);
 }
 
-export async function createTable(req: Request, res: Response, next: NextFunction) {
+export async function findByQrCodeController(req: Request, res: Response, next: NextFunction) {
   try {
-    const input = req.body as CreateTableInput;
-    const table = await tablesService.createTable(input);
-
-    res.status(201).json({
-      success: true,
-      data: table,
-      message: 'Table created successfully',
-    });
+    const { qrCode } = req.params;
+    const table = await tablesService.findByQrCode(qrCode);
+    ok(res, { table });
   } catch (error) {
     next(error);
   }
 }
 
-export async function updateTable(req: Request, res: Response, next: NextFunction) {
-  try {
-    const { id } = req.params;
-    const input = req.body as UpdateTableInput;
-    const table = await tablesService.updateTable(id, input, resolveRestaurantId(req));
-
-    res.status(200).json({
-      success: true,
-      data: table,
-      message: 'Table updated successfully',
-    });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function getTablesByRestaurant(req: Request, res: Response, next: NextFunction) {
-  try {
-    const { restaurantId } = req.params;
-    const tables = await tablesService.getTablesByRestaurant(restaurantId);
-
-    res.status(200).json({
-      success: true,
-      data: tables,
-      count: tables.length,
-    });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function getTableById(req: Request, res: Response, next: NextFunction) {
-  try {
-    const { id } = req.params;
-    const table = await tablesService.getTableById(id, resolveRestaurantId(req));
-
-    res.status(200).json({
-      success: true,
-      data: table,
-    });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function updateTableStatus(req: Request, res: Response, next: NextFunction) {
+export async function updateTableStatusController(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
     const { status } = req.body as UpdateTableStatusInput;
     const table = await tablesService.updateTableStatus(id, status, resolveRestaurantId(req));
-
-    res.status(200).json({
-      success: true,
-      data: table,
-      message: `Table status updated to ${status}`,
-    });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function findByQrCode(req: Request, res: Response, next: NextFunction) {
-  try {
-    const { qrCode } = req.params;
-    const table = await tablesService.findByQrCode(qrCode);
-
-    res.status(200).json({
-      success: true,
-      data: table,
-    });
+    ok(res, { table });
   } catch (error) {
     next(error);
   }
 }
 
 function getRestaurantId(req: Request): string {
-  return resolveRestaurantId(req, { allowBody: true });
+  return resolveRestaurantId(req, { allowBody: true, allowParams: true });
 }
 
 function getOwnedRestaurantId(req: Request, candidateRestaurantId?: unknown): string {
@@ -129,7 +60,7 @@ function getOwnedRestaurantId(req: Request, candidateRestaurantId?: unknown): st
     return candidateRestaurantId.trim();
   }
 
-  return resolveRestaurantId(req, { allowBody: true });
+  return resolveRestaurantId(req, { allowBody: true, allowParams: true });
 }
 
 export async function createTableController(req: Request, res: Response, next: NextFunction) {

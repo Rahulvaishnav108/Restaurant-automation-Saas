@@ -129,7 +129,7 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
 
   await otpService.verifyOTP(identifier, type as 'email' | 'mobile', otp);
 
-  const { UserModel } = await import('../users/users.model');
+  const { UserModel } = await import('../users/users.model.js');
   const updateField = type === 'email' ? { isEmailVerified: true } : { isMobileVerified: true };
 
   await UserModel.findOneAndUpdate(type === 'email' ? { email: identifier } : { mobile: identifier }, updateField);
