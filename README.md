@@ -11,14 +11,14 @@ Restaurant Automation is not just a digital menu system.
 It is a complete restaurant operating ecosystem that automates:
 
 - QR dining sessions
-- table lifecycle management
-- reservations & waiting queues
-- real-time kitchen workflows
-- waiter coordination
-- billing & payments
-- loyalty systems
-- offers & discounts
-- analytics dashboards
+- Table lifecycle management
+- Reservations & waiting queues
+- Real-time kitchen workflows
+- Waiter coordination
+- Billing & payments
+- Loyalty systems
+- Offers & discounts
+- Analytics dashboards
 - SaaS-level restaurant management
 
 ---
@@ -26,6 +26,7 @@ It is a complete restaurant operating ecosystem that automates:
 # ✨ Core Features
 
 ## 👤 Customer PWA
+
 - QR-based table session
 - Temporary dining session
 - Digital menu
@@ -43,6 +44,7 @@ It is a complete restaurant operating ecosystem that automates:
 ---
 
 ## 👨‍🍳 Kitchen PWA
+
 - Real-time order queue
 - Smart kitchen batching
 - Priority handling
@@ -55,6 +57,7 @@ It is a complete restaurant operating ecosystem that automates:
 ---
 
 ## 🧑‍💼 Service Staff PWA
+
 - Table management
 - Reservation handling
 - Queue handling
@@ -66,6 +69,7 @@ It is a complete restaurant operating ecosystem that automates:
 ---
 
 ## 🧹 Cleaning Staff PWA
+
 - Cleaning task queue
 - Table turnover workflow
 - Priority-based cleaning
@@ -74,6 +78,7 @@ It is a complete restaurant operating ecosystem that automates:
 ---
 
 ## 🛠️ Restaurant Admin Dashboard
+
 - Revenue analytics
 - Table management
 - Menu management
@@ -87,6 +92,7 @@ It is a complete restaurant operating ecosystem that automates:
 ---
 
 ## 🌐 Super Admin Dashboard
+
 - SaaS tenant management
 - Subscription management
 - Restaurant approval/suspension
@@ -117,10 +123,10 @@ It is a complete restaurant operating ecosystem that automates:
 
 Each table QR generates a temporary session tied to:
 
-- restaurant
-- table
-- expiry timestamp
-- session token
+- Restaurant
+- Table
+- Expiry timestamp
+- Session token
 
 Expired sessions automatically become invalid.
 
@@ -143,6 +149,7 @@ This prevents QR abuse and unauthorized table access.
 # 🧱 Tech Stack
 
 ## Frontend
+
 - React
 - Vite
 - TypeScript
@@ -157,6 +164,7 @@ This prevents QR abuse and unauthorized table access.
 ---
 
 ## Backend
+
 - Node.js
 - Express.js
 - TypeScript
@@ -167,6 +175,34 @@ This prevents QR abuse and unauthorized table access.
 - Zod
 - Winston
 - Node Cron
+
+---
+
+# 🧩 Monorepo Workspace Architecture
+
+This project uses npm workspaces for dependency hoisting and unified monorepo management.
+
+Shared development dependencies such as:
+
+- TypeScript
+- Node Types
+- ESLint
+- Prettier
+
+are hoisted to the root workspace for version consistency and reproducible builds.
+
+---
+
+## Workspace Structure
+
+```txt
+project/
+├── backend/
+├── frontend/
+├── node_modules/
+├── package.json
+└── package-lock.json
+```
 
 ---
 
@@ -216,13 +252,13 @@ backend/
 
 Socket.IO powered live updates:
 
-- order updates
-- kitchen queue updates
-- billing updates
-- reservation updates
-- notification updates
-- table state updates
-- staff request updates
+- Order updates
+- Kitchen queue updates
+- Billing updates
+- Reservation updates
+- Notification updates
+- Table state updates
+- Staff request updates
 
 ---
 
@@ -267,6 +303,7 @@ app.domain.com
 ```
 
 Contains:
+
 - Customer
 - Kitchen
 - Staff
@@ -281,6 +318,7 @@ admin.domain.com
 ```
 
 Contains:
+
 - Super Admin only
 
 Same frontend codebase.
@@ -294,23 +332,15 @@ Separate deployment exposure.
 
 ```bash
 git clone https://github.com/Graphura-India-Private-Limited/Restaurant-automation-Saas.git
+
+cd Restaurant-automation-Saas
 ```
 
 ---
 
-## Install Frontend
+## Install Dependencies
 
 ```bash
-cd frontend
-npm install
-```
-
----
-
-## Install Backend
-
-```bash
-cd backend
 npm install
 ```
 
@@ -318,32 +348,185 @@ npm install
 
 # 🔑 Environment Variables
 
-## Frontend
+Create:
 
-```env
-VITE_API_URL=
-VITE_SOCKET_URL=
-VITE_APP_MODE=
+```txt
+backend/.env
 ```
 
 ---
 
-## Backend
+## Backend Environment Configuration
 
 ```env
-PORT=
-MONGO_URI=
-JWT_SECRET=
-JWT_REFRESH_SECRET=
-CLIENT_URL=
-CORS_ORIGINS=
+# ======================================================
+# SERVER CONFIG
+# ======================================================
+
+PORT=5000
+NODE_ENV=development
+
+API_PREFIX=/api/v1
+
+CLIENT_URL=http://localhost:5173
+CORS_ORIGIN=http://localhost:5173
+
+# ======================================================
+# DATABASE
+# ======================================================
+
+MONGODB_URI=your_mongodb_connection_string
+
+# ======================================================
+# AUTH
+# ======================================================
+
+JWT_SECRET=your_random_jwt_secret
+JWT_REFRESH_SECRET=your_random_refresh_secret
+
+JWT_ACCESS_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+
+BCRYPT_SALT_ROUNDS=12
+
+# ======================================================
+# SESSION & COOKIE
+# ======================================================
+
+COOKIE_SECRET=your_cookie_secret
+
+COOKIE_DOMAIN=localhost
+
+ACCESS_COOKIE_NAME=ra_access_token
+REFRESH_COOKIE_NAME=ra_refresh_token
+
+SESSION_EXPIRES_IN_MINUTES=120
+
+# ======================================================
+# QR SESSION SECURITY
+# ======================================================
+
+QR_SESSION_EXPIRES_IN_MINUTES=90
+
+TABLE_SESSION_TOKEN_LENGTH=64
+
+SESSION_IDLE_TIMEOUT_MINUTES=20
+SESSION_RATE_LIMIT_MAX_REQUESTS=5
+
+# ======================================================
+# RATE LIMITING
+# ======================================================
+
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+
+AUTH_RATE_LIMIT_MAX_REQUESTS=10
+
+# ======================================================
+# SOCKET.IO
+# ======================================================
+
+SOCKET_CORS_ORIGIN=http://localhost:5173
+
+# ======================================================
+# FILE UPLOADS
+# ======================================================
+
+UPLOAD_PROVIDER=local
+
+UPLOAD_PATH=uploads
+
+MAX_FILE_SIZE_MB=10
+
+# ======================================================
+# EMAIL / SMTP
+# ======================================================
+
+SMTP_HOST=smtp.mailtrap.io
+SMTP_PORT=2525
+
+SMTP_USER=your_mailtrap_user
+SMTP_PASS=[REDACTED]
+
+SMTP_FROM=noreply@restaurant-saas.com
+
+# ======================================================
+# LOGGING
+# ======================================================
+
+LOG_LEVEL=debug
+
+# ======================================================
+# SECURITY
+# ======================================================
+
+HELMET_ENABLED=true
+
+TRUST_PROXY=false
+
+# ======================================================
+# MONITORING
+# ======================================================
+
+SENTRY_DSN=
+
+# ======================================================
+# REDIS (Future Scaling)
+# ======================================================
+
+REDIS_URL=redis://localhost:6379
+
+# ======================================================
+# PAYMENT (Future)
+# ======================================================
+
+STRIPE_SECRET_KEY=
+RAZORPAY_KEY_ID=
+RAZORPAY_KEY_SECRET=
+
+# ======================================================
+# FEATURE FLAGS
+# ======================================================
+
+ENABLE_SWAGGER=true
+ENABLE_SOCKET_LOGS=true
+ENABLE_REQUEST_LOGS=true
+
+# ======================================================
+# DOCKER
+# ======================================================
+
+DOCKER_ENV=local
+
+# ======================================================
+# SUPER ADMIN
+# ======================================================
+
+SUPER_ADMIN_EMAIL=admin@restaurant-saas.com
+SUPER_ADMIN_PASSWORD=change_this_password
 ```
 
 ---
 
 # ▶️ Run Development Server
 
-## Frontend
+## Run Backend
+
+```bash
+npm run dev --workspace backend
+```
+
+---
+
+## Run Frontend
+
+```bash
+npm run dev --workspace frontend
+```
+
+---
+
+## Run Entire Workspace
 
 ```bash
 npm run dev
@@ -351,10 +534,38 @@ npm run dev
 
 ---
 
-## Backend
+# 🐳 Docker Development
+
+## Start Containers
 
 ```bash
-npm run dev
+docker-compose up --build
+```
+
+---
+
+## Stop Containers
+
+```bash
+docker-compose down
+```
+
+---
+
+# 🧪 Verification
+
+## Typecheck
+
+```bash
+npm run typecheck
+```
+
+---
+
+## Backend Verification
+
+```bash
+npm run verify:phase1 --workspace backend
 ```
 
 ---
@@ -364,6 +575,7 @@ npm run dev
 🚧 In Active Development
 
 ---
+
 # 🤝 Contributors
 
-Built with ❤️ by the Restaurant Automation SaaS Team with Graphura.pvt.ltd.
+Built and maintained by the Restaurant Automation SaaS Team in collaboration with Graphura Pvt. Ltd.
