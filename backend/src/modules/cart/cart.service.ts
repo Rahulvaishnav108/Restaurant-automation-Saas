@@ -3,6 +3,7 @@ import { Cart, ICart } from './cart.model';
 import { BillingModel } from '../billing/billing.model';
 import { BillStatus } from '../billing/billing.schema';
 import { MenuItem } from '../menu/menu.model';
+import { RestaurantModel } from '../restaurants/restaurants.model';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
 import { AddItemInput, UpdateItemInput } from './cart.schema';
@@ -38,14 +39,15 @@ export class CartService {
   /**
    * Recalculates cart totals (subtotal, tax, discount, grandTotal)
    */
-  private static _recalculateTotals(cart: ICart): void {
+  private static async _recalculateTotals(cart: ICart): Promise<void> {
     let subtotal = 0;
     cart.items.forEach((item) => {
       subtotal += item.subtotal;
     });
 
     cart.subtotal = subtotal;
-    // Assuming 0% tax and 0 discount for now until Restaurant Settings module is fully linked
+    
+    // Cart tax should remain zero until billing ownership lands
     cart.tax = 0;
     cart.discount = 0;
     cart.grandTotal = cart.subtotal + cart.tax - cart.discount;
@@ -146,7 +148,7 @@ export class CartService {
       });
     }
 
-    this._recalculateTotals(cart);
+    await this._recalculateTotals(cart);
     await cart.save();
     
     await cart.populate({
@@ -178,7 +180,7 @@ export class CartService {
       item.notes = updates.notes;
     }
 
-    this._recalculateTotals(cart);
+    await this._recalculateTotals(cart);
     await cart.save();
 
     await cart.populate({
@@ -203,7 +205,7 @@ export class CartService {
 
     cart.items.pull(itemId);
     
-    this._recalculateTotals(cart);
+    await this._recalculateTotals(cart);
     await cart.save();
 
     await cart.populate({
@@ -218,7 +220,7 @@ export class CartService {
     const cart = await this.getOrCreateCart(restaurantId, sessionId);
     
     cart.items = [] as any;
-    this._recalculateTotals(cart);
+    await this._recalculateTotals(cart);
     await cart.save();
 
     return this.formatCartResponse(cart);

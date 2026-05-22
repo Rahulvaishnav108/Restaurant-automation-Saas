@@ -1,12 +1,13 @@
 import type { Request, Response } from 'express';
 import { AppError } from '../../middleware/errorHandler';
+import { asyncHandler } from '../../utils/asyncHandler';
 import { ok } from '../../utils/responses';
 import { RestaurantModel } from './restaurants.model';
 import { TableModel } from '../tables/tables.model';
 import { TableSessionModel } from '../tableSessions/tableSessions.model';
 import { SessionStatus, TableStatus } from '../../constants/statuses';
 
-export async function getPublicRestaurantController(req: Request, res: Response): Promise<void> {
+export const getPublicRestaurantController = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const restaurant = await RestaurantModel.findOne({ slug: req.params.slug }).lean();
 
   if (!restaurant) {
@@ -14,9 +15,9 @@ export async function getPublicRestaurantController(req: Request, res: Response)
   }
 
   ok(res, { restaurant });
-}
+});
 
-export async function getRestaurantOverviewController(req: Request, res: Response): Promise<void> {
+export const getRestaurantOverviewController = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const restaurantId = req.user?.restaurantId;
   const restaurant = restaurantId ? await RestaurantModel.findById(restaurantId).lean() : null;
 
@@ -38,9 +39,9 @@ export async function getRestaurantOverviewController(req: Request, res: Respons
       occupiedTables,
     },
   });
-}
+});
 
-export async function getRestaurantSettingsController(req: Request, res: Response): Promise<void> {
+export const getRestaurantSettingsController = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const restaurantId = req.user?.restaurantId;
   const restaurant = restaurantId ? await RestaurantModel.findById(restaurantId).lean() : null;
 
@@ -52,9 +53,9 @@ export async function getRestaurantSettingsController(req: Request, res: Respons
     restaurantId: restaurant.id,
     settings: restaurant.settings,
   });
-}
+});
 
-export async function updateRestaurantSettingsController(req: Request, res: Response): Promise<void> {
+export const updateRestaurantSettingsController = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const restaurantId = req.user?.restaurantId;
   const restaurant = restaurantId ? await RestaurantModel.findById(restaurantId) : null;
 
@@ -67,8 +68,11 @@ export async function updateRestaurantSettingsController(req: Request, res: Resp
     ...req.body,
   };
 
+  await restaurant.save();
+
   ok(res, {
     restaurantId: restaurant.id,
     settings: restaurant.settings,
   });
-}
+});
+

@@ -5,7 +5,7 @@ import { sendPasswordResetEmail } from '../../services/mail.service';
 import { generateTokenPair } from '../../services/jwt.service';
 import type { JwtPayload } from '../../types/auth.types';
 import { AppError } from '../../utils/AppError';
-import { compareToken, generateSecureToken, hashPassword, hashToken } from '../../utils/crypto';
+import { comparePassword, compareToken, generateSecureToken, hashPassword, hashToken } from '../../utils/crypto';
 import { parseExpiry } from '../../utils/date';
 import { UserModel, type IUser } from '../users/users.model';
 import * as userService from '../users/users.service';
@@ -66,7 +66,6 @@ export async function login(input: LoginInput, meta?: { userAgent?: string; ip?:
     throw new AppError('Account is not active', 403, ErrorCode.FORBIDDEN);
   }
 
-  const { comparePassword } = await import('../../utils/crypto.js');
   const isValid = await comparePassword(input.password, user.password);
 
   if (!isValid) {

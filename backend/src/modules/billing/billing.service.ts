@@ -7,6 +7,8 @@ import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
 import { endSession } from '../tableSessions/tableSessions.service';
 import { InventoryService } from '../inventory/inventory.service';
+import { OfferModel } from '../offers/offers.model';
+import { RestaurantModel } from '../restaurants/restaurants.model';
 
 export class BillingService {
   /**
@@ -40,8 +42,10 @@ export class BillingService {
       discountAmount += order.discountAmount;
     });
 
-    // Assume 5% service charge
-    const serviceCharge = subtotal * 0.05;
+    // Fetch service charge configuration dynamically from restaurant settings
+    const restaurant = await RestaurantModel.findById(restaurantId);
+    const serviceChargeEnabled = restaurant?.settings?.serviceChargeEnabled ?? true;
+    const serviceCharge = serviceChargeEnabled ? subtotal * 0.05 : 0;
     const finalAmount = subtotal + taxAmount + serviceCharge - discountAmount;
 
     return {
@@ -123,20 +127,25 @@ export class BillingService {
       throw new AppError('Cannot apply coupon to a finalized or paid bill.', 400, ErrorCode.INVALID_REQUEST);
     }
 
-    if (couponCode !== 'DISCOUNT10') {
+    const offer = await OfferModel.findOne({
+      restaurantId: new mongoose.Types.ObjectId(restaurantId),
+      code: couponCode.toUpperCase(),
+      active: true
+    });
+    if (!offer) {
       throw new AppError('Invalid coupon code.', 400, ErrorCode.VALIDATION_ERROR);
     }
 
-    const isAlreadyApplied = bill.appliedCoupons.some(c => c.code === couponCode);
+    const isAlreadyApplied = bill.appliedCoupons.some(c => c.code === couponCode.toUpperCase());
     if (isAlreadyApplied) {
       throw new AppError('Coupon already applied.', 400, ErrorCode.VALIDATION_ERROR);
     }
 
-    const discountAmount = bill.subtotal * 0.10;
+    const discountAmount = bill.subtotal * (offer.discountPercent / 100);
 
     bill.appliedCoupons.push({
-      couponId: new mongoose.Types.ObjectId(), // Mock ID for now
-      code: couponCode,
+      couponId: offer._id as mongoose.Types.ObjectId,
+      code: offer.code,
       discountAmount
     });
 

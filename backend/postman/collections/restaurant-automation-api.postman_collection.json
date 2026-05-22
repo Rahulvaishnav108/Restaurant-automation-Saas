@@ -6,7 +6,7 @@
   },
   "item": [
     {
-      "name": "System",
+      "name": "01-Health",
       "item": [
         {
           "name": "Health",
@@ -65,7 +65,7 @@
       ]
     },
     {
-      "name": "Auth",
+      "name": "02-Auth",
       "item": [
         {
           "name": "Login Admin",
@@ -316,7 +316,7 @@
       ]
     },
     {
-      "name": "Admin",
+      "name": "11-Admin",
       "item": [
         {
           "name": "Overview",
@@ -1022,11 +1022,51 @@
               }
             }
           ]
+        },
+        {
+          "name": "Upload",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/uploads",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"postman-upload.txt\",\n  \"text\": \"Postman upload verification\",\n  \"mimeType\": \"text/plain\"\n}"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Upload returns 201', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.environment.set('createdUploadUrl', json.data.upload.url);"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Public",
+      "name": "03-Public",
       "item": [
         {
           "name": "Get Restaurant",
@@ -1123,11 +1163,41 @@
               }
             }
           ]
+        },
+        {
+          "name": "Search",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/search?q=pizza",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Search returns 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.expect((json.data.menuItems || []).length).to.be.greaterThan(0);"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Customer",
+      "name": "04-Customer",
       "item": [
         {
           "name": "Menu Categories",
@@ -1206,6 +1276,63 @@
             }
           ]
         },
+        {
+          "name": "Waiter Request",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/customer/requests/waiter",
+            "header": [
+              {
+                "key": "x-session-token",
+                "value": "{{createdSessionToken}}"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Waiter Request returns 201', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.environment.set('createdWaiterRequestId', json.data.request.id || json.data.request._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cleaning Request",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/customer/requests/cleaning",
+            "header": [
+              {
+                "key": "x-session-token",
+                "value": "{{createdSessionToken}}"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Cleaning Request returns 201', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.environment.set('createdCleaningRequestId', json.data.request.id || json.data.request._id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05-Cart",
+      "item": [
         {
           "name": "Get Cart",
           "request": {
@@ -1357,59 +1484,12 @@
               }
             }
           ]
-        },
-        {
-          "name": "Waiter Request",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/v1/customer/requests/waiter",
-            "header": [
-              {
-                "key": "x-session-token",
-                "value": "{{createdSessionToken}}"
-              }
-            ]
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Waiter Request returns 201', function () { pm.response.to.have.status(201); });",
-                  "const json = pm.response.json();",
-                  "pm.environment.set('createdWaiterRequestId', json.data.request.id || json.data.request._id);"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Cleaning Request",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/v1/customer/requests/cleaning",
-            "header": [
-              {
-                "key": "x-session-token",
-                "value": "{{createdSessionToken}}"
-              }
-            ]
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Cleaning Request returns 201', function () { pm.response.to.have.status(201); });",
-                  "const json = pm.response.json();",
-                  "pm.environment.set('createdCleaningRequestId', json.data.request.id || json.data.request._id);"
-                ]
-              }
-            }
-          ]
-        },
+        }
+      ]
+    },
+    {
+      "name": "06-Orders",
+      "item": [
         {
           "name": "Create Order",
           "request": {
@@ -1524,72 +1604,6 @@
           ]
         },
         {
-          "name": "Create Payment",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/v1/customer/payments/create",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"orderId\": \"{{createdOrderId}}\",\n  \"amount\": \"{{createdOrderAmount}}\",\n  \"method\": \"UPI\"\n}"
-            },
-            "header": [
-              {
-                "key": "x-session-token",
-                "value": "{{createdSessionToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ]
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Create Payment returns 201', function () { pm.response.to.have.status(201); });",
-                  "const json = pm.response.json();",
-                  "pm.environment.set('createdPaymentId', json.data.payment.id || json.data.payment._id);"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Verify Payment",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/v1/customer/payments/verify",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"paymentId\": \"{{createdPaymentId}}\"\n}"
-            },
-            "header": [
-              {
-                "key": "x-session-token",
-                "value": "{{createdSessionToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ]
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Verify Payment returns 200', function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
           "name": "Clear Cart",
           "request": {
             "method": "DELETE",
@@ -1616,7 +1630,7 @@
       ]
     },
     {
-      "name": "Kitchen",
+      "name": "07-Kitchen",
       "item": [
         {
           "name": "Dashboard",
@@ -1955,7 +1969,7 @@
       ]
     },
     {
-      "name": "Staff",
+      "name": "08-Staff",
       "item": [
         {
           "name": "List Tables",
@@ -2268,12 +2282,7 @@
               }
             }
           ]
-        }
-      ]
-    },
-    {
-      "name": "Cleaning",
-      "item": [
+        },
         {
           "name": "Tasks",
           "request": {
@@ -2418,23 +2427,27 @@
       ]
     },
     {
-      "name": "Super Admin",
+      "name": "09-Billing",
       "item": [
         {
-          "name": "Platform Overview",
+          "name": "Create Payment",
           "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/v1/super-admin/platform/overview",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{superAdminAccessToken}}",
-                  "type": "string"
-                }
-              ]
-            }
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/customer/payments/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{createdOrderId}}\",\n  \"amount\": \"{{createdOrderAmount}}\",\n  \"method\": \"UPI\"\n}"
+            },
+            "header": [
+              {
+                "key": "x-session-token",
+                "value": "{{createdSessionToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
           },
           "event": [
             {
@@ -2442,37 +2455,33 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Platform Overview returns 200', function () { pm.response.to.have.status(200); });"
+                  "pm.test('Create Payment returns 201', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.environment.set('createdPaymentId', json.data.payment.id || json.data.payment._id);"
                 ]
               }
             }
           ]
         },
         {
-          "name": "Create Plan",
+          "name": "Verify Payment",
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/api/v1/super-admin/plans",
+            "url": "{{baseUrl}}/api/v1/customer/payments/verify",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"POSTMAN_PLAN_{{$timestamp}}\",\n  \"priceMonthly\": 9999,\n  \"tenantLimit\": 3\n}"
+              "raw": "{\n  \"paymentId\": \"{{createdPaymentId}}\"\n}"
             },
             "header": [
+              {
+                "key": "x-session-token",
+                "value": "{{createdSessionToken}}"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
               }
-            ],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{superAdminAccessToken}}",
-                  "type": "string"
-                }
-              ]
-            }
+            ]
           },
           "event": [
             {
@@ -2480,9 +2489,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Create Plan returns 201', function () { pm.response.to.have.status(201); });",
-                  "const json = pm.response.json();",
-                  "pm.environment.set('createdPlanId', json.data.plan.id || json.data.plan._id);"
+                  "pm.test('Verify Payment returns 200', function () { pm.response.to.have.status(200); });"
                 ]
               }
             }
@@ -2491,7 +2498,7 @@
       ]
     },
     {
-      "name": "Shared",
+      "name": "10-Notifications",
       "item": [
         {
           "name": "Notifications",
@@ -2577,76 +2584,6 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Read All Notifications returns 200', function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Upload",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/v1/uploads",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"fileName\": \"postman-upload.txt\",\n  \"text\": \"Postman upload verification\",\n  \"mimeType\": \"text/plain\"\n}"
-            },
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{adminAccessToken}}",
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Upload returns 201', function () { pm.response.to.have.status(201); });",
-                  "const json = pm.response.json();",
-                  "pm.environment.set('createdUploadUrl', json.data.upload.url);"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Search",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/v1/search?q=pizza",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{adminAccessToken}}",
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Search returns 200', function () { pm.response.to.have.status(200); });",
-                  "const json = pm.response.json();",
-                  "pm.expect((json.data.menuItems || []).length).to.be.greaterThan(0);"
                 ]
               }
             }
