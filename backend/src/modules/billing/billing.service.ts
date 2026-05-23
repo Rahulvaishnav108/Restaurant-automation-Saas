@@ -9,6 +9,9 @@ import { endSession } from '../tableSessions/tableSessions.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { OfferModel } from '../offers/offers.model';
 import { RestaurantModel } from '../restaurants/restaurants.model';
+import { NotificationsService } from '../notifications/notifications.service';
+import { UserRole } from '../../constants/roles';
+import { NotificationCategory, NotificationPriority } from '../notifications/notifications.schema';
 
 export class BillingService {
   /**
@@ -65,7 +68,7 @@ export class BillingService {
     const activeOrders = await OrderModel.find({
       restaurantId,
       sessionId,
-      status: { $in: [OrderStatus.PLACED, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.DELAYED] }
+      status: { $in: [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY] }
     });
 
     if (activeOrders.length > 0) {
@@ -76,6 +79,18 @@ export class BillingService {
 
     if (liveBill.orders.length === 0) {
       throw new AppError('No valid orders found for this session.', 400, ErrorCode.INVALID_REQUEST);
+    }
+
+    // Transition all SERVED orders to BILLED
+    const servedOrders = await OrderModel.find({
+      restaurantId,
+      sessionId,
+      status: OrderStatus.SERVED
+    });
+
+    for (const order of servedOrders) {
+      order.status = OrderStatus.BILLED;
+      await order.save();
     }
 
     const orderIds = liveBill.orders.map(o => o._id as mongoose.Types.ObjectId);
@@ -247,6 +262,36 @@ export class BillingService {
     bill.paymentStatus = PaymentStatus.PAID;
     bill.paidAt = new Date();
     await bill.save();
+
+    // Transition all BILLED orders to PAID
+    const billedOrders = await OrderModel.find({
+      restaurantId,
+      sessionId,
+      status: OrderStatus.BILLED
+    });
+
+    for (const order of billedOrders) {
+      order.status = OrderStatus.PAID;
+      order.paymentStatus = 'PAID' as any;
+      await order.save();
+    }
+
+    // Trigger persistent notification targeting CUSTOMER
+    try {
+      await NotificationsService.createNotification({
+        restaurantId: new mongoose.Types.ObjectId(restaurantId),
+        tableSessionId: new mongoose.Types.ObjectId(sessionId),
+        recipientRole: UserRole.CUSTOMER,
+        title: 'Payment Successful',
+        message: `Your payment of INR ${bill.finalAmount} was verified successfully.`,
+        type: 'PAYMENT_SUCCESS',
+        category: NotificationCategory.SYSTEM,
+        priority: NotificationPriority.HIGH,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      });
+    } catch (notifError) {
+      console.error('Failed to trigger payment success notification:', notifError);
+    }
 
     // Trigger stock deduction hook
     try {

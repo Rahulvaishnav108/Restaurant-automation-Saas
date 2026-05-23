@@ -1,5 +1,13 @@
 import mongoose from 'mongoose';
 import { env } from '../src/config/env';
+import { Category, MenuItem } from '../src/modules/menu/menu.model';
+import { UserModel } from '../src/modules/users/users.model';
+import { RestaurantModel } from '../src/modules/restaurants/restaurants.model';
+import { TableModel } from '../src/modules/tables/tables.model';
+import { TableSessionModel } from '../src/modules/tableSessions/tableSessions.model';
+import { OrderModel } from '../src/modules/orders/orders.model';
+import { SessionStatus } from '../src/constants/statuses';
+import { OfferModel } from '../src/modules/offers/offers.model';
 
 const BASE_URL = 'http://localhost:5000/api/v1';
 
@@ -29,22 +37,52 @@ async function runE2E() {
   // Actually, we can just use the DB directly to grab a restaurant and table!
   await mongoose.connect(env.MONGODB_URI);
   
-  const Restaurant = mongoose.model('Restaurant', new mongoose.Schema({}, { strict: false }));
-  const TableSession = mongoose.models.TableSession || mongoose.model('TableSession', new mongoose.Schema({}, { strict: false }));
-  const Table = mongoose.model('Table', new mongoose.Schema({}, { strict: false }));
-  
-  let restaurant = await Restaurant.findOne({});
+  let restaurant = await RestaurantModel.findOne({});
   if (!restaurant) {
     console.log('No restaurant found. Seeding...');
-    restaurant = await Restaurant.create({ name: 'E2E Restro', address: '123 E2E St', contactNumber: '9999999999', subscriptionPlan: 'ENTERPRISE', status: 'ACTIVE', 'slug': 'e2e-restro' });
+    restaurant = await RestaurantModel.create({
+      name: 'E2E Restro',
+      slug: 'e2e-restro',
+      plan: 'ENTERPRISE',
+      cuisine: 'Indian',
+      city: 'Delhi',
+      status: 'ACTIVE'
+    });
   }
   const restaurantId = (restaurant as any)._id.toString();
 
-  let table = await Table.findOne({ restaurantId: (restaurant as any)._id });
+  let table = await TableModel.findOne({ restaurantId: (restaurant as any)._id });
   if (!table) {
-    table = await Table.create({ restaurantId: (restaurant as any)._id, tableNumber: 'T1', capacity: 4, qrCode: 'mockqr', status: 'AVAILABLE' });
+    table = await TableModel.create({
+      restaurantId: (restaurant as any)._id,
+      tableNumber: 'T1',
+      capacity: 4,
+      qrCode: 'mockqr',
+      status: 'AVAILABLE',
+      isActive: true
+    });
+  } else {
+    await TableModel.updateOne({ _id: table._id }, { $set: { status: 'AVAILABLE', currentSessionId: null } });
   }
   const tableId = (table as any)._id.toString();
+
+  // Clear previous active sessions for this table
+  await TableSessionModel.updateMany(
+    { restaurantId, tableId, status: 'ACTIVE' },
+    { $set: { status: 'EXPIRED', expiresAt: new Date() } }
+  );
+
+  // Seed a valid coupon/offer for testing
+  let offer = await OfferModel.findOne({ restaurantId, code: 'DISCOUNT10' });
+  if (!offer) {
+    offer = await OfferModel.create({
+      restaurantId,
+      name: '10% Discount',
+      code: 'DISCOUNT10',
+      discountPercent: 10,
+      active: true
+    });
+  }
 
   // 2. Start Session
   console.log('\n[2] Start Table Session');
@@ -55,14 +93,52 @@ async function runE2E() {
 
   // 4. Add to Cart
   console.log('\n[4] Add item to cart');
+  // Find or seed a user to act as creator/updater
+  let user = await UserModel.findOne({ role: 'restaurant-admin' });
+  if (!user) {
+    user = await UserModel.findOne({});
+  }
+  if (!user) {
+    user = await UserModel.create({
+      name: 'E2E Admin',
+      email: 'e2eadmin@example.com',
+      mobile: '9876543210',
+      password: 'hashedpassword123',
+      role: 'restaurant-admin',
+      status: 'ACTIVE',
+      isEmailVerified: true,
+      isMobileVerified: true
+    });
+  }
+  const creatorId = user._id;
+
   // Find a menu item
-  const MenuItem = mongoose.model('MenuItem', new mongoose.Schema({}, { strict: false }));
   let menuItem = await MenuItem.findOne({ restaurantId: (restaurant as any)._id });
   if (!menuItem) {
-    console.log('No menu item found. Seeding menu item...');
-    const Category = mongoose.model('MenuCategory', new mongoose.Schema({}, { strict: false }));
-    const category = await Category.create({ restaurantId: (restaurant as any)._id, name: 'E2E Category' });
-    menuItem = await MenuItem.create({ restaurantId: (restaurant as any)._id, categoryId: (category as any)._id, name: 'E2E Burger', price: 200, isAvailable: true, isVeg: true, type: 'FOOD' });
+    console.log('No menu item found. Seeding category and menu item...');
+    let category = await Category.findOne({ restaurantId: (restaurant as any)._id });
+    if (!category) {
+      category = await Category.create({
+        restaurantId: (restaurant as any)._id,
+        name: 'E2E Category',
+        displayOrder: 1,
+        isActive: true,
+        isHidden: false,
+        createdBy: creatorId,
+        updatedBy: creatorId
+      });
+    }
+    menuItem = await MenuItem.create({
+      restaurantId: (restaurant as any)._id,
+      categoryId: category._id,
+      name: 'E2E Burger',
+      price: 200,
+      isAvailable: true,
+      isVeg: true,
+      isHidden: false,
+      createdBy: creatorId,
+      updatedBy: creatorId
+    });
   }
   const menuItemId = (menuItem as any)._id.toString();
 
@@ -74,12 +150,12 @@ async function runE2E() {
   console.log('\n[5] Place Order');
   res = await request('POST', '/customer/orders', sessionToken, {});
   if (!res.data.success) throw new Error('Failed to place order: ' + JSON.stringify(res.data));
-  console.log('Order placed response:', res.data.data._id);
-  const orderId = res.data.data._id;
+  console.log('Order placed response:', res.data.data.order._id);
+  const orderId = res.data.data.order._id;
   
   // 5.5 Staff marks order as SERVED (Mocking via DB for E2E)
   console.log('\n[5.5] Staff marks order as SERVED');
-  await mongoose.model('Order', new mongoose.Schema({}, { strict: false })).findByIdAndUpdate(orderId, { status: 'SERVED' });
+  await OrderModel.findByIdAndUpdate(orderId, { status: 'SERVED' });
   console.log('Order status updated to SERVED.');
 
   // 6. Request Final Bill
@@ -157,22 +233,24 @@ async function runE2E() {
   // 11. Duplicate Payment Idempotency Check
   console.log('\n[11] Duplicate Payment Verification');
   res = await request('POST', '/customer/payments/verify', sessionToken, { paymentId: newPaymentId });
-  if (res.data.success || res.data.error?.code !== 'TABLE_SESSION_EXPIRED') {
-    throw new Error('Duplicate payment should fail with TABLE_SESSION_EXPIRED, got: ' + JSON.stringify(res.data));
+  if (res.data.success || res.data.error?.code !== 'UNAUTHORIZED_TABLE_SESSION') {
+    throw new Error('Duplicate payment should fail with UNAUTHORIZED_TABLE_SESSION, got: ' + JSON.stringify(res.data));
   }
   console.log('Session expiration verified on duplicate request.');
 
   // 12. Cleanup Verification
   console.log('\n[12] Cleanup Verification');
-  const sessionDoc = await TableSession.findOne({ tableId }).sort({ createdAt: -1 });
-  if (sessionDoc && sessionDoc.status !== 'COMPLETED') {
-    console.error('Session was not marked COMPLETED!');
+  const sessionDoc = await TableSessionModel.findOne({ tableId }).sort({ createdAt: -1 });
+  if (sessionDoc && sessionDoc.status !== SessionStatus.CLOSED) {
+    console.error('Session was not marked CLOSED! Got: ' + sessionDoc.status);
   } else {
-    console.log('Session marked COMPLETED successfully.');
+    console.log('Session marked CLOSED successfully.');
   }
 
-  const tableDoc = await mongoose.model('Table').findById(tableId);
-  if (tableDoc.status !== 'NEEDS_CLEANING') {
+  const tableDoc = await TableModel.findById(tableId);
+  if (!tableDoc) {
+    console.error('Table document not found in DB!');
+  } else if (tableDoc.status !== 'NEEDS_CLEANING') {
     console.error('Table was not set to NEEDS_CLEANING, got: ' + tableDoc.status);
   } else {
     console.log('Table set to NEEDS_CLEANING successfully.');
