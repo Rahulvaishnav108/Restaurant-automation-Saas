@@ -8,7 +8,7 @@ import { CartModal, FavoriteMeals, MenuCategory, MenuItemCard, OrderTracker, Rec
 import { MENU_CATEGORIES, MENU_ITEMS, useCustomerStore } from '../store/customer.store';
 
 interface Props {
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 type Tab = 'home' | 'menu' | 'orders' | 'services' | 'profile';
@@ -159,7 +159,7 @@ const CustomerDashboard: React.FC<Props> = ({ onBack }) => {
     { label: 'Notifications', icon: Bell, action: () => showToast(serviceRequests.length ? `${serviceRequests.length} service request sent` : 'No new notifications') },
     { tab: 'profile', label: 'My Profile', icon: User },
     { label: 'Support', icon: Headphones, action: () => setTab('services') },
-    { label: 'Logout', icon: LogOut, action: onBack },
+    { label: 'Logout', icon: LogOut, action: onBack || (() => navigate('/')) },
   ];
 
   const quickActions = [

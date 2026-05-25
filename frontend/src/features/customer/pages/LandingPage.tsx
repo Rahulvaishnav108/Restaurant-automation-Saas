@@ -1,299 +1,695 @@
-import React, { useState } from 'react';
-import { Search, MapPin, Bell, Star, ChevronDown, X, ShoppingBag, Menu as MenuIcon, Moon, Sun } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import AuthForm from '../../../auth/components/AuthForm';
+// LandingPage.tsx
 
-interface Props { onEnterApp: () => void; }
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  MapPin,
+  MoonStar,
+  Search,
+  ShoppingCart,
+  Star,
+  SunMedium,
+  UtensilsCrossed,
+} from "lucide-react";
 
-const CATEGORIES = ['All','Pizza','Burger','Biryani','Desserts','Drinks','Chinese'];
-const LOCATIONS = ['Mulund, Mumbai', 'Thane, Mumbai', 'Bandra, Mumbai', 'Andheri, Mumbai', 'Powai, Mumbai', 'Dadar, Mumbai'];
+import { useTheme } from "../../../app/providers/ThemeProvider";
+import LoginModal from "../../../auth/components/LoginModal";
 
-const TESTIMONIALS = [
-  { name:'Aarav M.', role:'Food Enthusiast', rating:5, msg:'QR ordering is seamless. Scanned, ordered, food arrived in minutes!' },
-  { name:'Nisha K.', role:'Regular Diner', rating:5, msg:'Love the clean interface and live order tracking feature.' },
-  { name:'Rahul S.', role:'Office Lead', rating:4, msg:'Perfect for team lunches. Everyone orders from their phone.' },
+// HERO IMAGES
+const hero1 =
+  "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=2070&auto=format&fit=crop";
+
+const hero2 =
+  "https://images.unsplash.com/photo-1552566626-52f8b828add9?q=80&w=1974&auto=format&fit=crop";
+
+const hero3 =
+  "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=2070&auto=format&fit=crop";
+
+type LandingPageProps = {
+  initialLoginOpen?: boolean;
+};
+
+const heroSlides = [
+  {
+    image: hero1,
+    title: "Find the best restaurants",
+    accent: "near you",
+    subtitle:
+      "Explore top restaurants, check availability, book a table or order instantly.",
+  },
+  {
+    image: hero2,
+    title: "Reserve your table",
+    accent: "instantly",
+    subtitle:
+      "Real-time booking, live table availability and smooth dining experience.",
+  },
+  {
+    image: hero3,
+    title: "Dining experience",
+    accent: "reimagined",
+    subtitle:
+      "Premium restaurant automation with QR ordering and modern operations.",
+  },
 ];
 
-const LandingPage: React.FC<Props> = ({ onEnterApp }) => {
+const categories = [
+  { name: "Pizza", icon: "🍕" },
+  { name: "Burger", icon: "🍔" },
+  { name: "Chinese", icon: "🍜" },
+  { name: "Coffee", icon: "☕" },
+  { name: "Desserts", icon: "🧁" },
+  { name: "North Indian", icon: "🥘" },
+];
+
+const restaurants = [
+  {
+    name: "Burger Barn",
+    image: hero1,
+    category: "Fast Food, Burgers, American",
+    location: "Connaught Place",
+  },
+  {
+    name: "Cafe Heights",
+    image: hero2,
+    category: "Cafe, Italian, Continental",
+    location: "Connaught Place",
+  },
+  {
+    name: "Spice Deck",
+    image: hero3,
+    category: "Indian, Multi Cuisine",
+    location: "Khan Market",
+  },
+];
+
+const dishes = [
+  {
+    name: "Beef Cheese Burger",
+    price: "₹300",
+    restaurant: "Burger King",
+    image: hero1,
+  },
+  {
+    name: "Mixed Salad",
+    price: "₹600",
+    restaurant: "AJAX",
+    image: hero2,
+  },
+  {
+    name: "Vegan Chinese",
+    price: "₹700",
+    restaurant: "AJAX",
+    image: hero3,
+  },
+  {
+    name: "Cheesy Pizza",
+    price: "₹1200",
+    restaurant: "AJAX",
+    image: hero1,
+  },
+];
+
+const blogs = [
+  {
+    title: "Taste the delicious foods in Asia",
+    image: hero1,
+  },
+  {
+    title: "Taste the delicious foods in Asia",
+    image: hero2,
+  },
+  {
+    title: "Taste the delicious foods in Asia",
+    image: hero3,
+  },
+];
+
+const testimonials = [
+  {
+    name: "Burger Kings",
+    role: "CUSTOMER",
+    image:
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=400",
+  },
+  {
+    name: "Burger Kings",
+    role: "CUSTOMER",
+    image:
+      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=400",
+  },
+  {
+    name: "Burger Kings",
+    role: "CUSTOMER",
+    image:
+      "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=400",
+  },
+];
+
+export default function LandingPage({
+  initialLoginOpen = false,
+}: LandingPageProps) {
   const navigate = useNavigate();
-  const [query, setQuery] = useState('');
-  const [activeCat, setActiveCat] = useState('All');
-  const [loginOpen, setLoginOpen] = useState(false);
-  const [toast, setToast] = useState('');
-  const [mobileNav, setMobileNav] = useState(false);
-  const [isLightMode, setIsLightMode] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState(LOCATIONS[0]);
-  const [locationOpen, setLocationOpen] = useState(false);
-  const lightTextShadow = isLightMode ? { textShadow: '0 2px 10px rgba(0, 0, 0, 0.45)' } : undefined;
-  const lightSubtleTextShadow = isLightMode ? { textShadow: '0 1px 6px rgba(0, 0, 0, 0.38)' } : undefined;
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(''), 2500);
-  };
+  const { theme, toggleTheme } = useTheme();
 
-  const goToPage = (path: string) => {
-    setMobileNav(false);
-    navigate(path);
-  };
+  const [heroIndex, setHeroIndex] = useState(0);
+  const [loginOpen, setLoginOpen] = useState(initialLoginOpen);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHeroIndex((prev) => (prev + 1) % heroSlides.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const activeHero = heroSlides[heroIndex];
+
+  const navLinks = useMemo(
+    () => [
+      { label: "Home", path: "/" },
+      { label: "Restaurants", path: "/restaurants" },
+      { label: "Offers", path: "/offers" },
+      { label: "Reservations", path: "/reservations" },
+    ],
+    [],
+  );
 
   return (
-    <div
-      className={`relative isolate min-h-screen bg-cover bg-center bg-fixed bg-no-repeat transition-colors duration-500 ${isLightMode ? 'text-white' : 'text-white'}`}
-      style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1600&q=80)' }}
-    >
-      <div className={`fixed inset-0 z-0 pointer-events-none transition-colors duration-500 ${isLightMode ? 'bg-black/20' : 'bg-[#050814]/55'}`} />
-      <div className="relative z-10">
-      {/* Toast */}
-      {toast && (
-          <div className={`fixed top-5 left-1/2 z-[100] -translate-x-1/2 rounded-2xl border px-6 py-3 text-sm shadow-2xl backdrop-blur-xl ${isLightMode ? 'border-slate-200 bg-white/95 text-slate-900' : 'border-white/10 bg-slate-800/95 text-white'}`}>
-          {toast}
-        </div>
-      )}
+    <div className="min-h-screen bg-[#faf7f2] text-[#1f1f1f] dark:bg-[#070707] dark:text-white">
+      {/* NAVBAR */}
 
-      {/* Login Modal */}
-      {loginOpen && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto bg-black/70 p-3 backdrop-blur-sm sm:p-5">
-          <div className="relative w-full max-w-6xl">
+      <header className="sticky top-0 z-50 border-b border-black/5 bg-white/80 backdrop-blur-xl dark:border-white/10 dark:bg-black/70">
+        <div className="mx-auto flex max-w-[1450px] items-center justify-between px-6 py-4">
+          {/* LOGO */}
+
+          <Link to="/" className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ff9d00] text-white shadow-xl">
+              <UtensilsCrossed className="h-5 w-5" />
+            </div>
+
+            <div>
+              <h2 className="text-[30px] font-black leading-none tracking-tight">
+                <span className="text-white dark:text-white">Serve</span>
+                <span className="text-[#ff9d00]">Sphere</span>
+              </h2>
+
+              <p className="text-xs text-neutral-500">
+                Restaurant automation SaaS
+              </p>
+            </div>
+          </Link>
+
+          {/* LOCATION */}
+
+          <div className="hidden items-center gap-2 rounded-full border border-black/10 px-4 py-2 dark:border-white/10 lg:flex">
+            <MapPin className="h-4 w-4 text-[#ff9d00]" />
+            <span className="text-sm">Mumbai, India</span>
+          </div>
+
+          {/* NAV */}
+
+          <nav className="hidden items-center gap-10 lg:flex">
+            {navLinks.map((item) => (
+              <Link
+                key={item.label}
+                to={item.path}
+                className="text-sm font-semibold transition hover:text-[#ff9d00]"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+
+          {/* ACTIONS */}
+
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => setLoginOpen(false)}
-              aria-label="Close login"
-              className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-lg transition hover:bg-orange-500 hover:text-white"
+              onClick={toggleTheme}
+              className="flex h-12 w-12 items-center justify-center rounded-full border border-black/10 transition hover:border-[#ff9d00] dark:border-white/10"
             >
-              <X className="h-5 w-5" />
-            </button>
-            <AuthForm
-              onLogin={() => { setLoginOpen(false); onEnterApp(); }}
-              onOtpLogin={() => { setLoginOpen(false); onEnterApp(); }}
-              onSignUp={() => { setLoginOpen(false); onEnterApp(); }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Navbar */}
-      <nav className={`sticky top-0 z-50 border-b backdrop-blur-xl transition-colors duration-500 ${isLightMode ? 'border-white/40 bg-white/25 shadow-sm' : 'border-white/10 bg-transparent'}`}>
-        <div className="mx-auto max-w-7xl px-6 lg:px-16">
-          <div className="flex items-center justify-between gap-4 py-4">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-xl bg-orange-500 flex items-center justify-center">
-                <ShoppingBag className="h-4 w-4 text-white" />
-              </div>
-              <span className="text-xl font-bold" style={lightTextShadow}><span className="text-white">Serve</span><span className="text-orange-500">Sphere</span></span>
-            </div>
-
-            <div className="relative hidden md:block">
-              <button
-                type="button"
-                onClick={() => setLocationOpen((open) => !open)}
-                aria-expanded={locationOpen}
-                className={`flex min-w-[236px] items-center justify-between gap-2 rounded-full border px-4 py-2 transition ${isLightMode ? 'border-white/40 bg-white/20 text-white shadow-sm hover:bg-white/30' : 'border-white/10 bg-white/5 text-white hover:bg-white/10'}`}
-                style={lightSubtleTextShadow}
-              >
-                <span className="flex items-center gap-2 text-sm">
-                  <MapPin className="h-4 w-4 text-orange-500" />
-                  {selectedLocation}
-                </span>
-                <ChevronDown className={`h-3 w-3 transition ${isLightMode ? 'text-white' : 'text-slate-400'} ${locationOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {locationOpen && (
-                <div className={`absolute left-0 top-12 w-full overflow-hidden rounded-2xl border py-2 shadow-xl backdrop-blur-xl ${isLightMode ? 'border-white/40 bg-white/95 text-slate-900 shadow-slate-900/10' : 'border-white/10 bg-[#101522]/95 text-white shadow-black/30'}`}>
-                  {LOCATIONS.map((location) => (
-                    <button
-                      key={location}
-                      type="button"
-                      onClick={() => {
-                        setSelectedLocation(location);
-                        setLocationOpen(false);
-                      }}
-                      className={`block w-full px-4 py-2.5 text-left text-sm transition ${selectedLocation === location ? 'bg-orange-500 text-white' : isLightMode ? 'hover:bg-orange-50 hover:text-orange-600' : 'hover:bg-white/10 hover:text-orange-300'}`}
-                    >
-                      {location}
-                    </button>
-                  ))}
-                </div>
+              {theme === "dark" ? (
+                <SunMedium className="h-5 w-5" />
+              ) : (
+                <MoonStar className="h-5 w-5" />
               )}
-            </div>
+            </button>
 
-            <div className="hidden lg:flex items-center gap-8">
-              {[
-                ['Home', '/'],
-                ['Restaurants', '/restaurants'],
-                ['Offers', '/offers'],
-                ['Reservations', '/reservations'],
-              ].map(([label, path]) => (
-                <button key={label} onClick={() => goToPage(path)} className={`text-sm transition font-medium ${isLightMode ? 'text-white hover:text-orange-200' : 'text-gray-300 hover:text-orange-400'}`} style={lightSubtleTextShadow}>{label}</button>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => {
-                  setIsLightMode(v => !v);
-                  showToast(!isLightMode ? 'Light mode enabled' : 'Dark mode enabled');
-                }}
-                aria-label={isLightMode ? 'Switch to dark mode' : 'Switch to light mode'}
-                className={`relative hidden h-10 w-[76px] items-center rounded-full border p-1 transition sm:flex ${isLightMode ? 'border-orange-200 bg-orange-50 shadow-lg shadow-orange-100' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}
-              >
-                <span className={`absolute inset-y-1 flex h-8 w-8 items-center justify-center rounded-full shadow-md transition-all duration-300 ${isLightMode ? 'left-[38px] bg-white text-orange-500' : 'left-1 bg-orange-500 text-white'}`}>
-                  {isLightMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                </span>
-                <span className={`ml-2 text-[10px] font-bold transition ${isLightMode ? 'text-orange-500 opacity-0' : 'text-orange-200 opacity-100'}`}>Dark</span>
-                <span className={`ml-auto mr-2 text-[10px] font-bold transition ${isLightMode ? 'text-orange-500 opacity-100' : 'text-slate-400 opacity-0'}`}>Light</span>
-              </button>
-              <button onClick={() => showToast('No new notifications')} className={`hidden sm:flex h-9 w-9 items-center justify-center rounded-full border transition ${isLightMode ? 'border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50' : 'border-white/10 bg-white/5 text-white hover:bg-white/10'}`}>
-                <Bell className="h-4 w-4" />
-              </button>
-              <button onClick={() => setLoginOpen(true)} className="px-5 py-2 rounded-full bg-orange-500 text-sm font-semibold hover:bg-orange-600 transition">Login / Sign Up</button>
-              <button onClick={() => setMobileNav(!mobileNav)} className={`lg:hidden p-2 rounded-full transition ${isLightMode ? 'text-white hover:bg-white/20' : 'text-white hover:bg-white/10'}`} style={lightSubtleTextShadow}>
-                <MenuIcon className="h-5 w-5" />
-              </button>
-            </div>
+            <button
+              onClick={() => setLoginOpen(true)}
+              className="rounded-full bg-[#ff9d00] px-6 py-3 text-sm font-bold text-white transition hover:scale-[1.02]"
+            >
+              Login / Sign Up
+            </button>
           </div>
-          {mobileNav && (
-            <div className={`lg:hidden border-t py-3 space-y-1 ${isLightMode ? 'border-slate-200' : 'border-white/10'}`}>
-              {[
-                ['Home', '/'],
-                ['Restaurants', '/restaurants'],
-                ['Offers', '/offers'],
-                ['Reservations', '/reservations'],
-              ].map(([label, path]) => (
-                <button key={label} onClick={() => goToPage(path)} className={`block w-full text-left px-4 py-3 text-sm rounded-xl transition ${isLightMode ? 'text-white hover:bg-white/20 hover:text-orange-200' : 'text-gray-300 hover:text-orange-400 hover:bg-white/5'}`} style={lightSubtleTextShadow}>{label}</button>
-              ))}
-            </div>
-          )}
         </div>
-      </nav>
+      </header>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden py-24 sm:py-32">
-        <div className="relative mx-auto max-w-7xl px-6 lg:px-16 flex flex-col items-center text-center">
-        
-          <h1
-            className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-tight tracking-tight text-white"
-            style={{ fontFamily: '"Instrument Serif", "Instrumental Serif", Georgia, "Times New Roman", serif', ...(lightTextShadow ?? {}) }}
-          >
-            Find the best<br /><span className={isLightMode ? 'text-orange-500' : ''}>restaurants </span><span className={isLightMode ? 'text-orange-500' : 'text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-400'}>near you</span>
-          </h1>
-          <p
-            className={`mt-6 max-w-xl text-lg ${isLightMode ? 'text-white' : 'text-slate-300'}`}
-            style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', ...(lightSubtleTextShadow ?? {}) }}
-          >
-            Explore top restaurants, scan your table QR, order instantly, and pay without waiting.
-          </p>
+      {/* MAIN */}
 
-          <div className="mt-10 w-full max-w-2xl flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className={`absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 ${isLightMode ? 'text-slate-500' : 'text-slate-400'}`} />
-              <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key==='Enter' && navigate('/restaurants')} placeholder="Search restaurants, cuisines, dishes..." className={`w-full pl-14 pr-4 py-4 rounded-full border outline-none transition ${isLightMode ? 'border-slate-200 bg-white/90 text-slate-950 placeholder-slate-500 shadow-xl shadow-slate-300/40 focus:border-orange-500' : 'border-white/20 bg-white/10 text-white placeholder-slate-400 focus:border-orange-500'}`} />
+      <main className="mx-auto max-w-[1450px] px-4 pb-20 pt-4">
+        {/* HERO */}
+
+        <section className="relative overflow-hidden rounded-[34px]">
+          <div
+            className="absolute inset-0 bg-cover bg-center transition-all duration-700"
+            style={{
+              backgroundImage: `url(${activeHero.image})`,
+            }}
+          />
+
+          <div className="absolute inset-0 bg-black/55" />
+
+          <div className="relative flex min-h-[720px] flex-col items-center justify-center px-6 text-center text-white">
+            <h1 className="max-w-4xl font-display text-6xl leading-[0.9] tracking-[-0.04em] md:text-8xl">
+              {activeHero.title}{" "}
+              <span className="italic text-[#ff9d00]">
+                {activeHero.accent}
+              </span>
+            </h1>
+
+            <p className="mt-6 max-w-2xl text-xl text-white/90">
+              {activeHero.subtitle}
+            </p>
+
+            {/* SEARCH */}
+
+            <div className="mt-10 flex w-full max-w-4xl items-center overflow-hidden rounded-2xl bg-white shadow-2xl">
+              <div className="flex flex-1 items-center gap-3 px-5">
+                <Search className="h-5 w-5 text-[#ff9d00]" />
+
+                <input
+                  type="text"
+                  placeholder="Search restaurants, cuisines, or dishes..."
+                  className="h-16 w-full bg-transparent text-black outline-none"
+                />
+              </div>
+
+              <button className="m-2 rounded-xl bg-[#ff9d00] px-8 py-4 font-semibold text-white transition hover:bg-[#f08f00]">
+                Search
+              </button>
             </div>
-            <button onClick={() => navigate('/restaurants')} className="px-8 py-4 rounded-full bg-orange-500 font-semibold hover:bg-orange-600 transition whitespace-nowrap">Search</button>
-          </div>
 
-          <div className={`mt-12 flex flex-wrap justify-center gap-8 text-sm ${isLightMode ? 'text-white' : 'text-slate-300'}`} style={lightSubtleTextShadow}>
-            {[['🍽️','500+ Dishes'],['⭐','4.5+ Avg Rating'],['⚡','Live Table Ordering'],['🎁','Daily Offers']].map(([icon,label]) => (
-              <div key={label} className="flex items-center gap-2"><span className="text-xl">{icon}</span>{label}</div>
+            {/* STATS */}
+
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-6 text-sm font-medium text-white/90">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-[#ff9d00]" />
+                24 Restaurants Nearby
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Star className="h-4 w-4 fill-[#ff9d00] text-[#ff9d00]" />
+                4.5+ Avg Ratings
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Clock3 className="h-4 w-4 text-[#ff9d00]" />
+                Live Availability
+              </div>
+            </div>
+
+            {/* SLIDER BUTTONS */}
+
+            <div className="absolute bottom-10 right-10 flex gap-3">
+              <button
+                onClick={() =>
+                  setHeroIndex(
+                    (prev) =>
+                      (prev - 1 + heroSlides.length) % heroSlides.length,
+                  )
+                }
+                className="rounded-full bg-white/10 p-3 backdrop-blur-xl transition hover:bg-white/20"
+              >
+                <ChevronLeft />
+              </button>
+
+              <button
+                onClick={() =>
+                  setHeroIndex((prev) => (prev + 1) % heroSlides.length)
+                }
+                className="rounded-full bg-white/10 p-3 backdrop-blur-xl transition hover:bg-white/20"
+              >
+                <ChevronRight />
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* FILTERS */}
+
+        <section className="mt-16">
+          <SectionTitle title="Find Your Perfect Spot" />
+
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap gap-3">
+              {[
+                "All",
+                "Fine Dining",
+                "Cafe",
+                "Fast Food",
+                "Italian",
+                "Veg",
+                "Non Veg",
+                "More",
+              ].map((item, idx) => (
+                <button
+                  key={item}
+                  className={`rounded-xl border px-5 py-2 text-sm font-medium transition ${
+                    idx === 0
+                      ? "border-[#ff9d00] bg-[#ff9d00] text-white"
+                      : "border-black/10 bg-white hover:border-[#ff9d00] dark:border-white/10 dark:bg-[#101010]"
+                  }`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+
+            <button className="rounded-xl border border-black/10 bg-white px-5 py-2 text-sm dark:border-white/10 dark:bg-[#101010]">
+              Sort by: Popular
+            </button>
+          </div>
+        </section>
+
+        {/* CATEGORIES */}
+
+        <section className="mt-20">
+          <SectionTitle title="Explore by Categories" />
+
+          <div className="mt-10 grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-6">
+            {categories.map((item) => (
+              <button
+                key={item.name}
+                className="group rounded-[26px] border border-black/10 bg-white p-7 transition hover:-translate-y-1 hover:shadow-2xl dark:border-white/10 dark:bg-[#101010]"
+              >
+                <div className="mb-4 text-6xl transition group-hover:scale-110">
+                  {item.icon}
+                </div>
+
+                <div className="text-lg font-semibold">{item.name}</div>
+              </button>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Categories */}
-      <section className="mx-auto max-w-7xl px-6 lg:px-16 py-12">
-        <p className="text-sm uppercase tracking-widest text-orange-400 mb-2">Browse By Type</p>
-        <h2 className="text-3xl font-bold mb-8">Explore by Category</h2>
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-3">
-          {CATEGORIES.map(cat => (
-            <button key={cat} onClick={() => { setActiveCat(cat); navigate('/restaurants'); }} className={`flex flex-col items-center gap-2 rounded-2xl border py-4 px-2 transition hover:-translate-y-1 ${activeCat===cat ? 'bg-orange-500 border-orange-500 text-white' : isLightMode ? 'border-slate-200 bg-white text-slate-800 shadow-sm hover:border-orange-300 hover:bg-orange-50' : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:border-orange-500/40'}`}>
-              <span className="text-3xl">{cat==='All'?'🍽️':cat==='Pizza'?'🍕':cat==='Burger'?'🍔':cat==='Biryani'?'🍛':cat==='Desserts'?'🧁':cat==='Drinks'?'🥤':'🥡'}</span>
-              <span className="text-xs font-semibold">{cat}</span>
-            </button>
-          ))}
-        </div>
-      </section>
+        {/* RESTAURANTS */}
 
-      {/* Testimonials */}
-      <section className="mx-auto max-w-7xl px-6 lg:px-16 py-12">
-        <p className="text-sm uppercase tracking-widest text-orange-400 mb-2">Happy Customers</p>
-        <h2 className="text-3xl font-bold mb-8">What customers say</h2>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {TESTIMONIALS.map(t => (
-            <div key={t.name} className={`rounded-3xl border p-6 backdrop-blur-sm hover:border-orange-500/20 transition ${isLightMode ? 'border-slate-200 bg-white shadow-sm' : 'border-white/10 bg-white/5'}`}>
-              <div className="flex gap-1 mb-4">{Array.from({length:t.rating}).map((_,i) => <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />)}</div>
-              <p className={`leading-relaxed ${isLightMode ? 'text-slate-700' : 'text-slate-300'}`}>"{t.msg}"</p>
-              <div className={`mt-5 flex items-center gap-3 border-t pt-4 ${isLightMode ? 'border-slate-200' : 'border-white/10'}`}>
-                <div className="h-9 w-9 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold text-sm">{t.name[0]}</div>
-                <div>
-                  <p className={`font-semibold text-sm ${isLightMode ? 'text-slate-950' : 'text-white'}`}>{t.name}</p>
-                  <p className={`text-xs ${isLightMode ? 'text-slate-500' : 'text-slate-500'}`}>{t.role}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+        <section className="mt-20">
+          <SectionTitle
+            title="Top Restaurants Near You"
+            subtitle="Handpicked restaurants for the best dining experience"
+          />
 
-      {/* Footer */}
-      <footer className={`mt-8 border-t ${isLightMode ? 'border-slate-200 bg-white/90 text-slate-950' : 'border-white/10 bg-[#171008] text-white'}`}>
-        <div className="mx-auto grid max-w-7xl gap-10 px-6 py-14 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr] lg:px-16 lg:py-16">
-          <div>
-            <button onClick={() => goToPage('/')} className="text-left">
-              <span
-                className="text-4xl font-bold leading-none tracking-normal sm:text-5xl"
-                style={{ fontFamily: '"Instrument Serif", "Instrumental Serif", Georgia, "Times New Roman", serif' }}
+          <div className="mt-10 grid gap-6 lg:grid-cols-3">
+            {restaurants.map((item) => (
+              <article
+                key={item.name}
+                className="overflow-hidden rounded-[28px] border border-black/10 bg-white shadow-xl transition hover:-translate-y-1 dark:border-white/10 dark:bg-[#101010]"
               >
-                <span className={isLightMode ? 'text-slate-950' : 'text-white'}>Serve</span><span className="text-orange-500">Sphere</span>
-              </span>
-            </button>
-            <p className={`mt-8 max-w-xs text-sm leading-relaxed ${isLightMode ? 'text-slate-700' : 'text-slate-200'}`}>
-              Explore top restaurants around you, enjoy real-time availability, and experience modern dining without the hassle.
-            </p>
+                <div className="relative">
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="h-56 w-full object-cover"
+                  />
+
+                  <div className="absolute left-4 top-4 rounded-full bg-[#5d8f2a] px-4 py-1 text-xs font-semibold text-white">
+                    8 Tables Available
+                  </div>
+                </div>
+
+                <div className="space-y-4 p-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="text-2xl font-semibold">{item.name}</h3>
+
+                      <p className="mt-1 text-sm text-neutral-500">
+                        {item.category}
+                      </p>
+
+                      <p className="text-sm text-neutral-500">
+                        {item.location}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1 text-sm font-semibold">
+                      <Star className="h-4 w-4 fill-[#ff9d00] text-[#ff9d00]" />
+                      4.3
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-5 text-sm text-neutral-500">
+                    <span>🕒 15-30 mins</span>
+                    <span>📍 0.5 km away</span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="rounded-full bg-[#f4f8ec] px-4 py-2 text-sm font-medium text-[#5d8f2a]">
+                      Flat 15% OFF
+                    </div>
+
+                    <button
+                      onClick={() => navigate("/restaurants")}
+                      className="rounded-xl bg-[#ff9d00] px-5 py-2 text-sm font-semibold text-white"
+                    >
+                      View Menu
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        {/* TRENDING */}
+
+        <section className="mt-20">
+          <SectionTitle title="Trending Dishes" />
+
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {dishes.map((dish) => (
+              <article
+                key={dish.name}
+                className="rounded-[28px] border border-black/10 bg-white p-5 shadow-xl dark:border-white/10 dark:bg-[#101010]"
+              >
+                <div className="relative overflow-hidden rounded-2xl">
+                  <img
+                    src={dish.image}
+                    alt={dish.name}
+                    className="h-48 w-full object-cover"
+                  />
+
+                  <button className="absolute right-3 top-3 rounded-full bg-white/80 p-2 backdrop-blur-xl dark:bg-black/60">
+                    <ShoppingCart className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="mt-5">
+                  <h3 className="text-2xl font-semibold">{dish.name}</h3>
+
+                  <p className="mt-1 text-sm text-neutral-500">
+                    With Special Sauce
+                  </p>
+
+                  <div className="mt-3 text-sm font-semibold text-[#ff9d00]">
+                    {dish.restaurant}
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="text-sm text-neutral-500">
+                      ★ 4.3(645)
+                    </div>
+
+                    <div className="text-3xl font-black text-[#ff9d00]">
+                      {dish.price}
+                    </div>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        {/* BLOG */}
+
+        <section className="mt-20">
+          <SectionTitle title="Blog" />
+
+          <div className="mt-10 grid gap-6 lg:grid-cols-3">
+            {blogs.map((blog) => (
+              <article
+                key={blog.title}
+                className="overflow-hidden rounded-[28px] border border-black/10 bg-white shadow-xl dark:border-white/10 dark:bg-[#101010]"
+              >
+                <img
+                  src={blog.image}
+                  alt={blog.title}
+                  className="h-56 w-full object-cover"
+                />
+
+                <div className="p-5">
+                  <div className="text-xs text-neutral-500">
+                    Sept. 06, 2026
+                  </div>
+
+                  <h3 className="mt-3 text-2xl font-semibold">
+                    {blog.title}
+                  </h3>
+
+                  <button className="mt-5 text-sm font-semibold text-[#ff9d00]">
+                    Read more
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        {/* TESTIMONIALS */}
+
+        <section className="mt-20">
+          <SectionTitle title="What customers says?" />
+
+          <div className="mt-10 grid gap-6 lg:grid-cols-3">
+            {testimonials.map((item) => (
+              <article
+                key={item.image}
+                className="rounded-[30px] border border-black/10 bg-white p-8 text-center shadow-xl dark:border-white/10 dark:bg-[#101010]"
+              >
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  className="mx-auto h-24 w-24 rounded-full object-cover"
+                />
+
+                <p className="mt-6 leading-8 text-neutral-500">
+                  Far far away, behind the word mountains, far from the
+                  countries Vokalia and Consonantia, there live the blind texts.
+                </p>
+
+                <div className="mt-6 text-2xl font-bold text-[#ff9d00]">
+                  {item.name}
+                </div>
+
+                <div className="mt-1 text-xs tracking-[0.3em] text-neutral-500">
+                  {item.role}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        {/* FOOTER */}
+
+        <footer className="mt-24 rounded-[32px] border border-black/10 bg-white p-10 shadow-xl dark:border-white/10 dark:bg-[#101010]">
+          <div className="grid gap-10 lg:grid-cols-4">
+            <div>
+              <div className="text-5xl font-black">
+                <span>Serve</span>
+                <span className="text-[#ff9d00]">Sphere</span>
+              </div>
+
+              <p className="mt-5 text-sm leading-7 text-neutral-500">
+                Explore top restaurants around you and enjoy modern dining
+                without the hassle.
+              </p>
+            </div>
+
+            <FooterColumn
+              title="Quick Links"
+              links={[
+                { label: "Home", to: "/" },
+                { label: "Restaurants", to: "/restaurants" },
+                { label: "Reservations", to: "/reservations" },
+                { label: "Offers", to: "/offers" },
+              ]}
+            />
+
+            <FooterColumn
+              title="Support"
+              links={[
+                { label: "Help Center", to: "/help" },
+                { label: "Contact", to: "/contact" },
+                { label: "FAQs", to: "/faqs" },
+                { label: "Privacy Policy", to: "/privacy" },
+              ]}
+            />
+
+            <FooterColumn
+              title="For Restaurants"
+              links={[
+                { label: "Partner With Us", to: "/partner" },
+                { label: "Restaurant Login", to: "/login" },
+                { label: "Business Solutions", to: "/business" },
+                { label: "Pricing", to: "/pricing" },
+              ]}
+            />
           </div>
 
-          <div>
-            <h3 className="text-sm font-bold">Quick Links</h3>
-            <div className={`mt-8 flex flex-col items-start gap-2 text-sm ${isLightMode ? 'text-slate-700' : 'text-slate-100'}`}>
-              {[
-                ['Home', '/'],
-                ['Restaurants', '/restaurants'],
-                ['Reservations', '/reservations'],
-                ['Queue Status', '/restaurants'],
-                ['Offers', '/offers'],
-                ['My Orders', '/dashboard'],
-              ].map(([label, path]) => (
-                <button key={label} onClick={() => goToPage(path)} className="transition hover:text-orange-400">
-                  {label}
-                </button>
-              ))}
-            </div>
+          <div className="mt-10 border-t border-black/10 pt-6 text-sm text-neutral-500 dark:border-white/10">
+            © 2026 ServeSphere. All rights reserved.
           </div>
+        </footer>
+      </main>
 
-          <div>
-            <h3 className="text-sm font-bold">Support</h3>
-            <div className={`mt-8 flex flex-col items-start gap-2 text-sm ${isLightMode ? 'text-slate-700' : 'text-slate-100'}`}>
-              {['Help Center', 'Contact Us', 'FAQs', 'Privacy Policy', 'Terms & Conditions', 'Refund Policy'].map((label) => (
-                <button key={label} onClick={() => showToast(`${label} coming soon`)} className="transition hover:text-orange-400">
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
+      <LoginModal
+        open={loginOpen}
+        onClose={() => setLoginOpen(false)}
+      />
+    </div>
+  );
+}
 
-          <div>
-            <h3 className="text-sm font-bold">For Restaurants</h3>
-            <div className={`mt-8 flex flex-col items-start gap-2 text-sm ${isLightMode ? 'text-slate-700' : 'text-slate-100'}`}>
-              {['Partner With Us', 'Restaurant Login', 'Business Solutions', 'Pricing', 'Resources'].map((label) => (
-                <button key={label} onClick={() => showToast(`${label} coming soon`)} className="transition hover:text-orange-400">
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </footer>
+function SectionTitle({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <div className="text-center">
+      <h2 className="font-display text-5xl tracking-tight">{title}</h2>
+
+      {subtitle && (
+        <p className="mt-3 text-neutral-500">
+          {subtitle}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function FooterColumn({
+  title,
+  links,
+}: {
+  title: string;
+  links: { label: string; to: string }[];
+}) {
+  return (
+    <div>
+      <h3 className="mb-5 text-lg font-bold">{title}</h3>
+
+      <div className="space-y-4">
+        {links.map((item) => (
+          <Link
+            key={item.label}
+            to={item.to}
+            className="flex items-center gap-2 text-neutral-500 transition hover:text-[#ff9d00]"
+          >
+            {item.label}
+
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        ))}
       </div>
     </div>
   );
-};
-
-export default LandingPage;
+}
