@@ -380,7 +380,7 @@ const StaffDashboard = () => {
               Good Evening! 👋
             </h1>
             <p style={{ fontSize: '14px', color: theme.textMuted, marginTop: '4px', marginBottom: 0 }}>
-              Here's what's happening on the floor today.
+               Here&apos;s what&apos;s happening on the floor today.
             </p>
           </div>
 
