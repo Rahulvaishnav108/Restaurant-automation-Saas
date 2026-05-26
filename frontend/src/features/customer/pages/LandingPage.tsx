@@ -17,6 +17,7 @@ import { useTheme } from "../../../app/providers/ThemeProvider";
 
 type LandingPageProps = {
   onEnterApp?: () => void;
+  initialLoginOpen?: boolean;
 };
 
 const categories = [
@@ -122,10 +123,11 @@ const offers = [
 
 export default function LandingPage({
   onEnterApp,
+  initialLoginOpen = false,
 }: LandingPageProps): JSX.Element {
   const { theme, toggleTheme } = useTheme();
 
-  const [openLogin, setOpenLogin] = useState(false);
+  const [openLogin, setOpenLogin] = useState(initialLoginOpen);
 
   const [mobileMenu, setMobileMenu] = useState(false);
 
