@@ -14,7 +14,6 @@ import OffersPage from "../features/customer/pages/OffersPage";
 import ReservationsPage from "../features/customer/pages/ReservationsPage";
 import PaymentPage from "../features/customer/pages/PaymentPage";
 import FeedbackPage from "../features/customer/pages/FeedbackPage";
-
 import KitchenLayout from "../layouts/KitchenLayout";
 import KitchenDashboard from "../features/kitchen/pages/KitchenDashboard";
 
@@ -32,8 +31,6 @@ const AppRoutes = () => {
         <Route path="/payment" element={<PaymentPage />} />
         <Route path="/feedback" element={<FeedbackPage />} />
         <Route path="/dashboard" element={<CustomerDashboard onBack={() => navigate('/')} />} />
-        
-        {/* Kitchen KDS Panel Route */}
         <Route path="/kitchen" element={<KitchenLayout />}>
           <Route index element={<KitchenDashboard />} />
         </Route>
