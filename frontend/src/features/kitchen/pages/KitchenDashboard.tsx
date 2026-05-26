@@ -1,13 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { Row, Col, Spin, message, ConfigProvider, theme, Button, Card, Divider } from 'antd';
+import { Row, Col, Spin, message, theme, Button, Card } from 'antd';
 import { 
-  LayoutDashboard, 
-  ChefHat, 
-  Layers, 
-  Flame, 
-  TrendingUp, 
   RefreshCw, 
   CheckSquare, 
   Clock, 
@@ -51,7 +46,9 @@ export default function KitchenDashboard(): JSX.Element {
 
   const [mutatingOrderId, setMutatingOrderId] = useState<string | null>(null);
   const [mutatingBatchId, setMutatingBatchId] = useState<string | null>(null);
-  const [notifications, setNotifications] = useState<NotificationLog[]>([]);
+  const [notifications, setNotifications] = useState<NotificationLog[]>(() => [
+    { id: 'i1', text: 'Kitchen monitoring active.', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), icon: 'bell', color: 'text-rose-400' }
+  ]);
 
   // Push notifications helper
   const addNotification = (text: string, icon: 'bell' | 'chef' | 'layers', color: string) => {
@@ -225,10 +222,7 @@ export default function KitchenDashboard(): JSX.Element {
       addNotification('Update: Cooking batch updated', 'layers', 'text-amber-400');
     });
 
-    // Populate initial notifications log on mount
-    setNotifications([
-      { id: 'i1', text: 'Kitchen monitoring active.', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), icon: 'bell', color: 'text-rose-400' }
-    ]);
+    // Initial notifications log populated on mount via lazy initializer
 
     return () => {
       socket.off('order:new');

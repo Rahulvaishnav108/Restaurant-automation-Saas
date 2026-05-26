@@ -23,8 +23,20 @@ const CartModal: React.FC<CartModalProps> = ({ open, cart, menuItems, totalItems
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md rounded-t-3xl bg-[#0e1221] border-t border-white/10 p-5 pb-8" onClick={(event) => event.stopPropagation()}>
+    <div className="fixed inset-0 z-[80]">
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            onClose();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="Close cart"
+      />
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md rounded-t-3xl bg-[#0e1221] border-t border-white/10 p-5 pb-8">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold">Your Cart ({totalItems})</h3>
           <button onClick={onClose}><X className="h-5 w-5" /></button>
