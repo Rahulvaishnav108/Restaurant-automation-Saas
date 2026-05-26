@@ -1,7 +1,5 @@
-import React from 'react';
+import { Outlet } from 'react-router-dom';
 
-const CleaningLayout = () => {
-  return <div>CleaningLayout</div>;
-};
-
-export default CleaningLayout;
+export default function CleaningLayout(): JSX.Element {
+  return <Outlet />;
+}
