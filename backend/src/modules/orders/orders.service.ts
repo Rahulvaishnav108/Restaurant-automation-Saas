@@ -7,15 +7,18 @@ import { ErrorCode } from '../../constants/errors';
 import { Priority } from '../../constants/statuses';
 import { TableModel } from '../tables/tables.model';
 import mongoose from 'mongoose';
+import { NotificationsService } from '../notifications/notifications.service';
+import { UserRole } from '../../constants/roles';
+import { NotificationCategory, NotificationPriority } from '../notifications/notifications.schema';
 
 const ORDER_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus[]>> = {
-  [OrderStatus.PLACED]: [OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.DELAYED, OrderStatus.REJECTED, OrderStatus.CANCELLED],
-  [OrderStatus.CONFIRMED]: [OrderStatus.PREPARING, OrderStatus.DELAYED, OrderStatus.CANCELLED],
-  [OrderStatus.PREPARING]: [OrderStatus.DELAYED, OrderStatus.READY],
-  [OrderStatus.DELAYED]: [OrderStatus.PREPARING, OrderStatus.READY],
-  [OrderStatus.READY]: [OrderStatus.PICKED, OrderStatus.SERVED],
-  [OrderStatus.PICKED]: [OrderStatus.SERVED],
-  [OrderStatus.SERVED]: [OrderStatus.COMPLETED],
+  [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED, OrderStatus.REJECTED],
+  [OrderStatus.CONFIRMED]: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
+  [OrderStatus.PREPARING]: [OrderStatus.READY],
+  [OrderStatus.READY]: [OrderStatus.SERVED],
+  [OrderStatus.SERVED]: [OrderStatus.BILLED],
+  [OrderStatus.BILLED]: [OrderStatus.PAID],
+  [OrderStatus.PAID]: [OrderStatus.COMPLETED],
 };
 
 function ensureOrderTransition(currentStatus: OrderStatus, nextStatus: OrderStatus, message: string): void {
@@ -86,7 +89,7 @@ export class OrdersService {
       taxAmount: cart.tax,
       discountAmount: cart.discount,
       finalAmount: cart.grandTotal,
-      status: OrderStatus.PLACED,
+      status: OrderStatus.PENDING,
       paymentStatus: PaymentStatus.PENDING,
       priority: Priority.NORMAL,
       specialInstructions: data.specialInstructions || '',
@@ -171,7 +174,7 @@ export class OrdersService {
       taxAmount: original.taxAmount,
       discountAmount: original.discountAmount,
       finalAmount: original.finalAmount,
-      status: OrderStatus.PLACED,
+      status: OrderStatus.PENDING,
       paymentStatus: PaymentStatus.PENDING,
       priority: original.priority ?? Priority.NORMAL,
       specialInstructions: original.specialInstructions,
@@ -211,10 +214,9 @@ export class OrdersService {
         ? options.status
         : {
             $in: [
-              OrderStatus.PLACED,
+              OrderStatus.PENDING,
               OrderStatus.CONFIRMED,
               OrderStatus.PREPARING,
-              OrderStatus.DELAYED,
               OrderStatus.READY,
             ],
           },
@@ -259,7 +261,7 @@ export class OrdersService {
   ) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    ensureOrderTransition(order.status as OrderStatus, OrderStatus.CONFIRMED, 'Only placed orders can be accepted');
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.CONFIRMED, 'Only pending orders can be accepted');
 
     order.status = OrderStatus.CONFIRMED;
     order.acceptedAt = new Date();
@@ -269,6 +271,20 @@ export class OrdersService {
     }
 
     await order.save();
+
+    // Trigger persistent notification targeting CUSTOMER
+    await NotificationsService.createNotification({
+      restaurantId: order.restaurantId,
+      tableSessionId: order.sessionId,
+      recipientRole: UserRole.CUSTOMER,
+      title: 'Order Confirmed',
+      message: `Your order ${order.orderNumber} has been confirmed.`,
+      type: 'ORDER_CONFIRMED',
+      category: NotificationCategory.SYSTEM,
+      priority: NotificationPriority.NORMAL,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
+
     return order;
   }
 
@@ -301,6 +317,20 @@ export class OrdersService {
     order.readyAt = new Date();
     order.kitchenStaffId = toNullableObjectId(actorId);
     await order.save();
+
+    // Trigger persistent notification targeting SERVICE_STAFF
+    await NotificationsService.createNotification({
+      restaurantId: order.restaurantId,
+      tableSessionId: order.sessionId,
+      recipientRole: UserRole.SERVICE_STAFF,
+      title: 'Order Ready for Pickup',
+      message: `Order ${order.orderNumber} is ready to be served.`,
+      type: 'ORDER_READY',
+      category: NotificationCategory.STAFF,
+      priority: NotificationPriority.HIGH,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
+
     return order;
   }
 
@@ -312,7 +342,7 @@ export class OrdersService {
   ) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    ensureOrderTransition(order.status as OrderStatus, OrderStatus.REJECTED, 'Only placed orders can be rejected');
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.REJECTED, 'Only pending orders can be rejected');
 
     order.status = OrderStatus.REJECTED;
     order.cancelledAt = new Date();
@@ -331,14 +361,16 @@ export class OrdersService {
   ) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    ensureOrderTransition(order.status as OrderStatus, OrderStatus.DELAYED, 'Cannot delay order in current status');
+    // No status transition change; must be in CONFIRMED or PREPARING status to be delayed.
+    if (order.status !== OrderStatus.CONFIRMED && order.status !== OrderStatus.PREPARING) {
+      throw new AppError('Cannot delay order in current status', 400, ErrorCode.ORDER_NOT_MODIFIABLE);
+    }
 
     if (order.estimatedPreparationTime) {
       order.estimatedPreparationTime += delayMinutes;
     } else {
       order.estimatedPreparationTime = delayMinutes;
     }
-    order.status = OrderStatus.DELAYED;
     order.delayedAt = new Date();
     order.kitchenStaffId = toNullableObjectId(actorId);
 
@@ -357,9 +389,11 @@ export class OrdersService {
   ) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    ensureOrderTransition(order.status as OrderStatus, OrderStatus.PICKED, 'Only ready orders can be picked');
+    // Keep order status as READY, do not transition to obsolete PICKED status
+    if (order.status !== OrderStatus.READY) {
+      throw new AppError('Only ready orders can be picked', 400, ErrorCode.ORDER_NOT_MODIFIABLE);
+    }
 
-    order.status = OrderStatus.PICKED;
     order.pickedAt = new Date();
     order.serviceStaffId = toNullableObjectId(actorId);
     await order.save();
@@ -373,7 +407,8 @@ export class OrdersService {
   ) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    ensureOrderTransition(order.status as OrderStatus, OrderStatus.SERVED, 'Only picked or ready orders can be served');
+    // Only ready orders can transition to served (since PICKED is retired as a status)
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.SERVED, 'Only ready orders can be served');
 
     order.status = OrderStatus.SERVED;
     order.servedAt = new Date();
@@ -389,7 +424,7 @@ export class OrdersService {
   ) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    ensureOrderTransition(order.status as OrderStatus, OrderStatus.COMPLETED, 'Only served orders can be completed');
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.COMPLETED, 'Only paid orders can be completed');
 
     order.status = OrderStatus.COMPLETED;
     order.completedAt = new Date();

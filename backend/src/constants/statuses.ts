@@ -25,16 +25,16 @@ export enum SessionStatus {
 }
 
 export enum OrderStatus {
-  PLACED = 'PLACED',
+  PENDING = 'PENDING',
   CONFIRMED = 'CONFIRMED',
   PREPARING = 'PREPARING',
   READY = 'READY',
-  PICKED = 'PICKED',
   SERVED = 'SERVED',
+  BILLED = 'BILLED',
+  PAID = 'PAID',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
   REJECTED = 'REJECTED',
-  DELAYED = 'DELAYED',
 }
 
 export enum PaymentStatus {

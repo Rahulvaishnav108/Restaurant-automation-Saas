@@ -1,342 +1,695 @@
-import React, { useState, useMemo, useRef } from 'react';
-import { Search, MapPin, Bell, Star, ChevronDown, Heart, Clock3, X, ShoppingBag, Flame, Menu as MenuIcon, Moon, Sun } from 'lucide-react';
+// LandingPage.tsx
 
-interface Props { onEnterApp: () => void; }
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  MapPin,
+  MoonStar,
+  Search,
+  ShoppingCart,
+  Star,
+  SunMedium,
+  UtensilsCrossed,
+} from "lucide-react";
 
-const CATEGORIES = ['All','Pizza','Burger','Biryani','Desserts','Drinks','Chinese'];
+import { useTheme } from "../../../app/providers/ThemeProvider";
+import LoginModal from "../../../auth/components/LoginModal";
 
-const RESTAURANTS = [
-  { id:1, name:'The Grill House', desc:'Cheesy burgers & loaded fries', eta:'15-20 min', rating:4.8, reviews:230, price:250, cat:'Burger', badge:'Best Seller', img:'https://images.unsplash.com/photo-1550547660-d9450f859349?w=600&q=80' },
-  { id:2, name:'Pizza Corner', desc:'Italian stone-baked pizza', eta:'20-25 min', rating:4.7, reviews:186, price:399, cat:'Pizza', badge:'Popular', img:'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80' },
-  { id:3, name:'Spice Route', desc:'Slow-cooked aromatic biryani', eta:'25-30 min', rating:4.9, reviews:342, price:299, cat:'Biryani', badge:'Top Rated', img:'https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=600&q=80' },
-  { id:4, name:'Sweet Treats', desc:'Artisan desserts & shakes', eta:'10-15 min', rating:4.6, reviews:118, price:199, cat:'Desserts', badge:'New', img:'https://images.unsplash.com/photo-1542828183-4e0a0d95f83d?w=600&q=80' },
-  { id:5, name:'Dragon Palace', desc:'Authentic Chinese dim sum', eta:'20-30 min', rating:4.5, reviews:95, price:350, cat:'Chinese', badge:'', img:'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&q=80' },
-  { id:6, name:'Bubble Tea Bar', desc:'Fresh fruit teas & smoothies', eta:'5-10 min', rating:4.4, reviews:74, price:180, cat:'Drinks', badge:'', img:'https://images.unsplash.com/photo-1558857563-b371033873b8?w=600&q=80' },
+// HERO IMAGES
+const hero1 =
+  "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=2070&auto=format&fit=crop";
+
+const hero2 =
+  "https://images.unsplash.com/photo-1552566626-52f8b828add9?q=80&w=1974&auto=format&fit=crop";
+
+const hero3 =
+  "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=2070&auto=format&fit=crop";
+
+type LandingPageProps = {
+  initialLoginOpen?: boolean;
+};
+
+const heroSlides = [
+  {
+    image: hero1,
+    title: "Find the best restaurants",
+    accent: "near you",
+    subtitle:
+      "Explore top restaurants, check availability, book a table or order instantly.",
+  },
+  {
+    image: hero2,
+    title: "Reserve your table",
+    accent: "instantly",
+    subtitle:
+      "Real-time booking, live table availability and smooth dining experience.",
+  },
+  {
+    image: hero3,
+    title: "Dining experience",
+    accent: "reimagined",
+    subtitle:
+      "Premium restaurant automation with QR ordering and modern operations.",
+  },
 ];
 
-const TRENDING = [
-  { title:'Hyderabadi Biryani', restaurant:'Spice Route', price:299, rating:4.9, img:'https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=400&q=80' },
-  { title:'Butter Chicken', restaurant:'Spice Route', price:329, rating:4.8, img:'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=400&q=80' },
-  { title:'Veg Pizza', restaurant:'Pizza Corner', price:379, rating:4.7, img:'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&q=80' },
-  { title:'Smash Burger', restaurant:'Grill House', price:259, rating:4.8, img:'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=80' },
+const categories = [
+  { name: "Pizza", icon: "🍕" },
+  { name: "Burger", icon: "🍔" },
+  { name: "Chinese", icon: "🍜" },
+  { name: "Coffee", icon: "☕" },
+  { name: "Desserts", icon: "🧁" },
+  { name: "North Indian", icon: "🥘" },
 ];
 
-const OFFERS = [
-  { title:'FLAT 20% OFF', sub:'On first order above ₹500', code:'FIRST20', gradient:'from-orange-600 to-red-700' },
-  { title:'FLAT 10% OFF', sub:'All orders this weekend', code:'WKND10', gradient:'from-amber-500 to-orange-600' },
-  { title:'BUY 1 GET 1', sub:'Selected items today only', code:'B1G1', gradient:'from-rose-600 to-pink-700' },
+const restaurants = [
+  {
+    name: "Burger Barn",
+    image: hero1,
+    category: "Fast Food, Burgers, American",
+    location: "Connaught Place",
+  },
+  {
+    name: "Cafe Heights",
+    image: hero2,
+    category: "Cafe, Italian, Continental",
+    location: "Connaught Place",
+  },
+  {
+    name: "Spice Deck",
+    image: hero3,
+    category: "Indian, Multi Cuisine",
+    location: "Khan Market",
+  },
 ];
 
-const TESTIMONIALS = [
-  { name:'Aarav M.', role:'Food Enthusiast', rating:5, msg:'QR ordering is seamless. Scanned, ordered, food arrived in minutes!' },
-  { name:'Nisha K.', role:'Regular Diner', rating:5, msg:'Love the clean interface and live order tracking feature.' },
-  { name:'Rahul S.', role:'Office Lead', rating:4, msg:'Perfect for team lunches. Everyone orders from their phone.' },
+const dishes = [
+  {
+    name: "Beef Cheese Burger",
+    price: "₹300",
+    restaurant: "Burger King",
+    image: hero1,
+  },
+  {
+    name: "Mixed Salad",
+    price: "₹600",
+    restaurant: "AJAX",
+    image: hero2,
+  },
+  {
+    name: "Vegan Chinese",
+    price: "₹700",
+    restaurant: "AJAX",
+    image: hero3,
+  },
+  {
+    name: "Cheesy Pizza",
+    price: "₹1200",
+    restaurant: "AJAX",
+    image: hero1,
+  },
 ];
 
-const LandingPage: React.FC<Props> = ({ onEnterApp }) => {
-  const [query, setQuery] = useState('');
-  const [activeCat, setActiveCat] = useState('All');
-  const [favs, setFavs] = useState<number[]>([]);
-  const [loginOpen, setLoginOpen] = useState(false);
-  const [toast, setToast] = useState('');
-  const [mobileNav, setMobileNav] = useState(false);
-  const [copiedCode, setCopiedCode] = useState('');
-  const [isLightMode, setIsLightMode] = useState(false);
-  const restaurantsRef = useRef<HTMLElement>(null);
-  const offersRef = useRef<HTMLElement>(null);
-  const lightTextShadow = isLightMode ? { textShadow: '0 2px 10px rgba(0, 0, 0, 0.45)' } : undefined;
-  const lightSubtleTextShadow = isLightMode ? { textShadow: '0 1px 6px rgba(0, 0, 0, 0.38)' } : undefined;
+const blogs = [
+  {
+    title: "Taste the delicious foods in Asia",
+    image: hero1,
+  },
+  {
+    title: "Taste the delicious foods in Asia",
+    image: hero2,
+  },
+  {
+    title: "Taste the delicious foods in Asia",
+    image: hero3,
+  },
+];
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(''), 2500);
-  };
+const testimonials = [
+  {
+    name: "Burger Kings",
+    role: "CUSTOMER",
+    image:
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=400",
+  },
+  {
+    name: "Burger Kings",
+    role: "CUSTOMER",
+    image:
+      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=400",
+  },
+  {
+    name: "Burger Kings",
+    role: "CUSTOMER",
+    image:
+      "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=400",
+  },
+];
 
-  const toggleFav = (id: number) => {
-    setFavs(p => p.includes(id) ? p.filter(f => f !== id) : [...p, id]);
-    showToast(favs.includes(id) ? 'Removed from favourites' : 'Added to favourites ❤️');
-  };
+export default function LandingPage({
+  initialLoginOpen = false,
+}: LandingPageProps) {
+  const navigate = useNavigate();
 
-  const copyCode = (code: string) => {
-    setCopiedCode(code);
-    showToast(`Code "${code}" copied! 🎉`);
-    setTimeout(() => setCopiedCode(''), 2000);
-  };
+  const { theme, toggleTheme } = useTheme();
 
-  const scrollTo = (ref: React.RefObject<HTMLElement>) => {
-    ref.current?.scrollIntoView({ behavior: 'smooth' });
-    setMobileNav(false);
-  };
+  const [heroIndex, setHeroIndex] = useState(0);
+  const [loginOpen, setLoginOpen] = useState(initialLoginOpen);
 
-  const filtered = useMemo(() =>
-    RESTAURANTS.filter(r => {
-      const matchCat = activeCat === 'All' || r.cat === activeCat;
-      const matchQ = !query.trim() || r.name.toLowerCase().includes(query.toLowerCase()) || r.desc.toLowerCase().includes(query.toLowerCase());
-      return matchCat && matchQ;
-    }), [activeCat, query]);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHeroIndex((prev) => (prev + 1) % heroSlides.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const activeHero = heroSlides[heroIndex];
+
+  const navLinks = useMemo(
+    () => [
+      { label: "Home", path: "/" },
+      { label: "Restaurants", path: "/restaurants" },
+      { label: "Offers", path: "/offers" },
+      { label: "Reservations", path: "/reservations" },
+    ],
+    [],
+  );
 
   return (
-    <div
-      className={`relative isolate min-h-screen bg-cover bg-center bg-fixed bg-no-repeat transition-colors duration-500 ${isLightMode ? 'text-white' : 'text-white'}`}
-      style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1600&q=80)' }}
-    >
-      <div className={`fixed inset-0 z-0 pointer-events-none transition-colors duration-500 ${isLightMode ? 'bg-transparent' : 'bg-[#050814]/55'}`} />
-      <div className="relative z-10">
-      {/* Toast */}
-      {toast && (
-          <div className={`fixed top-5 left-1/2 z-[100] -translate-x-1/2 rounded-2xl border px-6 py-3 text-sm shadow-2xl backdrop-blur-xl ${isLightMode ? 'border-slate-200 bg-white/95 text-slate-900' : 'border-white/10 bg-slate-800/95 text-white'}`}>
-          {toast}
-        </div>
-      )}
+    <div className="min-h-screen bg-[#faf7f2] text-[#1f1f1f] dark:bg-[#070707] dark:text-white">
+      {/* NAVBAR */}
 
-      {/* Login Modal */}
-      {loginOpen && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
-          <div className={`w-full max-w-md rounded-3xl border p-8 shadow-2xl ${isLightMode ? 'border-slate-200 bg-white text-slate-950' : 'border-white/10 bg-[#0a0d17] text-white'}`}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">Welcome back 👋</h2>
-              <button onClick={() => setLoginOpen(false)} className={`p-2 rounded-full transition ${isLightMode ? 'hover:bg-slate-100' : 'hover:bg-white/10'}`}><X className="h-5 w-5" /></button>
+      <header className="sticky top-0 z-50 border-b border-black/5 bg-white/80 backdrop-blur-xl dark:border-white/10 dark:bg-black/70">
+        <div className="mx-auto flex max-w-[1450px] items-center justify-between px-6 py-4">
+          {/* LOGO */}
+
+          <Link to="/" className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ff9d00] text-white shadow-xl">
+              <UtensilsCrossed className="h-5 w-5" />
             </div>
-            <div className="space-y-4">
-              <input type="text" placeholder="Email or mobile number" className={`w-full rounded-2xl border px-4 py-3 outline-none transition ${isLightMode ? 'border-slate-200 bg-slate-50 text-slate-950 placeholder-slate-500 focus:border-orange-500' : 'border-white/10 bg-white/5 text-white placeholder-slate-500 focus:border-orange-500'}`} />
-              <input type="password" placeholder="Password" className={`w-full rounded-2xl border px-4 py-3 outline-none transition ${isLightMode ? 'border-slate-200 bg-slate-50 text-slate-950 placeholder-slate-500 focus:border-orange-500' : 'border-white/10 bg-white/5 text-white placeholder-slate-500 focus:border-orange-500'}`} />
-              <button onClick={() => { setLoginOpen(false); onEnterApp(); }} className="w-full rounded-2xl bg-orange-500 py-3 font-semibold hover:bg-orange-600 transition">Login</button>
-              <button onClick={() => { setLoginOpen(false); onEnterApp(); }} className={`w-full rounded-2xl border py-3 text-sm transition ${isLightMode ? 'border-slate-200 text-slate-700 hover:bg-slate-50' : 'border-white/10 text-slate-300 hover:bg-white/5'}`}>Send OTP instead</button>
-              <p className={`text-center text-sm ${isLightMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                No account? <button onClick={() => { setLoginOpen(false); onEnterApp(); }} className="text-orange-400 hover:underline">Sign up free</button>
+
+            <div>
+              <h2 className="text-[30px] font-black leading-none tracking-tight">
+                <span className="text-white dark:text-white">Serve</span>
+                <span className="text-[#ff9d00]">Sphere</span>
+              </h2>
+
+              <p className="text-xs text-neutral-500">
+                Restaurant automation SaaS
               </p>
             </div>
+          </Link>
+
+          {/* LOCATION */}
+
+          <div className="hidden items-center gap-2 rounded-full border border-black/10 px-4 py-2 dark:border-white/10 lg:flex">
+            <MapPin className="h-4 w-4 text-[#ff9d00]" />
+            <span className="text-sm">Mumbai, India</span>
           </div>
-        </div>
-      )}
 
-      {/* Navbar */}
-      <nav className={`sticky top-0 z-50 border-b backdrop-blur-xl transition-colors duration-500 ${isLightMode ? 'border-white/40 bg-white/25 shadow-sm' : 'border-white/10 bg-transparent'}`}>
-        <div className="mx-auto max-w-7xl px-6 lg:px-16">
-          <div className="flex items-center justify-between gap-4 py-4">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-xl bg-orange-500 flex items-center justify-center">
-                <ShoppingBag className="h-4 w-4 text-white" />
-              </div>
-              <span className="text-xl font-bold" style={lightTextShadow}><span className="text-white">Serve</span><span className="text-orange-500">Sphere</span></span>
-            </div>
+          {/* NAV */}
 
-            <button onClick={() => showToast('Location selector — coming soon!')} className={`hidden md:flex items-center gap-2 px-4 py-2 rounded-full border transition ${isLightMode ? 'border-white/40 bg-white/20 text-white shadow-sm hover:bg-white/30' : 'border-white/10 bg-white/5 text-white hover:bg-white/10'}`} style={lightSubtleTextShadow}>
-              <MapPin className="h-4 w-4 text-orange-500" />
-              <span className="text-sm">Mulund, Mumbai</span>
-              <ChevronDown className={`h-3 w-3 ${isLightMode ? 'text-white' : 'text-slate-400'}`} />
+          <nav className="hidden items-center gap-10 lg:flex">
+            {navLinks.map((item) => (
+              <Link
+                key={item.label}
+                to={item.path}
+                className="text-sm font-semibold transition hover:text-[#ff9d00]"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+
+          {/* ACTIONS */}
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggleTheme}
+              className="flex h-12 w-12 items-center justify-center rounded-full border border-black/10 transition hover:border-[#ff9d00] dark:border-white/10"
+            >
+              {theme === "dark" ? (
+                <SunMedium className="h-5 w-5" />
+              ) : (
+                <MoonStar className="h-5 w-5" />
+              )}
             </button>
 
-            <div className="hidden lg:flex items-center gap-8">
-              {[['Home', null], ['Restaurants', restaurantsRef], ['Offers', offersRef]].map(([label, ref]) => (
-                <button key={label as string} onClick={() => ref ? scrollTo(ref as React.RefObject<HTMLElement>) : showToast('Home')} className={`text-sm transition font-medium ${isLightMode ? 'text-white hover:text-orange-200' : 'text-gray-300 hover:text-orange-400'}`} style={lightSubtleTextShadow}>{label as string}</button>
-              ))}
-              <button onClick={() => showToast('Reservations coming soon!')} className={`text-sm transition font-medium ${isLightMode ? 'text-white hover:text-orange-200' : 'text-gray-300 hover:text-orange-400'}`} style={lightSubtleTextShadow}>Reservations</button>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => {
-                  setIsLightMode(v => !v);
-                  showToast(!isLightMode ? 'Light mode enabled' : 'Dark mode enabled');
-                }}
-                aria-label={isLightMode ? 'Switch to dark mode' : 'Switch to light mode'}
-                className={`relative hidden h-10 w-[76px] items-center rounded-full border p-1 transition sm:flex ${isLightMode ? 'border-orange-200 bg-orange-50 shadow-lg shadow-orange-100' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}
-              >
-                <span className={`absolute inset-y-1 flex h-8 w-8 items-center justify-center rounded-full shadow-md transition-all duration-300 ${isLightMode ? 'left-[38px] bg-white text-orange-500' : 'left-1 bg-orange-500 text-white'}`}>
-                  {isLightMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                </span>
-                <span className={`ml-2 text-[10px] font-bold transition ${isLightMode ? 'text-orange-500 opacity-0' : 'text-orange-200 opacity-100'}`}>Dark</span>
-                <span className={`ml-auto mr-2 text-[10px] font-bold transition ${isLightMode ? 'text-orange-500 opacity-100' : 'text-slate-400 opacity-0'}`}>Light</span>
-              </button>
-              <button onClick={() => showToast('No new notifications')} className={`hidden sm:flex h-9 w-9 items-center justify-center rounded-full border transition ${isLightMode ? 'border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50' : 'border-white/10 bg-white/5 text-white hover:bg-white/10'}`}>
-                <Bell className="h-4 w-4" />
-              </button>
-              <button onClick={() => setLoginOpen(true)} className="px-5 py-2 rounded-full bg-orange-500 text-sm font-semibold hover:bg-orange-600 transition">Login / Sign Up</button>
-              <button onClick={() => setMobileNav(!mobileNav)} className={`lg:hidden p-2 rounded-full transition ${isLightMode ? 'text-white hover:bg-white/20' : 'text-white hover:bg-white/10'}`} style={lightSubtleTextShadow}>
-                <MenuIcon className="h-5 w-5" />
-              </button>
-            </div>
+            <button
+              onClick={() => setLoginOpen(true)}
+              className="rounded-full bg-[#ff9d00] px-6 py-3 text-sm font-bold text-white transition hover:scale-[1.02]"
+            >
+              Login / Sign Up
+            </button>
           </div>
-          {mobileNav && (
-            <div className={`lg:hidden border-t py-3 space-y-1 ${isLightMode ? 'border-slate-200' : 'border-white/10'}`}>
-              {['Restaurants','Offers','Reservations'].map(l => (
-                <button key={l} onClick={() => l==='Restaurants' ? scrollTo(restaurantsRef) : l==='Offers' ? scrollTo(offersRef) : showToast('Coming soon!')} className={`block w-full text-left px-4 py-3 text-sm rounded-xl transition ${isLightMode ? 'text-white hover:bg-white/20 hover:text-orange-200' : 'text-gray-300 hover:text-orange-400 hover:bg-white/5'}`} style={lightSubtleTextShadow}>{l}</button>
-              ))}
-            </div>
-          )}
         </div>
-      </nav>
+      </header>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden py-24 sm:py-32">
-        <div className="absolute inset-0 bg-transparent transition-colors duration-500" />
-        <div className="relative mx-auto max-w-7xl px-6 lg:px-16 flex flex-col items-center text-center">
-        
-          <h1
-            className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-tight tracking-tight text-white"
-            style={{ fontFamily: '"Instrument Serif", "Instrumental Serif", Georgia, "Times New Roman", serif', ...(lightTextShadow ?? {}) }}
-          >
-            Find the best<br /><span className={isLightMode ? 'text-orange-500' : ''}>restaurants </span><span className={isLightMode ? 'text-orange-500' : 'text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-400'}>near you</span>
-          </h1>
-          <p
-            className={`mt-6 max-w-xl text-lg ${isLightMode ? 'text-white' : 'text-slate-300'}`}
-            style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', ...(lightSubtleTextShadow ?? {}) }}
-          >
-            Explore top restaurants, scan your table QR, order instantly, and pay without waiting.
-          </p>
+      {/* MAIN */}
 
-          <div className="mt-10 w-full max-w-2xl flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className={`absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 ${isLightMode ? 'text-slate-500' : 'text-slate-400'}`} />
-              <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key==='Enter' && scrollTo(restaurantsRef)} placeholder="Search restaurants, cuisines, dishes..." className={`w-full pl-14 pr-4 py-4 rounded-full border outline-none transition ${isLightMode ? 'border-slate-200 bg-white/90 text-slate-950 placeholder-slate-500 shadow-xl shadow-slate-300/40 focus:border-orange-500' : 'border-white/20 bg-white/10 text-white placeholder-slate-400 focus:border-orange-500'}`} />
+      <main className="mx-auto max-w-[1450px] px-4 pb-20 pt-4">
+        {/* HERO */}
+
+        <section className="relative overflow-hidden rounded-[34px]">
+          <div
+            className="absolute inset-0 bg-cover bg-center transition-all duration-700"
+            style={{
+              backgroundImage: `url(${activeHero.image})`,
+            }}
+          />
+
+          <div className="absolute inset-0 bg-black/55" />
+
+          <div className="relative flex min-h-[720px] flex-col items-center justify-center px-6 text-center text-white">
+            <h1 className="max-w-4xl font-display text-6xl leading-[0.9] tracking-[-0.04em] md:text-8xl">
+              {activeHero.title}{" "}
+              <span className="italic text-[#ff9d00]">
+                {activeHero.accent}
+              </span>
+            </h1>
+
+            <p className="mt-6 max-w-2xl text-xl text-white/90">
+              {activeHero.subtitle}
+            </p>
+
+            {/* SEARCH */}
+
+            <div className="mt-10 flex w-full max-w-4xl items-center overflow-hidden rounded-2xl bg-white shadow-2xl">
+              <div className="flex flex-1 items-center gap-3 px-5">
+                <Search className="h-5 w-5 text-[#ff9d00]" />
+
+                <input
+                  type="text"
+                  placeholder="Search restaurants, cuisines, or dishes..."
+                  className="h-16 w-full bg-transparent text-black outline-none"
+                />
+              </div>
+
+              <button className="m-2 rounded-xl bg-[#ff9d00] px-8 py-4 font-semibold text-white transition hover:bg-[#f08f00]">
+                Search
+              </button>
             </div>
-            <button onClick={() => { if(!query.trim()){showToast('Enter something to search');return;} scrollTo(restaurantsRef); }} className="px-8 py-4 rounded-full bg-orange-500 font-semibold hover:bg-orange-600 transition whitespace-nowrap">Search</button>
-          </div>
 
-          <div className={`mt-12 flex flex-wrap justify-center gap-8 text-sm ${isLightMode ? 'text-white' : 'text-slate-300'}`} style={lightSubtleTextShadow}>
-            {[['🍽️','500+ Dishes'],['⭐','4.5+ Avg Rating'],['⚡','Live Table Ordering'],['🎁','Daily Offers']].map(([icon,label]) => (
-              <div key={label} className="flex items-center gap-2"><span className="text-xl">{icon}</span>{label}</div>
+            {/* STATS */}
+
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-6 text-sm font-medium text-white/90">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-[#ff9d00]" />
+                24 Restaurants Nearby
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Star className="h-4 w-4 fill-[#ff9d00] text-[#ff9d00]" />
+                4.5+ Avg Ratings
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Clock3 className="h-4 w-4 text-[#ff9d00]" />
+                Live Availability
+              </div>
+            </div>
+
+            {/* SLIDER BUTTONS */}
+
+            <div className="absolute bottom-10 right-10 flex gap-3">
+              <button
+                onClick={() =>
+                  setHeroIndex(
+                    (prev) =>
+                      (prev - 1 + heroSlides.length) % heroSlides.length,
+                  )
+                }
+                className="rounded-full bg-white/10 p-3 backdrop-blur-xl transition hover:bg-white/20"
+              >
+                <ChevronLeft />
+              </button>
+
+              <button
+                onClick={() =>
+                  setHeroIndex((prev) => (prev + 1) % heroSlides.length)
+                }
+                className="rounded-full bg-white/10 p-3 backdrop-blur-xl transition hover:bg-white/20"
+              >
+                <ChevronRight />
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* FILTERS */}
+
+        <section className="mt-16">
+          <SectionTitle title="Find Your Perfect Spot" />
+
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap gap-3">
+              {[
+                "All",
+                "Fine Dining",
+                "Cafe",
+                "Fast Food",
+                "Italian",
+                "Veg",
+                "Non Veg",
+                "More",
+              ].map((item, idx) => (
+                <button
+                  key={item}
+                  className={`rounded-xl border px-5 py-2 text-sm font-medium transition ${
+                    idx === 0
+                      ? "border-[#ff9d00] bg-[#ff9d00] text-white"
+                      : "border-black/10 bg-white hover:border-[#ff9d00] dark:border-white/10 dark:bg-[#101010]"
+                  }`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+
+            <button className="rounded-xl border border-black/10 bg-white px-5 py-2 text-sm dark:border-white/10 dark:bg-[#101010]">
+              Sort by: Popular
+            </button>
+          </div>
+        </section>
+
+        {/* CATEGORIES */}
+
+        <section className="mt-20">
+          <SectionTitle title="Explore by Categories" />
+
+          <div className="mt-10 grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-6">
+            {categories.map((item) => (
+              <button
+                key={item.name}
+                className="group rounded-[26px] border border-black/10 bg-white p-7 transition hover:-translate-y-1 hover:shadow-2xl dark:border-white/10 dark:bg-[#101010]"
+              >
+                <div className="mb-4 text-6xl transition group-hover:scale-110">
+                  {item.icon}
+                </div>
+
+                <div className="text-lg font-semibold">{item.name}</div>
+              </button>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Categories */}
-      <section className="mx-auto max-w-7xl px-6 lg:px-16 py-12">
-        <p className="text-sm uppercase tracking-widest text-orange-400 mb-2">Browse By Type</p>
-        <h2 className="text-3xl font-bold mb-8">Explore by Category</h2>
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-3">
-          {CATEGORIES.map(cat => (
-            <button key={cat} onClick={() => { setActiveCat(cat); scrollTo(restaurantsRef); }} className={`flex flex-col items-center gap-2 rounded-2xl border py-4 px-2 transition hover:-translate-y-1 ${activeCat===cat ? 'bg-orange-500 border-orange-500 text-white' : isLightMode ? 'border-slate-200 bg-white text-slate-800 shadow-sm hover:border-orange-300 hover:bg-orange-50' : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:border-orange-500/40'}`}>
-              <span className="text-3xl">{cat==='All'?'🍽️':cat==='Pizza'?'🍕':cat==='Burger'?'🍔':cat==='Biryani'?'🍛':cat==='Desserts'?'🧁':cat==='Drinks'?'🥤':'🥡'}</span>
-              <span className="text-xs font-semibold">{cat}</span>
-            </button>
-          ))}
-        </div>
-      </section>
+        {/* RESTAURANTS */}
 
-      {/* Restaurants */}
-      <section ref={restaurantsRef} className="mx-auto max-w-7xl px-6 lg:px-16 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <p className="text-sm uppercase tracking-widest text-orange-400 mb-1">Featured</p>
-            <h2 className="text-3xl font-bold">Top Restaurants Near You</h2>
-          </div>
-          <button onClick={() => setActiveCat('All')} className={`px-4 py-2 rounded-full border text-sm transition ${isLightMode ? 'border-slate-200 bg-white text-slate-800 shadow-sm hover:bg-orange-50 hover:text-orange-600' : 'border-white/10 bg-white/5 text-white hover:bg-white/10'}`}>View all</button>
-        </div>
-        {filtered.length === 0 ? (
-          <div className={`text-center py-20 ${isLightMode ? 'text-slate-600' : 'text-slate-400'}`}>No restaurants found for &quot;<span className={isLightMode ? 'text-slate-950' : 'text-white'}>{query}</span>&quot;</div>
-        ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map(r => (
-              <article key={r.id} className={`group overflow-hidden rounded-3xl border backdrop-blur-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-orange-500/10 hover:border-orange-500/30 ${isLightMode ? 'border-slate-200 bg-white shadow-sm' : 'border-white/10 bg-slate-900/60'}`}>
-                <div className="relative h-52 bg-cover bg-center" style={{ backgroundImage:`url(${r.img})` }}>
-                  {r.badge && <span className="absolute top-3 left-3 rounded-full bg-orange-500 px-3 py-1 text-xs font-bold">{r.badge}</span>}
-                  <button onClick={() => toggleFav(r.id)} className="absolute top-3 right-3 h-9 w-9 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 transition">
-                    <Heart className={`h-4 w-4 ${favs.includes(r.id) ? 'fill-red-500 text-red-500' : 'text-white'}`} />
-                  </button>
+        <section className="mt-20">
+          <SectionTitle
+            title="Top Restaurants Near You"
+            subtitle="Handpicked restaurants for the best dining experience"
+          />
+
+          <div className="mt-10 grid gap-6 lg:grid-cols-3">
+            {restaurants.map((item) => (
+              <article
+                key={item.name}
+                className="overflow-hidden rounded-[28px] border border-black/10 bg-white shadow-xl transition hover:-translate-y-1 dark:border-white/10 dark:bg-[#101010]"
+              >
+                <div className="relative">
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="h-56 w-full object-cover"
+                  />
+
+                  <div className="absolute left-4 top-4 rounded-full bg-[#5d8f2a] px-4 py-1 text-xs font-semibold text-white">
+                    8 Tables Available
+                  </div>
                 </div>
-                <div className="p-5 space-y-3">
-                  <div className={`flex items-center justify-between text-xs uppercase tracking-wider ${isLightMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                    <span>{r.cat}</span>
-                    <span className="flex items-center gap-1"><Clock3 className="h-3 w-3" />{r.eta}</span>
+
+                <div className="space-y-4 p-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="text-2xl font-semibold">{item.name}</h3>
+
+                      <p className="mt-1 text-sm text-neutral-500">
+                        {item.category}
+                      </p>
+
+                      <p className="text-sm text-neutral-500">
+                        {item.location}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1 text-sm font-semibold">
+                      <Star className="h-4 w-4 fill-[#ff9d00] text-[#ff9d00]" />
+                      4.3
+                    </div>
                   </div>
-                  <h3 className={`text-xl font-bold ${isLightMode ? 'text-slate-950' : 'text-white'}`}>{r.name}</h3>
-                  <p className={`text-sm ${isLightMode ? 'text-slate-600' : 'text-slate-400'}`}>{r.desc}</p>
+
+                  <div className="flex items-center gap-5 text-sm text-neutral-500">
+                    <span>🕒 15-30 mins</span>
+                    <span>📍 0.5 km away</span>
+                  </div>
+
                   <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1 text-sm"><Star className="h-4 w-4 fill-amber-400 text-amber-400" /><span className={`font-semibold ${isLightMode ? 'text-slate-950' : 'text-white'}`}>{r.rating}</span><span className={isLightMode ? 'text-slate-500' : 'text-slate-500'}>({r.reviews})</span></span>
-                    <span className={`font-bold ${isLightMode ? 'text-slate-950' : 'text-white'}`}>₹{r.price}</span>
+                    <div className="rounded-full bg-[#f4f8ec] px-4 py-2 text-sm font-medium text-[#5d8f2a]">
+                      Flat 15% OFF
+                    </div>
+
+                    <button
+                      onClick={() => navigate("/restaurants")}
+                      className="rounded-xl bg-[#ff9d00] px-5 py-2 text-sm font-semibold text-white"
+                    >
+                      View Menu
+                    </button>
                   </div>
-                  <button onClick={() => { showToast(`Opening ${r.name}...`); setTimeout(onEnterApp, 600); }} className="w-full rounded-2xl bg-orange-500/10 border border-orange-500/30 py-2.5 text-sm font-semibold text-orange-400 hover:bg-orange-500 hover:text-white transition">Order Now →</button>
                 </div>
               </article>
             ))}
           </div>
-        )}
-      </section>
+        </section>
 
-      {/* Trending */}
-      <section className="mx-auto max-w-7xl px-6 lg:px-16 py-12">
-        <div className="flex items-center gap-2 mb-2">
-          <Flame className="h-5 w-5 text-orange-500" />
-          <p className="text-sm uppercase tracking-widest text-orange-400">Hot Right Now</p>
-        </div>
-        <h2 className="text-3xl font-bold mb-8">Trending Dishes</h2>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {TRENDING.map(d => (
-            <div key={d.title} className={`group rounded-3xl border overflow-hidden hover:-translate-y-1 transition hover:shadow-lg hover:shadow-orange-500/10 ${isLightMode ? 'border-slate-200 bg-white shadow-sm' : 'border-white/10 bg-slate-900/60'}`}>
-              <div className="h-44 bg-cover bg-center" style={{ backgroundImage:`url(${d.img})` }} />
-              <div className="p-4 space-y-2">
-                <h3 className={`font-bold ${isLightMode ? 'text-slate-950' : 'text-white'}`}>{d.title}</h3>
-                <p className={`text-xs ${isLightMode ? 'text-slate-600' : 'text-slate-400'}`}>{d.restaurant}</p>
-                <div className="flex items-center justify-between">
-                  <span className={`flex items-center gap-1 text-xs ${isLightMode ? 'text-slate-800' : 'text-white'}`}><Star className="h-3 w-3 fill-amber-400 text-amber-400" />{d.rating}</span>
-                  <span className="font-bold text-orange-400">₹{d.price}</span>
+        {/* TRENDING */}
+
+        <section className="mt-20">
+          <SectionTitle title="Trending Dishes" />
+
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {dishes.map((dish) => (
+              <article
+                key={dish.name}
+                className="rounded-[28px] border border-black/10 bg-white p-5 shadow-xl dark:border-white/10 dark:bg-[#101010]"
+              >
+                <div className="relative overflow-hidden rounded-2xl">
+                  <img
+                    src={dish.image}
+                    alt={dish.name}
+                    className="h-48 w-full object-cover"
+                  />
+
+                  <button className="absolute right-3 top-3 rounded-full bg-white/80 p-2 backdrop-blur-xl dark:bg-black/60">
+                    <ShoppingCart className="h-4 w-4" />
+                  </button>
                 </div>
-                <button onClick={() => { showToast(`Added ${d.title} to cart! 🛒`); }} className="w-full rounded-xl bg-orange-500 py-2 text-xs font-bold hover:bg-orange-600 transition">ADD</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
 
-      {/* Offers */}
-      <section ref={offersRef} className="mx-auto max-w-7xl px-6 lg:px-16 py-12">
-        <p className="text-sm uppercase tracking-widest text-orange-400 mb-2">Save More</p>
-        <h2 className="text-3xl font-bold mb-8">Offers & Deals</h2>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {OFFERS.map(o => (
-            <div key={o.code} className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${o.gradient} p-6`}>
-              <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-white/10" />
-              <div className="absolute -right-2 -bottom-8 h-24 w-24 rounded-full bg-white/10" />
-              <p className="text-3xl font-black">{o.title}</p>
-              <p className="mt-2 text-sm text-white/80">{o.sub}</p>
-              <button onClick={() => copyCode(o.code)} className={`mt-4 rounded-xl border-2 border-white/40 bg-white/10 px-4 py-2 text-sm font-bold backdrop-blur hover:bg-white/20 transition ${copiedCode===o.code ? 'bg-white/30' : ''}`}>
-                {copiedCode===o.code ? '✓ Copied!' : `Use: ${o.code}`}
-              </button>
-            </div>
-          ))}
-        </div>
-      </section>
+                <div className="mt-5">
+                  <h3 className="text-2xl font-semibold">{dish.name}</h3>
 
-      {/* Testimonials */}
-      <section className="mx-auto max-w-7xl px-6 lg:px-16 py-12">
-        <p className="text-sm uppercase tracking-widest text-orange-400 mb-2">Happy Customers</p>
-        <h2 className="text-3xl font-bold mb-8">What customers say</h2>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {TESTIMONIALS.map(t => (
-            <div key={t.name} className={`rounded-3xl border p-6 backdrop-blur-sm hover:border-orange-500/20 transition ${isLightMode ? 'border-slate-200 bg-white shadow-sm' : 'border-white/10 bg-white/5'}`}>
-              <div className="flex gap-1 mb-4">{Array.from({length:t.rating}).map((_,i) => <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />)}</div>
-              <p className={`leading-relaxed ${isLightMode ? 'text-slate-700' : 'text-slate-300'}`}> &ldquo;{t.msg}&rdquo;</p>
-              <div className={`mt-5 flex items-center gap-3 border-t pt-4 ${isLightMode ? 'border-slate-200' : 'border-white/10'}`}>
-                <div className="h-9 w-9 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold text-sm">{t.name[0]}</div>
-                <div>
-                  <p className={`font-semibold text-sm ${isLightMode ? 'text-slate-950' : 'text-white'}`}>{t.name}</p>
-                  <p className={`text-xs ${isLightMode ? 'text-slate-500' : 'text-slate-500'}`}>{t.role}</p>
+                  <p className="mt-1 text-sm text-neutral-500">
+                    With Special Sauce
+                  </p>
+
+                  <div className="mt-3 text-sm font-semibold text-[#ff9d00]">
+                    {dish.restaurant}
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="text-sm text-neutral-500">
+                      ★ 4.3(645)
+                    </div>
+
+                    <div className="text-3xl font-black text-[#ff9d00]">
+                      {dish.price}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+              </article>
+            ))}
+          </div>
+        </section>
 
-      {/* Footer */}
-      <footer className={`border-t mt-8 ${isLightMode ? 'border-slate-200 bg-white/35' : 'border-white/10 bg-transparent'}`}>
-        <div className="mx-auto max-w-7xl px-6 lg:px-16 py-12 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-xl bg-orange-500 flex items-center justify-center"><ShoppingBag className="h-4 w-4 text-white" /></div>
-            <span className="text-xl font-bold"><span className={isLightMode ? 'text-slate-950' : 'text-white'}>Serve</span><span className="text-orange-500">Sphere</span></span>
+        {/* BLOG */}
+
+        <section className="mt-20">
+          <SectionTitle title="Blog" />
+
+          <div className="mt-10 grid gap-6 lg:grid-cols-3">
+            {blogs.map((blog) => (
+              <article
+                key={blog.title}
+                className="overflow-hidden rounded-[28px] border border-black/10 bg-white shadow-xl dark:border-white/10 dark:bg-[#101010]"
+              >
+                <img
+                  src={blog.image}
+                  alt={blog.title}
+                  className="h-56 w-full object-cover"
+                />
+
+                <div className="p-5">
+                  <div className="text-xs text-neutral-500">
+                    Sept. 06, 2026
+                  </div>
+
+                  <h3 className="mt-3 text-2xl font-semibold">
+                    {blog.title}
+                  </h3>
+
+                  <button className="mt-5 text-sm font-semibold text-[#ff9d00]">
+                    Read more
+                  </button>
+                </div>
+              </article>
+            ))}
           </div>
-          <p className={`text-sm ${isLightMode ? 'text-slate-600' : 'text-slate-500'}`}>© 2026 ServeSphere. All rights reserved.</p>
-          <div className={`flex gap-6 text-sm ${isLightMode ? 'text-slate-600' : 'text-slate-400'}`}>
-            {['Privacy','Terms','Support'].map(l => <button key={l} onClick={() => showToast(`${l} page coming soon`)} className="hover:text-orange-400 transition">{l}</button>)}
+        </section>
+
+        {/* TESTIMONIALS */}
+
+        <section className="mt-20">
+          <SectionTitle title="What customers says?" />
+
+          <div className="mt-10 grid gap-6 lg:grid-cols-3">
+            {testimonials.map((item) => (
+              <article
+                key={item.image}
+                className="rounded-[30px] border border-black/10 bg-white p-8 text-center shadow-xl dark:border-white/10 dark:bg-[#101010]"
+              >
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  className="mx-auto h-24 w-24 rounded-full object-cover"
+                />
+
+                <p className="mt-6 leading-8 text-neutral-500">
+                  Far far away, behind the word mountains, far from the
+                  countries Vokalia and Consonantia, there live the blind texts.
+                </p>
+
+                <div className="mt-6 text-2xl font-bold text-[#ff9d00]">
+                  {item.name}
+                </div>
+
+                <div className="mt-1 text-xs tracking-[0.3em] text-neutral-500">
+                  {item.role}
+                </div>
+              </article>
+            ))}
           </div>
-        </div>
-      </footer>
+        </section>
+
+        {/* FOOTER */}
+
+        <footer className="mt-24 rounded-[32px] border border-black/10 bg-white p-10 shadow-xl dark:border-white/10 dark:bg-[#101010]">
+          <div className="grid gap-10 lg:grid-cols-4">
+            <div>
+              <div className="text-5xl font-black">
+                <span>Serve</span>
+                <span className="text-[#ff9d00]">Sphere</span>
+              </div>
+
+              <p className="mt-5 text-sm leading-7 text-neutral-500">
+                Explore top restaurants around you and enjoy modern dining
+                without the hassle.
+              </p>
+            </div>
+
+            <FooterColumn
+              title="Quick Links"
+              links={[
+                { label: "Home", to: "/" },
+                { label: "Restaurants", to: "/restaurants" },
+                { label: "Reservations", to: "/reservations" },
+                { label: "Offers", to: "/offers" },
+              ]}
+            />
+
+            <FooterColumn
+              title="Support"
+              links={[
+                { label: "Help Center", to: "/help" },
+                { label: "Contact", to: "/contact" },
+                { label: "FAQs", to: "/faqs" },
+                { label: "Privacy Policy", to: "/privacy" },
+              ]}
+            />
+
+            <FooterColumn
+              title="For Restaurants"
+              links={[
+                { label: "Partner With Us", to: "/partner" },
+                { label: "Restaurant Login", to: "/login" },
+                { label: "Business Solutions", to: "/business" },
+                { label: "Pricing", to: "/pricing" },
+              ]}
+            />
+          </div>
+
+          <div className="mt-10 border-t border-black/10 pt-6 text-sm text-neutral-500 dark:border-white/10">
+            © 2026 ServeSphere. All rights reserved.
+          </div>
+        </footer>
+      </main>
+
+      <LoginModal
+        open={loginOpen}
+        onClose={() => setLoginOpen(false)}
+      />
+    </div>
+  );
+}
+
+function SectionTitle({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <div className="text-center">
+      <h2 className="font-display text-5xl tracking-tight">{title}</h2>
+
+      {subtitle && (
+        <p className="mt-3 text-neutral-500">
+          {subtitle}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function FooterColumn({
+  title,
+  links,
+}: {
+  title: string;
+  links: { label: string; to: string }[];
+}) {
+  return (
+    <div>
+      <h3 className="mb-5 text-lg font-bold">{title}</h3>
+
+      <div className="space-y-4">
+        {links.map((item) => (
+          <Link
+            key={item.label}
+            to={item.to}
+            className="flex items-center gap-2 text-neutral-500 transition hover:text-[#ff9d00]"
+          >
+            {item.label}
+
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        ))}
       </div>
     </div>
   );
-};
-
-export default LandingPage;
+}

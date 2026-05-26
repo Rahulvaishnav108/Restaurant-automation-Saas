@@ -131,8 +131,8 @@ app.use(`${env.API_PREFIX}/tables`, tableRoutes);
 app.use(`${env.API_PREFIX}/sessions`, tableSessionRoutes);
 app.use(`${env.API_PREFIX}/customer/requests`, customerRequestsRoutes);
 app.use(`${env.API_PREFIX}/notifications`, notificationsRoutes);
-app.use(env.API_PREFIX, apiRouter);
 app.use(`${env.API_PREFIX}`, billingRoutes);
+app.use(env.API_PREFIX, apiRouter);
 
 app.get('/version', (_req, res) => {
   res.status(200).json({

@@ -195,7 +195,7 @@ export const orderSchema = new Schema<IOrder>(
     status: {
       type: String,
       enum: Object.values(OrderStatus),
-      default: OrderStatus.PLACED,
+      default: OrderStatus.PENDING,
     },
 
     priority: {
