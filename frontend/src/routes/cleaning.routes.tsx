@@ -1,21 +1,15 @@
 import type { RouteObject } from 'react-router-dom';
-import CleaningLayout from '../layouts/CleaningLayout';
-import { RoleDashboard } from './shared';
+import StaffLayout from '../layouts/StaffLayout';
+import CleaningDashboard from '../features/cleaning/pages/CleaningDashboard';
 
 export const cleaningRoutes: RouteObject[] = [
   {
     path: '/cleaning',
-    element: <CleaningLayout />,
+    element: <StaffLayout />,
     children: [
       {
         index: true,
-        element: (
-          <RoleDashboard
-            title="Cleaning and Reset Workflow"
-            description="Cleanup teams need quick turn visibility, verification steps, and a fast path to return tables to service."
-            highlights={['Table reset queue', 'Verification checklist', 'Turnaround timing signals']}
-          />
-        ),
+        element: <CleaningDashboard />,
       },
     ],
   },
