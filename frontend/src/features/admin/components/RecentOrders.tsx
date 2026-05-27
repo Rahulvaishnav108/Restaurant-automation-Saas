@@ -1,28 +1,26 @@
 import React from 'react';
-
-const orders = [
-  { id: 'ORD-00124', customer: 'Sarah Brooks', time: '3 mins ago', amount: '₹1,240' },
-  { id: 'ORD-00123', customer: 'Sarah Johnson', time: '15 mins ago', amount: '₹680' },
-  { id: 'ORD-00122', customer: 'Michael Brown', time: '23 mins ago', amount: '₹2,100' },
-  { id: 'ORD-00121', customer: 'Emily Davis', time: '31 mins ago', amount: '₹1,850' },
-  { id: 'ORD-00120', customer: 'David Wilson', time: '45 mins ago', amount: '₹920' },
-];
+import { ArrowRight } from 'lucide-react';
+import { useDashboardStore } from '../store/dashboard.store';
 
 export function RecentOrders() {
+  const { recentOrders } = useDashboardStore();
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-gray-900 dark:text-white">Recent Orders</h3>
-        <button className="text-sm text-orange-500 hover:text-orange-600 font-medium transition-colors">View All</button>
+        <h3 className="font-semibold text-gray-800 dark:text-gray-100">Recent Orders</h3>
+        <button className="flex items-center gap-1 text-xs font-semibold text-orange-500 hover:text-orange-600 transition-colors">
+          View All <ArrowRight className="w-3 h-3" />
+        </button>
       </div>
-      <div className="space-y-2.5">
-        {orders.map((o) => (
-          <div key={o.id} className="flex items-center gap-3 py-1">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-orange-600 dark:text-orange-400">#{o.id}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{o.customer} · {o.time}</p>
+      <div className="space-y-3">
+        {recentOrders.map((order) => (
+          <div key={order.id} className="flex items-center justify-between py-0.5">
+            <div>
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{order.id}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">{order.customer}</p>
+              <p className="text-[11px] text-gray-300 dark:text-gray-600">{order.time}</p>
             </div>
-            <span className="text-sm font-bold text-gray-900 dark:text-white flex-shrink-0">{o.amount}</span>
+            <span className="text-sm font-bold text-gray-800 dark:text-gray-100">{order.amount}</span>
           </div>
         ))}
       </div>
