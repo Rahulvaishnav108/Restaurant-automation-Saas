@@ -1,7 +1,10 @@
-import React from 'react';
-
-const Placeholder = () => {
-  return <div>admin component</div>;
-};
-
-export default Placeholder;
+export { Sidebar } from './Sidebar';
+export { Navbar } from './Navbar';
+export { StatCard } from './StatCard';
+export { RevenueChart } from './RevenueChart';
+export { TopSellingItems } from './TopSellingItems';
+export { OrderStatusChart } from './OrderStatusChart';
+export { StaffOverview } from './StaffOverview';
+export { UpcomingReservations } from './UpcomingReservations';
+export { RecentOrders } from './RecentOrders';
+export { LowStockAlerts } from './LowStockAlerts';
