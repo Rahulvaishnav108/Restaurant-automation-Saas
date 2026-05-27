@@ -12,7 +12,7 @@ const AdminDashboard = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Welcome back, David! Here's what's happening today.</p>
+        <p className="text-sm text-gray-500 mt-0.5">{"Welcome back, Debesh! Here is what's happening today."}</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
