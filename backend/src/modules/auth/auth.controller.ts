@@ -10,6 +10,7 @@ import { sendOTPEmail } from '../../services/mail.service';
 import * as otpService from '../../services/otp.service';
 import * as authService from './auth.service';
 import { getMe } from '../users/users.controller';
+import { UserModel } from '../users/users.model';
 
 function setRefreshCookie(res: Response, refreshToken: string): void {
   res.cookie(env.REFRESH_COOKIE_NAME, refreshToken, {
@@ -129,7 +130,7 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
 
   await otpService.verifyOTP(identifier, type as 'email' | 'mobile', otp);
 
-  const { UserModel } = await import('../users/users.model.js');
+  
   const updateField = type === 'email' ? { isEmailVerified: true } : { isMobileVerified: true };
 
   await UserModel.findOneAndUpdate(type === 'email' ? { email: identifier } : { mobile: identifier }, updateField);
