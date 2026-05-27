@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingBag, UtensilsCrossed, CalendarDays,
   Users, Package, UserCog, BarChart3, Megaphone, Settings,
-  ChevronLeft, ChevronRight, HelpCircle, ArrowRight, Crown,
+  ChevronLeft, ChevronRight, ArrowRight, Crown,
 } from 'lucide-react';
 
 const navItems = [

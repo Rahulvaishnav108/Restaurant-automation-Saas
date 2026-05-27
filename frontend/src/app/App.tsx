@@ -23,7 +23,7 @@ import OrdersPage         from "../features/admin/pages/OrdersPage";
 import {
   ReservationsPage as AdminReservationsPage,
   CustomersPage, InventoryPage, MenuManagementPage,
-  TableManagementPage, StaffManagementPage, ReportsPage, SettingsPage, MarketingPage,
+  TableManagementPage, StaffManagementPage, ReportsPage, SettingsPage,
 } from "../features/admin/pages/StubPages";
 
 const AppRoutes = () => {
