@@ -10,7 +10,7 @@ import { ReservationAnalyticsBar } from '../components/reservations/ReservationA
 import { useReservationsStore } from '../store/reservations.store';
 
 export default function ReservationsPage(): JSX.Element {
-  const { selectedDate } = useReservationsStore();
+  const { selectedDate, setSelectedDate } = useReservationsStore();
   const [showNewModal, setShowNewModal] = useState(false);
 
   return (
@@ -80,18 +80,19 @@ export default function ReservationsPage(): JSX.Element {
       {showNewModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-          role="button"
-          tabIndex={0}
           onClick={() => setShowNewModal(false)}
           onKeyDown={(e) => e.key === 'Escape' && setShowNewModal(false)}
+          role="presentation"
         >
           <div
             className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-2xl p-6 w-full max-w-md mx-4"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            onClick={(e) => e.stopPropagation()}
+            aria-labelledby="new-reservation-title"
           >
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">New Reservation</h2>
+            <h2 id="new-reservation-title" className="text-lg font-bold text-gray-900 dark:text-white mb-4">New Reservation</h2>
             <div className="space-y-3">
               {[
                 { label: 'Guest Name', placeholder: 'Enter full name', type: 'text' },
@@ -128,8 +129,9 @@ export default function ReservationsPage(): JSX.Element {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Special Request</label>
+                <label htmlFor="new-res-special-request" className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Special Request</label>
                 <textarea
+                  id="new-res-special-request"
                   rows={2}
                   placeholder="Any dietary requirements or special notes..."
                   className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-orange-100 dark:focus:ring-orange-900 focus:border-orange-300 text-gray-800 dark:text-gray-100 placeholder:text-gray-400 resize-none transition-all"
