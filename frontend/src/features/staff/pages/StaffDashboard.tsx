@@ -6,13 +6,11 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  LayoutDashboard, ShoppingBag, UtensilsCrossed, CalendarDays,
-  Users, Package, UserCog, BarChart3, Megaphone, Settings,
+  ShoppingBag, UtensilsCrossed, Users, UserCog, Settings,
   BellRing, Search, ChefHat, Droplets, Sparkles, CheckCircle2,
   TableProperties, User, Sun, Moon, Download, Plus,
   TrendingUp, TrendingDown, Star, DollarSign, UserCheck,
-  UserMinus, MoreVertical, ChevronLeft, ChevronRight, Bell,
-  Menu, X, AlertCircle, Loader,
+  UserMinus, ChevronLeft, ChevronRight, Bell, Menu, X,
 } from 'lucide-react';
 import {
   Chart as ChartJS, ArcElement, Tooltip, Legend,
@@ -24,8 +22,6 @@ import { Doughnut, Bar } from 'react-chartjs-2';
 import type {
   TableStatus,
   Table,
-  CustomerRequest,
-  FoodAlert,
   StaffMember,
 } from '../api/staff.api';
 
@@ -381,7 +377,7 @@ const StaffDashboard: React.FC = () => {
     }
     : PH_ROLES_CHART;
 
-  const getPercent = (value: number, total: number) => total > 0 ? Math.round((value / total) * 100) : 0;
+  // getPercent was unused, removed.
 
   const statusCounts = Object.entries(statusConfig).map(([status, cfg]) => ({
     status: status as TableStatus,
@@ -411,7 +407,7 @@ const StaffDashboard: React.FC = () => {
     plugins: { legend: { display: false } },
     scales: yLabel ? {
       x: { grid: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }, ticks: { color: theme.textMuted, font: { size: 10 } } },
-      y: { grid: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }, ticks: { color: theme.textMuted, font: { size: 10 }, callback: (v: any) => v + '%' }, beginAtZero: true, max: 50 },
+      y: { grid: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }, ticks: { color: theme.textMuted, font: { size: 10 }, callback: (v: number | string) => v + '%' }, beginAtZero: true, max: 50 },
     } : {},
   });
 
@@ -427,9 +423,13 @@ const StaffDashboard: React.FC = () => {
 
       {/* ── Mobile overlay ── */}
       {isMobile && sidebarOpen && (
-        <div onClick={() => setSidebarOpen(false)} style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 40,
-        }} />
+        <button
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Close sidebar"
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', border: 'none', padding: 0, cursor: 'pointer', zIndex: 40,
+          }}
+        />
       )}
 
       {/* ── Sidebar ── */}
@@ -815,7 +815,7 @@ const StaffDashboard: React.FC = () => {
                   Showing {staffList.length} of {staffStats.totalStaff} staff
                 </span>
                 <div style={{ display: 'flex', gap: '4px' }}>
-                  {[<ChevronLeft size={12} />, '1', '2', '3', '…', '10', <ChevronRight size={12} />].map((p, i) => (
+                  {[<ChevronLeft key="left" size={12} />, '1', '2', '3', '…', '10', <ChevronRight key="right" size={12} />].map((p, i) => (
                     <button key={i} style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '7px', border: `1px solid ${i === 1 ? '#f97316' : theme.cardBorder}`, background: i === 1 ? '#f97316' : theme.cardBg, color: i === 1 ? '#fff' : theme.textSecondary, fontSize: '11px', fontWeight: i === 1 ? 700 : 400, cursor: 'pointer', fontFamily: theme.font }}>{p}</button>
                   ))}
                 </div>
@@ -882,7 +882,7 @@ const StaffDashboard: React.FC = () => {
                 <TrendingUp size={12} /> {performance.trend}
               </p>
               <div style={{ position: 'relative', height: '140px' }}>
-                <Bar data={perfChartData} options={chartOptions(true) as any} />
+                 <Bar data={perfChartData} options={chartOptions(true) as Record<string, unknown>} />
               </div>
             </div>
 
@@ -918,7 +918,7 @@ const StaffDashboard: React.FC = () => {
             {/* Schedule — from schedule hook data */}
             <div style={card()}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h3 style={h2style}>Today's Schedule</h3>
+                <h3 style={h2style}>Today&apos;s Schedule</h3>
                 <span style={{ fontSize: '11px', color: '#f97316', cursor: 'pointer' }}>View All</span>
               </div>
               {schedule.map(({ time, label, staff, dot, avatars, extra }) => (

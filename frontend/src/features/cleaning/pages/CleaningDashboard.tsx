@@ -466,7 +466,7 @@ const CleaningDashboard = () => {
               }}>
                 <Search size={32} color={theme.textMuted} style={{ margin: '0 auto 12px', display: 'block' }} />
                 <p style={{ fontSize: '14px', color: theme.textMuted, margin: 0 }}>
-                  No tasks match "{searchQuery}"
+                  No tasks match &quot;{searchQuery}&quot;
                 </p>
               </div>
             )}
