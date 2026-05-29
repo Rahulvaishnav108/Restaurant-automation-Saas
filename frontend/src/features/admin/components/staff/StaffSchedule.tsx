@@ -32,7 +32,7 @@ export function TodaysSchedule(): JSX.Element {
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Today's Schedule</h3>
+        <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Today&apos;s Schedule</h3>
         <button className="text-xs font-semibold text-orange-500 hover:underline">View All</button>
       </div>
       <div className="space-y-3">

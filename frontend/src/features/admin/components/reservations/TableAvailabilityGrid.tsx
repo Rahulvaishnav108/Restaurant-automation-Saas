@@ -58,7 +58,7 @@ export function TableAvailabilityGrid(): JSX.Element {
           { label: 'Available', dot: 'bg-green-500', count: available },
           { label: 'Occupied',  dot: 'bg-orange-500', count: occupied },
           { label: 'Reserved',  dot: 'bg-blue-500',   count: reserved },
-        ].map(({ label, dot, count }) => (
+        ].map(({ label, dot }) => (
           <span key={label} className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400">
             <span className={`w-2 h-2 rounded-full ${dot}`} />
             {label}

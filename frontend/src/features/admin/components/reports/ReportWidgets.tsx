@@ -1,5 +1,6 @@
 import React from 'react';
 import { useReportsStore } from '../../store/reports.store';
+import type { DateRange } from '../../store/reports.store';
 
 const DAYS  = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const HOURS = ['6 AM', '9 AM', '12 PM', '3 PM', '6 PM', '9 PM', '12 AM'];
@@ -80,7 +81,7 @@ export function TopSellingItems(): JSX.Element {
         <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Top Selling Items</h3>
         <select
           value={topItemsRange}
-          onChange={(e) => setTopItemsRange(e.target.value as any)}
+          onChange={(e) => setTopItemsRange(e.target.value as DateRange)}
           className="text-xs py-1 px-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none text-gray-600 dark:text-gray-400"
         >
           <option>This Week</option>
@@ -119,13 +120,16 @@ export function RevenueByCategory(): JSX.Element {
   const { revenueByCategory, stats, revByCatRange, setRevByCatRange } = useReportsStore();
 
   const r = 52, cx = 70, cy = 70, circumference = 2 * Math.PI * r;
-  let offset = 0;
-  const segments = revenueByCategory.map((cat) => {
-    const dash = (cat.pct / 100) * circumference;
-    const seg  = { ...cat, dash, offset };
-    offset += dash;
-    return seg;
-  });
+  const segments = revenueByCategory.reduce<Array<typeof revenueByCategory[number] & { dash: number; offset: number }>>(
+    (acc, cat) => {
+      const prev   = acc[acc.length - 1];
+      const offset = prev ? prev.offset + prev.dash : 0;
+      const dash   = (cat.pct / 100) * circumference;
+      acc.push({ ...cat, dash, offset });
+      return acc;
+    },
+    []
+  );
 
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 flex-1 min-w-0">
@@ -133,7 +137,7 @@ export function RevenueByCategory(): JSX.Element {
         <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Revenue by Category</h3>
         <select
           value={revByCatRange}
-          onChange={(e) => setRevByCatRange(e.target.value as any)}
+          onChange={(e) => setRevByCatRange(e.target.value as DateRange)}
           className="text-xs py-1 px-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none text-gray-600 dark:text-gray-400"
         >
           <option>This Week</option>

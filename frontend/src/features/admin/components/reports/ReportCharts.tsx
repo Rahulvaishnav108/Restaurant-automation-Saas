@@ -91,13 +91,16 @@ export function SalesByChannel(): JSX.Element {
   const { salesByChannel, stats } = useReportsStore();
 
   const r = 52, cx = 70, cy = 70, circumference = 2 * Math.PI * r;
-  let offset = 0;
-  const segments = salesByChannel.map((ch) => {
-    const dash = (ch.pct / 100) * circumference;
-    const seg  = { ...ch, dash, offset };
-    offset += dash;
-    return seg;
-  });
+  const segments = salesByChannel.reduce<Array<typeof salesByChannel[number] & { dash: number; offset: number }>>(
+    (acc, ch) => {
+      const prev   = acc[acc.length - 1];
+      const offset = prev ? prev.offset + prev.dash : 0;
+      const dash   = (ch.pct / 100) * circumference;
+      acc.push({ ...ch, dash, offset });
+      return acc;
+    },
+    []
+  );
 
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 w-64 flex-shrink-0">

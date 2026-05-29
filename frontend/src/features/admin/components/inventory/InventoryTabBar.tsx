@@ -10,11 +10,7 @@ export function InventoryTabBar() {
     activeTab, setActiveTab,
     activeCategory, setActiveCategory,
     searchQuery, setSearchQuery,
-    items,
   } = useInventoryStore();
-
-  const tabCount = (tab: ItemTab) =>
-    tab === 'All Items' ? items.length : items.filter((i) => i.category === tab).length;
 
   return (
     <div className="border-b border-gray-100 dark:border-gray-800">
