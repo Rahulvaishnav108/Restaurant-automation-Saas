@@ -16,13 +16,13 @@ import FeedbackPage       from "../features/customer/pages/FeedbackPage";
 import KitchenLayout      from "../layouts/KitchenLayout";
 import KitchenDashboard   from "../features/kitchen/pages/KitchenDashboard";
 import SuperAdminLayout from "../layouts/SuperAdminLayout";
-import SuperAdminDashboard from "../features/superadmin/pages/SuperAdminDashboard";
-import Restaurants        from "../features/superadmin/pages/Restaurants";
-import Analytics          from "../features/superadmin/pages/Analytics";
-import Subscriptions       from "../features/superadmin/pages/Subscriptions";
-import Transactions       from "../features/superadmin/pages/Transactions";
-import Alerts            from    "../features/superadmin/pages/Alerts";
-import AuditLogs          from "../features/superadmin/pages/AuditLogs";
+import SuperAdminDashboard from "../features/superAdmin/pages/SuperadminDashboard";
+import Restaurants        from "../features/superAdmin/pages/Restaurants";
+import Analytics          from "../features/superAdmin/pages/Analytics";
+import Subscriptions       from "../features/superAdmin/pages/Subscriptions";
+import Transactions       from "../features/superAdmin/pages/Transactions";
+import Alerts            from    "../features/superAdmin/pages/Alerts";
+import AuditLogs          from "../features/superAdmin/pages/AuditLogs";
 
 // Admin
 import AdminLayout        from "../layouts/AdminLayout";
