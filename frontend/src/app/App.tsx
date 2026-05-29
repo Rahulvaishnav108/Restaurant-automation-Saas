@@ -15,6 +15,14 @@ import PaymentPage        from "../features/customer/pages/PaymentPage";
 import FeedbackPage       from "../features/customer/pages/FeedbackPage";
 import KitchenLayout      from "../layouts/KitchenLayout";
 import KitchenDashboard   from "../features/kitchen/pages/KitchenDashboard";
+import SuperAdminLayout from "../layouts/SuperAdminLayout";
+import SuperAdminDashboard from "../features/superadmin/pages/SuperAdminDashboard";
+import Restaurants        from "../features/superadmin/pages/Restaurants";
+import Analytics          from "../features/superadmin/pages/Analytics";
+import Subscriptions       from "../features/superadmin/pages/Subscriptions";
+import Transactions       from "../features/superadmin/pages/Transactions";
+import Alerts            from    "../features/superadmin/pages/Alerts";
+import AuditLogs          from "../features/superadmin/pages/AuditLogs";
 
 // Admin
 import AdminLayout        from "../layouts/AdminLayout";
@@ -39,9 +47,11 @@ const AppRoutes = () => {
         <Route path="/payment"     element={<PaymentPage />} />
         <Route path="/feedback"    element={<FeedbackPage />} />
         <Route path="/dashboard"   element={<CustomerDashboard onBack={() => navigate('/')} />} />
+       
+  
         <Route path="/kitchen"     element={<KitchenLayout />}>
           <Route index element={<KitchenDashboard />} />
-        </Route>
+       </Route>
 
         {/* Admin */}
         <Route path="/admin" element={<AdminLayout />}>
@@ -56,6 +66,20 @@ const AppRoutes = () => {
           <Route path="reports"   element={<ReportsPage />} />
           <Route path="settings"  element={<SettingsPage />} />
         </Route>
+
+       {/*Super Admin*/}
+        <Route path="/superadmin" element={<SuperAdminLayout />}>
+        <Route index element={<SuperAdminDashboard />} />
+        <Route path="restaurants"element={<Restaurants />}/>
+       <Route path="analytics"element={<Analytics />}/>
+        <Route path="subscriptions" element={<Subscriptions />}/>
+       <Route path="transactions"element={<Transactions />}/>
+        <Route path="alerts"element={<Alerts />}/>
+      <Route path="audit-logs" element={<AuditLogs />} />
+
+        
+        
+      </Route>
       </Routes>
     </main>
   );
