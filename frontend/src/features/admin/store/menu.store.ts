@@ -142,7 +142,7 @@ const seedItems: MenuItem[] = [
 
 let nextId = 100;
 
-export const useMenuStore = create<MenuStore>((set, get) => ({
+export const useMenuStore = create<MenuStore>((set, _get) => ({
   items: seedItems,
   categories: seedCategories,
   activeCategory: 'all',

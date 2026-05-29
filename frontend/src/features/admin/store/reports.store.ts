@@ -106,8 +106,6 @@ interface ReportsState {
 
 // ── Seed Data ──────────────────────────────────────────────────────────────
 
-const DATES = ['May 12', 'May 13', 'May 14', 'May 15', 'May 16', 'May 17', 'May 18'];
-
 export const useReportsStore = create<ReportsState>((set) => ({
   stats: {
     totalRevenue: '₹24,680.50',

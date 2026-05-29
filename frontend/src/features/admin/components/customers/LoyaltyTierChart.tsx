@@ -3,8 +3,6 @@ import { useCustomersStore } from '../../store/customers.store';
 
 export function LoyaltyTierChart() {
   const { loyaltyDistribution: d } = useCustomersStore();
-  const total = d.gold + d.silver + d.bronze;
-
   const cx = 60, cy = 60, r = 44, strokeW = 16;
   const circ = 2 * Math.PI * r;
 

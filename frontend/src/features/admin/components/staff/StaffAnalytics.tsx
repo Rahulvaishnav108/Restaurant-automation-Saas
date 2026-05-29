@@ -6,16 +6,19 @@ export function AttendanceOverview(): JSX.Element {
   const { stats, attendanceBreakdown } = useStaffStore();
 
   const total = attendanceBreakdown.reduce((s, a) => s + a.count, 0);
-  let offset = 0;
   const r = 45, cx = 60, cy = 60, circumference = 2 * Math.PI * r;
 
-  const segments = attendanceBreakdown.map((ab) => {
-    const pct = ab.count / total;
-    const dash = pct * circumference;
-    const seg = { ...ab, dash, offset };
-    offset += dash;
-    return seg;
-  });
+  const segments = attendanceBreakdown.reduce<Array<typeof attendanceBreakdown[number] & { dash: number; offset: number }>>(
+    (acc, ab) => {
+      const prev   = acc[acc.length - 1];
+      const offset = prev ? prev.offset + prev.dash : 0;
+      const pct    = ab.count / total;
+      const dash   = pct * circumference;
+      acc.push({ ...ab, dash, offset });
+      return acc;
+    },
+    []
+  );
 
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4">
@@ -149,18 +152,21 @@ export function RolesDistribution(): JSX.Element {
   const { roleDistribution, stats } = useStaffStore();
 
   const total = stats.totalStaff;
-  let offset = 0;
   const r = 45, cx = 60, cy = 60, circumference = 2 * Math.PI * r;
 
   const segments = roleDistribution
     .filter((rd) => rd.count > 0)
-    .map((rd) => {
-      const pct = rd.count / total;
-      const dash = pct * circumference;
-      const seg = { ...rd, dash, offset };
-      offset += dash;
-      return seg;
-    });
+    .reduce<Array<typeof roleDistribution[number] & { dash: number; offset: number }>>(
+      (acc, rd) => {
+        const prev   = acc[acc.length - 1];
+        const offset = prev ? prev.offset + prev.dash : 0;
+        const pct    = rd.count / total;
+        const dash   = pct * circumference;
+        acc.push({ ...rd, dash, offset });
+        return acc;
+      },
+      []
+    );
 
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4">

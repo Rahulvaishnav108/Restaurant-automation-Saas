@@ -1,5 +1,4 @@
 import React from 'react';
-import { Star } from 'lucide-react';
 import type { LoyaltyTier } from '../../store/customers.store';
 
 interface LoyaltyBadgeProps {
