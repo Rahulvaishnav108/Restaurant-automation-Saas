@@ -564,7 +564,7 @@ const StaffDashboard: React.FC = () => {
                   <button onClick={() => setIsNotificationOpen(false)} style={{ background: 'transparent', border: 'none', color: theme.textSecondary, cursor: 'pointer', fontSize: '16px' }}>×</button>
                 </div>
                 {requests.length === 0 ? (
-                  <div style={{ padding: '14px 0', textAlign: 'center', color: theme.textMuted, fontSize: '12px' }}>You're all caught up.</div>
+                  <div style={{ padding: '14px 0', textAlign: 'center', color: theme.textMuted, fontSize: '12px' }}>You&apos;re all caught up.</div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {requests.map(req => {
