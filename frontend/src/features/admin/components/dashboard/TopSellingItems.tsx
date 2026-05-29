@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
-import { useDashboardStore } from '../store/dashboard.store';
+import { useDashboardStore } from '../../store/dashboard.store';
 
 export function TopSellingItems() {
   const { topSellingItems } = useDashboardStore();

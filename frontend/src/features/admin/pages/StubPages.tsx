@@ -12,12 +12,8 @@ function ComingSoon({ title }: { title: string }) {
   );
 }
 
-export const ReservationsPage    = () => <ComingSoon title="Reservations" />;
-export const CustomersPage       = () => <ComingSoon title="Customers" />;
-export const InventoryPage       = () => <ComingSoon title="Inventory" />;
 export const MenuManagementPage  = () => <ComingSoon title="Menu Management" />;
 export const TableManagementPage = () => <ComingSoon title="Table Management" />;
 export const StaffManagementPage = () => <ComingSoon title="Staff Management" />;
-export const ReportsPage         = () => <ComingSoon title="Reports & Analytics" />;
-export const MarketingPage = () => <ComingSoon title="Marketing" />;
+export const MarketingPage       = () => <ComingSoon title="Marketing" />;
 export const SettingsPage        = () => <ComingSoon title="Settings" />;

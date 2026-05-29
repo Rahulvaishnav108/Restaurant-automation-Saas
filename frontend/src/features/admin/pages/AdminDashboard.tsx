@@ -1,11 +1,11 @@
 import React from 'react';
 import { TrendingUp, ShoppingBag, Users, Clock } from 'lucide-react';
-import { StatCard } from '../components/StatCard';
-import { RecentOrdersTable } from '../components/RecentOrdersTable';
-import { RevenueChart } from '../components/RevenueChart';
-import { ActivityFeed } from '../components/ActivityFeed';
-import { TableOverview } from '../components/TableOverview';
-import { TopMenuItems } from '../components/TopMenuItems';
+import { StatCard } from '../components/dashboard/StatCard';
+import { RecentOrdersTable } from '../components/dashboard/RecentOrdersTable';
+import { RevenueChart } from '../components/dashboard/RevenueChart';
+import { ActivityFeed } from '../components/dashboard/ActivityFeed';
+import { TableOverview } from '../components/dashboard/TableOverview';
+import { TopMenuItems } from '../components/dashboard/TopMenuItems';
 
 const AdminDashboard = () => {
   return (

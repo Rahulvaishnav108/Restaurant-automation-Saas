@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
-import { useDashboardStore, type StockStatus } from '../store/dashboard.store';
+import { useDashboardStore, type StockStatus } from '../../store/dashboard.store';
 
 const statusStyle: Record<StockStatus, string> = {
   'Low Stock':   'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400',

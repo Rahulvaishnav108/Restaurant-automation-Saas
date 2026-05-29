@@ -1,5 +1,5 @@
 import React from 'react';
-import { useDashboardStore } from '../store/dashboard.store';
+import { useDashboardStore } from '../../store/dashboard.store';
 
 export function RevenueChart() {
   const { revenueData } = useDashboardStore();

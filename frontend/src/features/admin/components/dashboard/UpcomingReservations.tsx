@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
-import { useDashboardStore, type ReservationStatus } from '../store/dashboard.store';
+import { useDashboardStore, type ReservationStatus } from '../../store/dashboard.store';
 
 const statusStyle: Record<ReservationStatus, string> = {
   Confirmed: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400',

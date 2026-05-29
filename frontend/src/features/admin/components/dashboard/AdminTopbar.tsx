@@ -1,6 +1,6 @@
 import React from 'react';
 import { Bell, Search, ChevronDown, Sun, Moon } from 'lucide-react';
-import { useTheme } from '../../../app/providers/ThemeProvider';
+import { useTheme } from '../../../../app/providers/ThemeProvider';
 
 export function AdminTopbar(): JSX.Element {
   const { theme, toggleTheme } = useTheme();
