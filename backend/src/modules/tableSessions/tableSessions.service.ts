@@ -280,10 +280,11 @@ export async function endSession(
     throw new AppError('Session not found', 404, ErrorCode.NOT_FOUND);
   }
 
-  // Enforce that session can only be closed if all non-cancelled, non-rejected orders associated are in PAID or COMPLETED state.
+  // Enforce that session can only be closed if all non-cancelled, non-rejected orders associated are in PAID or COMPLETED state OR have paymentStatus as PAID.
   const activeOrders = await OrderModel.find({
     sessionId: session._id,
-    status: { $nin: [OrderStatus.PAID, OrderStatus.COMPLETED, OrderStatus.CANCELLED, OrderStatus.REJECTED] }
+    status: { $nin: [OrderStatus.PAID, OrderStatus.COMPLETED, OrderStatus.CANCELLED, OrderStatus.REJECTED] },
+    paymentStatus: { $ne: 'PAID' }
   });
 
   if (activeOrders.length > 0) {

@@ -4,7 +4,7 @@ import { ErrorCode } from '../../constants/errors';
 import { AppError } from '../../utils/AppError';
 import { ok } from '../../utils/responses';
 import { TableModel } from './tables.model';
-import type { CreateTableInput, UpdateTableInput, UpdateTableStatusInput } from './tables.schema';
+import type { UpdateTableStatusInput } from './tables.schema';
 import * as tablesService from './tables.service';
 
 function resolveRestaurantId(

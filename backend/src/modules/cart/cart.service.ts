@@ -3,7 +3,6 @@ import { Cart, ICart } from './cart.model';
 import { BillingModel } from '../billing/billing.model';
 import { BillStatus } from '../billing/billing.schema';
 import { MenuItem } from '../menu/menu.model';
-import { RestaurantModel } from '../restaurants/restaurants.model';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
 import { AddItemInput, UpdateItemInput } from './cart.schema';
