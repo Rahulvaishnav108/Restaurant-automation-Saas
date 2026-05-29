@@ -13,12 +13,14 @@ import { NotificationCategory, NotificationPriority } from '../notifications/not
 
 const ORDER_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus[]>> = {
   [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED, OrderStatus.REJECTED],
-  [OrderStatus.CONFIRMED]: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
-  [OrderStatus.PREPARING]: [OrderStatus.READY],
-  [OrderStatus.READY]: [OrderStatus.SERVED],
-  [OrderStatus.SERVED]: [OrderStatus.BILLED],
-  [OrderStatus.BILLED]: [OrderStatus.PAID],
-  [OrderStatus.PAID]: [OrderStatus.COMPLETED],
+  [OrderStatus.CONFIRMED]: [OrderStatus.PREPARING, OrderStatus.DELAYED, OrderStatus.CANCELLED],
+  [OrderStatus.PREPARING]: [OrderStatus.READY, OrderStatus.DELAYED],
+  [OrderStatus.DELAYED]: [OrderStatus.READY, OrderStatus.PREPARING],
+  [OrderStatus.READY]: [OrderStatus.PICKED, OrderStatus.SERVED],
+  [OrderStatus.PICKED]: [OrderStatus.SERVED],
+  [OrderStatus.SERVED]: [OrderStatus.BILLED, OrderStatus.COMPLETED],
+  [OrderStatus.BILLED]: [OrderStatus.PAID, OrderStatus.CONFIRMED],
+  [OrderStatus.PAID]: [OrderStatus.COMPLETED, OrderStatus.CONFIRMED],
 };
 
 function ensureOrderTransition(currentStatus: OrderStatus, nextStatus: OrderStatus, message: string): void {
@@ -361,11 +363,9 @@ export class OrdersService {
   ) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    // No status transition change; must be in CONFIRMED or PREPARING status to be delayed.
-    if (order.status !== OrderStatus.CONFIRMED && order.status !== OrderStatus.PREPARING) {
-      throw new AppError('Cannot delay order in current status', 400, ErrorCode.ORDER_NOT_MODIFIABLE);
-    }
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.DELAYED, 'Cannot delay order in current status');
 
+    order.status = OrderStatus.DELAYED;
     if (order.estimatedPreparationTime) {
       order.estimatedPreparationTime += delayMinutes;
     } else {
@@ -389,11 +389,9 @@ export class OrdersService {
   ) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    // Keep order status as READY, do not transition to obsolete PICKED status
-    if (order.status !== OrderStatus.READY) {
-      throw new AppError('Only ready orders can be picked', 400, ErrorCode.ORDER_NOT_MODIFIABLE);
-    }
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.PICKED, 'Only ready orders can be picked');
 
+    order.status = OrderStatus.PICKED;
     order.pickedAt = new Date();
     order.serviceStaffId = toNullableObjectId(actorId);
     await order.save();
