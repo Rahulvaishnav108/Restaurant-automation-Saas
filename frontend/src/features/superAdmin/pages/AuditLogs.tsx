@@ -15,7 +15,7 @@ export default function UnderMaintenance() {
 
         {/* Subtitle */}
         <p className="text-slate-400 text-lg max-w-xl mx-auto leading-relaxed">
-          We're currently working on this page to improve your experience.
+          We&apos;re currently working on this page to improve your experience.
           Please check back later.
         </p>
 

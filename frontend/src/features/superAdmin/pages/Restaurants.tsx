@@ -315,7 +315,7 @@ export default function Restaurant() {
 
                           {activeActionRow === row.id && (
                             <>
-                              <div className="fixed inset-0 z-10" onClick={() => setActiveActionRow(null)} />
+                              <button type="button" className="fixed inset-0 z-10" onClick={() => setActiveActionRow(null)}aria-label="Close dropdown"/>
                               <div className={`absolute right-0 mt-2 w-48 rounded-xl border p-2 shadow-xl z-20 text-left ${
                                 darkMode ? "bg-[#0b1324] border-slate-800 shadow-black/40" : "bg-white border-slate-200 shadow-slate-200"
                               }`}>
@@ -358,7 +358,7 @@ export default function Restaurant() {
               </div>
               <h4 className={`font-bold text-sm ${darkMode ? "text-slate-200" : "text-slate-800"}`}>No matched operations found</h4>
               <p className={`text-xs mt-1 max-w-xs mx-auto ${darkMode ? "text-slate-500" : "text-slate-400"}`}>
-                No system accounts match the current query parameter: "{searchQuery || statusFilter}".
+                No system accounts match the current query parameter: &quot;{searchQuery || statusFilter}&quot;.
               </p>
               <button 
                 onClick={() => { setSearchQuery(""); setStatusFilter("All"); }}
