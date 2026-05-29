@@ -419,7 +419,7 @@ export function useStaffList(page = 1, limit = 50) {
     try {
       setLoading(true);
       // Filter client-side from current list until Atharva adds a search endpoint
-      setStaffList(prev =>
+      setStaffList(
         PH_STAFF.filter(s =>
           s.name.toLowerCase().includes(query.toLowerCase()) ||
           s.email.toLowerCase().includes(query.toLowerCase()) ||
@@ -493,7 +493,7 @@ interface Notification {
   createdAt: string;
 }
 
-export function useNotifications(limit = 10) {
+export function useNotifications(_limit = 10) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount,   setUnreadCount]   = useState(0);
   const [loading,       setLoading]       = useState(false);
