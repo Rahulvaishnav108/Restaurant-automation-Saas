@@ -25,13 +25,19 @@ import Alerts            from    "../features/superAdmin/pages/Alerts";
 import AuditLogs          from "../features/superAdmin/pages/AuditLogs";
 
 // Admin
-import AdminLayout        from "../layouts/AdminLayout";
-import AdminDashboard     from "../features/admin/pages/AdminDashboard";
-import OrdersPage         from "../features/admin/pages/OrdersPage";
+import AdminLayout              from "../layouts/AdminLayout";
+import AdminDashboard           from "../features/admin/pages/AdminDashboard";
+import OrdersPage               from "../features/admin/pages/OrdersPage";
+import AdminReservationsPage    from "../features/admin/pages/ReservationsPage";
+import { MenuManagementPage }   from "../features/admin/pages/MenuManagementPage";
+import { CustomersPage }        from "../features/admin/pages/CustomersPage";
+import { InventoryPage }        from "../features/admin/pages/InventoryPage";
+import  StaffManagementPage   from "../features/admin/pages/StaffManagementPage";
+import  ReportsPage           from "../features/admin/pages/ReportsPage";
 import {
-  ReservationsPage as AdminReservationsPage,
-  CustomersPage, InventoryPage, MenuManagementPage,
-  TableManagementPage, StaffManagementPage, ReportsPage, SettingsPage,
+   
+  TableManagementPage,
+  MarketingPage, SettingsPage,
 } from "../features/admin/pages/StubPages";
 
 const AppRoutes = () => {
@@ -55,16 +61,17 @@ const AppRoutes = () => {
 
         {/* Admin */}
         <Route path="/admin" element={<AdminLayout />}>
-          <Route index            element={<AdminDashboard />} />
-          <Route path="orders"    element={<OrdersPage />} />
+          <Route index               element={<AdminDashboard />} />
+          <Route path="orders"       element={<OrdersPage />} />
           <Route path="reservations" element={<AdminReservationsPage />} />
-          <Route path="customers" element={<CustomersPage />} />
-          <Route path="inventory" element={<InventoryPage />} />
-          <Route path="menu"      element={<MenuManagementPage />} />
-          <Route path="tables"    element={<TableManagementPage />} />
-          <Route path="staff"     element={<StaffManagementPage />} />
-          <Route path="reports"   element={<ReportsPage />} />
-          <Route path="settings"  element={<SettingsPage />} />
+          <Route path="customers"    element={<CustomersPage />} />
+          <Route path="inventory"    element={<InventoryPage />} />
+          <Route path="menu"         element={<MenuManagementPage />} />
+          <Route path="tables"       element={<TableManagementPage />} />
+          <Route path="staff"        element={<StaffManagementPage />} />
+          <Route path="reports"      element={<ReportsPage />} />
+          <Route path="marketing"    element={<MarketingPage />} />
+          <Route path="settings"     element={<SettingsPage />} />
         </Route>
 
        {/*Super Admin*/}
