@@ -243,11 +243,11 @@ export function useStaff() {
       if (requestsRes.success   && requestsRes.data?.length)   setRequests(requestsRes.data);
       if (alertsRes.success     && alertsRes.data?.length)     setFoodAlerts(alertsRes.data);
       if (staffRes.success      && staffRes.data?.length)      setStaffList(staffRes.data);
-      if (statsRes.success      && statsRes.data)              setStaffStats(statsRes.data);
-      if (attendanceRes.success && attendanceRes.data)         setAttendance(attendanceRes.data);
-      if (payrollRes.success    && payrollRes.data)            setPayroll(payrollRes.data);
-      if (perfRes.success       && perfRes.data)               setPerformance(perfRes.data);
-      if (rolesRes.success      && rolesRes.data)              setRoles(rolesRes.data);
+      if (statsRes.success      && statsRes.data && Object.keys(statsRes.data).length > 0)              setStaffStats(statsRes.data);
+      if (attendanceRes.success && attendanceRes.data && Object.keys(attendanceRes.data).length > 0)         setAttendance(attendanceRes.data);
+      if (payrollRes.success    && payrollRes.data && Object.keys(payrollRes.data).length > 0)            setPayroll(payrollRes.data);
+      if (perfRes.success       && perfRes.data && Object.keys(perfRes.data).length > 0)               setPerformance(perfRes.data);
+      if (rolesRes.success      && rolesRes.data && Object.keys(rolesRes.data).length > 0)              setRoles(rolesRes.data);
       if (scheduleRes.success   && scheduleRes.data?.length)   setSchedule(scheduleRes.data);
       if (birthdaysRes.success  && birthdaysRes.data?.length)  setBirthdays(birthdaysRes.data);
 
@@ -464,10 +464,10 @@ export function useAnalytics() {
             analyticsAPI.getBirthdays(),
           ]);
 
-        if (attendanceRes.success  && attendanceRes.data)        setAttendance(attendanceRes.data);
-        if (perfRes.success        && perfRes.data)              setPerformance(perfRes.data);
-        if (rolesRes.success       && rolesRes.data)             setRoles(rolesRes.data);
-        if (payrollRes.success     && payrollRes.data)           setPayroll(payrollRes.data);
+        if (attendanceRes.success  && attendanceRes.data && Object.keys(attendanceRes.data).length > 0)        setAttendance(attendanceRes.data);
+        if (perfRes.success        && perfRes.data && Object.keys(perfRes.data).length > 0)              setPerformance(perfRes.data);
+        if (rolesRes.success       && rolesRes.data && Object.keys(rolesRes.data).length > 0)             setRoles(rolesRes.data);
+        if (payrollRes.success     && payrollRes.data && Object.keys(payrollRes.data).length > 0)           setPayroll(payrollRes.data);
         if (scheduleRes.success    && scheduleRes.data?.length)  setSchedule(scheduleRes.data);
         if (bdayRes.success        && bdayRes.data?.length)      setBirthdays(bdayRes.data);
       } catch (err) {
