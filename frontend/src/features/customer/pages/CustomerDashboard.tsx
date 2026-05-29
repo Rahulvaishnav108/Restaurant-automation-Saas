@@ -1,10 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Bell,BookOpen,CalendarDays,ChevronDown,ChevronLeft,ClipboardList,ConciergeBell,CreditCard,Gift,Headphones,Heart,Home,Leaf,LogOut,MapPin,
-  MessageSquareText,Percent,QrCode,ReceiptText,Search,Settings,ShoppingBag,SlidersHorizontal,Star,Truck,User,Wallet,Wifi,
+  Bell,BookOpen,CalendarDays,ChevronDown,ChevronLeft,ClipboardList,ConciergeBell,CreditCard,Gift,Headphones,Home,Leaf,LogOut,
+  MessageSquareText,Percent,QrCode,ReceiptText,Search,Settings,ShoppingBag,Star,User,Wallet,Wifi,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { CartModal, FavoriteMeals, MenuCategory, MenuItemCard, OrderTracker, RecommendationSection, ServiceRequests } from '../components';
+import { CartModal, FavoriteMeals, MenuCategory, MenuItemCard, OrderTracker, ServiceRequests } from '../components';
 import { MENU_CATEGORIES, MENU_ITEMS, useCustomerStore } from '../store/customer.store';
 
 interface Props {
@@ -111,15 +111,13 @@ const CustomerDashboard: React.FC<Props> = ({ onBack }) => {
     getTotalItems,
     getTotalPrice,
     getFilteredItems,
-    getRecommendedItems,
     assignRandomTable,
   } = useCustomerStore();
 
   const totalItems = getTotalItems();
   const totalPrice = getTotalPrice();
   const filtered = getFilteredItems();
-  const recommendations = useMemo(() => getRecommendedItems(), [cart, favourites, getRecommendedItems]);
-  const popularItems = useMemo(() => [...MENU_ITEMS].sort((first, second) => second.reviews - first.reviews).slice(0, 4), []);
+
 
   useEffect(() => {
     assignRandomTable();
@@ -492,7 +490,7 @@ const CustomerDashboard: React.FC<Props> = ({ onBack }) => {
           <section className="border-t border-[#4b211d] bg-[#3a1715] px-4 py-4 text-white lg:px-8">
             <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold">Hungry? Let's Get Started!</p>
+                <p className="text-sm font-semibold">Hungry? Let&apos;s Get Started!</p>
                 <p className="mt-1 text-xs text-white/70">Order your favorite food or book a table now.</p>
               </div>
               <div className="flex flex-wrap gap-3">

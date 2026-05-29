@@ -41,7 +41,7 @@ export class BillingController {
       const session = req.tableSession;
       if (!session) throw new AppError("Session required", 401, ErrorCode.UNAUTHORIZED);
 
-      const { couponCode } = req.body;
+      const couponCode = req.body.couponCode || req.body.code;
       if (!couponCode) throw new AppError("Coupon code is required", 400, ErrorCode.VALIDATION_ERROR);
 
       const data = await BillingService.applyCoupon(session.restaurantId.toString(), session._id.toString(), couponCode);
@@ -77,11 +77,11 @@ export class BillingController {
       const session = req.tableSession;
       if (!session) throw new AppError("Session required", 401, ErrorCode.UNAUTHORIZED);
 
-      const { paymentMethod } = req.body;
+      const paymentMethod = req.body.paymentMethod || req.body.method;
       if (!paymentMethod) throw new AppError("Payment method is required", 400, ErrorCode.VALIDATION_ERROR);
 
       const data = await BillingService.createPayment(session.restaurantId.toString(), session._id.toString(), paymentMethod);
-      return res.status(200).json({
+      return res.status(201).json({
         success: true,
         message: "Payment created successfully",
         data,

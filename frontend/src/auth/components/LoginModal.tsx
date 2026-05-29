@@ -47,12 +47,22 @@ export default function LoginModal({
       onClose();
 
       navigate("/dashboard");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
+      const errorResponse = err as {
+        response?: {
+          data?: {
+            error?: {
+              message?: string;
+            };
+          };
+        };
+        message?: string;
+      };
 
       setError(
-        err?.response?.data?.error?.message ||
-          err?.message ||
+        errorResponse?.response?.data?.error?.message ||
+          errorResponse?.message ||
           "Login failed"
       );
     } finally {
@@ -89,11 +99,12 @@ export default function LoginModal({
 
           <form onSubmit={submit} className="space-y-4">
             <div>
-              <label className="mb-2 block text-sm font-medium">
+              <label htmlFor="login-email" className="mb-2 block text-sm font-medium">
                 Email
               </label>
 
               <input
+                id="login-email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 type="email"
@@ -104,12 +115,13 @@ export default function LoginModal({
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium">
+              <label htmlFor="login-password" className="mb-2 block text-sm font-medium">
                 Password
               </label>
 
               <div className="relative">
                 <input
+                  id="login-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   type={showPassword ? "text" : "password"}

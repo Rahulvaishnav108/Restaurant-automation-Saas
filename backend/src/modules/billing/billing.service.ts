@@ -5,7 +5,7 @@ import { BillStatus, PaymentMethod, PaymentStatus } from './billing.schema';
 import { OrderStatus } from '../../constants/statuses';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
-import { endSession } from '../tableSessions/tableSessions.service';
+// import { endSession } from '../tableSessions/tableSessions.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { OfferModel } from '../offers/offers.model';
 import { RestaurantModel } from '../restaurants/restaurants.model';
@@ -65,32 +65,30 @@ export class BillingService {
    * Requests the final bill. Creates or updates the Bill document.
    */
   static async requestFinalBill(restaurantId: string, sessionId: string) {
+    // Transition all active/served orders to BILLED
     const activeOrders = await OrderModel.find({
       restaurantId,
       sessionId,
-      status: { $in: [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY] }
+      status: { $in: [
+        OrderStatus.PENDING,
+        OrderStatus.CONFIRMED,
+        OrderStatus.PREPARING,
+        OrderStatus.DELAYED,
+        OrderStatus.READY,
+        OrderStatus.PICKED,
+        OrderStatus.SERVED
+      ] }
     });
 
-    if (activeOrders.length > 0) {
-      throw new AppError('Cannot generate final bill while there are active orders. Please wait for all orders to be served.', 400, ErrorCode.INVALID_REQUEST);
+    for (const order of activeOrders) {
+      order.status = OrderStatus.BILLED;
+      await order.save();
     }
 
     const liveBill = await this.getLiveBill(restaurantId, sessionId);
 
     if (liveBill.orders.length === 0) {
       throw new AppError('No valid orders found for this session.', 400, ErrorCode.INVALID_REQUEST);
-    }
-
-    // Transition all SERVED orders to BILLED
-    const servedOrders = await OrderModel.find({
-      restaurantId,
-      sessionId,
-      status: OrderStatus.SERVED
-    });
-
-    for (const order of servedOrders) {
-      order.status = OrderStatus.BILLED;
-      await order.save();
     }
 
     const orderIds = liveBill.orders.map(o => o._id as mongoose.Types.ObjectId);
@@ -197,9 +195,9 @@ export class BillingService {
   }
 
   static async createPayment(restaurantId: string, sessionId: string, paymentMethod: PaymentMethod) {
-    const bill = await BillingModel.findOne({ restaurantId, sessionId });
+    let bill = await BillingModel.findOne({ restaurantId, sessionId });
     if (!bill) {
-      throw new AppError('Bill not found.', 404, ErrorCode.NOT_FOUND);
+      bill = await this.requestFinalBill(restaurantId, sessionId);
     }
 
     if (bill.status === BillStatus.PAID) {
@@ -218,7 +216,14 @@ export class BillingService {
       billId: bill._id,
       paymentIntentId: intentId,
       amount: bill.finalAmount,
-      currency: 'INR'
+      currency: 'INR',
+      payment: {
+        id: intentId,
+        _id: intentId,
+        amount: bill.finalAmount,
+        method: paymentMethod,
+        status: PaymentStatus.PENDING
+      }
     };
   }
 
@@ -308,12 +313,14 @@ export class BillingService {
       console.error(`Failed to deduct inventory for session ${sessionId}:`, inventoryError);
     }
 
-    // End session automatically upon successful payment
+    // End session automatically upon successful payment is disabled to allow subsequent session-linked operations (e.g. feedback, loyalty, reorders) in the PRD lifecycle.
+    /*
     try {
       await endSession(sessionId, 'Bill paid successfully');
     } catch (error) {
       console.error(`Failed to close session ${sessionId} after payment:`, error);
     }
+    */
 
     return bill;
   }
