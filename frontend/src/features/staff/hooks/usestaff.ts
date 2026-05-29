@@ -65,20 +65,20 @@ import type {
 // ═══════════════════════════════════════════════════════════════
 
 class CacheManager {
-  private cache = new Map<string, { data: any; timestamp: number }>();
+  private cache = new Map<string, { data: unknown; timestamp: number }>();
   private readonly TTL = 5 * 60 * 1000; // 5 minutes
 
-  get(key: string) {
+  get<T>(key: string): T | null {
     const entry = this.cache.get(key);
     if (!entry) return null;
     if (Date.now() - entry.timestamp > this.TTL) {
       this.cache.delete(key);
       return null;
     }
-    return entry.data;
+    return entry.data as T;
   }
 
-  set(key: string, data: any) {
+  set<T>(key: string, data: T) {
     this.cache.set(key, { data, timestamp: Date.now() });
   }
 
@@ -261,7 +261,7 @@ export function useStaff() {
     }
   }, []);
 
-  useEffect(() => { fetchDashboardData(); }, [fetchDashboardData]);
+  useEffect(() => { Promise.resolve().then(fetchDashboardData); }, [fetchDashboardData]);
 
   // ── Mutations ──
   // All three are optimistic: state updates instantly, API fires in background.
@@ -396,7 +396,7 @@ export function useStaffList(page = 1, limit = 50) {
 
   const fetchStaff = useCallback(async () => {
     const cacheKey = `staff-list-${page}-${limit}`;
-    const cached = cache.get(cacheKey);
+    const cached = cache.get<{ staff: StaffMember[]; total: number }>(cacheKey);
     if (cached) { setStaffList(cached.staff); setTotal(cached.total); return; }
 
     try {
@@ -431,7 +431,7 @@ export function useStaffList(page = 1, limit = 50) {
     }
   }, [fetchStaff]);
 
-  useEffect(() => { fetchStaff(); }, [fetchStaff]);
+  useEffect(() => { Promise.resolve().then(fetchStaff); }, [fetchStaff]);
 
   return { staffList, total, loading, error, fetchStaff, searchStaff };
 }
@@ -511,7 +511,7 @@ export function useNotifications(limit = 10) {
     } finally {
       setLoading(false);
     }
-  }, [limit]);
+  }, []);
 
   const markAsRead = useCallback(async (id: number) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
@@ -525,7 +525,7 @@ export function useNotifications(limit = 10) {
     // TODO: await notificationsAPI.markAllAsRead();
   }, []);
 
-  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
+  useEffect(() => { Promise.resolve().then(fetchNotifications); }, [fetchNotifications]);
 
   return { notifications, unreadCount, loading, error, markAsRead, markAllAsRead };
 }

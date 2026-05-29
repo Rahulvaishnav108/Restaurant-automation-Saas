@@ -43,10 +43,24 @@ async function fetchAPI<T>(
     }
     return { success: true, data: payload.data };
   } catch (err) {
-    const axiosError = err as { message?: string; response?: { data?: any } };
-    const error = axiosError.response?.data?.error?.message ?? axiosError.response?.data?.error ?? axiosError.message ?? 'Unknown error';
-    console.error(`[Staff API] ${endpoint}:`, error);
-    return { success: false, error: String(error) };
+    // Narrow unknown error safely without `any`
+    const isObj = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object';
+    const unknownErr = err as unknown;
+    let errorStr = 'Unknown error';
+    if (isObj(unknownErr)) {
+      const resp = unknownErr['response'];
+      if (isObj(resp)) {
+        const data = resp['data'];
+        if (isObj(data)) {
+          const e = data['error'];
+          if (typeof e === 'string') errorStr = e;
+          else if (isObj(e) && typeof e['message'] === 'string') errorStr = e['message'] as string;
+        }
+      }
+      if (typeof unknownErr['message'] === 'string') errorStr = unknownErr['message'] as string;
+    }
+    console.error(`[Staff API] ${endpoint}:`, errorStr);
+    return { success: false, error: String(errorStr) };
   }
 }
 
@@ -224,7 +238,7 @@ export const tableAPI = {
   },
 
   /** PATCH /staff/tables/:id/status — update a table's status */
-  updateStatus: async (id: number, status: TableStatus): Promise<ApiResponse<Table>> => {
+  updateStatus: async (_id: number, _status: TableStatus): Promise<ApiResponse<Table>> => {
     // Backend currently supports specific status transitions via /staff/tables/:id/occupy, /reserve, /assign.
     // Keep this stub while the exact status-change API is being finalized.
     return Promise.resolve({ success: true, data: {} as Table });
@@ -260,7 +274,7 @@ export const foodAlertsAPI = {
   },
 
   /** POST /food-alerts/:id/action  body: { action: 'picked_up' | 'served' } */
-  action: (id: number, action: 'picked_up' | 'served'): Promise<ApiResponse<void>> => {
+  action: (_id: number, _action: 'picked_up' | 'served'): Promise<ApiResponse<void>> => {
     // TODO: return fetchAPI(`/food-alerts/${id}/action`, {
     //   method: 'POST',
     //   body: JSON.stringify({ action }),
@@ -285,7 +299,7 @@ export const staffAPI = {
   },
 
   /** POST /staff */
-  create: (staff: Omit<StaffMember, 'id'>): Promise<ApiResponse<StaffMember>> => {
+  create: (_staff: Omit<StaffMember, 'id'>): Promise<ApiResponse<StaffMember>> => {
     // TODO: return fetchAPI<StaffMember>('/staff', {
     //   method: 'POST',
     //   body: JSON.stringify(staff),
@@ -294,7 +308,7 @@ export const staffAPI = {
   },
 
   /** PATCH /staff/:id */
-  update: (id: number, updates: Partial<StaffMember>): Promise<ApiResponse<StaffMember>> => {
+  update: (_id: number, _updates: Partial<StaffMember>): Promise<ApiResponse<StaffMember>> => {
     // TODO: return fetchAPI<StaffMember>(`/staff/${id}`, {
     //   method: 'PATCH',
     //   body: JSON.stringify(updates),
@@ -303,7 +317,7 @@ export const staffAPI = {
   },
 
   /** DELETE /staff/:id */
-  delete: (id: number): Promise<ApiResponse<void>> => {
+  delete: (_id: number): Promise<ApiResponse<void>> => {
     // TODO: return fetchAPI<void>(`/staff/${id}`, { method: 'DELETE' });
     return Promise.resolve({ success: true });
   },
