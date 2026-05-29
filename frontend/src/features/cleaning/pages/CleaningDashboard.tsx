@@ -258,11 +258,13 @@ const CleaningDashboard = () => {
   const highPriority   = pending.filter(t => t.priority === 'high');
   const otherPending   = pending.filter(t => t.priority !== 'high');
 
-  const filteredTasks = tasks.filter(t =>
-    String(t.tableNumber).includes(searchQuery) ||
-    t.priority.includes(searchQuery.toLowerCase()) ||
-    t.status.includes(searchQuery.toLowerCase())
+  const _filteredTasks = tasks.filter(t =>
+  String(t.tableNumber).includes(searchQuery) ||
+  t.priority.includes(searchQuery.toLowerCase()) ||
+  t.status.includes(searchQuery.toLowerCase())
   );
+
+  const filteredTasks = searchQuery ? _filteredTasks : [];
 
   const stats = [
     { label: 'Pending',      value: pending.length,    color: '#f59e0b', Icon: Clock         },
