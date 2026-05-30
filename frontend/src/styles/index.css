@@ -116,9 +116,13 @@
   h1,
   h2,
   h3,
+  h4,
+  h5,
+  h6,
+  .font-heading,
   .font-display {
-    font-family: "Instrument Serif", serif;
-    letter-spacing: -0.02em;
+    font-family: "Poppins", "Inter", sans-serif;
+    letter-spacing: -0.01em;
   }
 
   button,
@@ -149,3 +153,33 @@
     box-shadow: var(--shadow-soft);
   }
 }
+
+/* KDS Typography Overrides */
+body, 
+button, 
+input, 
+select, 
+textarea, 
+.ant-btn, 
+.ant-input, 
+.ant-select, 
+.ant-modal, 
+.ant-modal-content,
+.ant-select-item,
+.ant-dropdown-menu,
+.ant-tag,
+.ant-message,
+.ant-spin,
+h1, 
+h2, 
+h3, 
+h4, 
+h5, 
+h6, 
+.font-heading, 
+.font-display, 
+.ant-typography, 
+.ant-card-head-title,
+.ant-modal-title {
+  font-family: "Inter", "Segoe UI", sans-serif !important;
+}
