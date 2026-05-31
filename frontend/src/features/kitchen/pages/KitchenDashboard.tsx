@@ -25,7 +25,7 @@ import {
   delayAllOrders
 } from '../api/kitchen.api';
 import { OrderList, BatchView, LoadIndicator, PerformanceStats, StationsView } from '../components';
-import { LowStockAlerts } from '../../admin/components/LowStockAlerts';
+import { LowStockAlerts } from '../../admin/components/dashboard/LowStockAlerts';
 import { useAuth } from '../../../auth/AuthProvider';
 import { typographyTheme } from '../../../shared/theme/typography';
 
