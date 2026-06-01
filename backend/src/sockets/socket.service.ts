@@ -1,80 +1,37 @@
-// src/sockets/socket.service.ts
 import { Server as SocketIOServer, Socket } from 'socket.io';
-import { Server as HTTPServer } from 'http';
-import { env } from '../config/env';
 import { logger } from '../config/logger';
-import { verifyAccessToken } from '../services/jwt.service';
-import { TableSessionModel } from '../modules/tableSessions/tableSessions.model';
 
 class SocketService {
   private io: SocketIOServer | null = null;
 
   /**
-   * Initialize Socket.io with the HTTP server
+   * Set the Socket.io server instance and initialize events
    */
-  public init(server: HTTPServer): void {
-    this.io = new SocketIOServer(server, {
-      cors: {
-        origin: env.corsOrigins,
-        credentials: true,
-      },
-    });
-
-    // Enforce robust authentication and reject anonymous connections
-    this.io.use(async (socket, next) => {
-      const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization;
-      const sessionToken = socket.handshake.auth?.sessionToken || socket.handshake.headers?.['x-session-token'];
-
-      if (token) {
-        // Staff/Admin Auth
-        const jwtToken = token.startsWith('Bearer ') ? token.slice(7).trim() : token.trim();
-        try {
-          const decoded = verifyAccessToken(jwtToken);
-          socket.data.user = decoded;
-          socket.data.type = 'staff';
-          return next();
-        } catch (err) {
-          return next(new Error('Authentication failed: Invalid JWT token'));
-        }
-      }
-
-      if (sessionToken) {
-        // Customer Auth
-        try {
-          // Check token in DB
-          const session = await TableSessionModel.findOne({ token: sessionToken });
-          if (!session) {
-            return next(new Error('Authentication failed: Invalid session token'));
-          }
-          if (new Date() > session.expiresAt) {
-            return next(new Error('Authentication failed: Session expired'));
-          }
-          socket.data.tableSession = {
-            _id: session._id.toString(),
-            restaurantId: session.restaurantId.toString(),
-            tableId: session.tableId.toString(),
-            customerName: session.customerName,
-            mobile: session.mobile,
-          };
-          socket.data.type = 'customer';
-          return next();
-        } catch (err) {
-          return next(new Error('Authentication failed: Database error'));
-        }
-      }
-
-      return next(new Error('Authentication failed: No credentials provided'));
-    });
+  public setIO(io: SocketIOServer): void {
+    this.io = io;
 
     this.io.on('connection', (socket: Socket) => {
-      logger.info(`🔌 Socket connected with verified identity: ${socket.id} (Type: ${socket.data.type})`);
+      logger.info(`🔌 Socket connected with verified identity: ${socket.id}`);
 
-      // Enforce strict tenant isolation on room joining
+      // Auto-join rooms based on authenticated context to ensure realtime updates work
+      if (socket.data.user && socket.data.user.restaurantId) {
+        const restaurantId = socket.data.user.restaurantId.toString();
+        socket.join(`restaurant:${restaurantId}`);
+        logger.info(`👤 Auto-joined Socket ${socket.id} to restaurant room: ${restaurantId}`);
+      }
+
+      if (socket.data.session && socket.data.session._id) {
+        const sessionId = socket.data.session._id.toString();
+        socket.join(`session:${sessionId}`);
+        logger.info(`👤 Auto-joined Socket ${socket.id} to session room: ${sessionId}`);
+      }
+
+      // Join room based on restaurantId (for staff/kitchen and customers)
       socket.on('join:restaurant', (restaurantId: string) => {
-        if (
-          (socket.data.type === 'staff' && socket.data.user?.restaurantId === restaurantId) ||
-          (socket.data.type === 'customer' && socket.data.tableSession?.restaurantId === restaurantId)
-        ) {
+        const isStaff = socket.data.user && socket.data.user.restaurantId?.toString() === restaurantId;
+        const isCustomer = socket.data.session && socket.data.session.restaurantId?.toString() === restaurantId;
+
+        if (isStaff || isCustomer) {
           socket.join(`restaurant:${restaurantId}`);
           logger.info(`👤 Socket ${socket.id} joined restaurant room: ${restaurantId}`);
         } else {
@@ -83,11 +40,12 @@ class SocketService {
         }
       });
 
+      // Join room based on sessionId (for customer updates)
       socket.on('join:session', (sessionId: string) => {
-        if (
-          (socket.data.type === 'customer' && socket.data.tableSession?._id === sessionId) ||
-          (socket.data.type === 'staff' && socket.data.user?.restaurantId)
-        ) {
+        const isCustomer = socket.data.session && socket.data.session._id.toString() === sessionId;
+        const isStaff = socket.data.user && socket.data.user.restaurantId; // Staff can view any session in their restaurant
+
+        if (isCustomer || isStaff) {
           socket.join(`session:${sessionId}`);
           logger.info(`👤 Socket ${socket.id} joined session room: ${sessionId}`);
         } else {
@@ -96,11 +54,13 @@ class SocketService {
         }
       });
 
+      // Join room based on role (for specific staff role updates)
       socket.on('join:role', ({ restaurantId, role }: { restaurantId: string; role: string }) => {
         if (
-          socket.data.type === 'staff' &&
-          socket.data.user?.restaurantId === restaurantId &&
-          socket.data.user?.role === role
+          restaurantId && role &&
+          socket.data.user &&
+          socket.data.user.restaurantId?.toString() === restaurantId &&
+          socket.data.user.role === role
         ) {
           socket.join(`restaurant:${restaurantId}:role:${role}`);
           logger.info(`👤 Socket ${socket.id} joined role room: restaurant:${restaurantId}:role:${role}`);
@@ -110,8 +70,9 @@ class SocketService {
         }
       });
 
+      // Join room based on userId (for direct user updates)
       socket.on('join:user', (userId: string) => {
-        if (socket.data.type === 'staff' && socket.data.user?._id === userId) {
+        if (userId && socket.data.user && socket.data.user._id.toString() === userId) {
           socket.join(`user:${userId}`);
           logger.info(`👤 Socket ${socket.id} joined user room: user:${userId}`);
         } else {
@@ -125,14 +86,7 @@ class SocketService {
       });
     });
 
-    logger.info('📡 Secure Socket.io initialized');
-  }
-
-  /**
-   * Get Socket.io server instance
-   */
-  public getIO(): SocketIOServer | null {
-    return this.io;
+    logger.info('📡 Secure Socket.io events initialized');
   }
 
   /**

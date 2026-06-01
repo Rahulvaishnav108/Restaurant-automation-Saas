@@ -11,7 +11,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { UserRole } from '../../constants/roles';
 import { NotificationCategory, NotificationPriority } from '../notifications/notifications.schema';
 import { TableSessionModel } from '../tableSessions/tableSessions.model';
-
+import { socketService } from '../../sockets/socket.service';
 
 const ORDER_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus[]>> = {
   [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED, OrderStatus.REJECTED],
@@ -136,9 +136,12 @@ export class OrdersService {
       cart.grandTotal = 0;
       await cart.save();
 
+      // 7. Emit Realtime Event for Kitchen
+      socketService.emitToRestaurant(restaurantId.toString(), 'order:new', { orderId: order._id });
+
       return order;
     } finally {
-      // 7. Always release the lock
+      // 8. Always release the lock
       await TableSessionModel.findByIdAndUpdate(sessionObjectId, {
         $set: { isOrdering: false },
       });

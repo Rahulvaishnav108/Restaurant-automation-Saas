@@ -65,8 +65,8 @@ customerRouter.post('/session/end', async (req, res, next) => {
   try {
     const session = await endSession(
       req.tableSession!._id,
-      'customer_closed',
       req.tableSession!.restaurantId.toString(),
+      'customer_closed'
     );
     ok(res, { session });
   } catch (error) {
