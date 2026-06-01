@@ -26,6 +26,8 @@ export interface ITableSession extends Document {
   customerProfileId?: Types.ObjectId;
 
   activeOrderId?: Types.ObjectId;
+  isOrdering: boolean;
+  lastOrderAttemptAt?: Date | null;
   status: SessionStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -106,10 +108,19 @@ const tableSessionSchema = new Schema<ITableSession>(
       ref: 'Order',
       default: null,
     },
+    isOrdering: {
+      type: Boolean,
+      default: false,
+    },
+    lastOrderAttemptAt: {
+      type: Date,
+      default: null,
+    },
     status: {
       type: String,
       enum: Object.values(SessionStatus),
       default: SessionStatus.ACTIVE,
+      index: true,
     },
   },
   {
@@ -122,5 +133,8 @@ const tableSessionSchema = new Schema<ITableSession>(
 
 // Compound index for fast session lookups
 tableSessionSchema.index({ restaurantId: 1, tableId: 1, status: 1 });
+tableSessionSchema.index({ status: 1 });
+tableSessionSchema.index({ expiresAt: 1 });
+tableSessionSchema.index({ lastActivityAt: 1 });
 
 export const TableSessionModel = mongoose.model<ITableSession>('TableSession', tableSessionSchema);

@@ -95,6 +95,33 @@ async function request(url, method, pathname, options = {}) {
       }
     }
 
+    try {
+      const sanitizedHeaders = { ...headers };
+      if (sanitizedHeaders.Authorization) {
+        sanitizedHeaders.Authorization = sanitizedHeaders.Authorization.slice(0, 20) + '...';
+      }
+      if (sanitizedHeaders['x-session-token']) {
+        sanitizedHeaders['x-session-token'] = sanitizedHeaders['x-session-token'].slice(0, 15) + '...';
+      }
+      const logPath = path.join(backendDir, 'logs', 'audit_execution_traffic.log');
+      fs.appendFileSync(
+        logPath,
+        JSON.stringify(
+          {
+            timestamp: new Date().toISOString(),
+            method,
+            pathname,
+            headers: sanitizedHeaders,
+            body: options.body,
+            status: response.status,
+            response: json ?? raw,
+          },
+          null,
+          2
+        ) + '\n,\n'
+      );
+    } catch {}
+
     return {
       status: response.status,
       json,
@@ -389,8 +416,15 @@ async function runSmokeSuite(url, db) {
       body: { email: tempEmail },
     });
     assert(forgot.status === 200, `forgot-password returned ${forgot.status}`);
-    const resetToken = forgot.json?.data?.resetToken;
-    assert(resetToken, 'reset token missing in non-production verification mode');
+    const otp = forgot.json?.data?.otp;
+    assert(otp, 'OTP missing in forgot-password response in non-production mode');
+
+    const verifyReset = await request(url, 'POST', '/api/v1/auth/verify-reset-otp', {
+      body: { email: tempEmail, otp },
+    });
+    assert(verifyReset.status === 200, `verify-reset-otp returned ${verifyReset.status}`);
+    const resetToken = verifyReset.json?.data?.resetToken;
+    assert(resetToken, 'reset token missing in verify-reset-otp response');
 
     const reset = await request(url, 'POST', '/api/v1/auth/reset-password', {
       body: { token: resetToken, password: resetPassword },
@@ -746,15 +780,7 @@ async function runSmokeSuite(url, db) {
         capacity: 2,
       },
     });
-    assert(spoofedCreate.status === 201, `scoped create table returned ${spoofedCreate.status}`);
-
-    const spoofedCreatedTable = spoofedCreate.json?.data?.table;
-    const spoofedCreatedTableId = getId(spoofedCreatedTable);
-    assert(spoofedCreatedTableId, 'Scoped create table id missing');
-    assert(
-      String(spoofedCreatedTable?.restaurantId) === state.restaurantId,
-      'Restaurant admin create table request escaped its own restaurant scope',
-    );
+    assert(spoofedCreate.status === 403, `scoped create table should be rejected with 403 for spoofed tenant, got ${spoofedCreate.status}`);
 
     const spoofedBulkCreate = await request(url, 'POST', '/api/v1/admin/tables/bulk', {
       token: state.admin.accessToken,
@@ -771,14 +797,7 @@ async function runSmokeSuite(url, db) {
         ],
       },
     });
-    assert(spoofedBulkCreate.status === 201, `scoped bulk create returned ${spoofedBulkCreate.status}`);
-    const spoofedBulkTable = spoofedBulkCreate.json?.data?.tables?.[0];
-    const spoofedBulkTableId = getId(spoofedBulkTable);
-    assert(spoofedBulkTableId, 'Scoped bulk create table id missing');
-    assert(
-      String(spoofedBulkTable?.restaurantId) === state.restaurantId,
-      'Restaurant admin bulk create request escaped its own restaurant scope',
-    );
+    assert(spoofedBulkCreate.status === 403, `scoped bulk create should be rejected with 403 for spoofed tenant, got ${spoofedBulkCreate.status}`);
 
     await tablesCollection.insertOne({
       _id: foreignTableId,
@@ -828,16 +847,6 @@ async function runSmokeSuite(url, db) {
       foreignStaffAssign.status === 404,
       `staff foreign table assign should return 404, got ${foreignStaffAssign.status}`,
     );
-
-    const cleanupScopedCreate = await request(url, 'DELETE', `/api/v1/admin/tables/${spoofedCreatedTableId}`, {
-      token: state.admin.accessToken,
-    });
-    assert(cleanupScopedCreate.status === 200, `cleanup scoped create returned ${cleanupScopedCreate.status}`);
-
-    const cleanupScopedBulk = await request(url, 'DELETE', `/api/v1/admin/tables/${spoofedBulkTableId}`, {
-      token: state.admin.accessToken,
-    });
-    assert(cleanupScopedBulk.status === 200, `cleanup scoped bulk create returned ${cleanupScopedBulk.status}`);
 
     return 'Verified admin/staff table 404 behavior and restaurant scoping for create, bulk create, list, and detail actions';
   });
@@ -2141,6 +2150,13 @@ async function runSmokeSuite(url, db) {
 }
 
 async function main() {
+  const logPath = path.join(backendDir, 'logs', 'audit_execution_traffic.log');
+  if (fs.existsSync(logPath)) {
+    try {
+      fs.unlinkSync(logPath);
+    } catch {}
+  }
+
   const mongod = await MongoMemoryServer.create({
     instance: {
       dbName: 'restaurant-automation-verify',

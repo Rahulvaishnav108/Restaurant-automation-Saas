@@ -208,34 +208,29 @@ export async function startSession(
   return { session, sessionToken };
 }
 
-/**
- * Validate a session token.
- * Checks: exists, ACTIVE status, hard expiry, idle timeout.
- * Returns the session if valid, throws if expired/invalid.
- */
+
 export async function validateSession(token: string): Promise<ITableSession> {
   const session = await TableSessionModel.findOne({ sessionToken: token }).select('+sessionToken');
 
   if (!session) {
-    throw new AppError('Invalid session token', 401, ErrorCode.UNAUTHORIZED_TABLE_SESSION);
+    throw new AppError('Invalid session token', 401, ErrorCode.SESSION_INVALID);
   }
 
   if (session.status !== SessionStatus.ACTIVE) {
-    throw new AppError('Session is no longer active', 401, ErrorCode.UNAUTHORIZED_TABLE_SESSION);
+    throw new AppError('Session is no longer active', 401, ErrorCode.TABLE_SESSION_EXPIRED);
   }
 
   // Hard expiry check
   if (new Date() > session.expiresAt) {
     await expireSession(session._id.toString());
-    throw new AppError('Session has expired', 401, ErrorCode.UNAUTHORIZED_TABLE_SESSION);
+    throw new AppError('Session has expired', 401, ErrorCode.TABLE_SESSION_EXPIRED);
   }
 
-  // Idle timeout check
   const idleMs = Date.now() - session.lastActivityAt.getTime();
   const idleTimeoutMs = env.SESSION_IDLE_TIMEOUT_MINUTES * 60_000;
   if (idleMs > idleTimeoutMs) {
     await expireSession(session._id.toString());
-    throw new AppError('Session expired due to inactivity', 401, ErrorCode.UNAUTHORIZED_TABLE_SESSION);
+    throw new AppError('Session expired due to inactivity', 401, ErrorCode.SESSION_IDLE_TIMEOUT);
   }
 
   // Query TableModel and RestaurantModel to assert table and restaurant existence/ownership

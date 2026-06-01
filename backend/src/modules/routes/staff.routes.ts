@@ -4,6 +4,8 @@ import { QueueEntryModel } from '../queue/queue.model';
 import { ReservationModel } from '../reservations/reservations.model';
 import { StaffRequestModel } from '../staff/staffRequest.model';
 import { AuditLogModel } from '../auditLogs/auditLogs.model';
+import { logAuditAction } from '../auditLogs/auditLogs.service';
+
 import { ok } from '../../utils/responses';
 import { RequestStatus, TableStatus } from '../../constants/statuses';
 import { validate } from '../../middleware/validate';
@@ -92,7 +94,15 @@ staffRouter.patch(
         { new: true },
       ),
       'Table not found',
-    );
+    ) as any;
+
+    logAuditAction({
+      req,
+      entityType: 'table',
+      entityId: table._id.toString(),
+      action: 'TABLE_ASSIGNED',
+      metadata: { staffId: req.body?.staffId ?? req.user?.id },
+    });
 
     ok(res, { table });
   } catch (error) {
@@ -149,6 +159,14 @@ staffRouter.patch(
       TableStatus.OCCUPIED,
       req.user?.restaurantId,
     );
+
+    logAuditAction({
+      req,
+      entityType: 'table',
+      entityId: table._id.toString(),
+      action: 'TABLE_OCCUPIED',
+      metadata: { occupiedBy: req.body?.staffId ?? req.user?.id },
+    });
 
     ok(res, { table, occupiedBy: req.body?.staffId ?? req.user?.id ?? null });
   } catch (error) {
@@ -264,7 +282,15 @@ staffRouter.patch(
         { new: true },
       ),
       'Reservation not found',
-    );
+    ) as any;
+
+    logAuditAction({
+      req,
+      entityType: 'reservation',
+      entityId: reservation._id.toString(),
+      action: 'RESERVATION_CHECK_IN',
+      metadata: { checkedInBy: req.body?.staffId ?? req.user?.id },
+    });
 
     ok(res, { reservation, checkedInBy: req.body?.staffId ?? req.user?.id ?? null });
   } catch (error) {
@@ -307,7 +333,15 @@ staffRouter.patch(
         { new: true },
       ),
       'Staff request not found',
-    );
+    ) as any;
+
+    logAuditAction({
+      req,
+      entityType: 'staff-request',
+      entityId: request._id.toString(),
+      action: 'REQUEST_ACCEPTED',
+      metadata: { acceptedBy: req.body?.staffId ?? req.user?.id, type: request.type },
+    });
 
     ok(res, { request, acceptedBy: req.body?.staffId ?? req.user?.id ?? null });
   } catch (error) {
@@ -333,7 +367,15 @@ staffRouter.patch(
         { new: true },
       ),
       'Staff request not found',
-    );
+    ) as any;
+
+    logAuditAction({
+      req,
+      entityType: 'staff-request',
+      entityId: request._id.toString(),
+      action: 'REQUEST_COMPLETED',
+      metadata: { completedBy: req.body?.staffId ?? req.user?.id, type: request.type },
+    });
 
     ok(res, { request });
   } catch (error) {
@@ -345,8 +387,11 @@ staffRouter.post('/issues/escalate', validate({ body: issueEscalationBodySchema 
   try {
     const escalation = await AuditLogModel.create({
       actorId: req.body?.staffId ?? req.user?.id ?? null,
-      action: 'ESCALATE_ISSUE',
+      actorRole: req.user?.role || 'staff',
+      restaurantId: req.user?.restaurantId || null,
+      entityType: req.body.entityType || 'table',
       entityId: req.body.entityId,
+      action: 'ESCALATE_ISSUE',
       metadata: {
         restaurantId: req.user?.restaurantId,
         entityType: req.body.entityType ?? null,

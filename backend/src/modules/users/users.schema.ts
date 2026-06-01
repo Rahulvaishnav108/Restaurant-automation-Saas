@@ -6,7 +6,7 @@ import { UserRole } from '../../constants/roles';
 
 export const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100).trim(),
-  email: z.string().email('Invalid email address').toLowerCase().trim(),
+  email: z.string().email('Invalid email address').toLowerCase().trim().optional(),
   mobile: z.string().min(10, 'Mobile must be at least 10 digits').max(15).trim(),
   password: z
     .string()
@@ -15,8 +15,27 @@ export const registerSchema = z.object({
     .regex(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
       'Password must contain at least one uppercase letter, one lowercase letter, and one number'
-    ),
+    )
+    .optional(),
   role: z.nativeEnum(UserRole).optional(),
+}).superRefine((data, ctx) => {
+  const role = data.role ?? UserRole.CUSTOMER;
+  if (role !== UserRole.CUSTOMER) {
+    if (!data.email) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Email is required for staff/admin roles',
+        path: ['email'],
+      });
+    }
+    if (!data.password) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Password is required for staff/admin roles',
+        path: ['password'],
+      });
+    }
+  }
 });
 
 export const loginSchema = z.object({
@@ -29,8 +48,12 @@ export const loginSchema = z.object({
 );
 
 export const forgotPasswordSchema = z.object({
-  email: z.string().email('Invalid email address').toLowerCase().trim(),
-});
+  email: z.string().email('Invalid email address').toLowerCase().trim().optional(),
+  mobile: z.string().min(10).max(15).trim().optional(),
+}).refine(
+  (data) => data.email || data.mobile,
+  { message: 'Either email or mobile is required', path: ['email'] }
+);
 
 export const resetPasswordSchema = z.object({
   token: z.string().min(1, 'Reset token is required'),
@@ -56,6 +79,7 @@ export const verifyOtpSchema = z.object({
   email: z.string().email().toLowerCase().trim().optional(),
   mobile: z.string().min(10).max(15).trim().optional(),
   otp: z.string().length(6, 'OTP must be 6 digits'),
+  name: z.string().optional(),
 }).refine(
   (data) => data.email || data.mobile,
   { message: 'Either email or mobile is required', path: ['email'] }

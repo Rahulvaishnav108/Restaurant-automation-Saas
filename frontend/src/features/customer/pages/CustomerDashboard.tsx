@@ -223,7 +223,7 @@ const CustomerDashboard: React.FC<Props> = ({ onBack }) => {
           />
           <div className="absolute inset-0 bg-gradient-to-r from-[#2a1710] via-[#2a1710]/85 to-[#2a1710]/20" />
           <div className="relative max-w-xl">
-            <h1 className="text-2xl font-bold sm:text-3xl">Welcome back, John!</h1>
+            <h1 className="text-2xl font-bold sm:text-3xl">Welcome back, Om!</h1>
             <p className="mt-2 text-sm text-orange-50/80">Good food, great service, every time.</p>
             <div className="mt-5 grid max-w-md grid-cols-3 gap-3">
               {[
@@ -372,7 +372,7 @@ const CustomerDashboard: React.FC<Props> = ({ onBack }) => {
               <User className="h-8 w-8" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-slate-950">John Doe</h3>
+              <h3 className="text-lg font-bold text-slate-950">Om Deshmukh</h3>
               <p className="text-sm text-slate-500">Table {tableCode} · Smart Dining</p>
             </div>
           </div>
@@ -476,7 +476,7 @@ const CustomerDashboard: React.FC<Props> = ({ onBack }) => {
                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#4b211d] text-white">
                     <User className="h-4 w-4" />
                   </span>
-                  <span className="hidden sm:inline">John Doe</span>
+                  <span className="hidden sm:inline">Om Deshmukh</span>
                   <ChevronDown className="hidden h-4 w-4 text-slate-500 sm:block" />
                 </button>
               </div>

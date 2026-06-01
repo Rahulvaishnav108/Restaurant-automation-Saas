@@ -12,6 +12,7 @@ import { RestaurantModel } from '../restaurants/restaurants.model';
 import { NotificationsService } from '../notifications/notifications.service';
 import { UserRole } from '../../constants/roles';
 import { NotificationCategory, NotificationPriority } from '../notifications/notifications.schema';
+import { PaymentModel } from '../payments/payments.model';
 
 export class BillingService {
   /**
@@ -212,6 +213,16 @@ export class BillingService {
     bill.paymentStatus = PaymentStatus.PENDING;
     await bill.save();
 
+    // v2.1 Requirement: Write transaction details to PaymentModel
+    await PaymentModel.create({
+      restaurantId: bill.restaurantId,
+      orderId: bill.orderIds[0],
+      sessionId: bill.sessionId,
+      amount: bill.finalAmount,
+      method: paymentMethod,
+      status: PaymentStatus.PENDING as any,
+    });
+
     return {
       billId: bill._id,
       paymentIntentId: intentId,
@@ -242,11 +253,24 @@ export class BillingService {
       throw new AppError('Invalid payment ID.', 400, ErrorCode.VALIDATION_ERROR);
     }
 
+    // Find the corresponding PaymentModel record
+    const payment = await PaymentModel.findOne({
+      restaurantId: bill.restaurantId,
+      sessionId: bill.sessionId,
+      status: PaymentStatus.PENDING,
+    });
+
     // Mock failure behavior
     if (simulateStatus === PaymentStatus.FAILED || paymentId.includes('fail')) {
       bill.paymentStatus = PaymentStatus.FAILED;
       bill.status = BillStatus.FAILED;
       await bill.save();
+
+      if (payment) {
+        payment.status = PaymentStatus.FAILED as any;
+        await payment.save();
+      }
+
       throw new AppError('Payment processing failed.', 400, ErrorCode.PAYMENT_FAILED);
     }
 
@@ -255,6 +279,12 @@ export class BillingService {
       bill.paymentStatus = PaymentStatus.EXPIRED;
       bill.status = BillStatus.DRAFT; // Revert to a pre-payment state
       await bill.save();
+
+      if (payment) {
+        payment.status = 'FAILED' as any;
+        await payment.save();
+      }
+
       throw new AppError('Payment session expired.', 400, ErrorCode.PAYMENT_FAILED);
     }
 
@@ -267,6 +297,12 @@ export class BillingService {
     bill.paymentStatus = PaymentStatus.PAID;
     bill.paidAt = new Date();
     await bill.save();
+
+    if (payment) {
+      payment.status = 'COMPLETED' as any;
+      payment.verifiedAt = new Date();
+      await payment.save();
+    }
 
     // Transition all BILLED orders to PAID
     const billedOrders = await OrderModel.find({

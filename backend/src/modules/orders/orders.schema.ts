@@ -295,6 +295,8 @@ export const orderSchema = new Schema<IOrder>(
 orderSchema.index({ restaurantId: 1 });
 orderSchema.index({ customerId: 1 });
 orderSchema.index({ tableId: 1 });
+orderSchema.index({ sessionId: 1 });
+orderSchema.index({ createdAt: 1 });
 orderSchema.index({ status: 1 });
 orderSchema.index({ priority: 1 });
 orderSchema.index({ paymentStatus: 1 });

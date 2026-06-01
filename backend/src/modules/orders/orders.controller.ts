@@ -6,6 +6,8 @@ import { OrdersService } from './orders.service';
 import { ok } from '../../utils/responses';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
+import { logAuditAction } from '../auditLogs/auditLogs.service';
+
 
 export class OrdersController {
   private static getRequiredSession(req: Request) {
@@ -43,6 +45,17 @@ export class OrdersController {
         session.customerName,
         req.body
       );
+
+      logAuditAction({
+        req,
+        actorId: session._id,
+        actorRole: 'customer',
+        restaurantId: session.restaurantId,
+        entityType: 'order',
+        entityId: order._id.toString(),
+        action: 'ORDER_PLACED',
+        metadata: { tableId: session.tableId, itemsCount: order.items?.length },
+      });
 
       ok(res, { order }, 201);
     } catch (error) {
@@ -105,6 +118,17 @@ export class OrdersController {
 
       const { id } = req.params;
       const order = await OrdersService.cancelOrder(session.restaurantId, session._id, id);
+
+      logAuditAction({
+        req,
+        actorId: session._id,
+        actorRole: 'customer',
+        restaurantId: session.restaurantId,
+        entityType: 'order',
+        entityId: order._id.toString(),
+        action: 'ORDER_CANCELLED',
+      });
+
       ok(res, { order });
     } catch (error) {
       next(error);
@@ -167,6 +191,15 @@ export class OrdersController {
       const { id } = req.params;
       const { estimatedPreparationTime } = req.body;
       const order = await OrdersService.acceptOrder(restaurantId, id, estimatedPreparationTime, req.user?.id);
+
+      logAuditAction({
+        req,
+        entityType: 'order',
+        entityId: order._id.toString(),
+        action: 'ORDER_ACCEPTED',
+        metadata: { estimatedPreparationTime },
+      });
+
       ok(res, { order });
     } catch (error) {
       next(error);
@@ -180,6 +213,14 @@ export class OrdersController {
 
       const { id } = req.params;
       const order = await OrdersService.startCooking(restaurantId, id, req.user?.id);
+
+      logAuditAction({
+        req,
+        entityType: 'order',
+        entityId: order._id.toString(),
+        action: 'ORDER_COOKING_STARTED',
+      });
+
       ok(res, { order });
     } catch (error) {
       next(error);
@@ -193,6 +234,14 @@ export class OrdersController {
 
       const { id } = req.params;
       const order = await OrdersService.markReady(restaurantId, id, req.user?.id);
+
+      logAuditAction({
+        req,
+        entityType: 'order',
+        entityId: order._id.toString(),
+        action: 'ORDER_PREPARED',
+      });
+
       ok(res, { order });
     } catch (error) {
       next(error);
@@ -207,6 +256,15 @@ export class OrdersController {
       const { id } = req.params;
       const { delayMinutes } = req.body;
       const order = await OrdersService.delayOrder(restaurantId, id, delayMinutes, req.user?.id);
+
+      logAuditAction({
+        req,
+        entityType: 'order',
+        entityId: order._id.toString(),
+        action: 'ORDER_DELAYED',
+        metadata: { delayMinutes },
+      });
+
       ok(res, { order });
     } catch (error) {
       next(error);
@@ -221,6 +279,15 @@ export class OrdersController {
       const { id } = req.params;
       const { reason } = req.body;
       const order = await OrdersService.rejectOrder(restaurantId, id, reason, req.user?.id);
+
+      logAuditAction({
+        req,
+        entityType: 'order',
+        entityId: order._id.toString(),
+        action: 'ORDER_REJECTED',
+        metadata: { reason },
+      });
+
       ok(res, { order });
     } catch (error) {
       next(error);
@@ -257,6 +324,14 @@ export class OrdersController {
 
       const { id } = req.params;
       const order = await OrdersService.pickFood(restaurantId, id, req.user?.id);
+
+      logAuditAction({
+        req,
+        entityType: 'order',
+        entityId: order._id.toString(),
+        action: 'ORDER_PICKED_UP',
+      });
+
       ok(res, { order });
     } catch (error) {
       next(error);
@@ -270,6 +345,14 @@ export class OrdersController {
 
       const { id } = req.params;
       const order = await OrdersService.markServed(restaurantId, id, req.user?.id);
+
+      logAuditAction({
+        req,
+        entityType: 'order',
+        entityId: order._id.toString(),
+        action: 'ORDER_SERVED',
+      });
+
       ok(res, { order });
     } catch (error) {
       next(error);
