@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    strictPort: true,
     host: true, // Needed for Docker
     watch: {
       usePolling: true, // Sometimes needed for hot reloading in Docker on Windows

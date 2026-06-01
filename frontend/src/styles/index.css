@@ -77,6 +77,161 @@
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    margin: 0; 
+    padding: 0;
+    font-family: "Inter", "Segoe UI", sans-serif;
+
+    min-height: 100vh;
+
+    background-image:
+      radial-gradient(circle at top, rgba(251, 191, 36, 0.12), transparent 22%),
+      linear-gradient(
+        180deg,
+        rgba(255, 248, 240, 0.98),
+        rgba(255, 255, 255, 1)
+      );
+
+    transition:
+      background-color 0.25s ease,
+      color 0.25s ease,
+      border-color 0.25s ease;
+  }
+
+  .dark body {
+    background-image:
+      radial-gradient(circle at top, rgba(249, 115, 22, 0.08), transparent 20%),
+      linear-gradient(
+        180deg,
+        rgba(10, 10, 12, 1),
+        rgba(15, 15, 20, 1)
+      );
+  }
+
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: "Instrument Serif", serif;
+    letter-spacing: -0.02em;
+  }
+
+  button,
+  a,
+  input,
+  textarea {
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease,
+      border-color 0.2s ease,
+      transform 0.2s ease,
+      opacity 0.2s ease;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    background: var(--surface-glass);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+  }
+
+  .premium-shadow {
+    box-shadow: var(--shadow-premium);
+  }
+
+  .soft-shadow {
+    box-shadow: var(--shadow-soft);
+  }
+}
+=======
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 36 42% 96%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 30 95% 54%;
+    --primary-foreground: 40 100% 98%;
+
+    --secondary: 35 100% 96%;
+    --secondary-foreground: 24 30% 18%;
+
+    --muted: 36 33% 92%;
+    --muted-foreground: 215 16% 36%;
+
+    --accent: 40 100% 92%;
+    --accent-foreground: 24 30% 18%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 28 22% 84%;
+    --input: 28 22% 84%;
+    --ring: 24 95% 53%;
+
+    --radius: 1rem;
+
+    --surface-glass: rgba(255, 255, 255, 0.72);
+    --shadow-soft: 0 12px 40px rgba(15, 23, 42, 0.08);
+    --shadow-premium: 0 20px 60px rgba(15, 23, 42, 0.14);
+  }
+
+  .dark {
+    --background: 222 30% 7%;
+    --foreground: 40 20% 96%;
+
+    --card: 222 24% 10%;
+    --card-foreground: 40 20% 96%;
+
+    --popover: 222 24% 10%;
+    --popover-foreground: 40 20% 96%;
+
+    --primary: 30 95% 54%;
+    --primary-foreground: 40 100% 98%;
+
+    --secondary: 222 18% 14%;
+    --secondary-foreground: 40 20% 96%;
+
+    --muted: 222 18% 14%;
+    --muted-foreground: 215 12% 72%;
+
+    --accent: 222 18% 14%;
+    --accent-foreground: 40 20% 96%;
+
+    --destructive: 0 62% 40%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 222 14% 20%;
+    --input: 222 14% 20%;
+    --ring: 30 95% 54%;
+
+    --surface-glass: rgba(17, 24, 39, 0.68);
+    --shadow-soft: 0 12px 40px rgba(0, 0, 0, 0.28);
+    --shadow-premium: 0 20px 60px rgba(0, 0, 0, 0.45);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
   }
 
   html {
@@ -182,4 +337,4 @@ h6,
 .ant-card-head-title,
 .ant-modal-title {
   font-family: "Inter", "Segoe UI", sans-serif !important;
-}
+}
