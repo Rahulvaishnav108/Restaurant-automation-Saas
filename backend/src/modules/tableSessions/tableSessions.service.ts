@@ -267,12 +267,10 @@ export async function touchActivity(sessionId: string): Promise<void> {
  */
 export async function endSession(
   sessionId: string,
-  reason: string = 'closed',
-  restaurantId?: string
+  restaurantId: string,
+  reason: string = 'closed'
 ): Promise<ITableSession> {
-  const query = restaurantId
-    ? { _id: sessionId, restaurantId }
-    : { _id: sessionId };
+  const query = { _id: sessionId, restaurantId };
 
   const session = await TableSessionModel.findOne(query);
 
@@ -383,15 +381,8 @@ export async function getActiveSession(
 /**
  * Get session by ID (staff view).
  */
-export async function getSessionById(sessionId: string, restaurantId?: string): Promise<ITableSession> {
-  const session = await TableSessionModel.findOne(
-    restaurantId
-      ? {
-          _id: sessionId,
-          restaurantId,
-        }
-      : { _id: sessionId }
-  );
+export async function getSessionById(sessionId: string, restaurantId: string): Promise<ITableSession> {
+  const session = await TableSessionModel.findOne({ _id: sessionId, restaurantId });
   if (!session) {
     throw new AppError('Session not found', 404, ErrorCode.NOT_FOUND);
   }

@@ -118,7 +118,7 @@ staffRouter.patch(
     const table = await tablesService.updateTableStatus(
       req.params.id,
       TableStatus.RESERVED,
-      req.user?.restaurantId,
+      req.user!.restaurantId!
     );
 
     if (req.body?.reservationId) {
@@ -147,7 +147,7 @@ staffRouter.patch(
     const table = await tablesService.updateTableStatus(
       req.params.id,
       TableStatus.OCCUPIED,
-      req.user?.restaurantId,
+      req.user!.restaurantId!
     );
 
     ok(res, { table, occupiedBy: req.body?.staffId ?? req.user?.id ?? null });
