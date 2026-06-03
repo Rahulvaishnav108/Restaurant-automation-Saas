@@ -258,11 +258,13 @@ const CleaningDashboard = () => {
   const highPriority   = pending.filter(t => t.priority === 'high');
   const otherPending   = pending.filter(t => t.priority !== 'high');
 
-  const filteredTasks = tasks.filter(t =>
-    String(t.tableNumber).includes(searchQuery) ||
-    t.priority.includes(searchQuery.toLowerCase()) ||
-    t.status.includes(searchQuery.toLowerCase())
+  const _filteredTasks = tasks.filter(t =>
+  String(t.tableNumber).includes(searchQuery) ||
+  t.priority.includes(searchQuery.toLowerCase()) ||
+  t.status.includes(searchQuery.toLowerCase())
   );
+
+  const filteredTasks = searchQuery ? _filteredTasks : [];
 
   const stats = [
     { label: 'Pending',      value: pending.length,    color: '#f59e0b', Icon: Clock         },
@@ -432,8 +434,50 @@ const CleaningDashboard = () => {
           ))}
         </div>
 
-        {/* High Priority Section */}
-        {highPriority.length > 0 && (
+        {/* Search Results Section */}
+        {searchQuery && (
+          <section>
+            <h2 style={{
+              fontSize: '16px', fontWeight: 600, color: theme.textPrimary,
+              marginBottom: '12px', marginTop: 0,
+              display: 'flex', alignItems: 'center', gap: '8px',
+            }}>
+              <span style={{
+                background: 'rgba(139,92,246,0.12)', padding: '4px 8px',
+                borderRadius: '6px', color: '#8b5cf6', fontSize: '12px', fontWeight: 600,
+              }}>
+                SEARCH RESULTS
+              </span>
+              Found {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}
+            </h2>
+            {filteredTasks.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {filteredTasks.map(task => (
+                  <CleaningTaskCard key={task.id} task={task} theme={theme} onAction={handleAction} />
+                ))}
+              </div>
+            ) : (
+              <div style={{
+                background: theme.cardBg,
+                border: `1px solid ${theme.cardBorder}`,
+                borderRadius: '12px',
+                padding: '24px',
+                textAlign: 'center',
+              }}>
+                <Search size={32} color={theme.textMuted} style={{ margin: '0 auto 12px', display: 'block' }} />
+                <p style={{ fontSize: '14px', color: theme.textMuted, margin: 0 }}>
+                  No tasks match &quot;{searchQuery}&quot;
+                </p>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Show default sections only when not searching */}
+        {!searchQuery && (
+          <>
+            {/* High Priority Section */}
+            {highPriority.length > 0 && (
           <section>
             <h2 style={{
               fontSize: '16px', fontWeight: 600, color: theme.textPrimary,
@@ -519,6 +563,8 @@ const CleaningDashboard = () => {
               ))}
             </div>
           </section>
+        )}
+          </>
         )}
       </main>
 
