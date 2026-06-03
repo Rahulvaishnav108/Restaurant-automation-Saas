@@ -6,6 +6,8 @@ import { OrdersService } from './orders.service';
 import { ok } from '../../utils/responses';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
+import { logAudit, logAuditRaw } from '../auditLogs/auditLogs.helper';
+import { AuditAction, AuditEntity } from '../auditLogs/auditLogs.types';
 
 export class OrdersController {
   private static getRequiredSession(req: Request) {
@@ -43,6 +45,23 @@ export class OrdersController {
         session.customerName,
         req.body
       );
+
+      void logAuditRaw({
+      actorId:      session._id.toString(),
+      actorRole:    'CUSTOMER',
+      restaurantId: session.restaurantId.toString(),
+      entityType:   AuditEntity.ORDER,
+      entityId:     order._id.toString(),
+      action:       AuditAction.ORDER_PLACED,
+      metadata: {
+        tableId:     session.tableId,
+        customerName: session.customerName,
+        itemCount:   order.items?.length ?? 0,
+        totalAmount: order.totalAmount,
+      },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
 
       ok(res, { order }, 201);
     } catch (error) {
@@ -92,6 +111,25 @@ export class OrdersController {
 
       const { id } = req.params;
       const order = await OrdersService.reorder(session.restaurantId, session._id, session.tableId, id);
+
+      void logAuditRaw({
+      actorId:      session._id.toString(),
+      actorRole:    'CUSTOMER',
+      restaurantId: session.restaurantId.toString(),
+      entityType:   AuditEntity.ORDER,
+      entityId:     order._id.toString(),
+      action:       AuditAction.ORDER_REORDERED,
+      metadata: {
+        tableId:         session.tableId,
+        originalOrderId: id,           // the order being reordered from
+        newOrderId:      order._id.toString(),
+        itemCount:       order.items?.length ?? 0,
+        totalAmount:     order.totalAmount,
+      },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+
       ok(res, { order });
     } catch (error) {
       next(error);
@@ -105,6 +143,21 @@ export class OrdersController {
 
       const { id } = req.params;
       const order = await OrdersService.cancelOrder(session.restaurantId, session._id, id);
+
+      void logAuditRaw({
+      actorId:      session._id.toString(),
+      actorRole:    'CUSTOMER',
+      restaurantId: session.restaurantId.toString(),
+      entityType:   AuditEntity.ORDER,
+      entityId:     order._id.toString(),
+      action:       AuditAction.ORDER_CANCELLED,
+      metadata: {
+        tableId: session.tableId,
+      },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+
       ok(res, { order });
     } catch (error) {
       next(error);
@@ -257,6 +310,18 @@ export class OrdersController {
 
       const { id } = req.params;
       const order = await OrdersService.pickFood(restaurantId, id, req.user?.id);
+      
+      void logAudit(req, {
+      entityType: AuditEntity.ORDER,
+      entityId:   order._id.toString(),
+      action:     AuditAction.ORDER_PICKED,
+      metadata: {
+        pickedBy: req.user?.id,
+        tableId:  order.tableId,
+      },
+    });
+
+
       ok(res, { order });
     } catch (error) {
       next(error);
@@ -270,6 +335,17 @@ export class OrdersController {
 
       const { id } = req.params;
       const order = await OrdersService.markServed(restaurantId, id, req.user?.id);
+
+      void logAudit(req, {
+      entityType: AuditEntity.ORDER,
+      entityId:   order._id.toString(),
+      action:     AuditAction.ORDER_SERVED,
+      metadata: {
+        servedBy: req.user?.id,
+        tableId:  order.tableId,
+      },
+    });
+
       ok(res, { order });
     } catch (error) {
       next(error);
@@ -283,6 +359,18 @@ export class OrdersController {
 
       const { id } = req.params;
       const order = await OrdersService.markCompleted(restaurantId, id, req.user?.id);
+
+      void logAudit(req, {
+      entityType: AuditEntity.ORDER,
+      entityId:   order._id.toString(),
+      action:     AuditAction.ORDER_COMPLETED,
+      metadata: {
+        completedBy:  req.user?.id,
+        tableId:      order.tableId,
+        totalAmount:  order.totalAmount,
+      },
+    });
+
       ok(res, { order });
     } catch (error) {
       next(error);

@@ -147,7 +147,11 @@ export async function refresh(oldRefreshToken: string) {
 
   await matchedUser.save();
 
-  return { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken };
+  return {
+  accessToken: tokens.accessToken,
+  refreshToken: tokens.refreshToken,
+  user: matchedUser,
+  };
 }
 
 export async function logout(userId: string, refreshToken: string): Promise<void> {

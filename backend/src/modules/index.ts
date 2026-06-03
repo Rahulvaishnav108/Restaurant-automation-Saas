@@ -15,11 +15,13 @@ import usersRouter from './users/users.routes';
 import menuRouter from './menu/menu.routes';
 import ordersRouter from './orders/orders.routes';
 import cartRouter from './cart/cart.routes';
+import auditLogRoutes from '../modules/auditLogs/auditLogs.routes';
 
 export const apiRouter = Router();
 
 apiRouter.use('/auth', authRouter);
 apiRouter.use('/users', usersRouter);
+apiRouter.use('/audit-logs', requireAuth, roleGuard(roles.restaurantAdmin, roles.superAdmin), auditLogRoutes);
 apiRouter.use('/public', publicRouter);
 apiRouter.use(menuRouter);
 apiRouter.use(ordersRouter);

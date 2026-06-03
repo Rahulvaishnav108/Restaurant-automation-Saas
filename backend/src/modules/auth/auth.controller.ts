@@ -11,6 +11,8 @@ import * as otpService from '../../services/otp.service';
 import * as authService from './auth.service';
 import { getMe } from '../users/users.controller';
 import { UserModel } from '../users/users.model';
+import { logAudit, logAuditRaw } from '../auditLogs/auditLogs.helper';
+import { AuditAction, AuditEntity } from '../auditLogs/auditLogs.types';
 
 function setRefreshCookie(res: Response, refreshToken: string): void {
   res.cookie(env.REFRESH_COOKIE_NAME, refreshToken, {
@@ -43,6 +45,17 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     },
     201,
   );
+  void logAuditRaw({
+    actorId:    result.user._id.toString(),
+    actorRole:  result.user.role,
+    entityType: AuditEntity.USER,
+    entityId:   result.user._id.toString(),
+    action:     AuditAction.AUTH_REGISTER,
+    metadata:   { email: result.user.email },
+    ipAddress:  req.ip,
+    userAgent:  req.headers['user-agent'],
+  });
+
 });
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
@@ -57,6 +70,16 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     user: result.user,
     accessToken: result.accessToken,
     refreshToken: result.refreshToken,
+  });
+  void logAuditRaw({
+    actorId:    result.user._id.toString(),
+    actorRole:  result.user.role,
+    entityType: AuditEntity.USER,
+    entityId:   result.user._id.toString(),
+    action:     AuditAction.AUTH_LOGIN,
+    metadata:   { email: result.user.email },
+    ipAddress:  req.ip,
+    userAgent:  req.headers['user-agent'],
   });
 });
 
@@ -75,6 +98,15 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
     accessToken: result.accessToken,
     refreshToken: result.refreshToken,
   });
+  void logAuditRaw({
+  actorId: result.user._id.toString(),
+  actorRole: result.user.role,
+  restaurantId: result.user.restaurantId?.toString(),
+  entityType: AuditEntity.USER,
+  entityId: result.user._id.toString(),
+  action: AuditAction.AUTH_REFRESH,
+  metadata: {},
+});
 });
 
 export const logout = asyncHandler(async (req: Request, res: Response) => {
@@ -87,6 +119,14 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
   clearRefreshCookie(res);
 
   sendSuccess(res, { message: 'Logged out successfully' });
+  if (req.user) {
+    void logAudit(req, {
+      entityType: AuditEntity.USER,
+      entityId:   req.user._id.toString(),
+      action:     AuditAction.AUTH_LOGOUT,
+      metadata:   {},
+    });
+  }
 });
 
 export const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
@@ -96,6 +136,7 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response) =
     message: 'If an account with that email exists, a password reset link has been sent.',
     ...(result.resetToken ? { resetToken: result.resetToken } : {}),
   });
+  // No actorId available (unauthenticated route) — skip audit log
 });
 
 export const resetPassword = asyncHandler(async (req: Request, res: Response) => {
@@ -104,6 +145,7 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
   sendSuccess(res, {
     message: 'Password reset successful. Please log in with your new password.',
   });
+  // No actorId available (unauthenticated route) — skip audit log
 });
 
 export const requestOtp = asyncHandler(async (req: Request, res: Response) => {
@@ -146,4 +188,10 @@ export const getSessions = asyncHandler(async (req: Request, res: Response) => {
 export const revokeSession = asyncHandler(async (req: Request, res: Response) => {
   await authService.revokeSession(req.user!._id, req.params.sessionId);
   sendSuccess(res, { message: 'Session revoked' });
+  void logAudit(req, {
+    entityType: AuditEntity.USER,
+    entityId:   req.user!._id.toString(),
+    action:     AuditAction.AUTH_SESSION_REVOKED,
+    metadata:   { sessionId: req.params.sessionId },
+  });
 });
