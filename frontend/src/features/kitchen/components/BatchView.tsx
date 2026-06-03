@@ -1,8 +1,7 @@
 import React from 'react';
-import { Tag, Button, Empty, Row, Col, Divider, theme } from 'antd';
+import { Card, Tag, Button, Empty, Row, Col, Divider, theme } from 'antd';
 import { Layers, Plus, ChefHat, CheckCircle2, Play } from 'lucide-react';
 import { KitchenOrder, KitchenBatch } from '../api/kitchen.api';
-import { typographyTheme } from '../../../shared/theme/typography';
 
 interface BatchViewProps {
   batches: KitchenBatch[];
@@ -17,14 +16,14 @@ interface BatchViewProps {
 export default function BatchView({
   batches,
   orders,
-  isLoading: _isLoading,
+  isLoading,
   onUpdateStatus,
   onCreateBatch,
   isMutating,
   mutatingBatchId
 }: BatchViewProps): JSX.Element {
   const { token } = theme.useToken();
-  const isDark = token.colorBgBase === '#0f172a' || token.colorBgBase === '#111827';
+  const isDark = token.colorBgBase === '#0f172a';
   
   // Find orders that are eligible for batching
   const batchedOrderIds = new Set(batches.flatMap(b => b.orders));
@@ -59,28 +58,35 @@ export default function BatchView({
       case 'READY':
         return { text: '#22c55e', bg: 'rgba(34, 197, 94, 0.1)', border: 'rgba(34, 197, 94, 0.2)' };
       case 'PREPARING':
-        return { text: '#f97316', bg: 'rgba(249, 115, 22, 0.1)', border: 'rgba(249, 115, 22, 0.2)' };
+        return { text: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', border: 'rgba(245, 158, 11, 0.2)' };
       default: // PENDING
         return { text: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', border: 'rgba(59, 130, 246, 0.2)' };
     }
   };
 
   return (
-    <div className={`rounded-2xl border p-5 transition-colors duration-200 ${
-      isDark 
-        ? 'bg-gray-900 border-gray-800' 
-        : 'bg-white border-gray-100 shadow-sm'
-    }`}>
-      <div className={`flex items-center gap-2 mb-4 border-b pb-3 ${isDark ? 'border-gray-800/60' : 'border-gray-100'}`}>
-        <Layers className="h-4.5 w-4.5 text-orange-500" />
-        <h3 className={`${typographyTheme.sizes.h2} ${typographyTheme.colors.primary}`}>Kitchen Batches</h3>
-      </div>
-
-      <div className={suggestions.length > 0 ? "grid grid-cols-1 md:grid-cols-2 gap-6 items-start" : "flex flex-col gap-5"}>
+    <Card
+      title={
+        <span className={`flex items-center gap-2 font-heading font-bold ${isDark ? 'text-stone-200' : 'text-slate-800'}`}>
+          <Layers className="h-5 w-5 text-amber-400 animate-pulse" />
+          Kitchen Batches
+        </span>
+      }
+      className={`border rounded-[1.75rem] overflow-hidden transition-all duration-300 ${
+        isDark 
+          ? 'border-white/10 bg-white/5 backdrop-blur-xl text-stone-200' 
+          : 'border-slate-200 bg-white/80 backdrop-blur-md shadow-sm text-slate-800'
+      }`}
+      styles={{
+        header: { borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #f1f5f9' }
+      }}
+      loading={isLoading}
+    >
+      <div className="flex flex-col gap-5">
         
         {/* Active Batches */}
         <div>
-          <h4 className={`${typographyTheme.sizes.label} ${typographyTheme.colors.secondary} mb-3`}>Active Batches</h4>
+          <h4 className="text-[10px] uppercase tracking-wider text-slate-400 font-extrabold mb-3">Active Batches</h4>
           {batches.length === 0 ? (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -102,8 +108,8 @@ export default function BatchView({
                   <Col span={24} key={batch.id}>
                     <div className={`flex flex-col justify-between rounded-[1.25rem] border p-4 transition-all duration-300 ${
                       isDark 
-                        ? 'border-white/5 bg-gray-950/30 hover:border-white/10' 
-                        : 'border-gray-100 bg-gray-50/50 hover:border-gray-200 shadow-sm'
+                        ? 'border-white/5 bg-slate-950/30 hover:border-white/10' 
+                        : 'border-slate-100 bg-slate-50 hover:border-slate-200 shadow-sm'
                     }`}>
                       <div className="flex items-start justify-between">
                         <div>
@@ -124,7 +130,7 @@ export default function BatchView({
                             <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Batch #{batch.id.substring(0, 5)}</span>
                           </div>
                           
-                          <h4 className={`text-sm ${typographyTheme.sizes.h3} mt-1 ${typographyTheme.colors.primary}`}>
+                          <h4 className={`text-sm font-black font-heading mt-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                             {batch.quantity}x {batch.item}
                           </h4>
                           
@@ -134,8 +140,8 @@ export default function BatchView({
                             {Array.from(new Set(tables)).map(t => (
                               <span key={t} className={`text-[9px] font-bold border px-2 py-0.5 rounded ${
                                 isDark 
-                                  ? 'text-orange-200 bg-orange-950/50 border border-orange-500/20' 
-                                  : 'text-orange-700 bg-orange-50 border border-orange-200'
+                                  ? 'text-amber-200/80 bg-amber-950/30 border-amber-900/20' 
+                                  : 'text-amber-700 bg-amber-50 border-amber-200'
                               }`}>
                                 {t}
                               </span>
@@ -150,7 +156,7 @@ export default function BatchView({
                               onClick={() => onUpdateStatus(batch.id, 'PREPARING')}
                               disabled={isMutating}
                               loading={isCurrentMutating}
-                              className="bg-orange-500 hover:bg-orange-400 border-none rounded-full flex items-center text-xs font-bold px-3 h-7.5 shadow-[0_4px_10px_rgba(249,115,22,0.15)]"
+                              className="bg-amber-600 hover:bg-amber-500 border-none rounded-full flex items-center text-xs font-bold px-3 h-7.5"
                               icon={<Play className="h-3 w-3 mr-0.5" />}
                             >
                               Start
@@ -163,7 +169,7 @@ export default function BatchView({
                               onClick={() => onUpdateStatus(batch.id, 'READY')}
                               disabled={isMutating}
                               loading={isCurrentMutating}
-                              className="bg-emerald-600 hover:bg-emerald-500 border-none rounded-full flex items-center text-xs font-bold px-3 h-7.5 shadow-[0_4px_10px_rgba(16,185,129,0.15)]"
+                              className="bg-rose-500 hover:bg-rose-400 border-none rounded-full flex items-center text-xs font-bold px-3 h-7.5 shadow-[0_4px_12px_rgba(244,63,94,0.2)]"
                               icon={<CheckCircle2 className="h-3 w-3 mr-0.5" />}
                             >
                               Ready
@@ -193,10 +199,10 @@ export default function BatchView({
         {/* Smart Suggestions */}
         {suggestions.length > 0 && (
           <div>
-            <Divider className={`my-2.5 md:hidden ${isDark ? 'border-white/5' : 'border-gray-100'}`} />
+            <Divider className={`my-2.5 ${isDark ? 'border-white/5' : 'border-slate-200'}`} />
             <div className="flex items-center gap-1.5 mb-3 mt-1.5">
-              <ChefHat className="h-4 w-4 text-orange-500 animate-bounce" />
-              <h4 className={`${typographyTheme.sizes.label} ${typographyTheme.colors.primary}`}>Smart Auto-Batch Suggestions</h4>
+              <ChefHat className="h-4 w-4 text-amber-500 animate-bounce" />
+              <h4 className={`text-[10px] uppercase tracking-wider font-extrabold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Smart Auto-Batch Suggestions</h4>
             </div>
             
             <Row gutter={[10, 10]}>
@@ -204,11 +210,11 @@ export default function BatchView({
                 <Col span={24} key={s.item}>
                   <div className={`border rounded-[1.25rem] p-4 flex items-center justify-between transition-all ${
                     isDark 
-                      ? 'border-orange-500/20 bg-orange-950/10 hover:border-orange-500/30 shadow-[0_0_15px_rgba(249,115,22,0.02)]' 
-                      : 'border-orange-200 bg-orange-50/40 hover:border-orange-300 shadow-[0_4px_15px_rgba(249,115,22,0.03)]'
+                      ? 'border-amber-500/20 bg-amber-950/10 hover:border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.02)]' 
+                      : 'border-amber-200 bg-amber-50/40 hover:border-amber-300 shadow-[0_4px_15px_rgba(245,158,11,0.03)]'
                   }`}>
                     <div>
-                      <h5 className={`text-xs ${typographyTheme.sizes.h3} ${isDark ? 'text-orange-200' : 'text-orange-800'}`}>
+                      <h5 className={`text-xs font-black font-heading ${isDark ? 'text-amber-200' : 'text-amber-800'}`}>
                         Optimize: {s.item}
                       </h5>
                       <p className={`text-[10px] mt-1 leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
@@ -221,7 +227,7 @@ export default function BatchView({
                       size="small"
                       onClick={() => onCreateBatch(s.item, s.orderIds)}
                       disabled={isMutating}
-                      className="bg-orange-500 hover:bg-orange-400 border-none text-[10px] font-bold rounded-full px-3.5 flex items-center h-7 shadow-[0_4px_10px_rgba(249,115,22,0.2)]"
+                      className="bg-amber-500 hover:bg-amber-400 border-none text-[10px] font-bold rounded-full px-3.5 flex items-center h-7 shadow-[0_4px_10px_rgba(245,158,11,0.2)]"
                       icon={<Plus className="h-3 w-3 mr-0.5" />}
                     >
                       Batch
@@ -233,6 +239,6 @@ export default function BatchView({
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

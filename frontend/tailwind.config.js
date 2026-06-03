@@ -73,8 +73,7 @@ export default {
 
       fontFamily: {
         sans: ["Inter", "Segoe UI", "sans-serif"],
-        display: ["Poppins", "sans-serif"],
-        heading: ["Poppins", "sans-serif"],
+        display: ['"Instrument Serif"', "serif"],
       },
 
       boxShadow: {
