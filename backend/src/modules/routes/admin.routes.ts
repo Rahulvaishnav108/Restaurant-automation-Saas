@@ -25,6 +25,7 @@ import staffManagementRouter from '../staff/staff.routes';
 import offersRouter from '../offers/offers.routes';
 import inventoryRouter from '../inventory/inventory.routes';
 import analyticsRouter from '../analytics/analytics.routes';
+import { auditLogsRouter } from '../auditLogs/auditLogs.routes';
 
 export const adminRouter = Router();
 
@@ -44,3 +45,5 @@ adminRouter.use('/staff', staffManagementRouter);
 adminRouter.use('/offers', offersRouter);
 adminRouter.use('/inventory', inventoryRouter);
 adminRouter.use('/analytics', analyticsRouter);
+adminRouter.use('/audit-logs', auditLogsRouter);
+

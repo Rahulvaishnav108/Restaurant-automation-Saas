@@ -35,7 +35,7 @@ const OtpModel = mongoose.model<IOtp>('Otp', otpSchema);
 
 // ── OTP Service ───────────────────────────────────────────────────────
 
-const OTP_EXPIRY_MINUTES = 10;
+const OTP_EXPIRY_MINUTES = 5;
 const MAX_OTP_ATTEMPTS = 5;
 const OTP_COOLDOWN_SECONDS = 60;
 

@@ -53,11 +53,10 @@ const AppRoutes = () => {
         <Route path="/payment"     element={<PaymentPage />} />
         <Route path="/feedback"    element={<FeedbackPage />} />
         <Route path="/dashboard"   element={<CustomerDashboard onBack={() => navigate('/')} />} />
-       
-  
+          
         <Route path="/kitchen"     element={<KitchenLayout />}>
           <Route index element={<KitchenDashboard />} />
-       </Route>
+        </Route>
 
         {/* Admin */}
         <Route path="/admin" element={<AdminLayout />}>

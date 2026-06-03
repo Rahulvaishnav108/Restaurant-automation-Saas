@@ -26,7 +26,7 @@ async function executeCustomerRequest(
     const session = req.tableSession!;
 
     // Retrieve the table number for a rich and human-friendly notification message
-    const table = await TableModel.findById(session.tableId);
+    const table = await TableModel.findOne({ _id: session.tableId, restaurantId: session.restaurantId });
     const tableNum = table ? table.tableNumber : 'Unknown';
 
     // Define target roles, priority, category, title, message and responseMessage maps

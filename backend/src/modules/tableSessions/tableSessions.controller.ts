@@ -5,6 +5,8 @@ import { ok } from '../../utils/responses';
 import * as tablesService from '../tables/tables.service';
 import type { StartSessionInput } from './tableSessions.schema';
 import * as sessionService from './tableSessions.service';
+import { logAuditAction } from '../auditLogs/auditLogs.service';
+
 
 export async function startSession(req: Request, res: Response, next: NextFunction) {
   try {
@@ -15,6 +17,17 @@ export async function startSession(req: Request, res: Response, next: NextFuncti
     };
 
     const { session, sessionToken } = await sessionService.startSession(input, meta);
+
+    logAuditAction({
+      req,
+      actorId: session._id,
+      actorRole: 'customer',
+      restaurantId: session.restaurantId,
+      entityType: 'session',
+      entityId: session._id.toString(),
+      action: 'SESSION_CREATED',
+      metadata: { tableId: session.tableId, customerName: session.customerName },
+    });
 
     ok(
       res,
@@ -62,6 +75,17 @@ export async function createTableSessionController(req: Request, res: Response, 
         userAgent: req.headers['user-agent'],
       },
     );
+
+    logAuditAction({
+      req,
+      actorId: session._id,
+      actorRole: 'customer',
+      restaurantId: session.restaurantId,
+      entityType: 'session',
+      entityId: session._id.toString(),
+      action: 'SESSION_CREATED',
+      metadata: { tableId: session.tableId, customerName: session.customerName },
+    });
 
     ok(
       res,
@@ -120,7 +144,16 @@ export async function recoverSession(req: Request, res: Response, next: NextFunc
 export async function endSession(req: Request, res: Response, next: NextFunction) {
   try {
     const { sessionId } = req.params;
-    const session = await sessionService.endSession(sessionId, 'staff_closed', req.user?.restaurantId);
+    // req.user is guaranteed by roleGuard
+    const session = await sessionService.endSession(sessionId, req.user!.restaurantId!.toString(), 'staff_closed');
+
+    logAuditAction({
+      req,
+      entityType: 'session',
+      entityId: session._id.toString(),
+      action: 'SESSION_CLOSED',
+      metadata: { reason: 'staff_closed' },
+    });
     ok(res, { session });
   } catch (error) {
     next(error);
@@ -130,7 +163,7 @@ export async function endSession(req: Request, res: Response, next: NextFunction
 export async function getSession(req: Request, res: Response, next: NextFunction) {
   try {
     const { sessionId } = req.params;
-    const session = await sessionService.getSessionById(sessionId, req.user?.restaurantId);
+    const session = await sessionService.getSessionById(sessionId, req.user!.restaurantId!.toString());
     ok(res, { session });
   } catch (error) {
     next(error);

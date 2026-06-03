@@ -65,8 +65,9 @@ const userSchema = new Schema<IUser>(
 
     email: {
       type: String,
-      required: true,
+      required: false,
       unique: true,
+      sparse: true,
       lowercase: true,
       trim: true,
     },
@@ -80,7 +81,7 @@ const userSchema = new Schema<IUser>(
 
     password: {
       type: String,
-      required: true,
+      required: false,
       minlength: 6,
       select: false, // Never included in queries by default
     },

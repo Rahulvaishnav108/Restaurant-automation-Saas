@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from "express";
 import { BillingService } from "./billing.service";
 import { AppError } from "../../utils/AppError";
 import { ErrorCode } from "../../constants/errors";
+import { logAuditAction } from "../auditLogs/auditLogs.service";
+
 
 export class BillingController {
   static async getLiveBill(req: Request, res: Response, next: NextFunction) {
@@ -26,6 +28,17 @@ export class BillingController {
       if (!session) throw new AppError("Session required", 401, ErrorCode.UNAUTHORIZED);
 
       const data = await BillingService.requestFinalBill(session.restaurantId.toString(), session._id.toString());
+
+      logAuditAction({
+        req,
+        actorId: session._id,
+        actorRole: 'customer',
+        restaurantId: session.restaurantId,
+        entityType: 'billing',
+        entityId: data._id?.toString() || 'unknown',
+        action: 'BILL_REQUESTED',
+      });
+
       return res.status(200).json({
         success: true,
         message: "Final bill requested successfully",
@@ -45,6 +58,18 @@ export class BillingController {
       if (!couponCode) throw new AppError("Coupon code is required", 400, ErrorCode.VALIDATION_ERROR);
 
       const data = await BillingService.applyCoupon(session.restaurantId.toString(), session._id.toString(), couponCode);
+
+      logAuditAction({
+        req,
+        actorId: session._id,
+        actorRole: 'customer',
+        restaurantId: session.restaurantId,
+        entityType: 'billing',
+        entityId: data._id?.toString() || 'unknown',
+        action: 'COUPON_APPLIED',
+        metadata: { couponCode },
+      });
+
       return res.status(200).json({
         success: true,
         message: "Coupon applied successfully",
@@ -62,6 +87,18 @@ export class BillingController {
 
       const { couponId } = req.params; // Using couponCode mapped from params for simplicity in MVP
       const data = await BillingService.removeCoupon(session.restaurantId.toString(), session._id.toString(), couponId);
+
+      logAuditAction({
+        req,
+        actorId: session._id,
+        actorRole: 'customer',
+        restaurantId: session.restaurantId,
+        entityType: 'billing',
+        entityId: data._id?.toString() || 'unknown',
+        action: 'COUPON_REMOVED',
+        metadata: { couponId },
+      });
+
       return res.status(200).json({
         success: true,
         message: "Coupon removed successfully",
@@ -81,6 +118,18 @@ export class BillingController {
       if (!paymentMethod) throw new AppError("Payment method is required", 400, ErrorCode.VALIDATION_ERROR);
 
       const data = await BillingService.createPayment(session.restaurantId.toString(), session._id.toString(), paymentMethod);
+
+      logAuditAction({
+        req,
+        actorId: session._id,
+        actorRole: 'customer',
+        restaurantId: session.restaurantId,
+        entityType: 'payment',
+        entityId: data.payment?._id?.toString() || 'unknown',
+        action: 'PAYMENT_CREATED',
+        metadata: { paymentMethod, amount: data.payment?.amount },
+      });
+
       return res.status(201).json({
         success: true,
         message: "Payment created successfully",
@@ -100,6 +149,18 @@ export class BillingController {
       if (!paymentId) throw new AppError("Payment ID is required", 400, ErrorCode.VALIDATION_ERROR);
 
       const data = await BillingService.verifyPayment(session.restaurantId.toString(), session._id.toString(), paymentId, simulateStatus);
+
+      logAuditAction({
+        req,
+        actorId: session._id,
+        actorRole: 'customer',
+        restaurantId: session.restaurantId,
+        entityType: 'payment',
+        entityId: data.paymentId || paymentId,
+        action: 'PAYMENT_VERIFIED',
+        metadata: { simulateStatus, status: data.paymentStatus },
+      });
+
       return res.status(200).json({
         success: true,
         message: "Payment verified successfully",

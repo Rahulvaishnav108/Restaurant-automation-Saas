@@ -37,15 +37,10 @@ export async function createTable(input: CreateTableInput): Promise<ITable> {
 export async function updateTable(
   tableId: string,
   input: UpdateTableInput,
-  restaurantId?: string
+  restaurantId: string
 ): Promise<ITable> {
   const table = await TableModel.findOneAndUpdate(
-    restaurantId
-      ? {
-          _id: tableId,
-          restaurantId,
-        }
-      : { _id: tableId },
+    { _id: tableId, restaurantId },
     input,
     {
     new: true,
@@ -70,15 +65,8 @@ export async function getTablesByRestaurant(restaurantId: string): Promise<ITabl
 /**
  * Get a single table by ID.
  */
-export async function getTableById(tableId: string, restaurantId?: string): Promise<ITable> {
-  const table = await TableModel.findOne(
-    restaurantId
-      ? {
-          _id: tableId,
-          restaurantId,
-        }
-      : { _id: tableId }
-  );
+export async function getTableById(tableId: string, restaurantId: string): Promise<ITable> {
+  const table = await TableModel.findOne({ _id: tableId, restaurantId });
   if (!table) {
     throw new AppError('Table not found', 404, ErrorCode.NOT_FOUND);
   }
@@ -103,16 +91,9 @@ export async function findByQrCode(qrCode: string): Promise<ITable> {
 export async function updateTableStatus(
   tableId: string,
   newStatus: TableStatus,
-  restaurantId?: string
+  restaurantId: string
 ): Promise<ITable> {
-  const table = await TableModel.findOne(
-    restaurantId
-      ? {
-          _id: tableId,
-          restaurantId,
-        }
-      : { _id: tableId }
-  );
+  const table = await TableModel.findOne({ _id: tableId, restaurantId });
   if (!table) {
     throw new AppError('Table not found', 404, ErrorCode.NOT_FOUND);
   }

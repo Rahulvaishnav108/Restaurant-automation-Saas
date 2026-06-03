@@ -56,6 +56,12 @@ All HTTP APIs are versioned under:
 - RATE_LIMIT_EXCEEDED
 - TABLE_SESSION_EXPIRED
 - INTERNAL_ERROR
+- INVALID_OTP
+- OTP_EXPIRED
+- OTP_ATTEMPTS_EXCEEDED
+- TENANT_VIOLATION
+- PASSWORD_RESET_REQUIRED
+- PAYMENT_VERIFICATION_FAILED
 
 ### Query param conventions
 - Use path params for a single resource, for example `/items/:id`
@@ -106,14 +112,15 @@ Customer auth can exist for future loyalty, reservation history, and saved prefe
 
 | Method | Path | Purpose |
 |---|---|---|
-| POST | `/auth/register` | Create a user account |
-| POST | `/auth/login` | Login with password or supported credentials |
-| POST | `/auth/request-otp` | Request OTP |
-| POST | `/auth/verify-otp` | Verify OTP |
+| POST | `/auth/register` | Create a user account (Customer: Name+Mobile; Staff: Name+Email+Mobile+Password) |
+| POST | `/auth/login` | Login (Customer: Mobile+OTP; Staff: Email/Mobile+Password) |
+| POST | `/auth/request-otp` | Request OTP (Customer login / Staff reset) |
+| POST | `/auth/verify-otp` | Verify OTP for Customer login |
 | POST | `/auth/refresh` | Refresh access token |
 | POST | `/auth/logout` | Logout and clear session state |
-| POST | `/auth/forgot-password` | Start password recovery |
-| POST | `/auth/reset-password` | Complete password reset |
+| POST | `/auth/forgot-password` | Request password recovery OTP (Staff) |
+| POST | `/auth/verify-reset-otp` | Verify password recovery OTP and get verification token (Staff) |
+| POST | `/auth/reset-password` | Reset password using verification token (Staff) |
 | GET | `/auth/me` | Get current authenticated user |
 | GET | `/auth/sessions` | List active sessions |
 | DELETE | `/auth/sessions/:sessionId` | Revoke one session |
