@@ -21,6 +21,9 @@ import {
   tableIdParamsSchema,
   updateTableRequestSchema,
 } from '../tables/tables.schema';
+import {
+  updateRestaurantSettingsBodySchema,
+} from '../restaurants/restaurants.schema';
 import staffManagementRouter from '../staff/staff.routes';
 import offersRouter from '../offers/offers.routes';
 import inventoryRouter from '../inventory/inventory.routes';
@@ -31,7 +34,11 @@ export const adminRouter = Router();
 
 adminRouter.get('/restaurant/overview', getRestaurantOverviewController);
 adminRouter.get('/restaurant/settings', getRestaurantSettingsController);
-adminRouter.patch('/restaurant/settings', updateRestaurantSettingsController);
+adminRouter.patch(
+  '/restaurant/settings',
+  validate({ body: updateRestaurantSettingsBodySchema }),
+  updateRestaurantSettingsController,
+);
 
 adminRouter.post('/tables', validate(createTableRequestSchema), createTableController);
 adminRouter.get('/tables', listTablesController);
