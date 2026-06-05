@@ -2,7 +2,8 @@ import type { NextFunction, Request, Response } from 'express';
 import { ErrorCode } from '../../constants/errors';
 import { AppError } from '../../utils/AppError';
 import { ok } from '../../utils/responses';
-import { logAuditAction } from '../auditLogs/auditLogs.service';
+import { logAudit } from '../auditLogs/auditLogs.helper';
+import { AuditAction, AuditEntity } from '../auditLogs/auditLogs.types';
 import { OrdersService } from '../orders/orders.service';
 import { KitchenService } from './kitchen.service';
 
@@ -75,11 +76,10 @@ export class KitchenController {
         req.user?.id,
       );
 
-      logAuditAction({
-        req,
-        entityType: 'order',
+      await logAudit(req, {
+        entityType: AuditEntity.ORDER,
         entityId: order._id.toString(),
-        action: 'ORDER_ACCEPTED',
+        action: AuditAction.KITCHEN_ORDER_ACCEPTED,
         metadata: { estimatedPreparationTime: req.body.estimatedPreparationTime },
       });
 
@@ -94,11 +94,10 @@ export class KitchenController {
       const restaurantId = KitchenController.getRequiredRestaurantId(req);
       const order = await OrdersService.startCooking(restaurantId, req.params.id, req.user?.id);
 
-      logAuditAction({
-        req,
-        entityType: 'order',
+      await logAudit(req, {
+        entityType: AuditEntity.ORDER,
         entityId: order._id.toString(),
-        action: 'ORDER_COOKING_STARTED',
+        action: AuditAction.KITCHEN_ORDER_STARTED,
       });
 
       ok(res, { order });
@@ -112,11 +111,10 @@ export class KitchenController {
       const restaurantId = KitchenController.getRequiredRestaurantId(req);
       const order = await OrdersService.markReady(restaurantId, req.params.id, req.user?.id);
 
-      logAuditAction({
-        req,
-        entityType: 'order',
+      await logAudit(req, {
+        entityType: AuditEntity.ORDER,
         entityId: order._id.toString(),
-        action: 'ORDER_PREPARED',
+        action: AuditAction.KITCHEN_ORDER_READY,
       });
 
       ok(res, { order });
@@ -130,11 +128,10 @@ export class KitchenController {
       const restaurantId = KitchenController.getRequiredRestaurantId(req);
       const order = await OrdersService.delayOrder(restaurantId, req.params.id, req.body.delayMinutes, req.user?.id);
 
-      logAuditAction({
-        req,
-        entityType: 'order',
+      await logAudit(req, {
+        entityType: AuditEntity.ORDER,
         entityId: order._id.toString(),
-        action: 'ORDER_DELAYED',
+        action: AuditAction.KITCHEN_ORDER_DELAYED,
         metadata: { delayMinutes: req.body.delayMinutes },
       });
 
@@ -149,11 +146,10 @@ export class KitchenController {
       const restaurantId = KitchenController.getRequiredRestaurantId(req);
       const order = await OrdersService.rejectOrder(restaurantId, req.params.id, req.body.reason, req.user?.id);
 
-      logAuditAction({
-        req,
-        entityType: 'order',
+      await logAudit(req, {
+        entityType: AuditEntity.ORDER,
         entityId: order._id.toString(),
-        action: 'ORDER_REJECTED',
+        action: AuditAction.KITCHEN_ORDER_REJECTED,
         metadata: { reason: req.body.reason },
       });
 
@@ -195,12 +191,11 @@ export class KitchenController {
       const restaurantId = KitchenController.getRequiredRestaurantId(req);
       const batch = await KitchenService.createBatch(restaurantId, req.body);
 
-      logAuditAction({
-        req,
-        entityType: 'kitchen-batch',
+      await logAudit(req, {
+        entityType: AuditEntity.KITCHEN,
         entityId: batch._id.toString(),
-        action: 'KITCHEN_BATCH_CREATED',
-        metadata: { orderIds: req.body.orderIds, station: req.body.station },
+        action: AuditAction.ADMIN_SETTINGS_UPDATED,
+        metadata: { event: 'KITCHEN_BATCH_CREATED', orderIds: req.body.orderIds, station: req.body.station },
       });
 
       ok(res, { batch }, 201);
@@ -214,12 +209,11 @@ export class KitchenController {
       const restaurantId = KitchenController.getRequiredRestaurantId(req);
       const batch = await KitchenService.updateBatch(restaurantId, req.params.id, req.body);
 
-      logAuditAction({
-        req,
-        entityType: 'kitchen-batch',
+      await logAudit(req, {
+        entityType: AuditEntity.KITCHEN,
         entityId: batch._id.toString(),
-        action: 'KITCHEN_BATCH_UPDATED',
-        metadata: req.body,
+        action: AuditAction.ADMIN_SETTINGS_UPDATED,
+        metadata: { event: 'KITCHEN_BATCH_UPDATED', ...req.body },
       });
 
       ok(res, { batch });
