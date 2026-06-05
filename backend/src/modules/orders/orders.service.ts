@@ -4,18 +4,25 @@ import { Cart } from '../cart/cart.model';
 import { PlaceOrderInput, OrderStatus, PaymentStatus } from './orders.schema';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
-import { Priority } from '../../constants/statuses';
+import { Priority, SessionStatus } from '../../constants/statuses';
 import { TableModel } from '../tables/tables.model';
 import mongoose from 'mongoose';
+import { NotificationsService } from '../notifications/notifications.service';
+import { UserRole } from '../../constants/roles';
+import { NotificationCategory, NotificationPriority } from '../notifications/notifications.schema';
+import { TableSessionModel } from '../tableSessions/tableSessions.model';
+import { socketService } from '../../sockets/socket.service';
 
 const ORDER_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus[]>> = {
-  [OrderStatus.PLACED]: [OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.DELAYED, OrderStatus.REJECTED, OrderStatus.CANCELLED],
+  [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED, OrderStatus.REJECTED],
   [OrderStatus.CONFIRMED]: [OrderStatus.PREPARING, OrderStatus.DELAYED, OrderStatus.CANCELLED],
-  [OrderStatus.PREPARING]: [OrderStatus.DELAYED, OrderStatus.READY],
-  [OrderStatus.DELAYED]: [OrderStatus.PREPARING, OrderStatus.READY],
+  [OrderStatus.PREPARING]: [OrderStatus.READY, OrderStatus.DELAYED],
+  [OrderStatus.DELAYED]: [OrderStatus.READY, OrderStatus.PREPARING],
   [OrderStatus.READY]: [OrderStatus.PICKED, OrderStatus.SERVED],
   [OrderStatus.PICKED]: [OrderStatus.SERVED],
-  [OrderStatus.SERVED]: [OrderStatus.COMPLETED],
+  [OrderStatus.SERVED]: [OrderStatus.BILLED, OrderStatus.COMPLETED],
+  [OrderStatus.BILLED]: [OrderStatus.PAID, OrderStatus.CONFIRMED],
+  [OrderStatus.PAID]: [OrderStatus.COMPLETED, OrderStatus.CONFIRMED],
 };
 
 function ensureOrderTransition(currentStatus: OrderStatus, nextStatus: OrderStatus, message: string): void {
@@ -41,66 +48,104 @@ export class OrdersService {
     _customerName: string | undefined,
     data: PlaceOrderInput
   ) {
-    // 1. Fetch Cart
-    const cart = await Cart.findOne({ restaurantId, sessionId }).populate('items.menuItem');
+    const sessionObjectId = typeof sessionId === 'string' ? new mongoose.Types.ObjectId(sessionId) : sessionId;
 
-    if (!cart) {
-      throw new AppError('Cart not found', 404, ErrorCode.NOT_FOUND);
+    // 1. Acquire atomic order lock on session
+    const fifteenSecondsAgo = new Date(Date.now() - 15 * 1000);
+    const lockedSession = await TableSessionModel.findOneAndUpdate(
+      {
+        _id: sessionObjectId,
+        status: SessionStatus.ACTIVE,
+        $or: [
+          { isOrdering: false },
+          { isOrdering: { $exists: false } },
+          { isOrdering: true, lastOrderAttemptAt: { $lt: fifteenSecondsAgo } },
+        ],
+      },
+      {
+        $set: {
+          isOrdering: true,
+          lastOrderAttemptAt: new Date(),
+        },
+      },
+      { new: true }
+    );
+
+    if (!lockedSession) {
+      throw new AppError(
+        'Parallel order creation in progress. Please wait.',
+        409,
+        ErrorCode.DUPLICATE_ORDER_ATTEMPT
+      );
     }
 
-    if (!cart.items || cart.items.length === 0) {
-      throw new AppError('Cannot place order with an empty cart', 400, ErrorCode.VALIDATION_ERROR);
-    }
+    try {
+      // 2. Fetch Cart
+      const cart = await Cart.findOne({ restaurantId, sessionId }).populate('items.menuItem');
 
-    // 2. Map CartItems to OrderItems
-    const orderItems = cart.items.map((item: any) => {
-      if (!item.menuItem) {
-        throw new AppError('Invalid menu item in cart', 400, ErrorCode.VALIDATION_ERROR);
+      if (!cart) {
+        throw new AppError('Cart not found', 404, ErrorCode.NOT_FOUND);
       }
-      return {
-        menuItemId: item.menuItem._id,
-        name: item.menuItem.name,
-        quantity: item.quantity,
-        price: item.unitPrice,
-        totalPrice: item.subtotal,
-        notes: item.notes || '',
-      };
-    });
 
-    // 3. Generate Order Number
-    // A simple order number: e.g., ORD-12345678 (could be improved)
-    const timestamp = Date.now().toString().slice(-6);
-    const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const orderNumber = `ORD-${timestamp}-${randomChars}`;
+      if (!cart.items || cart.items.length === 0) {
+        throw new AppError('Cannot place order with an empty cart', 400, ErrorCode.VALIDATION_ERROR);
+      }
 
-    // 4. Create Order
-    const order = await OrderModel.create({
-      restaurantId,
-      tableId,
-      sessionId,
-      // If customer is registered, we could map customerId here.
-      // But currently session tracks customerName and mobile. The schema has customerId which is User ref.
-      orderNumber,
-      items: orderItems,
-      totalAmount: cart.subtotal,
-      taxAmount: cart.tax,
-      discountAmount: cart.discount,
-      finalAmount: cart.grandTotal,
-      status: OrderStatus.PLACED,
-      paymentStatus: PaymentStatus.PENDING,
-      priority: Priority.NORMAL,
-      specialInstructions: data.specialInstructions || '',
-    });
+      // 3. Map CartItems to OrderItems
+      const orderItems = cart.items.map((item: any) => {
+        if (!item.menuItem) {
+          throw new AppError('Invalid menu item in cart', 400, ErrorCode.VALIDATION_ERROR);
+        }
+        return {
+          menuItemId: item.menuItem._id,
+          name: item.menuItem.name,
+          quantity: item.quantity,
+          price: item.unitPrice,
+          totalPrice: item.subtotal,
+          notes: item.notes || '',
+        };
+      });
 
-    // 5. Clear Cart
-    cart.items = [] as any;
-    cart.subtotal = 0;
-    cart.tax = 0;
-    cart.discount = 0;
-    cart.grandTotal = 0;
-    await cart.save();
+      // 4. Generate Order Number
+      const timestamp = Date.now().toString().slice(-6);
+      const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const orderNumber = `ORD-${timestamp}-${randomChars}`;
 
-    return order;
+      // 5. Create Order
+      const order = await OrderModel.create({
+        restaurantId,
+        tableId,
+        sessionId,
+        orderNumber,
+        items: orderItems,
+        totalAmount: cart.subtotal,
+        taxAmount: cart.tax,
+        discountAmount: cart.discount,
+        finalAmount: cart.grandTotal,
+        status: OrderStatus.PENDING,
+        paymentStatus: PaymentStatus.PENDING,
+        priority: Priority.NORMAL,
+        specialInstructions: data.specialInstructions || '',
+      });
+
+      // 6. Clear Cart
+      cart.items = [] as any;
+      cart.subtotal = 0;
+      cart.tax = 0;
+      cart.discount = 0;
+      cart.grandTotal = 0;
+      await cart.save();
+
+      // 7. Emit Realtime Event for Kitchen
+      socketService.emitToRestaurant(restaurantId.toString(), 'order:new', { orderId: order._id });
+
+      return order;
+    } finally {
+      // 8. Always release the lock
+      await TableSessionModel.findByIdAndUpdate(sessionObjectId, {
+        $set: { isOrdering: false },
+      });
+    }
   }
 
   static async getCustomerOrders(
@@ -171,7 +216,7 @@ export class OrdersService {
       taxAmount: original.taxAmount,
       discountAmount: original.discountAmount,
       finalAmount: original.finalAmount,
-      status: OrderStatus.PLACED,
+      status: OrderStatus.PENDING,
       paymentStatus: PaymentStatus.PENDING,
       priority: original.priority ?? Priority.NORMAL,
       specialInstructions: original.specialInstructions,
@@ -211,10 +256,9 @@ export class OrdersService {
         ? options.status
         : {
             $in: [
-              OrderStatus.PLACED,
+              OrderStatus.PENDING,
               OrderStatus.CONFIRMED,
               OrderStatus.PREPARING,
-              OrderStatus.DELAYED,
               OrderStatus.READY,
             ],
           },
@@ -259,7 +303,7 @@ export class OrdersService {
   ) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    ensureOrderTransition(order.status as OrderStatus, OrderStatus.CONFIRMED, 'Only placed orders can be accepted');
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.CONFIRMED, 'Only pending orders can be accepted');
 
     order.status = OrderStatus.CONFIRMED;
     order.acceptedAt = new Date();
@@ -269,6 +313,20 @@ export class OrdersService {
     }
 
     await order.save();
+
+    // Trigger persistent notification targeting CUSTOMER
+    await NotificationsService.createNotification({
+      restaurantId: order.restaurantId,
+      tableSessionId: order.sessionId,
+      recipientRole: UserRole.CUSTOMER,
+      title: 'Order Confirmed',
+      message: `Your order ${order.orderNumber} has been confirmed.`,
+      type: 'ORDER_CONFIRMED',
+      category: NotificationCategory.SYSTEM,
+      priority: NotificationPriority.NORMAL,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
+
     return order;
   }
 
@@ -301,6 +359,20 @@ export class OrdersService {
     order.readyAt = new Date();
     order.kitchenStaffId = toNullableObjectId(actorId);
     await order.save();
+
+    // Trigger persistent notification targeting SERVICE_STAFF
+    await NotificationsService.createNotification({
+      restaurantId: order.restaurantId,
+      tableSessionId: order.sessionId,
+      recipientRole: UserRole.SERVICE_STAFF,
+      title: 'Order Ready for Pickup',
+      message: `Order ${order.orderNumber} is ready to be served.`,
+      type: 'ORDER_READY',
+      category: NotificationCategory.STAFF,
+      priority: NotificationPriority.HIGH,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
+
     return order;
   }
 
@@ -312,7 +384,7 @@ export class OrdersService {
   ) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    ensureOrderTransition(order.status as OrderStatus, OrderStatus.REJECTED, 'Only placed orders can be rejected');
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.REJECTED, 'Only pending orders can be rejected');
 
     order.status = OrderStatus.REJECTED;
     order.cancelledAt = new Date();
@@ -333,12 +405,12 @@ export class OrdersService {
 
     ensureOrderTransition(order.status as OrderStatus, OrderStatus.DELAYED, 'Cannot delay order in current status');
 
+    order.status = OrderStatus.DELAYED;
     if (order.estimatedPreparationTime) {
       order.estimatedPreparationTime += delayMinutes;
     } else {
       order.estimatedPreparationTime = delayMinutes;
     }
-    order.status = OrderStatus.DELAYED;
     order.delayedAt = new Date();
     order.kitchenStaffId = toNullableObjectId(actorId);
 
@@ -373,7 +445,8 @@ export class OrdersService {
   ) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    ensureOrderTransition(order.status as OrderStatus, OrderStatus.SERVED, 'Only picked or ready orders can be served');
+    // Only ready orders can transition to served (since PICKED is retired as a status)
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.SERVED, 'Only ready orders can be served');
 
     order.status = OrderStatus.SERVED;
     order.servedAt = new Date();
@@ -389,7 +462,7 @@ export class OrdersService {
   ) {
     const order = await this.getKitchenOrderDetails(restaurantId, orderId);
 
-    ensureOrderTransition(order.status as OrderStatus, OrderStatus.COMPLETED, 'Only served orders can be completed');
+    ensureOrderTransition(order.status as OrderStatus, OrderStatus.COMPLETED, 'Only paid orders can be completed');
 
     order.status = OrderStatus.COMPLETED;
     order.completedAt = new Date();

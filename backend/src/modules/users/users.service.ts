@@ -13,11 +13,11 @@ export async function createUser(
   input: RegisterInput & { role?: UserRole },
   role: UserRole = input.role ?? UserRole.CUSTOMER
 ): Promise<IUser> {
-  const hashedPassword = await hashPassword(input.password);
+  const hashedPassword = input.password ? await hashPassword(input.password) : undefined;
 
   const user = await UserModel.create({
     name: input.name,
-    email: input.email,
+    email: input.email ? input.email.toLowerCase() : undefined,
     mobile: input.mobile,
     password: hashedPassword,
     role,
@@ -125,7 +125,8 @@ export async function resetFailedAttempts(userId: string): Promise<void> {
 /**
  * Check if email is already registered.
  */
-export async function emailExists(email: string): Promise<boolean> {
+export async function emailExists(email?: string): Promise<boolean> {
+  if (!email) return false;
   const count = await UserModel.countDocuments({ email: email.toLowerCase() });
   return count > 0;
 }

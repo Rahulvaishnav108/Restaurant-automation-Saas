@@ -6,6 +6,7 @@ import { FilterQuery } from 'mongoose';
 import { AuditLogModel, IAuditLog } from './auditLogs.schema';
 import type { AuditLogFilters } from './auditLogs.types';
 
+
 const DEFAULT_PAGE  = 1;
 const DEFAULT_LIMIT = 20;
 
@@ -62,5 +63,5 @@ export async function listAuditLogs(filters: AuditLogFilters) {
 
 // ── Get a single audit log by ID ──────────────────────────────────────
 export async function getAuditLogById(id: string) {
-  return AuditLogModel.findById(id).lean();
+  return AuditLogModel.findById(id).lean<IAuditLog>();
 }

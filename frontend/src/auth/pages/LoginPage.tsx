@@ -1,7 +1,5 @@
-import React from 'react';
+import LandingPage from "../../features/customer/pages/LandingPage";
 
-const LoginPage = () => {
-  return <div>LoginPage</div>;
-};
-
-export default LoginPage;
+export default function LoginPage() {
+  return <LandingPage initialLoginOpen />;
+}

@@ -4,6 +4,8 @@ import { QueueEntryModel } from '../queue/queue.model';
 import { ReservationModel } from '../reservations/reservations.model';
 import { StaffRequestModel } from '../staff/staffRequest.model';
 import { AuditLogModel } from '../auditLogs/auditLogs.model';
+
+
 import { ok } from '../../utils/responses';
 import { RequestStatus, TableStatus } from '../../constants/statuses';
 import { validate } from '../../middleware/validate';
@@ -92,7 +94,7 @@ staffRouter.patch(
         { new: true },
       ),
       'Table not found',
-    );
+    ) as any;
 
     ok(res, { table });
   } catch (error) {
@@ -118,7 +120,7 @@ staffRouter.patch(
     const table = await tablesService.updateTableStatus(
       req.params.id,
       TableStatus.RESERVED,
-      req.user?.restaurantId,
+      req.user!.restaurantId!
     );
 
     if (req.body?.reservationId) {
@@ -147,7 +149,7 @@ staffRouter.patch(
     const table = await tablesService.updateTableStatus(
       req.params.id,
       TableStatus.OCCUPIED,
-      req.user?.restaurantId,
+      req.user!.restaurantId!
     );
 
     ok(res, { table, occupiedBy: req.body?.staffId ?? req.user?.id ?? null });
@@ -264,7 +266,7 @@ staffRouter.patch(
         { new: true },
       ),
       'Reservation not found',
-    );
+    ) as any;
 
     ok(res, { reservation, checkedInBy: req.body?.staffId ?? req.user?.id ?? null });
   } catch (error) {
@@ -307,7 +309,7 @@ staffRouter.patch(
         { new: true },
       ),
       'Staff request not found',
-    );
+    ) as any;
 
     ok(res, { request, acceptedBy: req.body?.staffId ?? req.user?.id ?? null });
   } catch (error) {
@@ -333,8 +335,8 @@ staffRouter.patch(
         { new: true },
       ),
       'Staff request not found',
-    );
-
+    ) as any;
+    
     ok(res, { request });
   } catch (error) {
     next(error);
@@ -345,8 +347,11 @@ staffRouter.post('/issues/escalate', validate({ body: issueEscalationBodySchema 
   try {
     const escalation = await AuditLogModel.create({
       actorId: req.body?.staffId ?? req.user?.id ?? null,
-      action: 'ESCALATE_ISSUE',
+      actorRole: req.user?.role || 'staff',
+      restaurantId: req.user?.restaurantId || null,
+      entityType: req.body.entityType || 'table',
       entityId: req.body.entityId,
+      action: 'ESCALATE_ISSUE',
       metadata: {
         restaurantId: req.user?.restaurantId,
         entityType: req.body.entityType ?? null,

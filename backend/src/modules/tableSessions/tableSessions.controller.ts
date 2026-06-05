@@ -152,7 +152,9 @@ export async function recoverSession(req: Request, res: Response, next: NextFunc
 export async function endSession(req: Request, res: Response, next: NextFunction) {
   try {
     const { sessionId } = req.params;
-    const session = await sessionService.endSession(sessionId, 'staff_closed', req.user?.restaurantId);
+    // req.user is guaranteed by roleGuard
+    const session = await sessionService.endSession(sessionId, req.user!.restaurantId!.toString(), 'staff_closed');
+    
     ok(res, { session });
      void logAuditRaw({
       actorId:      sessionId,
@@ -177,7 +179,7 @@ export async function endSession(req: Request, res: Response, next: NextFunction
 export async function getSession(req: Request, res: Response, next: NextFunction) {
   try {
     const { sessionId } = req.params;
-    const session = await sessionService.getSessionById(sessionId, req.user?.restaurantId);
+    const session = await sessionService.getSessionById(sessionId, req.user!.restaurantId!.toString());
     ok(res, { session });
   } catch (error) {
     next(error);

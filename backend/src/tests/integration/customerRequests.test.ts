@@ -3,11 +3,12 @@ import mongoose from 'mongoose';
 import app from '../../app';
 import { TableModel } from '../../modules/tables/tables.model';
 import { TableSessionModel } from '../../modules/tableSessions/tableSessions.model';
+import { RestaurantModel } from '../../modules/restaurants/restaurants.model';
 import { Notification } from '../../modules/notifications/notifications.model';
 import { socketService } from '../../sockets/socket.service';
 import { UserRole } from '../../constants/roles';
 import { NotificationCategory, NotificationPriority } from '../../modules/notifications/notifications.schema';
-import { TableStatus, SessionStatus } from '../../constants/statuses';
+import { TableStatus, SessionStatus, RestaurantStatus } from '../../constants/statuses';
 import { SocketEvent } from '../../constants/events';
 import { ErrorCode } from '../../constants/errors';
 
@@ -26,6 +27,22 @@ describe('Customer Requests Integration Tests', () => {
 
     // Seed database with required restaurant-table-session hierarchy
     dummyRestaurantId = new mongoose.Types.ObjectId();
+
+    await RestaurantModel.create({
+      _id: dummyRestaurantId,
+      slug: `restaurant-${dummyRestaurantId.toString()}`,
+      name: 'Test Restaurant',
+      status: RestaurantStatus.ACTIVE,
+      plan: 'pro',
+      cuisine: 'Indian',
+      city: 'Delhi',
+      settings: {
+        currency: 'INR',
+        taxRate: 0.05,
+        serviceChargeEnabled: true,
+        sessionDurationMinutes: 90,
+      },
+    });
 
     const table = await TableModel.create({
       restaurantId: dummyRestaurantId,

@@ -220,6 +220,7 @@ export class OrdersController {
       const { id } = req.params;
       const { estimatedPreparationTime } = req.body;
       const order = await OrdersService.acceptOrder(restaurantId, id, estimatedPreparationTime, req.user?.id);
+
       ok(res, { order });
     } catch (error) {
       next(error);
@@ -233,6 +234,8 @@ export class OrdersController {
 
       const { id } = req.params;
       const order = await OrdersService.startCooking(restaurantId, id, req.user?.id);
+
+
       ok(res, { order });
     } catch (error) {
       next(error);
@@ -246,6 +249,8 @@ export class OrdersController {
 
       const { id } = req.params;
       const order = await OrdersService.markReady(restaurantId, id, req.user?.id);
+
+
       ok(res, { order });
     } catch (error) {
       next(error);
@@ -260,6 +265,9 @@ export class OrdersController {
       const { id } = req.params;
       const { delayMinutes } = req.body;
       const order = await OrdersService.delayOrder(restaurantId, id, delayMinutes, req.user?.id);
+
+      
+
       ok(res, { order });
     } catch (error) {
       next(error);
@@ -274,6 +282,7 @@ export class OrdersController {
       const { id } = req.params;
       const { reason } = req.body;
       const order = await OrdersService.rejectOrder(restaurantId, id, reason, req.user?.id);
+
       ok(res, { order });
     } catch (error) {
       next(error);

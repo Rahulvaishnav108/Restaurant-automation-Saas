@@ -5,10 +5,14 @@ import { BillStatus, PaymentMethod, PaymentStatus } from './billing.schema';
 import { OrderStatus } from '../../constants/statuses';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
-import { endSession } from '../tableSessions/tableSessions.service';
+// import { endSession } from '../tableSessions/tableSessions.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { OfferModel } from '../offers/offers.model';
 import { RestaurantModel } from '../restaurants/restaurants.model';
+import { NotificationsService } from '../notifications/notifications.service';
+import { UserRole } from '../../constants/roles';
+import { NotificationCategory, NotificationPriority } from '../notifications/notifications.schema';
+import { PaymentModel } from '../payments/payments.model';
 
 export class BillingService {
   /**
@@ -62,14 +66,24 @@ export class BillingService {
    * Requests the final bill. Creates or updates the Bill document.
    */
   static async requestFinalBill(restaurantId: string, sessionId: string) {
+    // Transition all active/served orders to BILLED
     const activeOrders = await OrderModel.find({
       restaurantId,
       sessionId,
-      status: { $in: [OrderStatus.PLACED, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.DELAYED] }
+      status: { $in: [
+        OrderStatus.PENDING,
+        OrderStatus.CONFIRMED,
+        OrderStatus.PREPARING,
+        OrderStatus.DELAYED,
+        OrderStatus.READY,
+        OrderStatus.PICKED,
+        OrderStatus.SERVED
+      ] }
     });
 
-    if (activeOrders.length > 0) {
-      throw new AppError('Cannot generate final bill while there are active orders. Please wait for all orders to be served.', 400, ErrorCode.INVALID_REQUEST);
+    for (const order of activeOrders) {
+      order.status = OrderStatus.BILLED;
+      await order.save();
     }
 
     const liveBill = await this.getLiveBill(restaurantId, sessionId);
@@ -182,9 +196,9 @@ export class BillingService {
   }
 
   static async createPayment(restaurantId: string, sessionId: string, paymentMethod: PaymentMethod) {
-    const bill = await BillingModel.findOne({ restaurantId, sessionId });
+    let bill = await BillingModel.findOne({ restaurantId, sessionId });
     if (!bill) {
-      throw new AppError('Bill not found.', 404, ErrorCode.NOT_FOUND);
+      bill = await this.requestFinalBill(restaurantId, sessionId);
     }
 
     if (bill.status === BillStatus.PAID) {
@@ -199,11 +213,28 @@ export class BillingService {
     bill.paymentStatus = PaymentStatus.PENDING;
     await bill.save();
 
+    // v2.1 Requirement: Write transaction details to PaymentModel
+    await PaymentModel.create({
+      restaurantId: bill.restaurantId,
+      orderId: bill.orderIds[0],
+      sessionId: bill.sessionId,
+      amount: bill.finalAmount,
+      method: paymentMethod,
+      status: PaymentStatus.PENDING as any,
+    });
+
     return {
       billId: bill._id,
       paymentIntentId: intentId,
       amount: bill.finalAmount,
-      currency: 'INR'
+      currency: 'INR',
+      payment: {
+        id: intentId,
+        _id: intentId,
+        amount: bill.finalAmount,
+        method: paymentMethod,
+        status: PaymentStatus.PENDING
+      }
     };
   }
 
@@ -222,11 +253,24 @@ export class BillingService {
       throw new AppError('Invalid payment ID.', 400, ErrorCode.VALIDATION_ERROR);
     }
 
+    // Find the corresponding PaymentModel record
+    const payment = await PaymentModel.findOne({
+      restaurantId: bill.restaurantId,
+      sessionId: bill.sessionId,
+      status: PaymentStatus.PENDING,
+    });
+
     // Mock failure behavior
     if (simulateStatus === PaymentStatus.FAILED || paymentId.includes('fail')) {
       bill.paymentStatus = PaymentStatus.FAILED;
       bill.status = BillStatus.FAILED;
       await bill.save();
+
+      if (payment) {
+        payment.status = PaymentStatus.FAILED as any;
+        await payment.save();
+      }
+
       throw new AppError('Payment processing failed.', 400, ErrorCode.PAYMENT_FAILED);
     }
 
@@ -235,6 +279,12 @@ export class BillingService {
       bill.paymentStatus = PaymentStatus.EXPIRED;
       bill.status = BillStatus.DRAFT; // Revert to a pre-payment state
       await bill.save();
+
+      if (payment) {
+        payment.status = 'FAILED' as any;
+        await payment.save();
+      }
+
       throw new AppError('Payment session expired.', 400, ErrorCode.PAYMENT_FAILED);
     }
 
@@ -247,6 +297,42 @@ export class BillingService {
     bill.paymentStatus = PaymentStatus.PAID;
     bill.paidAt = new Date();
     await bill.save();
+
+    if (payment) {
+      payment.status = 'COMPLETED' as any;
+      payment.verifiedAt = new Date();
+      await payment.save();
+    }
+
+    // Transition all BILLED orders to PAID
+    const billedOrders = await OrderModel.find({
+      restaurantId,
+      sessionId,
+      status: OrderStatus.BILLED
+    });
+
+    for (const order of billedOrders) {
+      order.status = OrderStatus.PAID;
+      order.paymentStatus = 'PAID' as any;
+      await order.save();
+    }
+
+    // Trigger persistent notification targeting CUSTOMER
+    try {
+      await NotificationsService.createNotification({
+        restaurantId: new mongoose.Types.ObjectId(restaurantId),
+        tableSessionId: new mongoose.Types.ObjectId(sessionId),
+        recipientRole: UserRole.CUSTOMER,
+        title: 'Payment Successful',
+        message: `Your payment of INR ${bill.finalAmount} was verified successfully.`,
+        type: 'PAYMENT_SUCCESS',
+        category: NotificationCategory.SYSTEM,
+        priority: NotificationPriority.HIGH,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      });
+    } catch (notifError) {
+      console.error('Failed to trigger payment success notification:', notifError);
+    }
 
     // Trigger stock deduction hook
     try {
@@ -263,12 +349,14 @@ export class BillingService {
       console.error(`Failed to deduct inventory for session ${sessionId}:`, inventoryError);
     }
 
-    // End session automatically upon successful payment
+    // End session automatically upon successful payment is disabled to allow subsequent session-linked operations (e.g. feedback, loyalty, reorders) in the PRD lifecycle.
+    /*
     try {
       await endSession(sessionId, 'Bill paid successfully');
     } catch (error) {
       console.error(`Failed to close session ${sessionId} after payment:`, error);
     }
+    */
 
     return bill;
   }

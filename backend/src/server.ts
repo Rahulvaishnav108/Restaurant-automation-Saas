@@ -6,6 +6,8 @@ import { initializeCollections } from './config/initDB';
 import { seedDevelopmentData } from './config/seed';
 import { logger } from './config/logger';
 import { createSocketServer } from './sockets';
+import { startBackgroundJobs } from './jobs';
+
 
 const server = createServer(app);
 createSocketServer(server);
@@ -22,6 +24,7 @@ async function bootstrap(): Promise<void> {
       if (env.seedOnStartup) {
         await seedDevelopmentData();
       }
+      startBackgroundJobs();
     } catch (error) {
       if (!env.allowNoDb) {
         throw error;
