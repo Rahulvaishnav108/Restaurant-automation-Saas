@@ -5,8 +5,8 @@ import { ok } from '../../utils/responses';
 import * as tablesService from '../tables/tables.service';
 import type { StartSessionInput } from './tableSessions.schema';
 import * as sessionService from './tableSessions.service';
-import { logAuditAction } from '../auditLogs/auditLogs.service';
-
+import { logAuditRaw } from '../auditLogs/auditLogs.helper';
+import { AuditAction, AuditEntity } from '../auditLogs/auditLogs.types';
 
 export async function startSession(req: Request, res: Response, next: NextFunction) {
   try {
@@ -17,17 +17,6 @@ export async function startSession(req: Request, res: Response, next: NextFuncti
     };
 
     const { session, sessionToken } = await sessionService.startSession(input, meta);
-
-    logAuditAction({
-      req,
-      actorId: session._id,
-      actorRole: 'customer',
-      restaurantId: session.restaurantId,
-      entityType: 'session',
-      entityId: session._id.toString(),
-      action: 'SESSION_CREATED',
-      metadata: { tableId: session.tableId, customerName: session.customerName },
-    });
 
     ok(
       res,
@@ -46,6 +35,21 @@ export async function startSession(req: Request, res: Response, next: NextFuncti
       },
       201,
     );
+    void logAuditRaw({
+      actorId:      session._id.toString(),
+      actorRole:    'CUSTOMER',
+      restaurantId: session.restaurantId.toString(),
+      entityType:   AuditEntity.TABLE_SESSION,
+      entityId:     session._id.toString(),
+      action:       AuditAction.SESSION_CREATED,
+      metadata: {
+        tableId:      session.tableId,
+        customerName: session.customerName,
+        expiresAt:    session.expiresAt,
+      },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
   } catch (error) {
     next(error);
   }
@@ -76,17 +80,6 @@ export async function createTableSessionController(req: Request, res: Response, 
       },
     );
 
-    logAuditAction({
-      req,
-      actorId: session._id,
-      actorRole: 'customer',
-      restaurantId: session.restaurantId,
-      entityType: 'session',
-      entityId: session._id.toString(),
-      action: 'SESSION_CREATED',
-      metadata: { tableId: session.tableId, customerName: session.customerName },
-    });
-
     ok(
       res,
       {
@@ -103,6 +96,21 @@ export async function createTableSessionController(req: Request, res: Response, 
       },
       201,
     );
+    void logAuditRaw({
+      actorId:      session._id.toString(),
+      actorRole:    'CUSTOMER',
+      restaurantId: session.restaurantId.toString(),
+      entityType:   AuditEntity.TABLE_SESSION,
+      entityId:     session._id.toString(),
+      action:       AuditAction.SESSION_CREATED,
+      metadata: {
+        tableId:   session.tableId,
+        expiresAt: session.expiresAt,
+        source:    'qr_scan',          // distinguishes QR scan vs direct startSession
+      },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
   } catch (error) {
     next(error);
   }
@@ -146,15 +154,23 @@ export async function endSession(req: Request, res: Response, next: NextFunction
     const { sessionId } = req.params;
     // req.user is guaranteed by roleGuard
     const session = await sessionService.endSession(sessionId, req.user!.restaurantId!.toString(), 'staff_closed');
-
-    logAuditAction({
-      req,
-      entityType: 'session',
-      entityId: session._id.toString(),
-      action: 'SESSION_CLOSED',
-      metadata: { reason: 'staff_closed' },
-    });
+    
     ok(res, { session });
+     void logAuditRaw({
+      actorId:      sessionId,
+      actorRole:    req.user?.role ?? 'STAFF',
+      restaurantId: session.restaurantId?.toString(),
+      entityType:   AuditEntity.TABLE_SESSION,
+      entityId:     sessionId,
+      action:       AuditAction.SESSION_ENDED,
+      metadata: {
+        tableId:   session.tableId,
+        closedBy:  req.user?.id ?? 'staff',
+        reason:    'staff_closed',
+      },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
   } catch (error) {
     next(error);
   }

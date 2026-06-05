@@ -7,6 +7,8 @@ import { hashPassword } from '../../utils/crypto';
 import { ok } from '../../utils/responses';
 import { UserModel } from '../users/users.model';
 import { StaffShiftAssignmentModel } from './staff.model';
+import { logAudit } from '../auditLogs/auditLogs.helper';
+import { AuditAction, AuditEntity } from '../auditLogs/auditLogs.types';
 
 type StaffRole = (typeof STAFF_ROLES)[number];
 
@@ -93,6 +95,17 @@ export async function createStaffController(req: Request, res: Response, next: N
     const staff = await UserModel.findById(created._id).lean();
 
     ok(res, { staff }, 201);
+    void logAudit(req, {
+      entityType:   AuditEntity.STAFF,
+      entityId:     created._id.toString(),
+      action:       AuditAction.ADMIN_STAFF_CREATED,
+      restaurantId: restaurantId,
+      metadata: {
+        name:  req.body.name,
+        email: req.body.email,
+        role:  req.body.role,
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -225,6 +238,17 @@ export async function updateStaffController(req: Request, res: Response, next: N
       .lean();
 
     ok(res, { staff: { ...staff, activeShift: activeShift ?? null } });
+    void logAudit(req, {
+      entityType:   AuditEntity.STAFF,
+      entityId:     req.params.id,
+      action:       AuditAction.ADMIN_STAFF_UPDATED,
+      restaurantId: restaurantId,
+      metadata: {
+        updatedFields: Object.keys(update),
+        role:          req.body.role,
+        status:        req.body.status,
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -265,6 +289,15 @@ export async function deleteStaffController(req: Request, res: Response, next: N
     );
 
     ok(res, { staff });
+    void logAudit(req, {
+      entityType:   AuditEntity.STAFF,
+      entityId:     req.params.id,
+      action:       AuditAction.ADMIN_STAFF_DELETED,
+      restaurantId: restaurantId,
+      metadata: {
+        deletedAt: new Date().toISOString(),
+      },
+    });
   } catch (error) {
     next(error);
   }
