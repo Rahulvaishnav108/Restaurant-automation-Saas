@@ -7,7 +7,7 @@ import { RestaurantModel } from '../../modules/restaurants/restaurants.model';
 
 function createAdminToken(restaurantId: string): string {
   return signAccessToken({
-    _id: 'admin-user-id',
+    _id: '507f1f77bcf86cd799439011',
     email: 'admin@example.com',
     role: UserRole.RESTAURANT_ADMIN,
     restaurantId,

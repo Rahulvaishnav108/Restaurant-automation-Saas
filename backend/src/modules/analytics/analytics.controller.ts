@@ -3,6 +3,7 @@ import { ok } from '../../utils/responses';
 import { AnalyticsService } from './analytics.service';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
+import type { AnalyticsQueryInput } from './analytics.schema';
 
 function getRestaurantId(req: Request): string {
   const restaurantId = req.user?.restaurantId || req.query.restaurantId;
@@ -12,10 +13,21 @@ function getRestaurantId(req: Request): string {
   return restaurantId;
 }
 
-export async function getRevenueAnalytics(req: Request, res: Response, next: NextFunction) {
+export async function getOverviewAnalytics(req: Request, res: Response, next: NextFunction) {
   try {
     const restaurantId = getRestaurantId(req);
     const data = await AnalyticsService.getAdminOverview(restaurantId);
+    ok(res, data);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getRevenueAnalytics(req: Request, res: Response, next: NextFunction) {
+  try {
+    const restaurantId = getRestaurantId(req);
+    const query = req.query as unknown as AnalyticsQueryInput;
+    const data = await AnalyticsService.getRevenueAnalytics(restaurantId, query);
     ok(res, data);
   } catch (error) {
     next(error);
@@ -57,6 +69,17 @@ export async function getTableUtilizationAnalytics(req: Request, res: Response, 
     const restaurantId = getRestaurantId(req);
     const data = await AnalyticsService.getTableUtilization(restaurantId);
     ok(res, { tableUtilization: data });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getCustomerRetentionAnalytics(req: Request, res: Response, next: NextFunction) {
+  try {
+    const restaurantId = getRestaurantId(req);
+    const query = req.query as unknown as AnalyticsQueryInput;
+    const data = await AnalyticsService.getCustomerRetention(restaurantId, query);
+    ok(res, { customerRetention: data });
   } catch (error) {
     next(error);
   }
