@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { env } from '../../config/env';
 import { validate } from '../../middleware/validate';
 import { ok } from '../../utils/responses';
+import { getVersion } from '../health/health.controller';
 import { MenuItem } from '../menu/menu.model';
 import { RestaurantModel } from '../restaurants/restaurants.model';
 
@@ -71,12 +72,4 @@ sharedRouter.get('/search', async (req, res, next) => {
   }
 });
 
-sharedRouter.get('/version', (_req, res) => {
-  ok(res, {
-    version: {
-      api: 'v1',
-      releaseDate: '2026-05-16',
-      contract: 'restaurant_automation_rolewise_postman_and_prd.md',
-    },
-  });
-});
+sharedRouter.get('/version', getVersion);

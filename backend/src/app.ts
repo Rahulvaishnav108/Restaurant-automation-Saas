@@ -3,7 +3,6 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
-import mongoose from 'mongoose';
 import morgan from 'morgan';
 import path from 'path';
 import { env } from './config/env';
@@ -17,6 +16,7 @@ import customerRequestsRoutes from './modules/notifications/customerRequests.rou
 import notificationsRoutes from './modules/notifications/notifications.routes';
 import tableSessionRoutes from './modules/tableSessions/tableSessions.routes';
 import tableRoutes from './modules/tables/tables.routes';
+import { healthRouter } from './modules/health/health.routes';
 
 const app = express();
 
@@ -65,6 +65,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(env.COOKIE_SECRET));
 app.use(mongoSanitize());
 app.use(`/${env.UPLOAD_PATH}`, express.static(path.resolve(process.cwd(), env.UPLOAD_PATH)));
+app.use(healthRouter);
 
 app.get('/', (_req, res) => {
   res.status(200).json({
@@ -72,44 +73,10 @@ app.get('/', (_req, res) => {
     data: {
       name: 'Restaurant Automation SaaS API',
       version: 'v1',
-      docs: env.API_PREFIX,
+      docs: 'restaurant_automation_api_documentation_updated.pdf',
       health: '/health',
       ready: '/ready',
-    },
-  });
-});
-
-app.get('/health', (_req, res) => {
-  res.status(200).json({
-    success: true,
-    data: {
-      status: 'ok',
-      service: 'restaurant-automation-backend',
-      timestamp: new Date().toISOString(),
-      environment: env.NODE_ENV,
-      uptimeSeconds: Math.round(process.uptime()),
-    },
-  });
-});
-
-app.get('/ready', (_req, res) => {
-  if (mongoose.connection.readyState === 1 || env.allowNoDb) {
-    res.status(200).json({
-      success: true,
-      data: {
-        status: 'ready',
-        database: mongoose.connection.readyState === 1 ? 'connected' : 'skipped',
-        uptimeSeconds: Math.round(process.uptime()),
-      },
-    });
-    return;
-  }
-
-  res.status(503).json({
-    success: false,
-    error: {
-      code: 'SERVICE_UNAVAILABLE',
-      message: 'Database not ready',
+      versionRoute: '/version',
     },
   });
 });
@@ -122,7 +89,7 @@ app.get(env.API_PREFIX, (_req, res) => {
     data: {
       name: 'Restaurant Automation SaaS API',
       version: 'v1',
-      docs: 'See the repository README and PRD for product scope.',
+      docs: 'restaurant_automation_api_documentation_updated.pdf',
     },
   });
 });
@@ -133,17 +100,6 @@ app.use(`${env.API_PREFIX}/customer/requests`, customerRequestsRoutes);
 app.use(`${env.API_PREFIX}/notifications`, notificationsRoutes);
 app.use(`${env.API_PREFIX}`, billingRoutes);
 app.use(env.API_PREFIX, apiRouter);
-
-app.get('/version', (_req, res) => {
-  res.status(200).json({
-    success: true,
-    data: {
-      version: 'v1',
-      releaseDate: '2026-05-11',
-      contract: 'restaurant_automation_final_prd.md',
-    },
-  });
-});
 
 app.use(notFoundHandler);
 app.use(errorHandler);
