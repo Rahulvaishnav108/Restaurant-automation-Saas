@@ -3,9 +3,8 @@ import { TableModel } from '../tables/tables.model';
 import { QueueEntryModel } from '../queue/queue.model';
 import { ReservationModel } from '../reservations/reservations.model';
 import { StaffRequestModel } from '../staff/staffRequest.model';
-import { AuditLogModel } from '../auditLogs/auditLogs.model';
-
-
+import { AuditLogModel } from '../auditLogs/auditLogs.schema';
+import { AuditAction, AuditEntity } from '../auditLogs/auditLogs.types';
 import { ok } from '../../utils/responses';
 import { RequestStatus, TableStatus } from '../../constants/statuses';
 import { validate } from '../../middleware/validate';
@@ -349,9 +348,9 @@ staffRouter.post('/issues/escalate', validate({ body: issueEscalationBodySchema 
       actorId: req.body?.staffId ?? req.user?.id ?? null,
       actorRole: req.user?.role || 'staff',
       restaurantId: req.user?.restaurantId || null,
-      entityType: req.body.entityType || 'table',
+      entityType: AuditEntity.TABLE,
       entityId: req.body.entityId,
-      action: 'ESCALATE_ISSUE',
+      action: AuditAction.ESCALATE_ISSUE,
       metadata: {
         restaurantId: req.user?.restaurantId,
         entityType: req.body.entityType ?? null,

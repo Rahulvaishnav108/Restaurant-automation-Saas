@@ -310,10 +310,19 @@ async function runSmokeSuite(url, db) {
   }
 
   async function getLatestAuditLog(action, entityId) {
+    const entityFilter = entityId
+      ? (() => {
+          const normalizedId = String(entityId);
+          return mongoose.Types.ObjectId.isValid(normalizedId)
+            ? { $or: [{ entityId: normalizedId }, { entityId: toObjectId(normalizedId) }] }
+            : { entityId: normalizedId };
+        })()
+      : {};
+
     return auditLogsCollection.findOne(
       {
         action,
-        ...(entityId ? { entityId } : {}),
+        ...entityFilter,
       },
       { sort: { createdAt: -1 } },
     );
@@ -2144,6 +2153,20 @@ async function runSmokeSuite(url, db) {
     await tablesCollection.updateOne(
       { _id: toObjectId(state.createdTableId) },
       { $set: { status: 'PAYMENT_PENDING' } },
+    );
+
+    await ordersCollection.updateMany(
+      {
+        sessionId: toObjectId(state.createdSessionId),
+        status: { $nin: ['CANCELLED', 'REJECTED', 'COMPLETED'] },
+      },
+      {
+        $set: {
+          status: 'PAID',
+          paymentStatus: 'PAID',
+          paidAt: new Date(),
+        },
+      },
     );
 
     const endCustomerSession = await request(url, 'POST', '/api/v1/customer/session/end', {
