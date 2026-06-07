@@ -4,7 +4,7 @@ import { QueueEntryModel } from '../queue/queue.model';
 import { ReservationModel } from '../reservations/reservations.model';
 import { StaffRequestModel } from '../staff/staffRequest.model';
 import { AuditLogModel } from '../auditLogs/auditLogs.model';
-import { logAuditAction } from '../auditLogs/auditLogs.service';
+
 
 import { ok } from '../../utils/responses';
 import { RequestStatus, TableStatus } from '../../constants/statuses';
@@ -96,14 +96,6 @@ staffRouter.patch(
       'Table not found',
     ) as any;
 
-    logAuditAction({
-      req,
-      entityType: 'table',
-      entityId: table._id.toString(),
-      action: 'TABLE_ASSIGNED',
-      metadata: { staffId: req.body?.staffId ?? req.user?.id },
-    });
-
     ok(res, { table });
   } catch (error) {
     next(error);
@@ -159,14 +151,6 @@ staffRouter.patch(
       TableStatus.OCCUPIED,
       req.user!.restaurantId!
     );
-
-    logAuditAction({
-      req,
-      entityType: 'table',
-      entityId: table._id.toString(),
-      action: 'TABLE_OCCUPIED',
-      metadata: { occupiedBy: req.body?.staffId ?? req.user?.id },
-    });
 
     ok(res, { table, occupiedBy: req.body?.staffId ?? req.user?.id ?? null });
   } catch (error) {
@@ -284,14 +268,6 @@ staffRouter.patch(
       'Reservation not found',
     ) as any;
 
-    logAuditAction({
-      req,
-      entityType: 'reservation',
-      entityId: reservation._id.toString(),
-      action: 'RESERVATION_CHECK_IN',
-      metadata: { checkedInBy: req.body?.staffId ?? req.user?.id },
-    });
-
     ok(res, { reservation, checkedInBy: req.body?.staffId ?? req.user?.id ?? null });
   } catch (error) {
     next(error);
@@ -335,14 +311,6 @@ staffRouter.patch(
       'Staff request not found',
     ) as any;
 
-    logAuditAction({
-      req,
-      entityType: 'staff-request',
-      entityId: request._id.toString(),
-      action: 'REQUEST_ACCEPTED',
-      metadata: { acceptedBy: req.body?.staffId ?? req.user?.id, type: request.type },
-    });
-
     ok(res, { request, acceptedBy: req.body?.staffId ?? req.user?.id ?? null });
   } catch (error) {
     next(error);
@@ -368,15 +336,7 @@ staffRouter.patch(
       ),
       'Staff request not found',
     ) as any;
-
-    logAuditAction({
-      req,
-      entityType: 'staff-request',
-      entityId: request._id.toString(),
-      action: 'REQUEST_COMPLETED',
-      metadata: { completedBy: req.body?.staffId ?? req.user?.id, type: request.type },
-    });
-
+    
     ok(res, { request });
   } catch (error) {
     next(error);

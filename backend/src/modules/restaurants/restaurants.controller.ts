@@ -6,8 +6,8 @@ import { RestaurantModel } from './restaurants.model';
 import { TableModel } from '../tables/tables.model';
 import { TableSessionModel } from '../tableSessions/tableSessions.model';
 import { SessionStatus, TableStatus } from '../../constants/statuses';
-import { logAuditAction } from '../auditLogs/auditLogs.service';
-
+import { logAudit } from '../auditLogs/auditLogs.helper';
+import { AuditAction, AuditEntity } from '../auditLogs/auditLogs.types';
 
 export const getPublicRestaurantController = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const restaurant = await RestaurantModel.findOne({ slug: req.params.slug }).lean();
@@ -72,17 +72,17 @@ export const updateRestaurantSettingsController = asyncHandler(async (req: Reque
 
   await restaurant.save();
 
-  logAuditAction({
-    req,
-    entityType: 'settings',
-    entityId: restaurant._id.toString(),
-    action: 'SETTINGS_UPDATED',
-    metadata: { newSettings: req.body },
-  });
-
   ok(res, {
     restaurantId: restaurant.id,
     settings: restaurant.settings,
+  });
+  void logAudit(req, {
+    entityType: AuditEntity.RESTAURANT,
+    entityId:   restaurant.id.toString(),
+    action:     AuditAction.ADMIN_SETTINGS_UPDATED,
+    metadata: {
+      updatedFields: Object.keys(req.body),
+    },
   });
 });
 

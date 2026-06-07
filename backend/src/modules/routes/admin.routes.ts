@@ -5,6 +5,7 @@ import {
   getRestaurantSettingsController,
   updateRestaurantSettingsController,
 } from '../restaurants/restaurants.controller';
+import { updateRestaurantSettingsBodySchema } from '../restaurants/restaurants.schema';
 import {
   bulkCreateTablesController,
   createTableController,
@@ -21,15 +22,12 @@ import {
   tableIdParamsSchema,
   updateTableRequestSchema,
 } from '../tables/tables.schema';
-import {
-  updateRestaurantSettingsBodySchema,
-} from '../restaurants/restaurants.schema';
-import staffManagementRouter from '../staff/staff.routes';
-import offersRouter from '../offers/offers.routes';
-import inventoryRouter from '../inventory/inventory.routes';
 import analyticsRouter from '../analytics/analytics.routes';
-import { auditLogsRouter } from '../auditLogs/auditLogs.routes';
+import auditLogsRouter from '../auditLogs/auditLogs.routes';
+import inventoryRouter from '../inventory/inventory.routes';
 import loyaltyRouter from '../loyalty/loyalty.routes';
+import offersRouter from '../offers/offers.routes';
+import staffManagementRouter from '../staff/staff.routes';
 
 export const adminRouter = Router();
 
@@ -55,4 +53,3 @@ adminRouter.use('/loyalty', loyaltyRouter);
 adminRouter.use('/inventory', inventoryRouter);
 adminRouter.use('/analytics', analyticsRouter);
 adminRouter.use('/audit-logs', auditLogsRouter);
-

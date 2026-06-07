@@ -38,4 +38,6 @@ auditLogSchema.index({ createdAt: -1 });
 auditLogSchema.index({ restaurantId: 1, createdAt: -1 });
 auditLogSchema.index({ action: 1, createdAt: -1 });
 
-export const AuditLogModel = mongoose.model<IAuditLog>('AuditLog', auditLogSchema);
+export const AuditLogModel =
+  mongoose.models.AuditLog ||
+  mongoose.model<IAuditLog>('AuditLog', auditLogSchema);
