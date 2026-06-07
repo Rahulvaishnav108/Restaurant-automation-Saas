@@ -9,6 +9,7 @@ export enum AuditEntity {
   KITCHEN      = 'KITCHEN',
   PAYMENT      = 'PAYMENT',
   TABLE_SESSION = 'TABLE_SESSION',
+  TABLE        = 'table',
   MENU_ITEM    = 'MENU_ITEM',
   RESTAURANT   = 'RESTAURANT',
   STAFF        = 'STAFF',
@@ -26,6 +27,7 @@ export enum AuditAction {
   AUTH_FORGOT_PASSWORD  = 'AUTH_FORGOT_PASSWORD',
   AUTH_RESET_PASSWORD   = 'AUTH_RESET_PASSWORD',
   AUTH_SESSION_REVOKED  = 'AUTH_SESSION_REVOKED',
+  ESCALATE_ISSUE        = 'ESCALATE_ISSUE',
 
   // Orders
   ORDER_PLACED          = 'ORDER_PLACED',
