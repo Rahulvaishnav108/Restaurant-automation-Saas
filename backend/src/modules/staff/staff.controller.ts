@@ -1,14 +1,34 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ErrorCode } from '../../constants/errors';
 import { STAFF_ROLES } from '../../constants/roles';
-import { UserStatus } from '../../constants/statuses';
+import { OrderStatus, UserStatus } from '../../constants/statuses';
 import { AppError } from '../../utils/AppError';
 import { hashPassword } from '../../utils/crypto';
 import { ok } from '../../utils/responses';
+import { CleaningTaskModel } from '../cleaning/cleaning.model';
+import { OrderModel } from '../orders/orders.model';
+import { StaffRequestModel } from './staffRequest.model';
 import { UserModel } from '../users/users.model';
 import { StaffShiftAssignmentModel } from './staff.model';
 
 type StaffRole = (typeof STAFF_ROLES)[number];
+
+type StaffMetrics = {
+  serviceOrders: number;
+  completedServiceOrders: number;
+  kitchenOrders: number;
+  readyKitchenOrders: number;
+  totalKitchenMinutes: number;
+  measuredKitchenOrders: number;
+  acceptedRequests: number;
+  completedRequests: number;
+  startedCleaningTasks: number;
+  completedCleaningTasks: number;
+  verifiedCleaningTasks: number;
+};
+
+const completedServiceStatuses = [OrderStatus.SERVED, OrderStatus.COMPLETED];
+const completedKitchenStatuses = [OrderStatus.READY, OrderStatus.SERVED, OrderStatus.COMPLETED, OrderStatus.REJECTED];
 
 function resolveRestaurantId(req: Request, candidate?: unknown): string {
   if (req.user?.restaurantId) {
@@ -24,6 +44,31 @@ function resolveRestaurantId(req: Request, candidate?: unknown): string {
 
 function ensureStaffRole(role: string): role is StaffRole {
   return STAFF_ROLES.includes(role as StaffRole);
+}
+
+function buildStaffFilter(restaurantId: string, query: Request['query']): Record<string, unknown> {
+  const search = typeof query.q === 'string' ? query.q.trim() : '';
+  const role = typeof query.role === 'string' && ensureStaffRole(query.role) ? query.role : undefined;
+  const status = typeof query.status === 'string' ? query.status : undefined;
+
+  const filter: Record<string, unknown> = {
+    restaurantId,
+    role: role ?? { $in: STAFF_ROLES },
+  };
+
+  if (status) {
+    filter.status = status;
+  }
+
+  if (search) {
+    filter.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } },
+      { mobile: { $regex: search, $options: 'i' } },
+    ];
+  }
+
+  return filter;
 }
 
 async function ensureStaffRecord(restaurantId: string, staffId: string) {
@@ -49,7 +94,7 @@ async function getActiveShiftMap(restaurantId: string, staffIds: string[]) {
     .sort({ updatedAt: -1 })
     .lean();
 
-  const shiftMap = new Map<string, (typeof activeShifts)[number]>();
+  const shiftMap = new Map<string, any>();
 
   activeShifts.forEach((shift) => {
     const key = String(shift.staffId);
@@ -59,6 +104,86 @@ async function getActiveShiftMap(restaurantId: string, staffIds: string[]) {
   });
 
   return shiftMap;
+}
+
+function parseShiftTimeToMinutes(value?: string): number | null {
+  if (!value) {
+    return null;
+  }
+
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+  if (!match) {
+    return null;
+  }
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    return null;
+  }
+
+  return hours * 60 + minutes;
+}
+
+function getTodayLabels(now = new Date()): string[] {
+  const full = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+  const short = now.toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase();
+  return [full, short];
+}
+
+function isShiftScheduledToday(shift: any, now = new Date()): boolean {
+  if (!shift?.days?.length) {
+    return false;
+  }
+
+  const labels = getTodayLabels(now);
+  return shift.days.some((day: string) => labels.includes(day.trim().toLowerCase()));
+}
+
+function isShiftActiveNow(shift: any, now = new Date()): boolean {
+  if (!shift || !isShiftScheduledToday(shift, now)) {
+    return false;
+  }
+
+  const startMinutes = parseShiftTimeToMinutes(shift.startTime);
+  const endMinutes = parseShiftTimeToMinutes(shift.endTime);
+
+  if (startMinutes === null || endMinutes === null) {
+    return false;
+  }
+
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  if (endMinutes >= startMinutes) {
+    return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+  }
+
+  return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
+}
+
+function getMetricBucket(map: Map<string, StaffMetrics>, staffId: string): StaffMetrics {
+  const existing = map.get(staffId);
+  if (existing) {
+    return existing;
+  }
+
+  const created: StaffMetrics = {
+    serviceOrders: 0,
+    completedServiceOrders: 0,
+    kitchenOrders: 0,
+    readyKitchenOrders: 0,
+    totalKitchenMinutes: 0,
+    measuredKitchenOrders: 0,
+    acceptedRequests: 0,
+    completedRequests: 0,
+    startedCleaningTasks: 0,
+    completedCleaningTasks: 0,
+    verifiedCleaningTasks: 0,
+  };
+
+  map.set(staffId, created);
+  return created;
 }
 
 export async function createStaffController(req: Request, res: Response, next: NextFunction) {
@@ -101,26 +226,7 @@ export async function createStaffController(req: Request, res: Response, next: N
 export async function listStaffController(req: Request, res: Response, next: NextFunction) {
   try {
     const restaurantId = resolveRestaurantId(req, req.query.restaurantId);
-    const search = typeof req.query.q === 'string' ? req.query.q.trim() : '';
-    const role = typeof req.query.role === 'string' && ensureStaffRole(req.query.role) ? req.query.role : undefined;
-    const status = typeof req.query.status === 'string' ? req.query.status : undefined;
-
-    const filter: Record<string, unknown> = {
-      restaurantId,
-      role: role ? role : { $in: STAFF_ROLES },
-    };
-
-    if (status) {
-      filter.status = status;
-    }
-
-    if (search) {
-      filter.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { mobile: { $regex: search, $options: 'i' } },
-      ];
-    }
+    const filter = buildStaffFilter(restaurantId, req.query);
 
     const staff = await UserModel.find(filter).sort({ createdAt: -1 }).lean();
     const shiftMap = await getActiveShiftMap(
@@ -135,6 +241,162 @@ export async function listStaffController(req: Request, res: Response, next: Nex
       })),
       meta: {
         count: staff.length,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getStaffAttendanceController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const restaurantId = resolveRestaurantId(req, req.query.restaurantId);
+    const filter = buildStaffFilter(restaurantId, req.query);
+    const staff = await UserModel.find(filter).sort({ createdAt: -1 }).lean();
+    const shiftMap = await getActiveShiftMap(
+      restaurantId,
+      staff.map((member) => String(member._id)),
+    );
+
+    const attendance = staff.map((member) => {
+      const activeShift = shiftMap.get(String(member._id)) ?? null;
+      const scheduledToday = isShiftScheduledToday(activeShift);
+      const onShiftNow = isShiftActiveNow(activeShift);
+
+      return {
+        staffId: member._id,
+        name: member.name,
+        role: member.role,
+        status: member.status,
+        activeShift,
+        scheduledToday,
+        onShiftNow,
+        attendanceStatus: onShiftNow ? 'ON_SHIFT' : scheduledToday ? 'OFF_SHIFT' : 'NO_SHIFT',
+      };
+    });
+
+    ok(res, {
+      attendance,
+      meta: {
+        count: attendance.length,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getStaffPerformanceController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const restaurantId = resolveRestaurantId(req, req.query.restaurantId);
+    const filter = buildStaffFilter(restaurantId, req.query);
+    const staff = await UserModel.find(filter).sort({ createdAt: -1 }).lean();
+    const staffIds = staff.map((member) => String(member._id));
+    const shiftMap = await getActiveShiftMap(restaurantId, staffIds);
+
+    const [orders, requests, cleaningTasks] = await Promise.all([
+      OrderModel.find({
+        restaurantId,
+        $or: [{ serviceStaffId: { $in: staffIds } }, { kitchenStaffId: { $in: staffIds } }],
+      })
+        .select('serviceStaffId kitchenStaffId status acceptedAt readyAt rejectedAt')
+        .lean(),
+      StaffRequestModel.find({
+        restaurantId,
+        $or: [{ acceptedBy: { $in: staffIds } }, { completedBy: { $in: staffIds } }],
+      })
+        .select('acceptedBy completedBy')
+        .lean(),
+      CleaningTaskModel.find({
+        restaurantId,
+        $or: [{ startedBy: { $in: staffIds } }, { completedBy: { $in: staffIds } }, { verifiedBy: { $in: staffIds } }],
+      })
+        .select('startedBy completedBy verifiedBy')
+        .lean(),
+    ]);
+
+    const metrics = new Map<string, StaffMetrics>();
+
+    orders.forEach((order: any) => {
+      if (order.serviceStaffId) {
+        const bucket = getMetricBucket(metrics, String(order.serviceStaffId));
+        bucket.serviceOrders += 1;
+        if (completedServiceStatuses.includes(order.status)) {
+          bucket.completedServiceOrders += 1;
+        }
+      }
+
+      if (order.kitchenStaffId) {
+        const bucket = getMetricBucket(metrics, String(order.kitchenStaffId));
+        bucket.kitchenOrders += 1;
+        if (completedKitchenStatuses.includes(order.status)) {
+          bucket.readyKitchenOrders += 1;
+        }
+
+        const finishedAt = order.readyAt ?? order.rejectedAt ?? null;
+        if (order.acceptedAt && finishedAt) {
+          const durationMinutes = Math.max(
+            0,
+            Math.round((new Date(finishedAt).getTime() - new Date(order.acceptedAt).getTime()) / 60000),
+          );
+          bucket.totalKitchenMinutes += durationMinutes;
+          bucket.measuredKitchenOrders += 1;
+        }
+      }
+    });
+
+    requests.forEach((request: any) => {
+      if (request.acceptedBy) {
+        getMetricBucket(metrics, String(request.acceptedBy)).acceptedRequests += 1;
+      }
+      if (request.completedBy) {
+        getMetricBucket(metrics, String(request.completedBy)).completedRequests += 1;
+      }
+    });
+
+    cleaningTasks.forEach((task: any) => {
+      if (task.startedBy) {
+        getMetricBucket(metrics, String(task.startedBy)).startedCleaningTasks += 1;
+      }
+      if (task.completedBy) {
+        getMetricBucket(metrics, String(task.completedBy)).completedCleaningTasks += 1;
+      }
+      if (task.verifiedBy) {
+        getMetricBucket(metrics, String(task.verifiedBy)).verifiedCleaningTasks += 1;
+      }
+    });
+
+    const performance = staff.map((member) => {
+      const bucket = getMetricBucket(metrics, String(member._id));
+
+      return {
+        staffId: member._id,
+        name: member.name,
+        role: member.role,
+        status: member.status,
+        activeShift: shiftMap.get(String(member._id)) ?? null,
+        serviceOrders: bucket.serviceOrders,
+        completedServiceOrders: bucket.completedServiceOrders,
+        serviceCompletionRate:
+          bucket.serviceOrders > 0 ? Number((bucket.completedServiceOrders / bucket.serviceOrders).toFixed(2)) : 0,
+        kitchenOrders: bucket.kitchenOrders,
+        readyKitchenOrders: bucket.readyKitchenOrders,
+        kitchenCompletionRate:
+          bucket.kitchenOrders > 0 ? Number((bucket.readyKitchenOrders / bucket.kitchenOrders).toFixed(2)) : 0,
+        avgKitchenMinutes:
+          bucket.measuredKitchenOrders > 0 ? Math.round(bucket.totalKitchenMinutes / bucket.measuredKitchenOrders) : 0,
+        acceptedRequests: bucket.acceptedRequests,
+        completedRequests: bucket.completedRequests,
+        startedCleaningTasks: bucket.startedCleaningTasks,
+        completedCleaningTasks: bucket.completedCleaningTasks,
+        verifiedCleaningTasks: bucket.verifiedCleaningTasks,
+      };
+    });
+
+    ok(res, {
+      performance,
+      meta: {
+        count: performance.length,
       },
     });
   } catch (error) {

@@ -29,6 +29,7 @@ import offersRouter from '../offers/offers.routes';
 import inventoryRouter from '../inventory/inventory.routes';
 import analyticsRouter from '../analytics/analytics.routes';
 import { auditLogsRouter } from '../auditLogs/auditLogs.routes';
+import loyaltyRouter from '../loyalty/loyalty.routes';
 
 export const adminRouter = Router();
 
@@ -50,6 +51,7 @@ adminRouter.post('/tables/:id/qr', validate({ params: tableIdParamsSchema }), ge
 adminRouter.get('/tables/:id/qr', validate({ params: tableIdParamsSchema }), getTableQrController);
 adminRouter.use('/staff', staffManagementRouter);
 adminRouter.use('/offers', offersRouter);
+adminRouter.use('/loyalty', loyaltyRouter);
 adminRouter.use('/inventory', inventoryRouter);
 adminRouter.use('/analytics', analyticsRouter);
 adminRouter.use('/audit-logs', auditLogsRouter);
