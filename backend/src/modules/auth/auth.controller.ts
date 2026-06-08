@@ -16,6 +16,7 @@ import { getMe } from '../users/users.controller';
 import { UserModel } from '../users/users.model';
 import { logAudit, logAuditRaw } from '../auditLogs/auditLogs.helper';
 import { AuditAction, AuditEntity } from '../auditLogs/auditLogs.types';
+import { generateSecureToken } from '../../utils/crypto';
 import logger from '../../config/logger';
 
 function setRefreshCookie(res: Response, refreshToken: string): void {
