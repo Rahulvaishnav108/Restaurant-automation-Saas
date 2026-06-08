@@ -10,9 +10,13 @@ import { sendOTPEmail } from '../../services/mail.service';
 import * as otpService from '../../services/otp.service';
 import * as authService from './auth.service';
 import { getMe } from '../users/users.controller';
-import { logAuditAction } from '../auditLogs/auditLogs.service';
-import { logger } from '../../config/logger';
-
+import { UserModel } from '../users/users.model';
+import { logAudit, logAuditRaw } from '../auditLogs/auditLogs.helper';
+import { AuditAction, AuditEntity } from '../auditLogs/auditLogs.types';
+import { UserRole } from '../../constants/roles';
+import logger from '../../config/logger';
+import { generateTokenPair } from '../../services/jwt.service';
+import { hashToken } from '../../utils/crypto';
 
 function setRefreshCookie(res: Response, refreshToken: string): void {
   res.cookie(env.REFRESH_COOKIE_NAME, refreshToken, {
@@ -36,17 +40,6 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
   setRefreshCookie(res, result.refreshToken);
 
-  logAuditAction({
-    req,
-    actorId: result.user._id,
-    actorRole: result.user.role,
-    restaurantId: result.user.restaurantId,
-    entityType: 'auth',
-    entityId: result.user._id.toString(),
-    action: 'REGISTER',
-    metadata: { email: result.user.email },
-  });
-
   sendSuccess(
     res,
     {
@@ -56,6 +49,17 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     },
     201,
   );
+  void logAuditRaw({
+    actorId:    result.user._id.toString(),
+    actorRole:  result.user.role,
+    entityType: AuditEntity.USER,
+    entityId:   result.user._id.toString(),
+    action:     AuditAction.AUTH_REGISTER,
+    metadata:   { email: result.user.email },
+    ipAddress:  req.ip,
+    userAgent:  req.headers['user-agent'],
+  });
+
 });
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
@@ -66,21 +70,20 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 
   setRefreshCookie(res, result.refreshToken);
 
-  logAuditAction({
-    req,
-    actorId: result.user._id,
-    actorRole: result.user.role,
-    restaurantId: result.user.restaurantId,
-    entityType: 'auth',
-    entityId: result.user._id.toString(),
-    action: 'LOGIN',
-    metadata: { email: result.user.email },
-  });
-
   sendSuccess(res, {
     user: result.user,
     accessToken: result.accessToken,
     refreshToken: result.refreshToken,
+  });
+  void logAuditRaw({
+    actorId:    result.user._id.toString(),
+    actorRole:  result.user.role,
+    entityType: AuditEntity.USER,
+    entityId:   result.user._id.toString(),
+    action:     AuditAction.AUTH_LOGIN,
+    metadata:   { email: result.user.email },
+    ipAddress:  req.ip,
+    userAgent:  req.headers['user-agent'],
   });
 });
 
@@ -99,6 +102,14 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
     accessToken: result.accessToken,
     refreshToken: result.refreshToken,
   });
+  if (req.user) {
+    void logAudit(req, {
+      entityType: AuditEntity.USER,
+      entityId:   req.user._id.toString(),
+      action:     AuditAction.AUTH_REFRESH,
+      metadata:   {},
+    });
+  }
 });
 
 export const logout = asyncHandler(async (req: Request, res: Response) => {
@@ -106,20 +117,19 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
 
   if (req.user && refreshToken) {
     await authService.logout(req.user._id, refreshToken);
-    logAuditAction({
-      req,
-      actorId: req.user._id,
-      actorRole: req.user.role,
-      restaurantId: req.user.restaurantId,
-      entityType: 'auth',
-      entityId: req.user._id.toString(),
-      action: 'LOGOUT',
-    });
   }
 
   clearRefreshCookie(res);
 
   sendSuccess(res, { message: 'Logged out successfully' });
+  if (req.user) {
+    void logAudit(req, {
+      entityType: AuditEntity.USER,
+      entityId:   req.user._id.toString(),
+      action:     AuditAction.AUTH_LOGOUT,
+      metadata:   {},
+    });
+  }
 });
 
 export const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
@@ -131,14 +141,7 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response) =
   const user = await UserModel.findOne(type === 'email' ? { email: identifier } : { mobile: identifier });
 
   if (!user) {
-    // Audit log the attempt on non-existent account
-    logAuditAction({
-      req,
-      entityType: 'auth',
-      entityId: 'unknown',
-      action: 'PASSWORD_RESET_REQUEST_FAILED',
-      metadata: { identifier, type, reason: 'User not found' },
-    });
+      // To prevent user enumeration, we return the same response even if the user doesn't exist.
 
     sendSuccess(res, {
       message: 'If an account with those details exists, a password reset OTP has been sent.',
@@ -152,17 +155,6 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response) =
   if (type === 'email') {
     await sendOTPEmail(identifier, otp);
   }
-
-  logAuditAction({
-    req,
-    actorId: user._id,
-    actorRole: user.role,
-    restaurantId: user.restaurantId,
-    entityType: 'auth',
-    entityId: user._id.toString(),
-    action: 'PASSWORD_RESET_OTP_REQUESTED',
-    metadata: { identifier, type },
-  });
 
   sendSuccess(res, {
     message: `Password reset OTP sent to your ${type}`,
@@ -195,21 +187,11 @@ export const verifyResetOtp = asyncHandler(async (req: Request, res: Response) =
   user.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
   await user.save();
 
-  logAuditAction({
-    req,
-    actorId: user._id,
-    actorRole: user.role,
-    restaurantId: user.restaurantId,
-    entityType: 'auth',
-    entityId: user._id.toString(),
-    action: 'PASSWORD_RESET_OTP_VERIFIED',
-    metadata: { identifier, type },
-  });
-
   sendSuccess(res, {
     message: 'OTP verified successfully. Proceed to reset password.',
     resetToken,
   });
+  // No actorId available (unauthenticated route) — skip audit log
 });
 
 export const resetPassword = asyncHandler(async (req: Request, res: Response) => {
@@ -240,20 +222,10 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
   matchedUser.refreshTokens = []; // Invalidate all active sessions/tokens
   await matchedUser.save();
 
-  logAuditAction({
-    req,
-    actorId: matchedUser._id,
-    actorRole: matchedUser.role,
-    restaurantId: matchedUser.restaurantId,
-    entityType: 'auth',
-    entityId: matchedUser._id.toString(),
-    action: 'PASSWORD_RESET_SUCCESSFUL',
-    metadata: { email: matchedUser.email },
-  });
-
   sendSuccess(res, {
     message: 'Password reset successful. All existing sessions have been revoked. Please log in with your new password.',
   });
+  // No actorId available (unauthenticated route) — skip audit log
 });
 
 export const requestOtp = asyncHandler(async (req: Request, res: Response) => {
@@ -281,11 +253,8 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
   // 1. Verify the OTP
   await otpService.verifyOTP(identifier, type as 'email' | 'mobile', otp);
 
-  const { UserModel } = await import('../users/users.model');
-  const { generateTokenPair } = await import('../../services/jwt.service');
-  const { hashToken } = await import('../../utils/crypto');
-  const { parseExpiry } = await import('../../utils/date');
-  const { UserRole } = await import('../../constants/roles');
+  
+  const updateField = type === 'email' ? { isEmailVerified: true } : { isMobileVerified: true };
 
   let user = await UserModel.findOne(type === 'email' ? { email: identifier } : { mobile: identifier });
 
@@ -336,17 +305,6 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
 
   setRefreshCookie(res, tokens.refreshToken);
 
-  logAuditAction({
-    req,
-    actorId: user._id,
-    actorRole: user.role,
-    restaurantId: user.restaurantId,
-    entityType: 'auth',
-    entityId: user._id.toString(),
-    action: 'OTP_LOGIN',
-    metadata: { identifier, type },
-  });
-
   sendSuccess(res, {
     user,
     accessToken: tokens.accessToken,
@@ -362,4 +320,10 @@ export const getSessions = asyncHandler(async (req: Request, res: Response) => {
 export const revokeSession = asyncHandler(async (req: Request, res: Response) => {
   await authService.revokeSession(req.user!._id, req.params.sessionId);
   sendSuccess(res, { message: 'Session revoked' });
+  void logAudit(req, {
+    entityType: AuditEntity.USER,
+    entityId:   req.user!._id.toString(),
+    action:     AuditAction.AUTH_SESSION_REVOKED,
+    metadata:   { sessionId: req.params.sessionId },
+  });
 });

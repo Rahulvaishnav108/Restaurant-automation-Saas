@@ -1,17 +1,16 @@
 import React from 'react';
-import { Progress, theme } from 'antd';
+import { Card, Progress, theme } from 'antd';
 import { Flame } from 'lucide-react';
 import { KitchenLoad } from '../api/kitchen.api';
-import { typographyTheme } from '../../../shared/theme/typography';
 
 interface LoadIndicatorProps {
   loadData: KitchenLoad | undefined;
   isLoading: boolean;
 }
 
-export default function LoadIndicator({ loadData, isLoading: _isLoading }: LoadIndicatorProps): JSX.Element {
+export default function LoadIndicator({ loadData, isLoading }: LoadIndicatorProps): JSX.Element {
   const { token } = theme.useToken();
-  const isDark = token.colorBgBase === '#0f172a' || token.colorBgBase === '#111827';
+  const isDark = token.colorBgBase === '#0f172a';
 
   const load = loadData?.load || 'Medium';
   const count = loadData?.activeOrdersCount || 0;
@@ -21,6 +20,7 @@ export default function LoadIndicator({ loadData, isLoading: _isLoading }: LoadI
       case 'Low':
         return {
           gradient: { '0%': '#10b981', '100%': '#059669' },
+          trailColor: isDark ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.08)',
           percentage: 30,
           label: 'Low',
           textColor: 'text-emerald-500',
@@ -29,6 +29,7 @@ export default function LoadIndicator({ loadData, isLoading: _isLoading }: LoadI
       case 'High':
         return {
           gradient: { '0%': '#f43f5e', '100%': '#e11d48' },
+          trailColor: isDark ? 'rgba(244, 63, 94, 0.1)' : 'rgba(244, 63, 94, 0.08)',
           percentage: 90,
           label: 'High',
           textColor: 'text-rose-500',
@@ -37,6 +38,7 @@ export default function LoadIndicator({ loadData, isLoading: _isLoading }: LoadI
       default: // Medium
         return {
           gradient: { '0%': '#f59e0b', '100%': '#d97706' },
+          trailColor: isDark ? 'rgba(245, 158, 11, 0.1)' : 'rgba(245, 158, 11, 0.08)',
           percentage: 60,
           label: 'Medium',
           textColor: 'text-amber-500',
@@ -48,99 +50,56 @@ export default function LoadIndicator({ loadData, isLoading: _isLoading }: LoadI
   const config = getLoadConfig(load);
 
   return (
-    <div className={`rounded-2xl border p-5 transition-colors duration-200 ${
-      isDark 
-        ? 'bg-gray-900 border-gray-800' 
-        : 'bg-white border-gray-100 shadow-sm'
-    }`}>
-      {/* Title */}
-      <div className={`flex items-center gap-2 mb-4 border-b pb-3 ${isDark ? 'border-gray-800/60' : 'border-gray-100'}`}>
-        <Flame className={`h-4.5 w-4.5 animate-pulse ${load === 'High' ? 'text-rose-500 animate-bounce' : load === 'Medium' ? 'text-amber-400' : 'text-emerald-500'}`} />
-        <h3 className={`${typographyTheme.sizes.h2} ${typographyTheme.colors.primary}`}>Kitchen Pressure</h3>
-      </div>
-
-      {/* Grid split */}
-      <div className="flex flex-col sm:flex-row items-center gap-5 py-2">
-        {/* Left Side: Circular Gauge */}
-        <div className="relative flex items-center justify-center flex-shrink-0">
+    <Card
+      loading={isLoading}
+      title={
+        <span className={`flex items-center gap-2 font-heading font-bold ${isDark ? 'text-stone-200' : 'text-slate-800'}`}>
+          <Flame className={`h-4 w-4 animate-pulse ${load === 'High' ? 'text-rose-500 animate-bounce' : load === 'Medium' ? 'text-amber-400' : 'text-emerald-500'}`} />
+          Kitchen Pressure
+        </span>
+      }
+      className={`border rounded-[1.75rem] overflow-hidden transition-all duration-300 ${
+        isDark 
+          ? 'border-white/10 bg-white/5 backdrop-blur-xl text-stone-200' 
+          : 'border-slate-200 bg-white/80 backdrop-blur-md shadow-sm text-slate-800'
+      }`}
+      styles={{
+        header: { borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #f1f5f9' }
+      }}
+    >
+      <div className="flex flex-col items-center gap-5 py-2">
+        {/* Circular Gauge */}
+        <div className="relative flex items-center justify-center">
           <Progress
             type="dashboard"
             percent={config.percentage}
             strokeColor={config.gradient}
             trailColor={isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)'}
             strokeWidth={10}
-            width={120}
+            width={140}
             gapDegree={70}
             format={() => (
               <div className="flex flex-col items-center justify-center">
-                <span className={`text-2xl font-black leading-none ${typographyTheme.colors.primary}`}>{count}</span>
-                <span className="text-[9px] text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-wider mt-1">Tickets</span>
+                <span className={`text-3xl font-black tracking-tight leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{count}</span>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-1.5">Tickets</span>
               </div>
             )}
           />
         </div>
 
-        {/* Right Side: Threshold Classification List */}
-        <div className="flex-1 w-full space-y-1 text-[11px] font-medium">
-          <div className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mb-1.5 pl-1">
-            Status Breakdown
+        {/* Load Status Labels */}
+        <div className="w-full text-center">
+          <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Load Density</div>
+          <div className={`text-2xl font-black font-heading mt-1 ${config.textColor} tracking-wide uppercase`}>
+            {config.label} Volume
           </div>
-
-          {/* Low */}
-          <div className={`flex items-center justify-between px-2 py-1 rounded-lg border ${
-            load === 'Low' 
-              ? 'bg-emerald-50 border-emerald-100 text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-900/30 dark:text-emerald-400 font-bold' 
-              : 'border-transparent text-slate-500 dark:text-slate-400'
+          <p className={`text-xs mt-2 px-3 italic border-l-2 border-rose-500/30 inline-block leading-relaxed max-w-[280px] ${
+            isDark ? 'text-slate-300' : 'text-slate-600'
           }`}>
-            <span className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              Low Volume
-            </span>
-            <span>0-40%</span>
-          </div>
-
-          {/* Medium */}
-          <div className={`flex items-center justify-between px-2 py-1 rounded-lg border ${
-            load === 'Medium' 
-              ? 'bg-amber-50 border-amber-100 text-amber-700 dark:bg-amber-950/20 dark:border-amber-900/30 dark:text-amber-400 font-bold' 
-              : 'border-transparent text-slate-500 dark:text-slate-400'
-          }`}>
-            <span className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-              Medium Volume
-            </span>
-            <span>41-80%</span>
-          </div>
-
-          {/* High */}
-          <div className={`flex items-center justify-between px-2 py-1 rounded-lg border ${
-            load === 'High' 
-              ? 'bg-rose-50 border-rose-100 text-rose-700 dark:bg-rose-950/20 dark:border-rose-900/30 dark:text-rose-400 font-bold' 
-              : 'border-transparent text-slate-500 dark:text-slate-400'
-          }`}>
-            <span className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-bounce" />
-              High Volume
-            </span>
-            <span>81-100%</span>
-          </div>
-
-          {/* Critical */}
-          <div className="flex items-center justify-between px-2 py-1 rounded-lg border border-transparent text-slate-500 dark:text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-red-700" />
-              Critical Volume
-            </span>
-            <span>100%+</span>
-          </div>
+            {config.desc}
+          </p>
         </div>
       </div>
-
-      <div className={`mt-3.5 pt-3.5 border-t text-center ${isDark ? 'border-gray-800/60' : 'border-gray-100'}`}>
-        <p className={`text-[11px] leading-relaxed max-w-[260px] mx-auto italic border-l-2 border-orange-500/30 px-3 ${typographyTheme.colors.secondary}`}>
-          &ldquo;{config.desc}&rdquo;
-        </p>
-      </div>
-    </div>
+    </Card>
   );
 }

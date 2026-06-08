@@ -4,6 +4,8 @@ import { asyncHandler } from '../../utils/asyncHandler';
 import { parsePagination } from '../../utils/pagination';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
+import { logAudit } from '../auditLogs/auditLogs.helper';
+import { AuditAction, AuditEntity } from '../auditLogs/auditLogs.types';
 
 export class MenuController {
   /*
@@ -16,6 +18,15 @@ export class MenuController {
     // Note: requires roleGuard and requireAuth middleware before reaching here
     const category = await MenuService.createCategory(req.user!.restaurantId!, req.body, req.user!._id);
     res.status(201).json({ success: true, data: category });
+    void logAudit(req, {
+      entityType: AuditEntity.MENU_ITEM,
+      entityId:   category._id.toString(),
+      action:     AuditAction.ADMIN_MENU_ITEM_CREATED,
+      metadata: {
+        name: category.name,
+        type: 'CATEGORY',
+      },
+    });
   });
 
   static getAdminCategories = asyncHandler(async (req: Request, res: Response) => {
@@ -34,11 +45,28 @@ export class MenuController {
   static updateCategory = asyncHandler(async (req: Request, res: Response) => {
     const category = await MenuService.updateCategory(req.user!.restaurantId!, req.params.id, req.body, req.user!._id);
     res.status(200).json({ success: true, data: category });
+    void logAudit(req, {
+      entityType: AuditEntity.MENU_ITEM,
+      entityId:   req.params.id,
+      action:     AuditAction.ADMIN_MENU_ITEM_UPDATED,
+      metadata: {
+        type:          'CATEGORY',
+        updatedFields: Object.keys(req.body),
+      },
+    });
   });
 
   static deleteCategory = asyncHandler(async (req: Request, res: Response) => {
     await MenuService.deleteCategory(req.user!.restaurantId!, req.params.id);
     res.status(200).json({ success: true, data: {} });
+    void logAudit(req, {
+      entityType: AuditEntity.MENU_ITEM,
+      entityId:   req.params.id,
+      action:     AuditAction.ADMIN_MENU_ITEM_DELETED,
+      metadata: {
+        type: 'CATEGORY',
+      },
+    });
   });
 
   static toggleCategory = asyncHandler(async (req: Request, res: Response) => {
@@ -49,6 +77,16 @@ export class MenuController {
       req.user!._id
     );
     res.status(200).json({ success: true, data: category });
+    void logAudit(req, {
+      entityType: AuditEntity.MENU_ITEM,
+      entityId:   req.params.id,
+      action:     AuditAction.ADMIN_MENU_ITEM_UPDATED,
+      metadata: {
+        type:     'CATEGORY',
+        isActive: req.body.isActive,
+        change:   'toggle_active',
+      },
+    });
   });
 
   static reorderCategories = asyncHandler(async (req: Request, res: Response) => {
@@ -65,6 +103,17 @@ export class MenuController {
   static createItem = asyncHandler(async (req: Request, res: Response) => {
     const item = await MenuService.createItem(req.user!.restaurantId!, req.body, req.user!._id);
     res.status(201).json({ success: true, data: item });
+    void logAudit(req, {
+      entityType: AuditEntity.MENU_ITEM,
+      entityId:   item._id.toString(),
+      action:     AuditAction.ADMIN_MENU_ITEM_CREATED,
+      metadata: {
+        name:       item.name,
+        type:       'ITEM',
+        categoryId: req.body.categoryId,
+        price:      req.body.price,
+      },
+    });
   });
 
   static getAdminItems = asyncHandler(async (req: Request, res: Response) => {
@@ -84,11 +133,28 @@ export class MenuController {
   static updateItem = asyncHandler(async (req: Request, res: Response) => {
     const item = await MenuService.updateItem(req.user!.restaurantId!, req.params.id, req.body, req.user!._id);
     res.status(200).json({ success: true, data: item });
+    void logAudit(req, {
+      entityType: AuditEntity.MENU_ITEM,
+      entityId:   req.params.id,
+      action:     AuditAction.ADMIN_MENU_ITEM_UPDATED,
+      metadata: {
+        type:          'ITEM',
+        updatedFields: Object.keys(req.body),
+      },
+    });
   });
 
   static deleteItem = asyncHandler(async (req: Request, res: Response) => {
     await MenuService.deleteItem(req.user!.restaurantId!, req.params.id);
     res.status(200).json({ success: true, data: {} });
+    void logAudit(req, {
+      entityType: AuditEntity.MENU_ITEM,
+      entityId:   req.params.id,
+      action:     AuditAction.ADMIN_MENU_ITEM_DELETED,
+      metadata: {
+        type: 'ITEM',
+      },
+    });
   });
 
   static toggleItemAvailability = asyncHandler(async (req: Request, res: Response) => {
@@ -99,6 +165,16 @@ export class MenuController {
       req.user!._id
     );
     res.status(200).json({ success: true, data: item });
+    void logAudit(req, {
+      entityType: AuditEntity.MENU_ITEM,
+      entityId:   req.params.id,
+      action:     AuditAction.ADMIN_MENU_ITEM_UPDATED,
+      metadata: {
+        type:        'ITEM',
+        isAvailable: req.body.isAvailable,
+        change:      'toggle_availability',
+      },
+    });
   });
 
   static toggleItemVisibility = asyncHandler(async (req: Request, res: Response) => {
@@ -109,6 +185,16 @@ export class MenuController {
       req.user!._id
     );
     res.status(200).json({ success: true, data: item });
+    void logAudit(req, {
+      entityType: AuditEntity.MENU_ITEM,
+      entityId:   req.params.id,
+      action:     AuditAction.ADMIN_MENU_ITEM_UPDATED,
+      metadata: {
+        type:     'ITEM',
+        isHidden: req.body.isHidden,
+        change:   'toggle_visibility',
+      },
+    });
   });
 
   static updateItemImage = asyncHandler(async (req: Request, res: Response) => {
@@ -120,6 +206,16 @@ export class MenuController {
       { addToGallery: req.body.addToGallery },
     );
     res.status(200).json({ success: true, data: item });
+    void logAudit(req, {
+      entityType: AuditEntity.MENU_ITEM,
+      entityId:   req.params.id,
+      action:     AuditAction.ADMIN_MENU_ITEM_UPDATED,
+      metadata: {
+        type:         'ITEM',
+        change:       'image_update',
+        addToGallery: req.body.addToGallery,
+      },
+    });
   });
 
   static reorderItems = asyncHandler(async (req: Request, res: Response) => {
