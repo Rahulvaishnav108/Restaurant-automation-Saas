@@ -124,7 +124,7 @@ export default function Restaurant() {
     setRestaurants(prev => [generatedRow, ...prev]);
     setIsModalOpen(false);
     
-    // Reset Form parameters
+    // ✅ Form state successfully reset using the correct setter function name
     setNewRestaurant({
       name: "",
       owner: "",
@@ -436,8 +436,9 @@ export default function Restaurant() {
 
             <form onSubmit={handleAddRestaurantSubmit} className="space-y-4">
               <div>
-                <label className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Restaurant Name</label>
+                <label htmlFor="restaurant-name" className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Restaurant Name</label>
                 <input 
+                  id="restaurant-name"
                   type="text" 
                   required
                   value={newRestaurant.name}
@@ -450,8 +451,9 @@ export default function Restaurant() {
               </div>
 
               <div>
-                <label className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Owner Full Name</label>
+                <label htmlFor="owner-name" className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Owner Full Name</label>
                 <input 
+                  id="owner-name"
                   type="text" 
                   required
                   value={newRestaurant.owner}
@@ -465,8 +467,9 @@ export default function Restaurant() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Email</label>
+                  <label htmlFor="restaurant-email" className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Email</label>
                   <input 
+                    id="restaurant-email"
                     type="email"
                     value={newRestaurant.email}
                     onChange={e => setNewRestaurant(prev => ({ ...prev, email: e.target.value }))}
@@ -477,8 +480,9 @@ export default function Restaurant() {
                   />
                 </div>
                 <div>
-                  <label className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Phone</label>
+                  <label htmlFor="restaurant-phone" className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Phone</label>
                   <input 
+                    id="restaurant-phone"
                     type="text"
                     value={newRestaurant.phone}
                     onChange={e => setNewRestaurant(prev => ({ ...prev, phone: e.target.value }))}
@@ -491,8 +495,9 @@ export default function Restaurant() {
               </div>
 
               <div>
-                <label className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Location Coordinates</label>
+                <label htmlFor="restaurant-location" className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Location Coordinates</label>
                 <input 
+                  id="restaurant-location"
                   type="text"
                   value={newRestaurant.location}
                   onChange={e => setNewRestaurant(prev => ({ ...prev, location: e.target.value }))}
@@ -505,10 +510,11 @@ export default function Restaurant() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Tier Bracket</label>
+                  <label htmlFor="tier-bracket" className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Tier Bracket</label>
                   <select
+                    id="tier-bracket"
                     value={newRestaurant.plan}
-                    onChange={e => setNewRestaurant(prev => ({ ...prev, plan: e.target.value as any }))}
+                    onChange={e => setNewRestaurant(prev => ({ ...prev, plan: e.target.value as "Premium" | "Standard" | "Basic" }))}
                     className={`w-full h-10 px-2 rounded-xl text-sm border outline-none transition-all ${
                       darkMode ? "bg-slate-900 border-slate-800 text-white focus:border-orange-500" : "bg-slate-50 border-slate-200 focus:border-orange-500"
                     }`}
@@ -519,10 +525,11 @@ export default function Restaurant() {
                   </select>
                 </div>
                 <div>
-                  <label className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Initial Status</label>
+                  <label htmlFor="initial-status" className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Initial Status</label>
                   <select
+                    id="initial-status"
                     value={newRestaurant.status}
-                    onChange={e => setNewRestaurant(prev => ({ ...prev, status: e.target.value as any }))}
+                    onChange={e => setNewRestaurant(prev => ({ ...prev, status: e.target.value as "Active" | "Trial" | "Inactive" }))}
                     className={`w-full h-10 px-2 rounded-xl text-sm border outline-none transition-all ${
                       darkMode ? "bg-slate-900 border-slate-800 text-white focus:border-orange-500" : "bg-slate-50 border-slate-200 focus:border-orange-500"
                     }`}
@@ -536,8 +543,9 @@ export default function Restaurant() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Est. Revenue ($)</label>
+                  <label htmlFor="est-revenue" className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Est. Revenue ($)</label>
                   <input 
+                    id="est-revenue"
                     type="text"
                     value={newRestaurant.revenue}
                     onChange={e => setNewRestaurant(prev => ({ ...prev, revenue: e.target.value }))}
@@ -548,8 +556,9 @@ export default function Restaurant() {
                   />
                 </div>
                 <div>
-                  <label className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Total Branches</label>
+                  <label htmlFor="total-branches" className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Total Branches</label>
                   <input 
+                    id="total-branches"
                     type="number"
                     min="1"
                     value={newRestaurant.branches}

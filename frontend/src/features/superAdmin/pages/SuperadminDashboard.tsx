@@ -10,10 +10,6 @@ import {
   Moon, 
   Sun, 
   Search, 
-  Utensils, 
-  DollarSign, 
-  ShoppingBag, 
-  Percent, 
   TrendingUp,
   ChevronDown,
   LogOut
@@ -31,7 +27,6 @@ import {
   Pie,
   Cell,
 } from "recharts";
-
 
 export default function SuperAdminDashboard() {
   const [darkMode, setDarkMode] = useState(() => {

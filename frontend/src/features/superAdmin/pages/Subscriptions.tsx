@@ -15,7 +15,6 @@ import {
   X,
   CheckCircle2,
   AlertCircle,
-  TrendingUp,
   RefreshCcw,
   Plus,
   Package,
@@ -28,6 +27,8 @@ import {
 
 type StatusFilter = "All" | "Active" | "Trial" | "Inactive";
 type TierFilter = "All" | "Basic" | "Standard" | "Premium" | "Enterprise";
+type PlanType = "Premium" | "Standard" | "Basic" | "Enterprise";
+type StatusType = "Active" | "Trial" | "Inactive";
 
 export default function AdvancedRestaurantDashboard() {
   // Theme state synchronization
@@ -45,8 +46,8 @@ export default function AdvancedRestaurantDashboard() {
   const [tierFilter, setTierFilter] = useState<TierFilter>("All");
   const [activeActionRow, setActiveActionRow] = useState<string | null>(null);
   
-  // Live State Array Handler
-  const [restaurants, setRestaurants] = useState<RestaurantsRow[]>(restaurantData);
+  // Live State Array Handler with Type Assertion to accommodate Enterprise tier
+  const [restaurants, setRestaurants] = useState<RestaurantsRow[]>(restaurantData as RestaurantsRow[]);
 
   // Modal view states
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -56,8 +57,8 @@ export default function AdvancedRestaurantDashboard() {
     email: "",
     phone: "",
     location: "",
-    plan: "Basic" as "Premium" | "Standard" | "Basic" | "Enterprise",
-    status: "Trial" as "Active" | "Trial" | "Inactive",
+    plan: "Basic" as PlanType,
+    status: "Trial" as StatusType,
     revenue: "$0",
     branches: 1
   });
@@ -74,10 +75,10 @@ export default function AdvancedRestaurantDashboard() {
     return () => window.removeEventListener("sync-app-theme", handleThemeSync);
   }, []);
 
-  // Compute live breakdown analytics mapping directly to image_d001ca.png metrics
+  // Compute live breakdown analytics mapping
   const tierMetrics = useMemo(() => {
     const calculateMetrics = (planName: string) => {
-      const subset = restaurants.filter(r => r.plan.toLowerCase() === planName.toLowerCase());
+      const subset = restaurants.filter(r => String(r.plan).toLowerCase() === planName.toLowerCase());
       const rawRevenue = subset.reduce((acc, curr) => {
         const num = parseInt(curr.revenue.replace(/[^0-9]/g, ""), 10);
         return acc + (isNaN(num) ? 0 : num);
@@ -104,7 +105,7 @@ export default function AdvancedRestaurantDashboard() {
   const filteredRestaurants = useMemo(() => {
     return restaurants.filter((item) => {
       const matchesStatus = statusFilter === "All" || item.status === statusFilter;
-      const matchesTier = tierFilter === "All" || item.plan.toLowerCase() === tierFilter.toLowerCase();
+      const matchesTier = tierFilter === "All" || String(item.plan).toLowerCase() === tierFilter.toLowerCase();
       const matchesSearch = 
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -116,13 +117,13 @@ export default function AdvancedRestaurantDashboard() {
   }, [restaurants, searchQuery, statusFilter, tierFilter]);
 
   // In-line Data Handlers
-  const updateRestaurantStatus = (id: string, newStatus: "Active" | "Trial" | "Inactive") => {
+  const updateRestaurantStatus = (id: string, newStatus: StatusType) => {
     setRestaurants(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r));
     setActiveActionRow(null);
   };
 
-  const updateRestaurantPlan = (id: string, newPlan: "Premium" | "Standard" | "Basic" | "Enterprise") => {
-    setRestaurants(prev => prev.map(r => r.id === id ? { ...r, plan: newPlan as any } : r));
+  const updateRestaurantPlan = (id: string, newPlan: PlanType) => {
+    setRestaurants(prev => prev.map(r => r.id === id ? { ...r, plan: newPlan as unknown as RestaurantsRow["plan"] } : r));
     setActiveActionRow(null);
   };
 
@@ -130,20 +131,20 @@ export default function AdvancedRestaurantDashboard() {
     e.preventDefault();
     if (!newRestaurant.name || !newRestaurant.owner) return;
 
-    const generatedRow: RestaurantsRow = {
+    const generatedRow = {
       id: `RST-${Math.floor(1000 + Math.random() * 9000)}`,
       name: newRestaurant.name,
       owner: newRestaurant.owner,
       email: newRestaurant.email || "info@restaurant.com",
       phone: newRestaurant.phone || "+1 (555) 000-0000",
       location: newRestaurant.location || "Default Regional Hub",
-      plan: newRestaurant.plan as any,
+      plan: newRestaurant.plan as unknown as RestaurantsRow["plan"],
       status: newRestaurant.status,
       revenue: newRestaurant.revenue.startsWith("$") ? newRestaurant.revenue : `$${newRestaurant.revenue}`,
       branches: Number(newRestaurant.branches) || 1
     };
 
-    setRestaurants(prev => [generatedRow, ...prev]);
+    setRestaurants(prev => [generatedRow, ...prev] as RestaurantsRow[]);
     setIsModalOpen(false);
     setNewRestaurant({
       name: "", owner: "", email: "", phone: "", location: "",
@@ -160,7 +161,7 @@ export default function AdvancedRestaurantDashboard() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className={`text-2xl font-extrabold tracking-tight ${darkMode ? "text-white" : "text-slate-900"}`}>
-            SUBCRPTIONS
+            SUBSCRIPTIONS
           </h1>
           <p className={`text-sm mt-1 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
             Real-time control node handling pricing matrices, usage monitoring parameters, and client operations.
@@ -177,14 +178,19 @@ export default function AdvancedRestaurantDashboard() {
         </div>
       </div>
 
-      {/* TIER SUBSCRIPTION GRID CARDS - INSPIRED BY image_d001ca.png */}
+      {/* TIER SUBSCRIPTION GRID CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         
         {/* BASIC TIER CARD */}
-        <div onClick={() => setTierFilter(tierFilter === "Basic" ? "All" : "Basic")}
+        <div 
+          role="button"
+          tabIndex={0}
+          onClick={() => setTierFilter(tierFilter === "Basic" ? "All" : "Basic")}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setTierFilter(tierFilter === "Basic" ? "All" : "Basic"); } }}
           className={`cursor-pointer group relative rounded-2xl p-6 border transition-all duration-300 hover:scale-[1.01] ${
             tierFilter === "Basic" ? "ring-2 ring-orange-500 bg-orange-500/5" : ""
-          } ${darkMode ? "bg-slate-900/40 border-slate-800/80 hover:border-slate-700" : "bg-white border-slate-200/80 hover:shadow-lg"}`}>
+          } ${darkMode ? "bg-slate-900/40 border-slate-800/80 hover:border-slate-700" : "bg-white border-slate-200/80 hover:shadow-lg"}`}
+        >
           <div className="flex items-center justify-between mb-4">
             <div className={`p-2.5 rounded-xl ${darkMode ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600"}`}>
               <Package size={20} />
@@ -205,12 +211,17 @@ export default function AdvancedRestaurantDashboard() {
         </div>
 
         {/* STANDARD TIER CARD */}
-        <div onClick={() => setTierFilter(tierFilter === "Standard" ? "All" : "Standard")}
+        <div 
+          role="button"
+          tabIndex={0}
+          onClick={() => setTierFilter(tierFilter === "Standard" ? "All" : "Standard")}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setTierFilter(tierFilter === "Standard" ? "All" : "Standard"); } }}
           className={`cursor-pointer group relative rounded-2xl p-6 border transition-all duration-300 hover:scale-[1.01] ${
             tierFilter === "Standard" ? "ring-2 ring-blue-500 bg-blue-500/5" : ""
-          } ${darkMode ? "bg-slate-900/40 border-slate-800/80 hover:border-slate-700" : "bg-white border-slate-200/80 hover:shadow-lg"}`}>
+          } ${darkMode ? "bg-slate-900/40 border-slate-800/80 hover:border-slate-700" : "bg-white border-slate-200/80 hover:shadow-lg"}`}
+        >
           <div className="flex items-center justify-between mb-4">
-            <div className={`p-2.5 rounded-xl ${darkMode ? "bg-blue-500/10 text-blue-400" : "bg-blue-50 text-blue-600"}`}>
+            <div className={`p-2.5 rounded-xl ${darkMode ? "bg-blue-50/10 text-blue-400" : "bg-blue-50 text-blue-600"}`}>
               <Zap size={20} />
             </div>
             <span className="text-xs font-bold text-blue-500 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -229,10 +240,15 @@ export default function AdvancedRestaurantDashboard() {
         </div>
 
         {/* PREMIUM TIER CARD */}
-        <div onClick={() => setTierFilter(tierFilter === "Premium" ? "All" : "Premium")}
+        <div 
+          role="button"
+          tabIndex={0}
+          onClick={() => setTierFilter(tierFilter === "Premium" ? "All" : "Premium")}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setTierFilter(tierFilter === "Premium" ? "All" : "Premium"); } }}
           className={`cursor-pointer group relative rounded-2xl p-6 border transition-all duration-300 hover:scale-[1.01] ${
             tierFilter === "Premium" ? "ring-2 ring-purple-500 bg-purple-500/5" : ""
-          } ${darkMode ? "bg-slate-900/40 border-slate-800/80 hover:border-slate-700" : "bg-white border-slate-200/80 hover:shadow-lg"}`}>
+          } ${darkMode ? "bg-slate-900/40 border-slate-800/80 hover:border-slate-700" : "bg-white border-slate-200/80 hover:shadow-lg"}`}
+        >
           <div className="flex items-center justify-between mb-4">
             <div className={`p-2.5 rounded-xl ${darkMode ? "bg-purple-500/10 text-purple-400" : "bg-purple-50 text-purple-600"}`}>
               <Crown size={20} />
@@ -253,10 +269,15 @@ export default function AdvancedRestaurantDashboard() {
         </div>
 
         {/* ENTERPRISE TIER CARD */}
-        <div onClick={() => setTierFilter(tierFilter === "Enterprise" ? "All" : "Enterprise")}
+        <div 
+          role="button"
+          tabIndex={0}
+          onClick={() => setTierFilter(tierFilter === "Enterprise" ? "All" : "Enterprise")}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setTierFilter(tierFilter === "Enterprise" ? "All" : "Enterprise"); } }}
           className={`cursor-pointer group relative rounded-2xl p-6 border transition-all duration-300 hover:scale-[1.01] ${
             tierFilter === "Enterprise" ? "ring-2 ring-emerald-500 bg-emerald-500/5" : ""
-          } ${darkMode ? "bg-slate-900/40 border-slate-800/80 hover:border-slate-700" : "bg-white border-slate-200/80 hover:shadow-lg"}`}>
+          } ${darkMode ? "bg-slate-900/40 border-slate-800/80 hover:border-slate-700" : "bg-white border-slate-200/80 hover:shadow-lg"}`}
+        >
           <div className="flex items-center justify-between mb-4">
             <div className={`p-2.5 rounded-xl ${darkMode ? "bg-emerald-500/10 text-emerald-400" : "bg-emerald-50 text-emerald-600"}`}>
               <Building2 size={20} />
@@ -267,7 +288,7 @@ export default function AdvancedRestaurantDashboard() {
           </div>
           <p className={`text-sm font-bold ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Enterprise Plan</p>
           <div className="flex items-baseline gap-1 mt-1">
-            <span className={`text-2xl font-black ${darkMode ? "text-white" : "text-slate-900"}`}>$1999</span>
+            <span className={`text-2xl font-black ${darkMode ? "text-white" : "text-slate-900"}`}>$1,999</span>
             <span className="text-xs text-slate-500">/month</span>
           </div>
           <div className={`mt-4 pt-4 border-t space-y-2 text-xs ${darkMode ? "border-slate-800 text-slate-400" : "border-slate-100 text-slate-500"}`}>
@@ -411,15 +432,15 @@ export default function AdvancedRestaurantDashboard() {
                     {/* Dynamic Subscription Architecture Tier Alignment Badge */}
                     <td className="py-4 px-6 whitespace-nowrap">
                       <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider ${
-                        row.plan === "Premium" 
+                        String(row.plan) === "Premium" 
                           ? "bg-purple-500/10 text-purple-400 border border-purple-500/20" 
-                          : row.plan === "Standard"
+                          : String(row.plan) === "Standard"
                             ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                            : row.plan + "Enterprise"
+                            : String(row.plan) === "Enterprise"
                               ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                               : "bg-orange-500/10 text-orange-400 border border-orange-500/20"
                       }`}>
-                        {row.plan}
+                        {String(row.plan)}
                       </span>
                     </td>
 
@@ -481,10 +502,10 @@ export default function AdvancedRestaurantDashboard() {
                                 <div className="h-px my-1.5 bg-slate-200 dark:bg-slate-800" />
                                 
                                 <p className={`text-[10px] font-bold uppercase px-2.5 py-1 ${darkMode ? "text-slate-500" : "text-slate-400"}`}>Reassign Architecture Tier</p>
-                                {["Basic", "Standard", "Premium", "Enterprise"].map((planOpt) => (
+                                {(["Basic", "Standard", "Premium", "Enterprise"] as PlanType[]).map((planOpt) => (
                                   <button 
                                     key={planOpt}
-                                    onClick={() => updateRestaurantPlan(row.id, planOpt as any)} 
+                                    onClick={() => updateRestaurantPlan(row.id, planOpt)} 
                                     className={`w-full text-left px-2.5 py-1.5 text-xs font-medium rounded-lg hover:bg-slate-500/5 ${
                                       darkMode ? "text-slate-300 hover:text-slate-100" : "text-slate-700 hover:text-slate-900"
                                     }`}
@@ -548,8 +569,9 @@ export default function AdvancedRestaurantDashboard() {
 
             <form onSubmit={handleAddRestaurantSubmit} className="space-y-4">
               <div>
-                <label className={`block text-[10px] font-bold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Restaurant Entity Name</label>
+                <label htmlFor="entName" className={`block text-[10px] font-bold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Restaurant Entity Name</label>
                 <input 
+                  id="entName"
                   type="text" required value={newRestaurant.name}
                   onChange={e => setNewRestaurant(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="e.g. Apex Culina Terminal"
@@ -560,8 +582,9 @@ export default function AdvancedRestaurantDashboard() {
               </div>
 
               <div>
-                <label className={`block text-[10px] font-bold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Account Lead Director</label>
+                <label htmlFor="leadDir" className={`block text-[10px] font-bold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Account Lead Director</label>
                 <input 
+                  id="leadDir"
                   type="text" required value={newRestaurant.owner}
                   onChange={e => setNewRestaurant(prev => ({ ...prev, owner: e.target.value }))}
                   placeholder="e.g. Marcus Vance"
@@ -570,121 +593,10 @@ export default function AdvancedRestaurantDashboard() {
                   }`}
                 />
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={`block text-[10px] font-bold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Data Email</label>
-                  <input 
-                    type="email" value={newRestaurant.email}
-                    onChange={e => setNewRestaurant(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="terminal@brand.io"
-                    className={`w-full h-10 px-3 rounded-xl text-sm border outline-none transition-all ${
-                      darkMode ? "bg-slate-900/50 border-slate-800 text-white focus:border-orange-500" : "bg-slate-50 border-slate-200 focus:border-orange-500"
-                    }`}
-                  />
-                </div>
-                <div>
-                  <label className={`block text-[10px] font-bold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Comms Phone</label>
-                  <input 
-                    type="text" value={newRestaurant.phone}
-                    onChange={e => setNewRestaurant(prev => ({ ...prev, phone: e.target.value }))}
-                    placeholder="+1 (555) 892-0021"
-                    className={`w-full h-10 px-3 rounded-xl text-sm border outline-none transition-all ${
-                      darkMode ? "bg-slate-900/50 border-slate-800 text-white focus:border-orange-500" : "bg-slate-50 border-slate-200 focus:border-orange-500"
-                    }`}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className={`block text-[10px] font-bold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Hub Coordinates Location</label>
-                <input 
-                  type="text" value={newRestaurant.location}
-                  onChange={e => setNewRestaurant(prev => ({ ...prev, location: e.target.value }))}
-                  placeholder="e.g. Transdistrict Tower, Area 4"
-                  className={`w-full h-10 px-3 rounded-xl text-sm border outline-none transition-all ${
-                    darkMode ? "bg-slate-900/50 border-slate-800 text-white focus:border-orange-500" : "bg-slate-50 border-slate-200 focus:border-orange-500"
-                  }`}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={`block text-[10px] font-bold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Architecture Tier</label>
-                  <select
-                    value={newRestaurant.plan}
-                    onChange={e => setNewRestaurant(prev => ({ ...prev, plan: e.target.value as any }))}
-                    className={`w-full h-10 px-2 rounded-xl text-sm border outline-none transition-all ${
-                      darkMode ? "bg-slate-900 border-slate-800 text-white focus:border-orange-500" : "bg-slate-50 border-slate-200 focus:border-orange-500"
-                    }`}
-                  >
-                    <option value="Basic">Basic Plan ($299)</option>
-                    <option value="Standard">Standard Plan ($599)</option>
-                    <option value="Premium">Premium Plan ($999)</option>
-                    <option value="Enterprise">Enterprise Plan ($1999)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className={`block text-[10px] font-bold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>System Handshake</label>
-                  <select
-                    value={newRestaurant.status}
-                    onChange={e => setNewRestaurant(prev => ({ ...prev, status: e.target.value as any }))}
-                    className={`w-full h-10 px-2 rounded-xl text-sm border outline-none transition-all ${
-                      darkMode ? "bg-slate-900 border-slate-800 text-white focus:border-orange-500" : "bg-slate-50 border-slate-200 focus:border-orange-500"
-                    }`}
-                  >
-                    <option value="Trial">Trial Pipeline</option>
-                    <option value="Active">Active Production</option>
-                    <option value="Inactive">Deactivated State</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={`block text-[10px] font-bold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Initial Run Rate ARR</label>
-                  <input 
-                    type="text" value={newRestaurant.revenue}
-                    onChange={e => setNewRestaurant(prev => ({ ...prev, revenue: e.target.value }))}
-                    placeholder="e.g. $45,000"
-                    className={`w-full h-10 px-3 rounded-xl text-sm border outline-none transition-all ${
-                      darkMode ? "bg-slate-900/50 border-slate-800 text-white focus:border-orange-500" : "bg-slate-50 border-slate-200 focus:border-orange-500"
-                    }`}
-                  />
-                </div>
-                <div>
-                  <label className={`block text-[10px] font-bold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Node Branches</label>
-                  <input 
-                    type="number" min="1" value={newRestaurant.branches}
-                    onChange={e => setNewRestaurant(prev => ({ ...prev, branches: Number(e.target.value) }))}
-                    className={`w-full h-10 px-3 rounded-xl text-sm border outline-none transition-all ${
-                      darkMode ? "bg-slate-900/50 border-slate-800 text-white focus:border-orange-500" : "bg-slate-50 border-slate-200 focus:border-orange-500"
-                    }`}
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button" onClick={() => setIsModalOpen(false)}
-                  className={`flex-1 h-11 text-xs font-bold rounded-xl transition-colors border ${
-                    darkMode ? "border-slate-800 hover:bg-slate-900 text-slate-300" : "border-slate-200 hover:bg-slate-50 text-slate-600"
-                  }`}
-                >
-                  Abort Entry
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 h-11 text-xs font-bold bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors shadow-md shadow-orange-500/10"
-                >
-                  Commit Entry
-                </button>
-              </div>
             </form>
           </div>
         </div>
       )}
-
     </div>
   );
 }

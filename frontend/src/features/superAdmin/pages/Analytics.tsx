@@ -1,16 +1,30 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 
 import {
-  Sun, Moon, LayoutDashboard, Search, Bell, ChevronDown,
-  TrendingUp, BarChart3, PieChart as PieIcon, Layers, LogOut
+  Sun,
+  Moon,
+  LayoutDashboard,
+  Bell,
+  TrendingUp,
+  BarChart3,
+  PieChart as PieIcon,
+  Layers
 } from "lucide-react";
 
 import {
-  ResponsiveContainer, BarChart, Bar, CartesianGrid,
-  XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell
 } from "recharts";
 
-// Mocking imports to maintain a fully compiled component
 const metricsData = [
   { label: "Active Subscriptions", current: "1,240", shift: "+12.3%", darkBg: "bg-orange-500/10 text-orange-500", lightBg: "bg-orange-50 text-orange-600", icon: Layers },
   { label: "Platform Compute", current: "94.2%", shift: "+0.8%", darkBg: "bg-blue-500/10 text-blue-500", lightBg: "bg-blue-50 text-blue-600", icon: LayoutDashboard },
@@ -29,15 +43,13 @@ const distributionSeries = [
 ];
 
 export default function PlatformInfrastructureMatrix() {
-
   const [darkMode, setDarkMode] = useState<boolean>(() => {
-    const cached = localStorage.getItem("theme");
-    return cached ? cached === "dark" : true;
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem("theme");
+      return cached ? cached === "dark" : true;
+    }
+    return true;
   });
-
-  const [menuOpen, setMenuOpen] = useState<boolean>(false);
-
-  const anchorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const synchronizeTheme = (event: Event) => {
@@ -46,16 +58,6 @@ export default function PlatformInfrastructureMatrix() {
     };
     window.addEventListener("sync-app-theme", synchronizeTheme);
     return () => window.removeEventListener("sync-app-theme", synchronizeTheme);
-  }, []);
-
-  useEffect(() => {
-    const handleOutsideClick = (e: MouseEvent) => {
-      if (anchorRef.current && !anchorRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
   const toggleApplicationTheme = () => {
@@ -101,13 +103,11 @@ export default function PlatformInfrastructureMatrix() {
             </div>
           </div>
 
-          {/* SEARCH BOX REMOVED */}
-
           <div className="flex items-center gap-4">
-
             <div className="flex items-center gap-1">
               <button
                 onClick={toggleApplicationTheme}
+                type="button"
                 className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
                   darkMode ? "text-slate-400 hover:text-slate-100 hover:bg-slate-900" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                 }`}
@@ -115,17 +115,18 @@ export default function PlatformInfrastructureMatrix() {
                 {darkMode ? <Sun size={16} /> : <Moon size={16} />}
               </button>
 
-              <button className={`w-9 h-9 rounded-lg flex items-center justify-center relative ${
-                darkMode ? "text-slate-400 hover:text-slate-100" : "text-slate-500 hover:text-slate-800"
-              }`}>
+              <button 
+                type="button"
+                className={`w-9 h-9 rounded-lg flex items-center justify-center relative ${
+                  darkMode ? "text-slate-400 hover:text-slate-100" : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
                 <Bell size={16} />
                 <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 rounded-full bg-orange-500" />
               </button>
             </div>
 
             <div className="h-5 w-px bg-slate-200 dark:bg-slate-800" />
-
-            {/* PROFILE BOX REMOVED */}
           </div>
 
         </div>
@@ -188,7 +189,7 @@ export default function PlatformInfrastructureMatrix() {
               <h3 className="text-sm font-bold flex items-center gap-2">
                 <BarChart3 size={16} /> Cluster Operations Load
               </h3>
-              <p className={`text-xs ${
+              <p className={`text-[13px] ${
                 darkMode ? "text-slate-400" : "text-slate-500"
               }`}>
                 Throughput balance configurations
@@ -201,10 +202,10 @@ export default function PlatformInfrastructureMatrix() {
                   <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? "#1e293b" : "#e2e8f0"} vertical={false} />
                   <XAxis dataKey="period" tickLine={false} axisLine={false} style={{ fontSize: "11px" }} stroke={darkMode ? "#64748b" : "#94a3b8"} />
                   <YAxis tickLine={false} axisLine={false} style={{ fontSize: "11px" }} stroke={darkMode ? "#64748b" : "#94a3b8"} />
-                  <Tooltip />
+                  <Tooltip contentStyle={darkMode ? { backgroundColor: "#0f172a", color: "#f8fafc" } : { backgroundColor: "#ffffff", color: "#0f172a" }} />
                   <Legend />
-                  <Bar name="Active Clusters" dataKey="load" fill="#f97316" radius={[4, 4, 0, 0]} />
-                  <Bar name="Staging Subnets" dataKey="capacity" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar key="load-bars" name="Active Clusters" dataKey="load" fill="#f97316" />
+                  <Bar key="capacity-bars" name="Staging Subnets" dataKey="capacity" fill="#3b82f6" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -217,7 +218,7 @@ export default function PlatformInfrastructureMatrix() {
               <h3 className="text-sm font-bold flex items-center gap-2">
                 <PieIcon size={16} /> Deployment Architecture
               </h3>
-              <p className={`text-xs ${
+              <p className={`text-[13px] ${
                 darkMode ? "text-slate-400" : "text-slate-500"
               }`}>
                 Core allocation mapping
@@ -226,14 +227,14 @@ export default function PlatformInfrastructureMatrix() {
 
             <div className="h-[220px] w-full flex items-center justify-center relative">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
+                <RechartsPieChart>
                   <Pie data={distributionSeries} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="allocation" nameKey="division">
                     {distributionSeries.map((entry, index) => (
-                      <Cell key={index} fill={entry.Hex} />
+                      <Cell key={`cell-${index}`} fill={entry.Hex} />
                     ))}
                   </Pie>
-                  <Tooltip />
-                </PieChart>
+                  <Tooltip contentStyle={darkMode ? { backgroundColor: "#0f172a", color: "#f8fafc" } : { backgroundColor: "#ffffff", color: "#0f172a" }} />
+                </RechartsPieChart>
               </ResponsiveContainer>
 
               <div className="absolute flex flex-col items-center justify-center text-center">
