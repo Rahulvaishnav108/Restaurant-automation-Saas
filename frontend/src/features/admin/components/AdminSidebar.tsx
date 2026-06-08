@@ -1,33 +1,40 @@
 import React, { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingBag, UtensilsCrossed, CalendarDays,
-  Users, Package, UserCog, BarChart3, Megaphone, Settings,
-  ChevronLeft, ChevronRight, ArrowRight, Crown,
+  Users, Package, UserCog, BarChart3, Settings,
+  ChevronLeft, ChevronRight, ArrowRight, Crown, LayoutGrid,
 } from 'lucide-react';
 
 const navItems = [
-  { label: 'Dashboard',         icon: LayoutDashboard, to: '/admin' },
-  { label: 'Orders',            icon: ShoppingBag,     to: '/admin/orders' },
-  { label: 'Menu Management',   icon: UtensilsCrossed, to: '/admin/menu' },
-  { label: 'Reservations',      icon: CalendarDays,    to: '/admin/reservations' },
-  { label: 'Customers',         icon: Users,           to: '/admin/customers' },
-  { label: 'Inventory',         icon: Package,         to: '/admin/inventory' },
-  { label: 'Staff Management',  icon: UserCog,         to: '/admin/staff' },
-  { label: 'Reports & Analytics', icon: BarChart3,     to: '/admin/reports' },
-  { label: 'Marketing',         icon: Megaphone,       to: '/admin/marketing' },
-  { label: 'Settings',          icon: Settings,        to: '/admin/settings' },
+  { label: 'Dashboard',           icon: LayoutDashboard, to: '/admin' },
+  { label: 'Orders',              icon: ShoppingBag,     to: '/admin/orders' },
+  { label: 'Menu Management',     icon: UtensilsCrossed, to: '/admin/menu' },
+  { label: 'Reservations',        icon: CalendarDays,    to: '/admin/reservations' },
+  { label: 'Customers',           icon: Users,           to: '/admin/customers' },
+  { label: 'Inventory',           icon: Package,         to: '/admin/inventory' },
+  { label: 'Staff Management',    icon: UserCog,         to: '/admin/staff' },
+  { label: 'Reports & Analytics', icon: BarChart3,       to: '/admin/reports' },
+  { label: 'Table Management',    icon: LayoutGrid,      to: '/admin/tables' },
+  { label: 'Settings',            icon: Settings,        to: '/admin/settings' },
 ];
 
 export function AdminSidebar(): JSX.Element {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   return (
     <aside className={`relative flex flex-col bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 transition-all duration-300 ${collapsed ? 'w-[72px]' : 'w-[220px]'} min-h-screen flex-shrink-0`}>
 
-      {/* Logo */}
-      <div className="flex items-center gap-2.5 px-4 py-4 border-b border-gray-100 dark:border-gray-800">
+      {/* Logo — clicking navigates to /admin */}
+      <div
+        className="flex items-center gap-2.5 px-4 py-4 border-b border-gray-100 dark:border-gray-800 cursor-pointer select-none"
+        onClick={() => navigate('/admin')}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === 'Enter' && navigate('/admin')}
+      >
         <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center shadow-md">
           <UtensilsCrossed className="w-5 h-5 text-white" />
         </div>
@@ -38,6 +45,7 @@ export function AdminSidebar(): JSX.Element {
       <button
         onClick={() => setCollapsed(!collapsed)}
         className="absolute -right-3 top-[66px] z-10 w-6 h-6 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow flex items-center justify-center text-gray-400 hover:text-orange-500 transition-colors"
+        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
         {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
       </button>
@@ -45,7 +53,9 @@ export function AdminSidebar(): JSX.Element {
       {/* Nav */}
       <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
         {navItems.map(({ label, icon: Icon, to }) => {
-          const isActive = to === '/admin' ? location.pathname === '/admin' : location.pathname.startsWith(to);
+          const isActive = to === '/admin'
+            ? location.pathname === '/admin'
+            : location.pathname.startsWith(to);
           return (
             <NavLink
               key={to}
@@ -69,11 +79,14 @@ export function AdminSidebar(): JSX.Element {
       {!collapsed && (
         <div className="mx-3 mb-4 p-4 rounded-2xl bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/40 dark:to-amber-950/30 border border-orange-100 dark:border-orange-900/40">
           <div className="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center mb-2 shadow">
-            <Crown className="w-4.5 h-4.5 text-white w-[18px] h-[18px]" />
+            <Crown className="w-[18px] h-[18px] text-white" />
           </div>
           <p className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-0.5">Upgrade to Pro</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 leading-snug">Unlock advanced features and grow your restaurant business.</p>
-          <button className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-colors">
+          <button
+            onClick={() => navigate('/admin/settings')}
+            className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-colors"
+          >
             Upgrade Now <ArrowRight className="w-3 h-3" />
           </button>
         </div>

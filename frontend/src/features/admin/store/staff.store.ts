@@ -86,29 +86,36 @@ interface StaffStore {
   statusFilter: StaffStatus | 'All';
   currentPage: number;
   perPage: number;
+  showAll: boolean;
 
   setSearchQuery: (q: string) => void;
   setRoleFilter: (r: StaffRole | 'All Roles') => void;
   setDepartmentFilter: (d: StaffDepartment | 'All Departments') => void;
   setStatusFilter: (s: StaffStatus | 'All') => void;
   setCurrentPage: (p: number) => void;
+  setShowAll: (v: boolean) => void;
   updateMemberStatus: (id: string, status: StaffStatus) => void;
+  addMember: (m: Omit<StaffMember, 'id'>) => void;
+  updateMember: (id: string, updates: Partial<StaffMember>) => void;
+  deleteMember: (id: string) => void;
 }
 
 // ── Seed Data ──────────────────────────────────────────────────────────────
 
 const seedMembers: StaffMember[] = [
-  { id: 's1', name: 'John Smith',    email: 'john.smith@email.com',    avatar: 'JS', role: 'Manager',   department: 'Management', phone: '+91 98765 43210', status: 'Active',   hireDate: 'Jan 15, 2023', performance: 4.8, salary: 65000 },
-  { id: 's2', name: 'Sarah Johnson', email: 'sarah.j@email.com',       avatar: 'SJ', role: 'Server',    department: 'Service',    phone: '+91 98765 43211', status: 'Active',   hireDate: 'Feb 10, 2023', performance: 4.2, salary: 32000 },
-  { id: 's3', name: 'Michael Brown', email: 'michael.b@email.com',     avatar: 'MB', role: 'Chef',      department: 'Kitchen',    phone: '+91 98765 43212', status: 'Active',   hireDate: 'Mar 5, 2023',  performance: 4.6, salary: 55000 },
-  { id: 's4', name: 'Emily Davis',   email: 'emily.d@email.com',       avatar: 'ED', role: 'Bartender', department: 'Bar',        phone: '+91 98765 43213', status: 'Active',   hireDate: 'Mar 20, 2023', performance: 4.1, salary: 38000 },
-  { id: 's5', name: 'David Wilson',  email: 'david.w@email.com',       avatar: 'DW', role: 'Server',    department: 'Service',    phone: '+91 98765 43214', status: 'On Leave', hireDate: 'Apr 8, 2023',  performance: 3.9, salary: 30000 },
-  { id: 's6', name: 'Lisa Martinez', email: 'lisa.m@email.com',        avatar: 'LM', role: 'Host',      department: 'Front Desk', phone: '+91 98765 43215', status: 'Active',   hireDate: 'May 12, 2023', performance: 4.4, salary: 35000 },
-  { id: 's7', name: 'Robert Taylor', email: 'robert.t@email.com',      avatar: 'RT', role: 'Chef',      department: 'Kitchen',    phone: '+91 98765 43216', status: 'Active',   hireDate: 'Jun 1, 2023',  performance: 4.7, salary: 52000 },
-  { id: 's8', name: 'Amanda White',  email: 'amanda.w@email.com',      avatar: 'AW', role: 'Server',    department: 'Service',    phone: '+91 98765 43217', status: 'Inactive', hireDate: 'Jul 18, 2023', performance: 3.5, salary: 29000 },
-  { id: 's9', name: 'James Garcia',  email: 'james.g@email.com',       avatar: 'JG', role: 'Bartender', department: 'Bar',        phone: '+91 98765 43218', status: 'Active',   hireDate: 'Aug 3, 2023',  performance: 4.3, salary: 40000 },
-  { id: 's10',name: 'Priya Sharma',  email: 'priya.s@email.com',       avatar: 'PS', role: 'Manager',   department: 'Management', phone: '+91 98765 43219', status: 'Active',   hireDate: 'Sep 9, 2023',  performance: 4.9, salary: 70000 },
+  { id: 's1',  name: 'John Smith',      email: 'john.smith@email.com',    avatar: 'JS', role: 'Manager',   department: 'Management', phone: '+91 98765 43210', status: 'Active',   hireDate: 'Jan 15, 2023', performance: 4.8, salary: 65000 },
+  { id: 's2',  name: 'Sarah Johnson',   email: 'sarah.j@email.com',       avatar: 'SJ', role: 'Server',    department: 'Service',    phone: '+91 98765 43211', status: 'Active',   hireDate: 'Feb 10, 2023', performance: 4.2, salary: 32000 },
+  { id: 's3',  name: 'Michael Brown',   email: 'michael.b@email.com',     avatar: 'MB', role: 'Chef',      department: 'Kitchen',    phone: '+91 98765 43212', status: 'Active',   hireDate: 'Mar 5, 2023',  performance: 4.6, salary: 55000 },
+  { id: 's4',  name: 'Emily Davis',     email: 'emily.d@email.com',       avatar: 'ED', role: 'Bartender', department: 'Bar',        phone: '+91 98765 43213', status: 'Active',   hireDate: 'Mar 20, 2023', performance: 4.1, salary: 38000 },
+  { id: 's5',  name: 'David Wilson',    email: 'david.w@email.com',       avatar: 'DW', role: 'Server',    department: 'Service',    phone: '+91 98765 43214', status: 'On Leave', hireDate: 'Apr 8, 2023',  performance: 3.9, salary: 30000 },
+  { id: 's6',  name: 'Lisa Martinez',   email: 'lisa.m@email.com',        avatar: 'LM', role: 'Host',      department: 'Front Desk', phone: '+91 98765 43215', status: 'Active',   hireDate: 'May 12, 2023', performance: 4.4, salary: 35000 },
+  { id: 's7',  name: 'Robert Taylor',   email: 'robert.t@email.com',      avatar: 'RT', role: 'Chef',      department: 'Kitchen',    phone: '+91 98765 43216', status: 'Active',   hireDate: 'Jun 1, 2023',  performance: 4.7, salary: 52000 },
+  { id: 's8',  name: 'Amanda White',    email: 'amanda.w@email.com',      avatar: 'AW', role: 'Server',    department: 'Service',    phone: '+91 98765 43217', status: 'Inactive', hireDate: 'Jul 18, 2023', performance: 3.5, salary: 29000 },
+  { id: 's9',  name: 'James Garcia',    email: 'james.g@email.com',       avatar: 'JG', role: 'Bartender', department: 'Bar',        phone: '+91 98765 43218', status: 'Active',   hireDate: 'Aug 3, 2023',  performance: 4.3, salary: 40000 },
+  { id: 's10', name: 'Priya Sharma',    email: 'priya.s@email.com',       avatar: 'PS', role: 'Manager',   department: 'Management', phone: '+91 98765 43219', status: 'Active',   hireDate: 'Sep 9, 2023',  performance: 4.9, salary: 70000 },
 ];
+
+let idCounter = 100;
 
 // ── Store ──────────────────────────────────────────────────────────────────
 
@@ -139,6 +146,8 @@ export const useStaffStore = create<StaffStore>((set) => ({
     { id: 'b1', name: 'Sarah Johnson', avatar: 'SJ', date: 'May 24' },
     { id: 'b2', name: 'Michael Brown', avatar: 'MB', date: 'May 26' },
     { id: 'b3', name: 'Emily Davis',   avatar: 'ED', date: 'May 28' },
+    { id: 'b4', name: 'David Wilson',  avatar: 'DW', date: 'Jun 2'  },
+    { id: 'b5', name: 'Lisa Martinez', avatar: 'LM', date: 'Jun 10' },
   ],
 
   attendanceBreakdown: [
@@ -149,10 +158,10 @@ export const useStaffStore = create<StaffStore>((set) => ({
   ],
 
   payrollLines: [
-    { label: 'Regular Pay',   amount: '₹14,250.00' },
-    { label: 'Overtime Pay',  amount: '₹2,260.00'  },
-    { label: 'Deductions',    amount: '₹750.00'    },
-    { label: 'Bonuses',       amount: '₹1,290.00'  },
+    { label: 'Regular Pay',  amount: '₹14,250.00' },
+    { label: 'Overtime Pay', amount: '₹2,260.00'  },
+    { label: 'Deductions',   amount: '₹750.00'    },
+    { label: 'Bonuses',      amount: '₹1,290.00'  },
   ],
 
   roleDistribution: [
@@ -170,14 +179,43 @@ export const useStaffStore = create<StaffStore>((set) => ({
   statusFilter: 'All',
   currentPage: 1,
   perPage: 5,
+  showAll: false,
 
   setSearchQuery:      (q) => set({ searchQuery: q, currentPage: 1 }),
   setRoleFilter:       (r) => set({ roleFilter: r, currentPage: 1 }),
   setDepartmentFilter: (d) => set({ departmentFilter: d, currentPage: 1 }),
   setStatusFilter:     (s) => set({ statusFilter: s, currentPage: 1 }),
   setCurrentPage:      (p) => set({ currentPage: p }),
-  updateMemberStatus:  (id, status) =>
+  setShowAll:          (v) => set({ showAll: v, currentPage: 1 }),
+
+  updateMemberStatus: (id, status) =>
     set((state) => ({
-      members: state.members.map((m) => m.id === id ? { ...m, status } : m),
+      members: state.members.map((m) => (m.id === id ? { ...m, status } : m)),
+    })),
+
+  addMember: (m) =>
+    set((state) => ({
+      members: [
+        ...state.members,
+        { ...m, id: `s${++idCounter}` },
+      ],
+      stats: {
+        ...state.stats,
+        totalStaff: state.stats.totalStaff + 1,
+      },
+    })),
+
+  updateMember: (id, updates) =>
+    set((state) => ({
+      members: state.members.map((m) => (m.id === id ? { ...m, ...updates } : m)),
+    })),
+
+  deleteMember: (id) =>
+    set((state) => ({
+      members: state.members.filter((m) => m.id !== id),
+      stats: {
+        ...state.stats,
+        totalStaff: Math.max(0, state.stats.totalStaff - 1),
+      },
     })),
 }));

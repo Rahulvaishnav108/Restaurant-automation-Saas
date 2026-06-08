@@ -1,5 +1,5 @@
-import React from 'react';
-import { ArrowRight, Users } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowRight, Users, X, Search } from 'lucide-react';
 import { useReservationsStore, type Reservation, type ReservationStatus } from '../../store/reservations.store';
 
 const statusStyle: Record<ReservationStatus, string> = {
@@ -47,26 +47,138 @@ function ReservationRow({ r, onSelect, isSelected }: { r: Reservation; onSelect:
 }
 
 export function UpcomingReservationsList(): JSX.Element {
-  const { upcomingReservations, selectedGuest, setSelectedGuest } = useReservationsStore();
+  const { upcomingReservations, allReservations, selectedGuest, setSelectedGuest, filterStatus } =
+    useReservationsStore();
+
+  const [showViewAll, setShowViewAll] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Apply filters from store to the shown list
+  const filteredUpcoming = upcomingReservations.filter((r) => {
+    if (filterStatus !== 'All' && r.status !== filterStatus) return false;
+    return true;
+  });
+
+  // All-reservations modal: apply search + status filter
+  const filteredAll = allReservations.filter((r) => {
+    const matchesSearch =
+      !searchQuery ||
+      r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.phone.includes(searchQuery) ||
+      r.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = filterStatus === 'All' || r.status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-gray-800 dark:text-gray-100">Upcoming Reservations</h3>
-        <button className="flex items-center gap-1 text-xs font-semibold text-orange-500 hover:text-orange-600 transition-colors">
-          View all <ArrowRight className="w-3.5 h-3.5" />
-        </button>
+    <>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100">Upcoming Reservations</h3>
+          <button
+            type="button"
+            onClick={() => setShowViewAll(true)}
+            className="flex items-center gap-1 text-xs font-semibold text-orange-500 hover:text-orange-600 transition-colors"
+          >
+            View all <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {filteredUpcoming.length === 0 ? (
+          <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-6">No reservations match the current filter.</p>
+        ) : (
+          <div className="space-y-1">
+            {filteredUpcoming.map((r) => (
+              <ReservationRow
+                key={r.id}
+                r={r}
+                isSelected={selectedGuest?.id === r.id}
+                onSelect={() => setSelectedGuest(selectedGuest?.id === r.id ? null : r)}
+              />
+            ))}
+          </div>
+        )}
       </div>
-      <div className="space-y-1">
-        {upcomingReservations.map((r) => (
-          <ReservationRow
-            key={r.id}
-            r={r}
-            isSelected={selectedGuest?.id === r.id}
-            onSelect={() => setSelectedGuest(selectedGuest?.id === r.id ? null : r)}
+
+      {/* ─── View All Modal ─── */}
+      {showViewAll && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <button
+            type="button"
+            aria-label="Close"
+            className="absolute inset-0 w-full h-full cursor-default"
+            onClick={() => setShowViewAll(false)}
           />
-        ))}
-      </div>
-    </div>
+
+          <div
+            className="relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-2xl w-full max-w-lg mx-4 flex flex-col max-h-[85vh]"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="view-all-title"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
+              <div>
+                <h2 id="view-all-title" className="text-base font-bold text-gray-900 dark:text-white">
+                  All Reservations
+                </h2>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                  {filteredAll.length} reservation{filteredAll.length !== 1 ? 's' : ''}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowViewAll(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Search */}
+            <div className="px-5 pt-4 pb-2">
+              <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+                <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Search by name, phone or email..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1 text-sm bg-transparent outline-none text-gray-800 dark:text-gray-100 placeholder:text-gray-400"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* List */}
+            <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-1">
+              {filteredAll.length === 0 ? (
+                <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-10">No reservations found.</p>
+              ) : (
+                filteredAll.map((r) => (
+                  <ReservationRow
+                    key={r.id}
+                    r={r}
+                    isSelected={selectedGuest?.id === r.id}
+                    onSelect={() => {
+                      setSelectedGuest(selectedGuest?.id === r.id ? null : r);
+                      setShowViewAll(false);
+                    }}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

@@ -2,51 +2,68 @@ import React from 'react';
 import { useOrdersStore } from '../store/orders.store';
 import {
   OrdersHeader,
-  OrdersStatCards,
-  OrdersTabBar,
-  OrdersTable,
-  OrdersPagination,
-} from '../components/orders';
+    OrdersStatCards,
+      OrdersTabBar,
+        OrdersTable,
+          OrdersPagination,
+          } from '../components/orders';
 
-export default function OrdersPage() {
-  const { orders, activeTab, searchQuery, currentPage, perPage } = useOrdersStore();
+          export default function OrdersPage() {
+            const {
+                orders, activeTab, searchQuery,
+                    currentPage, perPage, sortBy,
+                        paymentFilter, minAmount, maxAmount,
+                          } = useOrdersStore();
 
-  // Filter by tab + search
-  const filtered = orders.filter((o) => {
-    const matchTab    = activeTab === 'All' || o.status === activeTab;
-    const q           = searchQuery.toLowerCase();
-    const matchSearch = !q
-      || o.id.toLowerCase().includes(q)
-      || o.customer.toLowerCase().includes(q)
-      || o.table.toLowerCase().includes(q);
-    return matchTab && matchSearch;
-  });
+                            // 1. Filter by tab
+                              const byTab = orders.filter((o) =>
+                                  activeTab === 'All' || o.status === activeTab,
+                                    );
 
-  // Paginate
-  const paginated = filtered.slice(
-    (currentPage - 1) * perPage,
-    currentPage * perPage,
-  );
+                                      // 2. Filter by search
+                                        const bySearch = byTab.filter((o) => {
+                                            const q = searchQuery.toLowerCase();
+                                                return !q
+                                                      || o.id.toLowerCase().includes(q)
+                                                            || o.customer.toLowerCase().includes(q)
+                                                                  || o.table.toLowerCase().includes(q);
+                                                                    });
 
-  return (
-    <div className="space-y-5">
-      {/* 1. Page title + action buttons */}
-      <OrdersHeader />
+                                                                      // 3. Filter by payment method
+                                                                        const byPayment = bySearch.filter((o) =>
+                                                                            paymentFilter === 'All' || o.payment === paymentFilter,
+                                                                              );
 
-      {/* 2. Five stat cards */}
-      <OrdersStatCards />
+                                                                                // 4. Filter by amount range
+                                                                                  const byAmount = byPayment.filter((o) => {
+                                                                                      const min = minAmount !== '' ? Number(minAmount) : null;
+                                                                                          const max = maxAmount !== '' ? Number(maxAmount) : null;
+                                                                                              if (min !== null && o.amountRaw < min) return false;
+                                                                                                  if (max !== null && o.amountRaw > max) return false;
+                                                                                                      return true;
+                                                                                                        });
 
-      {/* 3. Table card */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
-        {/* 3a. Tab bar + search */}
-        <OrdersTabBar />
+                                                                                                          // 5. Sort — newest first when coming from dashboard "View all"
+                                                                                                            const sorted = sortBy === 'time'
+                                                                                                                ? [...byAmount].sort((a, b) => a.timeRaw - b.timeRaw)
+                                                                                                                    : byAmount;
 
-        {/* 3b. Data table */}
-        <OrdersTable orders={paginated} />
+                                                                                                                      // 6. Paginate
+                                                                                                                        const paginated = sorted.slice(
+                                                                                                                            (currentPage - 1) * perPage,
+                                                                                                                                currentPage * perPage,
+                                                                                                                                  );
 
-        {/* 3c. Pagination */}
-        <OrdersPagination totalFiltered={filtered.length} />
-      </div>
-    </div>
-  );
-}
+                                                                                                                                    return (
+                                                                                                                                        <div className="space-y-5">
+                                                                                                                                              <OrdersHeader />
+                                                                                                                                                    <OrdersStatCards />
+                                                                                                                                                          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+                                                                                                                                                                  <OrdersTabBar />
+                                                                                                                                                                          <OrdersTable orders={paginated} />
+                                                                                                                                                                                  <OrdersPagination totalFiltered={sorted.length} />
+                                                                                                                                                                                        </div>
+                                                                                                                                                                                            </div>
+                                                                                                                                                                                              );
+                                                                                                                                                                                              }
+                                                                                                                                                                                              

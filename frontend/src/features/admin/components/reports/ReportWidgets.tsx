@@ -1,14 +1,47 @@
 import React from 'react';
 import { useReportsStore } from '../../store/reports.store';
-import type { DateRange } from '../../store/reports.store';
+import type { DateRange, PeakHoursRange } from '../../store/reports.store';
 
 const DAYS  = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const HOURS = ['6 AM', '9 AM', '12 PM', '3 PM', '6 PM', '9 PM', '12 AM'];
 
+const WEEK_RANGES: DateRange[] = ['Daily', 'Weekly', 'Monthly'];
+
+// ── Reusable Range Button Group ────────────────────────────────────────────
+
+function RangeButtons<T extends string>({
+  ranges,
+  current,
+  onChange,
+}: {
+  ranges: T[];
+  current: T;
+  onChange: (r: T) => void;
+}) {
+  return (
+    <div className="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+      {ranges.map((r) => (
+        <button
+          key={r}
+          onClick={() => onChange(r)}
+          className={`text-xs px-2.5 py-1.5 font-medium transition-colors ${
+            current === r
+              ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+          }`}
+        >
+          {r}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ── Peak Hours Heatmap ────────────────────────────────────────────────────
 
 export function PeakHours(): JSX.Element {
-  const { peakHourCells } = useReportsStore();
+  const { getPeakHourCells, peakHoursRange, setPeakHoursRange } = useReportsStore();
+  const peakHourCells = getPeakHourCells();
 
   function getColor(intensity: number) {
     const alpha = 0.1 + intensity * 0.9;
@@ -22,11 +55,11 @@ export function PeakHours(): JSX.Element {
           <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Peak Hours</h3>
           <p className="text-[11px] text-gray-400">Busiest times based on orders</p>
         </div>
-        <select className="text-xs py-1 px-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none text-gray-600 dark:text-gray-400">
-          <option>All Orders</option>
-          <option>Dine-in</option>
-          <option>Takeaway</option>
-        </select>
+        <RangeButtons
+          ranges={WEEK_RANGES as PeakHoursRange[]}
+          current={peakHoursRange}
+          onChange={setPeakHoursRange}
+        />
       </div>
 
       {/* Grid */}
@@ -47,9 +80,9 @@ export function PeakHours(): JSX.Element {
                 return (
                   <div
                     key={hour}
-                    className="flex-1 mx-0.5 h-7 rounded"
+                    className="flex-1 mx-0.5 h-7 rounded cursor-default"
                     style={{ background: getColor(cell?.intensity ?? 0.1) }}
-                    title={`${day} ${hour}: ${Math.round((cell?.intensity ?? 0) * 100)}%`}
+                    title={`${day} ${hour}: ${Math.round((cell?.intensity ?? 0) * 100)}% activity`}
                   />
                 );
               })}
@@ -72,41 +105,42 @@ export function PeakHours(): JSX.Element {
 // ── Top Selling Items ─────────────────────────────────────────────────────
 
 export function TopSellingItems(): JSX.Element {
-  const { topSellingItems, topItemsRange, setTopItemsRange } = useReportsStore();
+  const { getTopSellingItems, topItemsRange, setTopItemsRange } = useReportsStore();
+  const topSellingItems = getTopSellingItems();
   const maxOrders = Math.max(...topSellingItems.map((i) => i.orders));
 
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 flex-1 min-w-0">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Top Selling Items</h3>
-        <select
-          value={topItemsRange}
-          onChange={(e) => setTopItemsRange(e.target.value as DateRange)}
-          className="text-xs py-1 px-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none text-gray-600 dark:text-gray-400"
-        >
-          <option>This Week</option>
-          <option>This Month</option>
-        </select>
+        <RangeButtons
+          ranges={WEEK_RANGES}
+          current={topItemsRange}
+          onChange={setTopItemsRange}
+        />
       </div>
       <div className="space-y-3">
-        {topSellingItems.map((item) => (
+        {topSellingItems.map((item, idx) => (
           <div key={item.id} className="flex items-center gap-3">
+            <div className="w-5 text-center flex-shrink-0">
+              <span className="text-[10px] font-bold text-gray-400">#{idx + 1}</span>
+            </div>
             <div className="w-9 h-9 rounded-xl bg-orange-50 dark:bg-orange-950/40 flex items-center justify-center text-lg flex-shrink-0">
               {item.emoji}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
                 <p className="text-xs font-semibold text-gray-800 dark:text-gray-100 truncate">{item.name}</p>
-                <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 flex-shrink-0">{item.orders}</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 flex-shrink-0">{item.orders.toLocaleString()} orders</span>
               </div>
               <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-orange-400 dark:bg-orange-500 rounded-full transition-all"
+                  className="h-full bg-orange-400 dark:bg-orange-500 rounded-full transition-all duration-500"
                   style={{ width: `${(item.orders / maxOrders) * 100}%` }}
                 />
               </div>
             </div>
-            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex-shrink-0 w-20 text-right">{item.revenue}</span>
+            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex-shrink-0 w-24 text-right">{item.revenue}</span>
           </div>
         ))}
       </div>
@@ -117,7 +151,9 @@ export function TopSellingItems(): JSX.Element {
 // ── Revenue By Category ───────────────────────────────────────────────────
 
 export function RevenueByCategory(): JSX.Element {
-  const { revenueByCategory, stats, revByCatRange, setRevByCatRange } = useReportsStore();
+  const { getRevenueByCategory, getStats, revByCatRange, setRevByCatRange } = useReportsStore();
+  const revenueByCategory = getRevenueByCategory();
+  const stats = getStats();
 
   const r = 52, cx = 70, cy = 70, circumference = 2 * Math.PI * r;
   const segments = revenueByCategory.reduce<Array<typeof revenueByCategory[number] & { dash: number; offset: number }>>(
@@ -135,14 +171,11 @@ export function RevenueByCategory(): JSX.Element {
     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 flex-1 min-w-0">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Revenue by Category</h3>
-        <select
-          value={revByCatRange}
-          onChange={(e) => setRevByCatRange(e.target.value as DateRange)}
-          className="text-xs py-1 px-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none text-gray-600 dark:text-gray-400"
-        >
-          <option>This Week</option>
-          <option>This Month</option>
-        </select>
+        <RangeButtons
+          ranges={WEEK_RANGES}
+          current={revByCatRange}
+          onChange={setRevByCatRange}
+        />
       </div>
       <div className="flex items-center gap-4">
         <div className="relative flex-shrink-0">
@@ -159,23 +192,27 @@ export function RevenueByCategory(): JSX.Element {
                 transform={`rotate(-90 ${cx} ${cy})`}
               />
             ))}
-            <text x={cx} y={cy - 6} textAnchor="middle" fontSize="11" fontWeight="800" fill="#111827" className="dark:fill-gray-100">{stats.totalRevenue}</text>
-            <text x={cx} y={cy + 8} textAnchor="middle" fontSize="8" fill="#9ca3af">Total Revenue</text>
+            <text x={cx} y={cy - 6} textAnchor="middle" fontSize="10" fontWeight="800" fill="#111827" className="dark:fill-gray-100">{stats.totalRevenue}</text>
+            <text x={cx} y={cy + 8} textAnchor="middle" fontSize="8"  fill="#9ca3af">Total Revenue</text>
           </svg>
         </div>
-        <div className="space-y-2 flex-1">
+        <div className="space-y-3 flex-1">
           {revenueByCategory.map((cat) => (
             <div key={cat.name}>
               <div className="flex items-center justify-between text-xs mb-1">
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full" style={{ background: cat.color }} />
-                  <span className="text-gray-600 dark:text-gray-400">{cat.name}</span>
+                  <span className="text-gray-600 dark:text-gray-400 font-medium">{cat.name}</span>
                 </div>
-                <div className="text-right">
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">{cat.pct}%</span>
-                </div>
+                <span className="font-bold text-gray-800 dark:text-gray-200">{cat.pct}%</span>
               </div>
-              <div className="text-xs text-gray-400">{cat.amount}</div>
+              <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${cat.pct}%`, background: cat.color }}
+                />
+              </div>
+              <p className="text-[10px] text-gray-400 mt-0.5">{cat.amount}</p>
             </div>
           ))}
         </div>
