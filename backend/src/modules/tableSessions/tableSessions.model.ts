@@ -133,8 +133,6 @@ const tableSessionSchema = new Schema<ITableSession>(
 
 // Compound index for fast session lookups
 tableSessionSchema.index({ restaurantId: 1, tableId: 1, status: 1 });
-tableSessionSchema.index({ status: 1 });
-tableSessionSchema.index({ expiresAt: 1 });
 tableSessionSchema.index({ lastActivityAt: 1 });
 
 export const TableSessionModel = mongoose.model<ITableSession>('TableSession', tableSessionSchema);

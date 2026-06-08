@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import newman from 'newman';
@@ -23,6 +23,7 @@ const environmentPath = path.join(
 );
 const port = 5075;
 const baseUrl = `http://127.0.0.1:${port}`;
+let builtCryptoPromise = null;
 
 function assert(condition, message) {
   if (!condition) {
@@ -40,6 +41,33 @@ function getId(entity) {
 
 function last(array) {
   return Array.isArray(array) && array.length > 0 ? array[array.length - 1] : null;
+}
+
+async function loadBuiltCrypto() {
+  if (!builtCryptoPromise) {
+    builtCryptoPromise = import(pathToFileURL(path.join(backendDir, 'dist', 'utils', 'crypto.js')).href);
+  }
+
+  return builtCryptoPromise;
+}
+
+async function createKnownOtp(db, identifier, type) {
+  await db.collection('otps').deleteMany({ identifier, type });
+  const { generateOTP, hashPassword } = await loadBuiltCrypto();
+  const otp = generateOTP(6);
+  const otpHash = await hashPassword(otp);
+
+  await db.collection('otps').insertOne({
+    identifier,
+    type,
+    otpHash,
+    attempts: 0,
+    blockedUntil: null,
+    expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+    createdAt: new Date(),
+  });
+
+  return otp;
 }
 
 async function waitForHealth(url, attempts = 60) {
@@ -282,10 +310,19 @@ async function runSmokeSuite(url, db) {
   }
 
   async function getLatestAuditLog(action, entityId) {
+    const entityFilter = entityId
+      ? (() => {
+          const normalizedId = String(entityId);
+          return mongoose.Types.ObjectId.isValid(normalizedId)
+            ? { $or: [{ entityId: normalizedId }, { entityId: toObjectId(normalizedId) }] }
+            : { entityId: normalizedId };
+        })()
+      : {};
+
     return auditLogsCollection.findOne(
       {
         action,
-        ...(entityId ? { entityId } : {}),
+        ...entityFilter,
       },
       { sort: { createdAt: -1 } },
     );
@@ -364,17 +401,19 @@ async function runSmokeSuite(url, db) {
 
     state.customer = await login(url, 'guest@ambertable.com', 'Guest@123', 'Phase1 Verify Customer Relogin');
 
+    const customerMobile = '9999999999';
     const otpRequest = await request(url, 'POST', '/api/v1/auth/request-otp', {
-      body: { email: 'guest@ambertable.com' },
+      body: { mobile: customerMobile },
     });
     assert(otpRequest.status === 200, `request-otp returned ${otpRequest.status}`);
-    const otp = otpRequest.json?.data?.otp;
-    assert(otp, 'OTP was not returned in non-production verification mode');
+    assert(otpRequest.json?.data?.otpSent === true, 'request-otp did not confirm otpSent');
+    const otp = await createKnownOtp(db, customerMobile, 'mobile');
 
     const otpVerify = await request(url, 'POST', '/api/v1/auth/verify-otp', {
-      body: { email: 'guest@ambertable.com', otp },
+      body: { mobile: customerMobile, otp },
     });
     assert(otpVerify.status === 200, `verify-otp returned ${otpVerify.status}`);
+    assert(otpVerify.json?.data?.customerId, 'verify-otp response did not include customerId');
   });
 
   await runStep('auth register user lifecycle', async () => {
@@ -416,8 +455,8 @@ async function runSmokeSuite(url, db) {
       body: { email: tempEmail },
     });
     assert(forgot.status === 200, `forgot-password returned ${forgot.status}`);
-    const otp = forgot.json?.data?.otp;
-    assert(otp, 'OTP missing in forgot-password response in non-production mode');
+    assert(forgot.json?.data?.otpSent === true, 'forgot-password did not confirm otpSent');
+    const otp = await createKnownOtp(db, tempEmail, 'email');
 
     const verifyReset = await request(url, 'POST', '/api/v1/auth/verify-reset-otp', {
       body: { email: tempEmail, otp },
@@ -427,7 +466,7 @@ async function runSmokeSuite(url, db) {
     assert(resetToken, 'reset token missing in verify-reset-otp response');
 
     const reset = await request(url, 'POST', '/api/v1/auth/reset-password', {
-      body: { token: resetToken, password: resetPassword },
+      body: { resetToken, newPassword: resetPassword },
     });
     assert(reset.status === 200, `reset-password returned ${reset.status}`);
 
@@ -2114,6 +2153,20 @@ async function runSmokeSuite(url, db) {
     await tablesCollection.updateOne(
       { _id: toObjectId(state.createdTableId) },
       { $set: { status: 'PAYMENT_PENDING' } },
+    );
+
+    await ordersCollection.updateMany(
+      {
+        sessionId: toObjectId(state.createdSessionId),
+        status: { $nin: ['CANCELLED', 'REJECTED', 'COMPLETED'] },
+      },
+      {
+        $set: {
+          status: 'PAID',
+          paymentStatus: 'PAID',
+          paidAt: new Date(),
+        },
+      },
     );
 
     const endCustomerSession = await request(url, 'POST', '/api/v1/customer/session/end', {
