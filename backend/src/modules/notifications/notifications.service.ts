@@ -7,6 +7,24 @@ import { SocketEvent } from '../../constants/events';
 import { UserRole } from '../../constants/roles';
 import { NotificationCategory, NotificationPriority } from './notifications.schema';
 import mongoose from 'mongoose';
+import { AppError } from '../../utils/AppError';
+import { ErrorCode } from '../../constants/errors';
+
+type NotificationFilters = {
+  requestedRecipientRole?: UserRole;
+  isRead?: boolean;
+};
+
+type NotificationQuery = Record<string, unknown>;
+
+function isPrivilegedRole(role: UserRole): boolean {
+  return role === UserRole.RESTAURANT_ADMIN || role === UserRole.SUPER_ADMIN;
+}
+
+function getReadByObjectId(userId: mongoose.Types.ObjectId | string): mongoose.Types.ObjectId | null {
+  const normalizedId = userId.toString();
+  return mongoose.Types.ObjectId.isValid(normalizedId) ? new mongoose.Types.ObjectId(normalizedId) : null;
+}
 
 export class NotificationsService {
   /**
@@ -77,27 +95,71 @@ export class NotificationsService {
     return notification;
   }
 
+  public static getScopedRecipientRole(
+    actorRole: UserRole,
+    requestedRecipientRole?: UserRole
+  ): UserRole | undefined {
+    if (isPrivilegedRole(actorRole)) {
+      return requestedRecipientRole;
+    }
+
+    if (requestedRecipientRole && requestedRecipientRole !== actorRole) {
+      throw new AppError('Forbidden', 403, ErrorCode.FORBIDDEN);
+    }
+
+    return actorRole;
+  }
+
+  private static buildScopedQuery(
+    restaurantId: mongoose.Types.ObjectId | string,
+    actorRole: UserRole,
+    filters: NotificationFilters = {},
+    options: { activeOnly?: boolean; unreadOnly?: boolean } = {}
+  ): NotificationQuery {
+    const query: NotificationQuery = {
+      restaurantId,
+    };
+
+    if (options.activeOnly) {
+      query.expiresAt = { $gt: new Date() };
+    }
+
+    if (options.unreadOnly) {
+      query.isRead = false;
+    } else if (filters.isRead !== undefined) {
+      query.isRead = filters.isRead;
+    }
+
+    const scopedRecipientRole = this.getScopedRecipientRole(actorRole, filters.requestedRecipientRole);
+    if (scopedRecipientRole) {
+      query.recipientRole = scopedRecipientRole;
+    }
+
+    return query;
+  }
+
   /**
    * Get active (unexpired) notifications for a restaurant, with optional filters.
    */
   public static async getActiveNotifications(
     restaurantId: mongoose.Types.ObjectId | string,
-    filters: { recipientRole?: UserRole; isRead?: boolean } = {}
-  ): Promise<INotification[]> {
-    const query: any = {
+    actorRole: UserRole,
+    filters: NotificationFilters = {}
+  ): Promise<{ notifications: INotification[]; unreadCount: number }> {
+    const query = this.buildScopedQuery(restaurantId, actorRole, filters, { activeOnly: true });
+    const unreadQuery = this.buildScopedQuery(
       restaurantId,
-      expiresAt: { $gt: new Date() },
-    };
+      actorRole,
+      { requestedRecipientRole: filters.requestedRecipientRole },
+      { activeOnly: true, unreadOnly: true }
+    );
 
-    if (filters.recipientRole) {
-      query.recipientRole = filters.recipientRole;
-    }
+    const [notifications, unreadCount] = await Promise.all([
+      Notification.find(query).sort({ createdAt: -1 }),
+      Notification.countDocuments(unreadQuery),
+    ]);
 
-    if (filters.isRead !== undefined) {
-      query.isRead = filters.isRead;
-    }
-
-    return Notification.find(query).sort({ createdAt: -1 });
+    return { notifications, unreadCount };
   }
 
   /**
@@ -106,12 +168,13 @@ export class NotificationsService {
   public static async markAsRead(
     notificationId: mongoose.Types.ObjectId | string,
     restaurantId: mongoose.Types.ObjectId | string,
+    actorRole: UserRole,
     userId: mongoose.Types.ObjectId | string
   ): Promise<INotification | null> {
-    const notification = await Notification.findOne({
-      _id: notificationId,
-      restaurantId,
-    });
+    const query = this.buildScopedQuery(restaurantId, actorRole, undefined, { activeOnly: true });
+    query._id = notificationId;
+
+    const notification = await Notification.findOne(query);
 
     if (!notification) {
       return null;
@@ -120,7 +183,7 @@ export class NotificationsService {
     if (!notification.isRead) {
       notification.isRead = true;
       notification.readAt = new Date();
-      notification.readBy = new mongoose.Types.ObjectId(userId);
+      notification.readBy = getReadByObjectId(userId);
       await notification.save();
     }
 
@@ -132,24 +195,26 @@ export class NotificationsService {
    */
   public static async markAllAsRead(
     restaurantId: mongoose.Types.ObjectId | string,
+    actorRole: UserRole,
     recipientRole: UserRole | undefined,
     userId: mongoose.Types.ObjectId | string
-  ): Promise<void> {
-    const query: any = {
+  ): Promise<number> {
+    const query = this.buildScopedQuery(
       restaurantId,
-      isRead: false,
-    };
+      actorRole,
+      { requestedRecipientRole: recipientRole },
+      { activeOnly: true, unreadOnly: true }
+    );
+    const readBy = getReadByObjectId(userId);
 
-    if (recipientRole) {
-      query.recipientRole = recipientRole;
-    }
-
-    await Notification.updateMany(query, {
+    const result = await Notification.updateMany(query, {
       $set: {
         isRead: true,
         readAt: new Date(),
-        readBy: new mongoose.Types.ObjectId(userId),
+        readBy,
       },
     });
+
+    return result.modifiedCount ?? 0;
   }
 }
