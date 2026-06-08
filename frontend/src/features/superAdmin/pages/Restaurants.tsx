@@ -1,4 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
+import {
+  restaurantData,
+  type RestaurantsRow,
+} from "../store/Restaurants";
 import { 
   Search, 
   Eye, 
@@ -12,22 +16,11 @@ import {
   CheckCircle2,
   AlertCircle,
   TrendingUp,
-  RefreshCcw
+  RefreshCcw,
+  Plus
 } from "lucide-react";
 
 // Types & Interfaces
-interface RestaurantRow {
-  id: string;
-  name: string;
-  owner: string;
-  email: string;
-  phone: string;
-  location: string;
-  plan: "Premium" | "Standard" | "Basic";
-  status: "Active" | "Trial" | "Inactive";
-  revenue: string;
-  branches: number;
-}
 
 type StatusFilter = "All" | "Active" | "Trial" | "Inactive";
 
@@ -47,13 +40,21 @@ export default function Restaurant() {
   const [activeActionRow, setActiveActionRow] = useState<string | null>(null);
   
   // Dynamic Live State Management
-  const [restaurants, setRestaurants] = useState<RestaurantRow[]>([
-    { id: "R001", name: "Spice Paradise", owner: "Rajesh Kumar", email: "rajesh@spiceparadise.com", phone: "+91 98765 43210", location: "Mumbai, Maharashtra", plan: "Premium", status: "Active", revenue: "$128,450", branches: 3 },
-    { id: "R002", name: "Urban Bites", owner: "Priya Sharma", email: "priya@urbanbites.com", phone: "+91 98765 43211", location: "Delhi, NCR", plan: "Standard", status: "Active", revenue: "$115,280", branches: 2 },
-    { id: "R003", name: "Gourmet Haven", owner: "Amit Patel", email: "amit@gourmethaven.com", phone: "+91 98765 43212", location: "Bangalore, Karnataka", plan: "Premium", status: "Trial", revenue: "$98,760", branches: 1 },
-    { id: "R004", name: "Fusion Kitchen", owner: "Neha Singh", email: "neha@fusionkitchen.com", phone: "+91 98765 43213", location: "Pune, Maharashtra", plan: "Basic", status: "Active", revenue: "$89,450", branches: 2 },
-    { id: "R005", name: "Ocean Delights", owner: "Vikram Reddy", email: "vikram@oceandelights.com", phone: "+91 98765 43214", location: "Chennai, Tamil Nadu", plan: "Standard", status: "Inactive", revenue: "$82,340", branches: 1 }
-  ]);
+  const [restaurants, setRestaurants] = useState<RestaurantsRow[]>(restaurantData);
+
+  // Add Restaurant Modal visibility & form state
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [newRestaurant, setNewRestaurant] = useState({
+    name: "",
+    owner: "",
+    email: "",
+    phone: "",
+    location: "",
+    plan: "Basic" as "Premium" | "Standard" | "Basic",
+    status: "Trial" as "Active" | "Trial" | "Inactive",
+    revenue: "$0",
+    branches: 1
+  });
 
   // Sync themes with global layout pipeline
   useEffect(() => {
@@ -100,6 +101,41 @@ export default function Restaurant() {
   const updateRestaurantPlan = (id: string, newPlan: "Premium" | "Standard" | "Basic") => {
     setRestaurants(prev => prev.map(r => r.id === id ? { ...r, plan: newPlan } : r));
     setActiveActionRow(null);
+  };
+
+  // Submission handler for inserting data dynamically
+  const handleAddRestaurantSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRestaurant.name || !newRestaurant.owner) return;
+
+    const generatedRow: RestaurantsRow = {
+      id: `RST-${Math.floor(1000 + Math.random() * 9000)}`,
+      name: newRestaurant.name,
+      owner: newRestaurant.owner,
+      email: newRestaurant.email || "info@restaurant.com",
+      phone: newRestaurant.phone || "+1 (555) 000-0000",
+      location: newRestaurant.location || "Remote Deployment Location",
+      plan: newRestaurant.plan,
+      status: newRestaurant.status,
+      revenue: newRestaurant.revenue || "$0",
+      branches: Number(newRestaurant.branches) || 1
+    };
+
+    setRestaurants(prev => [generatedRow, ...prev]);
+    setIsModalOpen(false);
+    
+    // Reset Form parameters
+    setNewRestaurant({
+      name: "",
+      owner: "",
+      email: "",
+      phone: "",
+      location: "",
+      plan: "Basic",
+      status: "Trial",
+      revenue: "$0",
+      branches: 1
+    });
   };
 
   return (
@@ -166,44 +202,55 @@ export default function Restaurant() {
         </div>
       </div>
 
-      {/* FILTER CONTROLS BAR WITH ADAPTIVE INPUT COLORS */}
+      {/* FILTER CONTROLS BAR WITH ADAPTIVE INPUT COLORS & ADD BUTTON */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between mb-6">
-        <div className="relative w-full max-w-lg">
-          <Search className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 ${
-            darkMode ? "text-slate-500" : "text-slate-400"
-          }`} />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Live search by typing keywords..."
-            className={`w-full h-11 pl-11 pr-10 rounded-xl text-sm outline-none border transition-all ${
-              darkMode 
-                ? "bg-slate-900/50 border-slate-800 text-slate-100 focus:border-orange-500 placeholder:text-slate-500" 
-                : "bg-white border-slate-200 text-slate-800 focus:border-orange-500 placeholder:text-slate-400"
-            }`}
-          />
-          {searchQuery && (
-            <button 
-              onClick={() => setSearchQuery("")}
-              className={`absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors ${
-                darkMode ? "text-slate-500 hover:text-slate-200" : "text-slate-400 hover:text-slate-600"
+        <div className="flex flex-1 items-center gap-4 w-full max-w-lg">
+          <div className="relative w-full">
+            <Search className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 ${
+              darkMode ? "text-slate-500" : "text-slate-400"
+            }`} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Live search by typing keywords..."
+              className={`w-full h-11 pl-11 pr-10 rounded-xl text-sm outline-none border transition-all ${
+                darkMode 
+                  ? "bg-slate-900/50 border-slate-800 text-slate-100 focus:border-orange-500 placeholder:text-slate-500" 
+                  : "bg-white border-slate-200 text-slate-800 focus:border-orange-500 placeholder:text-slate-400"
               }`}
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery("")}
+                className={`absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors ${
+                  darkMode ? "text-slate-500 hover:text-slate-200" : "text-slate-400 hover:text-slate-600"
+                }`}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {statusFilter !== "All" && (
+            <button 
+              onClick={() => setStatusFilter("All")}
+              className="flex shrink-0 items-center gap-2 px-3 py-1.5 text-xs font-semibold bg-orange-500/10 text-orange-500 rounded-lg hover:bg-orange-500/20 transition-colors"
             >
-              <X size={14} />
+              <span>Showing state: {statusFilter}</span>
+              <RefreshCcw size={12} />
             </button>
           )}
         </div>
 
-        {statusFilter !== "All" && (
-          <button 
-            onClick={() => setStatusFilter("All")}
-            className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold bg-orange-500/10 text-orange-500 rounded-lg hover:bg-orange-500/20 transition-colors"
-          >
-            <span>Showing state: {statusFilter}</span>
-            <RefreshCcw size={12} />
-          </button>
-        )}
+        {/* Global Action: Add Restaurants Trigger */}
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center justify-center gap-2 h-11 px-5 text-sm font-bold bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-all shadow-md shadow-orange-500/10 w-full sm:w-auto"
+        >
+          <Plus size={16} />
+          <span>Add Restaurant</span>
+        </button>
       </div>
 
       {/* RESTAURANTS DATA TABLE SHEET */}
@@ -315,7 +362,7 @@ export default function Restaurant() {
 
                           {activeActionRow === row.id && (
                             <>
-                              <button type="button" className="fixed inset-0 z-10" onClick={() => setActiveActionRow(null)}aria-label="Close dropdown"/>
+                              <button type="button" className="fixed inset-0 z-10" onClick={() => setActiveActionRow(null)} aria-label="Close dropdown"/>
                               <div className={`absolute right-0 mt-2 w-48 rounded-xl border p-2 shadow-xl z-20 text-left ${
                                 darkMode ? "bg-[#0b1324] border-slate-800 shadow-black/40" : "bg-white border-slate-200 shadow-slate-200"
                               }`}>
@@ -370,6 +417,171 @@ export default function Restaurant() {
           )}
         </div>
       </div>
+
+      {/* DYNAMIC MODAL BOX COMPONENT */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-black/40 animate-fade-in">
+          <div className={`w-full max-w-md rounded-2xl border p-6 shadow-2xl transition-all ${
+            darkMode ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200 text-slate-800"
+          }`}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-bold tracking-tight">Register New Restaurant</h3>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className={`p-1.5 rounded-lg transition-colors ${darkMode ? "hover:bg-slate-900 text-slate-400" : "hover:bg-slate-100 text-slate-500"}`}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddRestaurantSubmit} className="space-y-4">
+              <div>
+                <label className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Restaurant Name</label>
+                <input 
+                  type="text" 
+                  required
+                  value={newRestaurant.name}
+                  onChange={e => setNewRestaurant(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="e.g. Urban Bistro HQ"
+                  className={`w-full h-10 px-3 rounded-xl text-sm border outline-none transition-all ${
+                    darkMode ? "bg-slate-900/50 border-slate-800 text-white focus:border-orange-500" : "bg-slate-50 border-slate-200 focus:border-orange-500"
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Owner Full Name</label>
+                <input 
+                  type="text" 
+                  required
+                  value={newRestaurant.owner}
+                  onChange={e => setNewRestaurant(prev => ({ ...prev, owner: e.target.value }))}
+                  placeholder="e.g. John Doe"
+                  className={`w-full h-10 px-3 rounded-xl text-sm border outline-none transition-all ${
+                    darkMode ? "bg-slate-900/50 border-slate-800 text-white focus:border-orange-500" : "bg-slate-50 border-slate-200 focus:border-orange-500"
+                  }`}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Email</label>
+                  <input 
+                    type="email"
+                    value={newRestaurant.email}
+                    onChange={e => setNewRestaurant(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="contact@brand.com"
+                    className={`w-full h-10 px-3 rounded-xl text-sm border outline-none transition-all ${
+                      darkMode ? "bg-slate-900/50 border-slate-800 text-white focus:border-orange-500" : "bg-slate-50 border-slate-200 focus:border-orange-500"
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Phone</label>
+                  <input 
+                    type="text"
+                    value={newRestaurant.phone}
+                    onChange={e => setNewRestaurant(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="+1 (555) 019-2834"
+                    className={`w-full h-10 px-3 rounded-xl text-sm border outline-none transition-all ${
+                      darkMode ? "bg-slate-900/50 border-slate-800 text-white focus:border-orange-500" : "bg-slate-50 border-slate-200 focus:border-orange-500"
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Location Coordinates</label>
+                <input 
+                  type="text"
+                  value={newRestaurant.location}
+                  onChange={e => setNewRestaurant(prev => ({ ...prev, location: e.target.value }))}
+                  placeholder="e.g. Broadway, New York, NY"
+                  className={`w-full h-10 px-3 rounded-xl text-sm border outline-none transition-all ${
+                    darkMode ? "bg-slate-900/50 border-slate-800 text-white focus:border-orange-500" : "bg-slate-50 border-slate-200 focus:border-orange-500"
+                  }`}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Tier Bracket</label>
+                  <select
+                    value={newRestaurant.plan}
+                    onChange={e => setNewRestaurant(prev => ({ ...prev, plan: e.target.value as any }))}
+                    className={`w-full h-10 px-2 rounded-xl text-sm border outline-none transition-all ${
+                      darkMode ? "bg-slate-900 border-slate-800 text-white focus:border-orange-500" : "bg-slate-50 border-slate-200 focus:border-orange-500"
+                    }`}
+                  >
+                    <option value="Basic">Basic Tier</option>
+                    <option value="Standard">Standard Tier</option>
+                    <option value="Premium">Premium Tier</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Initial Status</label>
+                  <select
+                    value={newRestaurant.status}
+                    onChange={e => setNewRestaurant(prev => ({ ...prev, status: e.target.value as any }))}
+                    className={`w-full h-10 px-2 rounded-xl text-sm border outline-none transition-all ${
+                      darkMode ? "bg-slate-900 border-slate-800 text-white focus:border-orange-500" : "bg-slate-50 border-slate-200 focus:border-orange-500"
+                    }`}
+                  >
+                    <option value="Trial">Trial</option>
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Est. Revenue ($)</label>
+                  <input 
+                    type="text"
+                    value={newRestaurant.revenue}
+                    onChange={e => setNewRestaurant(prev => ({ ...prev, revenue: e.target.value }))}
+                    placeholder="e.g. $12,500"
+                    className={`w-full h-10 px-3 rounded-xl text-sm border outline-none transition-all ${
+                      darkMode ? "bg-slate-900/50 border-slate-800 text-white focus:border-orange-500" : "bg-slate-50 border-slate-200 focus:border-orange-500"
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-xs font-semibold uppercase mb-1.5 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Total Branches</label>
+                  <input 
+                    type="number"
+                    min="1"
+                    value={newRestaurant.branches}
+                    onChange={e => setNewRestaurant(prev => ({ ...prev, branches: Number(e.target.value) }))}
+                    className={`w-full h-10 px-3 rounded-xl text-sm border outline-none transition-all ${
+                      darkMode ? "bg-slate-900/50 border-slate-800 text-white focus:border-orange-500" : "bg-slate-50 border-slate-200 focus:border-orange-500"
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className={`flex-1 h-11 text-xs font-bold rounded-xl transition-colors border ${
+                    darkMode ? "border-slate-800 hover:bg-slate-900 text-slate-300" : "border-slate-200 hover:bg-slate-50 text-slate-600"
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 h-11 text-xs font-bold bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors shadow-md shadow-orange-500/10"
+                >
+                  Save Nodes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

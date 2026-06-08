@@ -6,5 +6,5 @@ export const appRoutes = {
   kitchen: '/kitchen',
   cleaning: '/cleaning',
   admin: '/admin',
-  superAdmin: '/super-admin',
+  superAdmin: '/superadmin',
 } as const;

@@ -1,4 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import {
+  revenueData,
+  pieData,
+  restaurants,
+  stats,
+} from "../store/Superadmindashboard";
 import { 
   Bell, 
   Moon, 
@@ -9,7 +15,8 @@ import {
   ShoppingBag, 
   Percent, 
   TrendingUp,
-  ChevronDown
+  ChevronDown,
+  LogOut
 } from "lucide-react";
 import {
   LineChart,
@@ -25,68 +32,16 @@ import {
   Cell,
 } from "recharts";
 
-const revenueData = [
-  { month: "Jan", revenue: 42000, orders: 45000 },
-  { month: "Feb", revenue: 50000, orders: 52000 },
-  { month: "Mar", revenue: 46000, orders: 47000 },
-  { month: "Apr", revenue: 60000, orders: 62000 },
-  { month: "May", revenue: 54000, orders: 55000 },
-  { month: "Jun", revenue: 68000, orders: 70000 },
-];
-
-const pieData = [
-  { name: "Active", value: 72, color: "#10B981" },
-  { name: "Trial", value: 20, color: "#F97316" },
-  { name: "Inactive", value: 6, color: "#64748B" },
-  { name: "Blocked", value: 2, color: "#EF4444" },
-];
-
-const restaurants = [
-  { name: "Burger House", orders: 1240, revenue: "$12,400", growth: "+12%" },
-  { name: "Pizza Hub", orders: 980, revenue: "$9,200", growth: "+9%" },
-  { name: "Food Point", orders: 870, revenue: "$8,100", growth: "+7%" },
-];
-
-const stats = [
-  { 
-    title: "Total Restaurants", 
-    value: "216", 
-    growth: "+12.5%", 
-    icon: Utensils, 
-    lightColor: "text-emerald-600 bg-emerald-500/10",
-    darkColor: "text-emerald-400 bg-emerald-500/10" 
-  },
-  { 
-    title: "Monthly Revenue", 
-    value: "$67,000", 
-    growth: "+21.8%", 
-    icon: DollarSign, 
-    lightColor: "text-amber-600 bg-amber-500/10",
-    darkColor: "text-amber-400 bg-amber-500/10" 
-  },
-  { 
-    title: "Total Orders", 
-    value: "8,970", 
-    growth: "+15.3%", 
-    icon: ShoppingBag, 
-    lightColor: "text-blue-600 bg-blue-500/10",
-    darkColor: "text-blue-400 bg-blue-500/10" 
-  },
-  { 
-    title: "Commission Earned", 
-    value: "$6,700", 
-    growth: "+18.4%", 
-    icon: Percent, 
-    lightColor: "text-indigo-600 bg-indigo-500/10",
-    darkColor: "text-indigo-400 bg-indigo-500/10" 
-  },
-];
 
 export default function SuperAdminDashboard() {
   const [darkMode, setDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem("theme");
     return savedTheme ? savedTheme === "dark" : true;
   });
+  
+  // State to control profile dropdown visibility
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Listen for changes made by the Layout sidebar toggle
   useEffect(() => {
@@ -99,6 +54,17 @@ export default function SuperAdminDashboard() {
 
     window.addEventListener("sync-app-theme", handleThemeSync);
     return () => window.removeEventListener("sync-app-theme", handleThemeSync);
+  }, []);
+
+  // Close the profile dropdown if clicking outside of it
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setProfileDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // When manually toggled via dashboard navbar, update document & inform layout
@@ -116,6 +82,11 @@ export default function SuperAdminDashboard() {
 
     // Fire event to notify Layout sidebar
     window.dispatchEvent(new CustomEvent("sync-app-theme", { detail: { darkMode: nextMode } }));
+  };
+
+  const handleLogout = () => {
+    // Add your application's logout logic here (e.g., clearing tokens, redirecting)
+    console.log("Logging out...");
   };
 
   return (
@@ -178,18 +149,42 @@ export default function SuperAdminDashboard() {
 
             <div className="h-5 w-px bg-slate-200 dark:bg-slate-800" />
 
-            <button className={`flex items-center gap-2.5 p-1 rounded-xl transition-all ${darkMode ? "hover:bg-slate-900/60" : "hover:bg-slate-100"}`}>
-              <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100&q=80"
-                alt="profile"
-                className="w-7 h-7 rounded-lg object-cover ring-1 ring-slate-200 dark:ring-slate-800"
-              />
-              <div className="hidden lg:block text-left leading-none">
-                <h4 className="font-semibold text-xs tracking-tight">Mr. Souvik</h4>
-                <p className={`text-[10px] mt-0.5 font-medium ${darkMode ? "text-slate-500" : "text-slate-400"}`}>Global Admin</p>
-              </div>
-              <ChevronDown size={14} className={darkMode ? "text-slate-500" : "text-slate-400"} />
-            </button>
+            {/* Profile Dropdown Container */}
+            <div className="relative" ref={dropdownRef}>
+              <button 
+                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                className={`flex items-center gap-2.5 p-1 rounded-xl transition-all ${darkMode ? "hover:bg-slate-900/60" : "hover:bg-slate-100"}`}
+              >
+                <img
+                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100&q=80"
+                  alt="profile"
+                  className="w-7 h-7 rounded-lg object-cover ring-1 ring-slate-200 dark:ring-slate-800"
+                />
+                <div className="hidden lg:block text-left leading-none">
+                  <h4 className="font-semibold text-xs tracking-tight">Mr. Souvik</h4>
+                  <p className={`text-[10px] mt-0.5 font-medium ${darkMode ? "text-slate-500" : "text-slate-400"}`}>Global Admin</p>
+                </div>
+                <ChevronDown size={14} className={`transition-transform duration-200 ${profileDropdownOpen ? "rotate-180" : ""} ${darkMode ? "text-slate-500" : "text-slate-400"}`} />
+              </button>
+
+              {/* Logout Button Dropdown Menu */}
+              {profileDropdownOpen && (
+                <div className={`absolute right-0 mt-2 w-48 rounded-xl border p-1 shadow-lg transition-all duration-200 ${
+                  darkMode 
+                    ? "bg-slate-950 border-slate-800 text-slate-200 shadow-black/40" 
+                    : "bg-white border-slate-200 text-slate-800 shadow-slate-200/40"
+                }`}>
+                  <button
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-red-500 hover:bg-red-500/10 transition-colors"
+                  >
+                    <LogOut size={14} />
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
       </header>
