@@ -6,6 +6,7 @@ import { cleaningRoutes } from '../routes/cleaning.routes';
 import { adminRoutes } from '../routes/admin.routes';
 import { superAdminRoutes } from '../routes/superAdmin.routes';
 import { authRoutes } from '../routes/auth.routes';
+
 import { ProtectedRoute } from './guards/ProtectedRoute';
 import { RoleGuard } from './guards/RoleGuard';
 import { useAuth, type AppRole } from './providers/AuthProvider';
@@ -103,6 +104,7 @@ function AppRouter(): JSX.Element {
           element: <RoleGuard roles={['cleaning']} />,
           children: cleaningRoutes,
         },
+
         {
           element: <RoleGuard roles={['admin']} />,
           children: adminRoutes,

@@ -21,7 +21,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   tableAPI,
   requestsAPI,
-  foodAlertsAPI,
+  ordersAPI,
   staffAPI,
   analyticsAPI,
   userAPI,
@@ -225,7 +225,7 @@ export function useStaff() {
       ] = await Promise.all([
         tableAPI.getTables(),
         requestsAPI.getPending(),
-        foodAlertsAPI.getActive(),
+        ordersAPI.getReadyOrders(),
         staffAPI.getAll(),
         staffAPI.getStats(),
         analyticsAPI.getAttendance(),
@@ -287,7 +287,11 @@ export function useStaff() {
   ) => {
     setFoodAlerts(prev => prev.filter(a => a.id !== id));
     cache.clear('foodAlerts');
-    await foodAlertsAPI.action(id, action);
+    if (action === 'picked_up') {
+      await ordersAPI.pickOrder(id);
+    } else {
+      await ordersAPI.serveOrder(id);
+    }
   }, []);
 
   const handleAddStaff = useCallback(async (staff: Omit<StaffMember, 'id'>) => {

@@ -1,12 +1,7 @@
-// ─── StaffDashboard.tsx ───────────────────────────────────────
-// Location: src/features/staff/pages/StaffDashboard.tsx
-//
-// All data comes from useStaff() — zero hardcoded values.
-// Imports match exactly what usestaff.ts exports.
-
 import React, { useState, useEffect } from 'react';
+import { NavLink } from 'react-router-dom';
 import {
-  ShoppingBag, UtensilsCrossed, Users, UserCog, Settings,
+  UtensilsCrossed, Users, UserCog, Settings,
   BellRing, Search, ChefHat, Droplets, Sparkles, CheckCircle2,
   TableProperties, User, Sun, Moon, Download, Plus,
   TrendingUp, TrendingDown, Star, DollarSign, UserCheck,
@@ -27,6 +22,8 @@ import type {
 
 // ── Hook (data + actions only, no types) ──
 import { useStaff } from '../hooks/usestaff';
+import { useNotifications } from '../hooks/useNotifications';
+import { NotificationWindow } from '../components/NotificationWindow';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
@@ -59,35 +56,34 @@ type Theme = typeof darkTheme;
 // ─── Nav items ────────────────────────────────────────────────
 
 const navItems = [
-  { label: 'Cleaning',            Icon: Sparkles },
-  { label: 'Staff Management',    Icon: Users       },
-  { label: 'Notifications',       Icon: ShoppingBag     },
-  { label: 'Profile',             Icon: UserCog       },
-  { label: 'Settings',            Icon: Settings        },
+  { label: 'Staff Management', Icon: Users, to: '/staff' },
+  { label: 'Notifications', Icon: Bell, to: '/staff/notifications' },
+  { label: 'Profile', Icon: UserCog, to: '/staff/profile' },
+  { label: 'Settings', Icon: Settings, to: '/staff/settings' },
 ];
 
 // ─── Status config ────────────────────────────────────────────
 
 const statusConfig: Record<TableStatus, { label: string; color: string; bg: string; dot: string }> = {
-  available:      { label: 'Available',      color: '#22c55e', bg: 'rgba(34,197,94,0.15)',  dot: '#22c55e' },
-  occupied:       { label: 'Occupied',       color: '#f97316', bg: 'rgba(249,115,22,0.15)', dot: '#f97316' },
-  order_placed:   { label: 'Order Placed',   color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', dot: '#f59e0b' },
-  food_ready:     { label: 'Food Ready',     color: '#f97316', bg: 'rgba(249,115,22,0.2)',  dot: '#f97316' },
-  served:         { label: 'Served',         color: '#8b5cf6', bg: 'rgba(139,92,246,0.15)', dot: '#8b5cf6' },
-  needs_cleaning: { label: 'Needs Cleaning', color: '#ef4444', bg: 'rgba(239,68,68,0.15)',  dot: '#ef4444' },
+  available: { label: 'Available', color: '#22c55e', bg: 'rgba(34,197,94,0.15)', dot: '#22c55e' },
+  occupied: { label: 'Occupied', color: '#f97316', bg: 'rgba(249,115,22,0.15)', dot: '#f97316' },
+  order_placed: { label: 'Order Placed', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', dot: '#f59e0b' },
+  food_ready: { label: 'Food Ready', color: '#f97316', bg: 'rgba(249,115,22,0.2)', dot: '#f97316' },
+  served: { label: 'Served', color: '#8b5cf6', bg: 'rgba(139,92,246,0.15)', dot: '#8b5cf6' },
+  needs_cleaning: { label: 'Needs Cleaning', color: '#ef4444', bg: 'rgba(239,68,68,0.15)', dot: '#ef4444' },
 };
 
 const requestConfig = {
-  call_waiter:   { label: 'Call Waiter',   Icon: BellRing,        color: '#f97316' },
-  water_refill:  { label: 'Water Refill',  Icon: Droplets,        color: '#3b82f6' },
+  call_waiter: { label: 'Call Waiter', Icon: BellRing, color: '#f97316' },
+  water_refill: { label: 'Water Refill', Icon: Droplets, color: '#3b82f6' },
   extra_cutlery: { label: 'Extra Cutlery', Icon: UtensilsCrossed, color: '#8b5cf6' },
-  cleaning:      { label: 'Cleaning',      Icon: Sparkles,        color: '#22c55e' },
+  cleaning: { label: 'Cleaning', Icon: Sparkles, color: '#22c55e' },
 };
 
 const roleBadgeStyle: Record<string, { bg: string; color: string }> = {
-  Manager:   { bg: 'rgba(249,115,22,0.12)',  color: '#ea6c0a' },
-  Server:    { bg: 'rgba(34,197,94,0.12)',   color: '#16a34a' },
-  Chef:      { bg: 'rgba(59,130,246,0.12)',  color: '#2563eb' },
+  Manager: { bg: 'rgba(249,115,22,0.12)', color: '#ea6c0a' },
+  Server: { bg: 'rgba(34,197,94,0.12)', color: '#16a34a' },
+  Chef: { bg: 'rgba(59,130,246,0.12)', color: '#2563eb' },
   Bartender: { bg: 'rgba(139,92,246,0.12)', color: '#7c3aed' },
 };
 
@@ -145,18 +141,19 @@ const TableCard = ({
 // ─── Main Dashboard ───────────────────────────────────────────
 
 const StaffDashboard: React.FC = () => {
-  const [isDark,       setIsDark]       = useState(false);
-  const [isMobile,     setIsMobile]     = useState(window.innerWidth < 768);
-  const [sidebarOpen,  setSidebarOpen]  = useState(false);
-  const [activeNav,    setActiveNav]    = useState('Dashboard');
-  const [searchQuery,  setSearchQuery]  = useState('');
-  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const [isModalOpen,  setIsModalOpen]  = useState(false);
-  const [modalMode,    setModalMode]    = useState<'add' | 'edit'>('add');
+  const { unreadCount } = useNotifications();
+  const [isDark, setIsDark] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isNotificationWindowOpen, setIsNotificationWindowOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
-  const [formName,     setFormName]     = useState('');
-  const [formPhone,    setFormPhone]    = useState('');
-  const [formRole,     setFormRole]     = useState<StaffMember['role']>('Server');
+  const [formName, setFormName] = useState('');
+  const [formPhone, setFormPhone] = useState('');
+  const [formRole, setFormRole] = useState<StaffMember['role']>('Server');
   const [formDepartment, setFormDepartment] = useState('Service');
   const [formHireDate, setFormHireDate] = useState('');
 
@@ -298,9 +295,9 @@ const StaffDashboard: React.FC = () => {
   );
 
   // ── Responsive helpers ──
-  const pad  = isMobile ? '14px' : '24px';
-  const gap  = isMobile ? '16px' : '24px';
-  const cp   = isMobile ? '12px' : '20px'; // card padding
+  const pad = isMobile ? '14px' : '24px';
+  const gap = isMobile ? '16px' : '24px';
+  const cp = isMobile ? '12px' : '20px'; // card padding
 
   const card = (extra?: React.CSSProperties): React.CSSProperties => ({
     background: theme.cardBg, border: `1px solid ${theme.cardBorder}`,
@@ -312,7 +309,7 @@ const StaffDashboard: React.FC = () => {
     color: theme.textPrimary, margin: '0 0 12px 0',
   };
 
-  const twoCol:  React.CSSProperties = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap };
+  const twoCol: React.CSSProperties = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap };
   const fourCol: React.CSSProperties = { display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4,1fr)', gap: '10px' };
   const fiveCol: React.CSSProperties = { display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(5,1fr)', gap: '10px' };
 
@@ -475,17 +472,56 @@ const StaffDashboard: React.FC = () => {
           </div>
         )}
 
-        {navItems.map(({ label, Icon }) => (
-          <button key={label} onClick={() => { setActiveNav(label); if (isMobile) setSidebarOpen(false); }} style={{
-            display: 'flex', alignItems: 'center', gap: '10px',
-            padding: '8px 12px', borderRadius: '10px', border: 'none', cursor: 'pointer',
-            fontSize: '12px', fontWeight: activeNav === label ? 600 : 400,
-            background: activeNav === label ? '#f97316' : 'transparent',
-            color: activeNav === label ? '#fff' : theme.navInactive,
-            width: '100%', textAlign: 'left', transition: 'all 0.15s', fontFamily: theme.font,
-          }}>
-            <Icon size={15} />{label}
-          </button>
+        {navItems.map(({ label, Icon, to }) => (
+          <NavLink
+            key={label}
+            to={to}
+            onClick={(event) => {
+              if (label === 'Notifications') {
+                event.preventDefault();
+                setIsNotificationWindowOpen(true);
+              }
+              if (isMobile) setSidebarOpen(false);
+            }}
+            style={({ isActive }) => ({
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '8px 12px',
+              borderRadius: '10px',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: isActive ? 600 : 400,
+              background: isActive ? '#f97316' : 'transparent',
+              color: isActive ? '#fff' : theme.navInactive,
+              width: '100%',
+              textAlign: 'left',
+              transition: 'all 0.15s',
+              textDecoration: 'none',
+              fontFamily: theme.font,
+              position: 'relative',
+            })}
+          >
+            <Icon size={15} />
+            <span style={{ flex: 1 }}>{label}</span>
+            {label === 'Notifications' && unreadCount > 0 && (
+              <span style={{
+                background: '#ef4444',
+                color: '#fff',
+                fontSize: '10px',
+                fontWeight: 700,
+                borderRadius: '999px',
+                padding: '2px 6px',
+                minWidth: '16px',
+                textAlign: 'center',
+                display: 'inline-block',
+                lineHeight: 1,
+              }}>
+                {unreadCount}
+              </span>
+            )}
+          </NavLink>
         ))}
 
         <div style={{ flex: 1 }} />
@@ -543,54 +579,6 @@ const StaffDashboard: React.FC = () => {
 
           <div style={{ flex: 1 }} />
 
-          {/* Bell — badge count from requests.length, not hardcoded */}
-          <div style={{ position: 'relative' }}>
-            <button onClick={() => setIsNotificationOpen(prev => !prev)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: theme.textSecondary, padding: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Bell size={18} color={theme.textSecondary} />
-              {requests.length > 0 && (
-                <span style={{ position: 'absolute', top: '-5px', right: '-6px', background: '#f97316', color: '#fff', fontSize: '9px', fontWeight: 700, borderRadius: '999px', padding: '1px 4px', lineHeight: '13px' }}>
-                  {requests.length}
-                </span>
-              )}
-            </button>
-
-            {isNotificationOpen && (
-              <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 10px)', width: '340px', maxWidth: 'calc(100vw - 24px)', background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: '20px', boxShadow: '0 30px 60px rgba(0,0,0,0.15)', padding: '16px', zIndex: 60 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <div>
-                    <p style={{ fontSize: '13px', fontWeight: 700, color: theme.textPrimary, margin: 0 }}>Notifications</p>
-                    <p style={{ fontSize: '11px', color: theme.textMuted, margin: '4px 0 0 0' }}>{requests.length} new request{requests.length === 1 ? '' : 's'} waiting</p>
-                  </div>
-                  <button onClick={() => setIsNotificationOpen(false)} style={{ background: 'transparent', border: 'none', color: theme.textSecondary, cursor: 'pointer', fontSize: '16px' }}>×</button>
-                </div>
-                {requests.length === 0 ? (
-                  <div style={{ padding: '14px 0', textAlign: 'center', color: theme.textMuted, fontSize: '12px' }}>You&apos;re all caught up.</div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {requests.map(req => {
-                      const cfg = requestConfig[req.type];
-                      return (
-                        <div key={req.id} style={{ background: theme.miniCardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: '16px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <div style={{ width: '24px', height: '24px', borderRadius: '10px', background: `${cfg.color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: cfg.color }}>
-                                <cfg.Icon size={14} />
-                              </div>
-                              <p style={{ fontSize: '12px', fontWeight: 600, color: theme.textPrimary, margin: 0 }}>Table {req.tableNumber}</p>
-                            </div>
-                            <span style={{ fontSize: '10px', color: cfg.color, fontWeight: 700 }}>{cfg.label}</span>
-                          </div>
-                          <p style={{ fontSize: '11px', color: theme.textMuted, margin: 0 }}>{req.time}</p>
-                          <button onClick={() => { handleResolveRequest(req.id); setIsNotificationOpen(false); }} style={{ alignSelf: 'flex-start', background: '#f97316', color: '#fff', border: 'none', borderRadius: '10px', padding: '7px 12px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', fontFamily: theme.font }}>Resolve</button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
           {/* Theme toggle */}
           <button onClick={() => setIsDark(!isDark)} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 10px', borderRadius: '8px', cursor: 'pointer', border: `1px solid ${theme.cardBorder}`, background: theme.cardBg, color: theme.textSecondary, fontSize: '11px', fontFamily: theme.font }}>
             {isDark ? <Sun size={13} /> : <Moon size={13} />}
@@ -635,11 +623,11 @@ const StaffDashboard: React.FC = () => {
           {/* ── Staff stats (from staffStats hook data) ── */}
           <div style={fiveCol}>
             {[
-              { label: 'Total Staff',     value: staffStats.totalStaff,    sub: staffStats.totalStaffTrend,   subColor: '#22c55e', Icon: Users,      iconBg: 'rgba(249,115,22,0.1)',  iconColor: '#f97316' },
-              { label: 'Active Today',    value: staffStats.activeToday,   sub: `${Math.round(staffStats.activeToday / staffStats.totalStaff * 100)}% of total`, subColor: theme.textMuted, Icon: UserCheck, iconBg: 'rgba(34,197,94,0.1)',  iconColor: '#22c55e' },
-              { label: 'On Leave',        value: staffStats.onLeave,       sub: `${Math.round(staffStats.onLeave / staffStats.totalStaff * 100)}% of total`,    subColor: theme.textMuted, Icon: UserMinus, iconBg: 'rgba(139,92,246,0.1)', iconColor: '#8b5cf6' },
-              { label: 'Payroll (May)',   value: staffStats.totalPayroll,  sub: staffStats.totalPayrollTrend, subColor: '#ef4444', Icon: DollarSign, iconBg: 'rgba(59,130,246,0.1)',  iconColor: '#3b82f6' },
-              { label: 'Avg Performance', value: staffStats.avgPerformance, sub: staffStats.avgPerfTrend,     subColor: '#22c55e', Icon: Star,       iconBg: 'rgba(245,158,11,0.1)',  iconColor: '#f59e0b' },
+              { label: 'Total Staff', value: staffStats.totalStaff, sub: staffStats.totalStaffTrend, subColor: '#22c55e', Icon: Users, iconBg: 'rgba(249,115,22,0.1)', iconColor: '#f97316' },
+              { label: 'Active Today', value: staffStats.activeToday, sub: `${Math.round(staffStats.activeToday / staffStats.totalStaff * 100)}% of total`, subColor: theme.textMuted, Icon: UserCheck, iconBg: 'rgba(34,197,94,0.1)', iconColor: '#22c55e' },
+              { label: 'On Leave', value: staffStats.onLeave, sub: `${Math.round(staffStats.onLeave / staffStats.totalStaff * 100)}% of total`, subColor: theme.textMuted, Icon: UserMinus, iconBg: 'rgba(139,92,246,0.1)', iconColor: '#8b5cf6' },
+              { label: 'Payroll (May)', value: staffStats.totalPayroll, sub: staffStats.totalPayrollTrend, subColor: '#ef4444', Icon: DollarSign, iconBg: 'rgba(59,130,246,0.1)', iconColor: '#3b82f6' },
+              { label: 'Avg Performance', value: staffStats.avgPerformance, sub: staffStats.avgPerfTrend, subColor: '#22c55e', Icon: Star, iconBg: 'rgba(245,158,11,0.1)', iconColor: '#f59e0b' },
             ].map(({ label, value, sub, subColor, Icon, iconBg, iconColor }) => (
               <div key={label} style={card()}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
@@ -656,9 +644,9 @@ const StaffDashboard: React.FC = () => {
           <div style={fourCol}>
             {[
               { label: 'Total Tables', value: floorStats.totalTables, color: '#f97316', Icon: TableProperties },
-              { label: 'Occupied',     value: floorStats.occupied,    color: '#f59e0b', Icon: Users           },
-              { label: 'Food Ready',   value: floorStats.foodReady,   color: '#22c55e', Icon: ChefHat         },
-              { label: 'Pending Reqs', value: floorStats.pendingReqs, color: '#8b5cf6', Icon: BellRing        },
+              { label: 'Occupied', value: floorStats.occupied, color: '#f59e0b', Icon: Users },
+              { label: 'Food Ready', value: floorStats.foodReady, color: '#22c55e', Icon: ChefHat },
+              { label: 'Pending Reqs', value: floorStats.pendingReqs, color: '#8b5cf6', Icon: BellRing },
             ].map(({ label, value, color, Icon }) => (
               <div key={label} style={card()}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -882,7 +870,7 @@ const StaffDashboard: React.FC = () => {
                 <TrendingUp size={12} /> {performance.trend}
               </p>
               <div style={{ position: 'relative', height: '140px' }}>
-                 <Bar data={perfChartData} options={chartOptions(true) as Record<string, unknown>} />
+                <Bar data={perfChartData} options={chartOptions(true) as Record<string, unknown>} />
               </div>
             </div>
 
@@ -1072,6 +1060,12 @@ const StaffDashboard: React.FC = () => {
           </div>
         )}
       </div>
+
+      <NotificationWindow
+        open={isNotificationWindowOpen}
+        onClose={() => setIsNotificationWindowOpen(false)}
+        theme={theme}
+      />
 
       <style>{`
         * { box-sizing: border-box; }
