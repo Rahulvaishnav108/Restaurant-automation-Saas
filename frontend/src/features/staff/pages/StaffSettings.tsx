@@ -25,11 +25,9 @@ import {
   ShieldCheck,
   Sparkles,
   Sun,
-  User,
   UserCog,
   Users,
   X,
-  Zap,
 } from 'lucide-react';
 import { useSettings } from '../hooks/useSettings';
 import { useThemeMode } from '../../../shared/hooks/useThemeMode';
@@ -69,7 +67,6 @@ const lightTheme = {
   accent: '#f97316',
 };
 
-type Theme = typeof darkTheme;
 
 const staffSidebarNav = [
   { label: 'Staff Management', Icon: Users, to: '/staff' },
@@ -95,7 +92,6 @@ const notificationIcons: Record<string, LucideIcon> = {
   bell: Bell,
 };
 
-const intervalOptions = ['2 min', '10 min', '30 min', '2 hours'];
 const staffOptions = ['30 min', '5 tasks', '8 hours', '4 staff', '45 min', '6 tasks', '10 hours', '5 staff'];
 
 const Toggle = ({
@@ -154,7 +150,6 @@ const StaffSettings = () => {
     loading,
     saving,
     error,
-    hasNotificationsEnabled,
     saveSettings,
     updateDraft,
     toggleNotification,

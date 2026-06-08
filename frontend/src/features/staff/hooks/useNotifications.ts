@@ -94,6 +94,7 @@ export function useNotifications() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- async fetch on mount, setState is post-await
     void fetchNotifications();
   }, [fetchNotifications]);
 

@@ -236,52 +236,52 @@ export const cleaningAPI = {
     });
   },
 
-  updateJobStatus: async (jobId: number, status: string): Promise<ApiResponse<void>> => {
+  updateJobStatus: async (_jobId: number, _status: string): Promise<ApiResponse<void>> => {
     // This method is not part of the documented cleaning tasks API, but is retained for compatibility.
     return Promise.resolve({ success: true });
   },
 
-  addDiningTable: async (tableNumber: number): Promise<ApiResponse<void>> => {
+  addDiningTable: async (_tableNumber: number): Promise<ApiResponse<void>> => {
     return Promise.resolve({ success: true });
   },
 
-  deleteDiningTable: async (tableId: number): Promise<ApiResponse<void>> => {
+  deleteDiningTable: async (_tableId: number): Promise<ApiResponse<void>> => {
     return Promise.resolve({ success: true });
   },
 
-  addWashroom: async (label: string): Promise<ApiResponse<void>> => {
+  addWashroom: async (_label: string): Promise<ApiResponse<void>> => {
     return Promise.resolve({ success: true });
   },
 
-  deleteWashroom: async (washroomId: number): Promise<ApiResponse<void>> => {
+  deleteWashroom: async (_washroomId: number): Promise<ApiResponse<void>> => {
     return Promise.resolve({ success: true });
   },
 
-  addKitchenTable: async (tableNumber: number): Promise<ApiResponse<void>> => {
+  addKitchenTable: async (_tableNumber: number): Promise<ApiResponse<void>> => {
     return Promise.resolve({ success: true });
   },
 
-  deleteKitchenTable: async (tableId: number): Promise<ApiResponse<void>> => {
+  deleteKitchenTable: async (_tableId: number): Promise<ApiResponse<void>> => {
     return Promise.resolve({ success: true });
   },
 
-  addKitchenWashroom: async (label: string): Promise<ApiResponse<void>> => {
+  addKitchenWashroom: async (_label: string): Promise<ApiResponse<void>> => {
     return Promise.resolve({ success: true });
   },
 
-  deleteKitchenWashroom: async (washroomId: number): Promise<ApiResponse<void>> => {
+  deleteKitchenWashroom: async (_washroomId: number): Promise<ApiResponse<void>> => {
     return Promise.resolve({ success: true });
   },
 
-  addStaffMember: async (member: CleaningStaffMember): Promise<ApiResponse<void>> => {
+  addStaffMember: async (_member: CleaningStaffMember): Promise<ApiResponse<void>> => {
     return Promise.resolve({ success: true });
   },
 
-  updateStaffMember: async (memberId: number, updates: Partial<CleaningStaffMember>): Promise<ApiResponse<void>> => {
+  updateStaffMember: async (_memberId: number, _updates: Partial<CleaningStaffMember>): Promise<ApiResponse<void>> => {
     return Promise.resolve({ success: true });
   },
 
-  deleteStaffMember: async (memberId: number): Promise<ApiResponse<void>> => {
+  deleteStaffMember: async (_memberId: number): Promise<ApiResponse<void>> => {
     return Promise.resolve({ success: true });
   },
 };

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { cleaningAPI, type CleaningMetric, type CleaningTask, type FloorTable, type UrgentTask, type CleaningStaffMember, type ActiveJob, type RecentActivity, type WeeklyRequestPoint, type JobStatusSegment, type DiningTable, type KitchenTable, type Washroom, type KitchenWashroom } from '../api/cleaning.api';
+import { cleaningAPI, type CleaningMetric, type FloorTable, type UrgentTask, type CleaningStaffMember, type ActiveJob, type RecentActivity, type WeeklyRequestPoint, type JobStatusSegment, type DiningTable, type KitchenTable, type Washroom, type KitchenWashroom } from '../api/cleaning.api';
 import { profileSyncEventName, type ProfileSyncPayload } from '../../../shared/profile/profileSync';
 
 export interface UseCleaningResult {
@@ -112,16 +112,16 @@ const placeholderJobStatus: JobStatusSegment[] = [
 
 export function useCleaning(): UseCleaningResult {
   const [metrics, setMetrics] = useState<CleaningMetric[]>(placeholderMetrics);
-  const [floorTables, setFloorTables] = useState<FloorTable[]>(placeholderFloorTables);
+  const [floorTables] = useState<FloorTable[]>(placeholderFloorTables);
   const [diningTables, setDiningTables] = useState<DiningTable[]>(placeholderDiningTables);
   const [kitchenTables, setKitchenTables] = useState<KitchenTable[]>(placeholderKitchenTables);
   const [washrooms, setWashrooms] = useState<Washroom[]>(placeholderWashrooms);
   const [kitchenWashrooms, setKitchenWashrooms] = useState<KitchenWashroom[]>(placeholderKitchenWashrooms);
   const [urgentTasks, setUrgentTasks] = useState<UrgentTask[]>(placeholderUrgentTasks);
   const [staffMembers, setStaffMembers] = useState<CleaningStaffMember[]>(placeholderStaffMembers);
-  const [activeJobs, setActiveJobs] = useState<ActiveJob[]>(placeholderActiveJobs);
-  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>(placeholderRecentActivity);
-  const [weeklyRequests, setWeeklyRequests] = useState<WeeklyRequestPoint[]>(placeholderWeeklyRequests);
+  const [activeJobs] = useState<ActiveJob[]>(placeholderActiveJobs);
+  const [recentActivity] = useState<RecentActivity[]>(placeholderRecentActivity);
+  const [weeklyRequests] = useState<WeeklyRequestPoint[]>(placeholderWeeklyRequests);
   const [jobStatus, setJobStatus] = useState<JobStatusSegment[]>(placeholderJobStatus);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -205,6 +205,7 @@ export function useCleaning(): UseCleaningResult {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- async fetch on mount, setState is post-await
     void loadDashboard();
   }, [loadDashboard]);
 

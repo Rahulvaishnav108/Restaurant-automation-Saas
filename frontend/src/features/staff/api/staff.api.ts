@@ -1,16 +1,3 @@
-/**
- * staff.api.ts
- * Location: src/features/staff/api/staff.api.ts
- *
- * ── Single source of truth for ALL types used across the staff feature ──
- * Both usestaff.ts and StaffDashboard.tsx import types from here.
- * Never define the same type in the hook or the dashboard.
- *
- * Backend integration: set VITE_API_URL in your .env file.
- * All endpoint functions are stubbed with TODO comments.
- * Uncomment the fetchAPI line and delete the placeholder return to go live.
- */
-
 import type { AxiosRequestConfig } from 'axios';
 import { apiClient } from '../../../shared/services/apiClient';
 

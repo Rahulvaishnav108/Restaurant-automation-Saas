@@ -5,11 +5,9 @@ import {
   AlertTriangle,
   Bell,
   CalendarClock,
-  CheckCircle2,
   ChevronRight,
   ChefHat,
   Clock,
-  Database,
   KeyRound,
   Languages,
   Lock,
@@ -25,9 +23,7 @@ import {
   ShieldCheck,
   Sparkles,
   Sun,
-  User,
   UserCog,
-  Users,
   X,
   Zap,
 } from 'lucide-react';
@@ -69,7 +65,6 @@ const lightTheme = {
   accent: '#f97316',
 };
 
-type Theme = typeof darkTheme;
 
 const cleaningSidebarNav = [
   { label: 'Cleaning', Icon: Sparkles, to: '/cleaning' },
@@ -154,7 +149,6 @@ const CleaningSettings = () => {
     loading,
     saving,
     error,
-    hasNotificationsEnabled,
     saveSettings,
     updateDraft,
     toggleNotification,
@@ -585,7 +579,7 @@ const CleaningSettings = () => {
                   <div style={{ ...card({ padding: '12px', display: 'grid', gap: '9px' }), background: theme.miniCardBg }}>
                     <p style={{ margin: 0, color: theme.textPrimary, fontSize: '12px', fontWeight: 700 }}>Smart Assignment Preferences</p>
                     {settings.dispatchOptions.map((option) => (
-                      <label key={option.id} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', color: theme.textSecondary, fontSize: '11px' }}>
+                      <label key={option.id} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', color: theme.textSecondary, fontSize: '11px' }} aria-label={option.title}>
                         <input type="checkbox" checked={option.enabled} onChange={() => toggleDispatchOption(option.id)} />
                         <span>
                           <strong style={{ color: theme.textPrimary }}>{option.title}</strong>

@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  ShoppingBag,
-  Users,
   UserCog,
   Settings,
   ChefHat,
@@ -37,31 +35,6 @@ import { useNotifications } from '../hooks/useNotifications';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 import type { LucideIcon } from 'lucide-react';
 
-// ─── Types ───────────────────────────────────────────────────
-
-type Theme = typeof darkTheme;
-
-type MetricCard = {
-  label: string;
-  value: string;
-  Icon: LucideIcon;
-  color: string;
-};
-
-type FloorTable = {
-  label: string;
-  status: string;
-  tone: string;
-};
-
-type UrgentTask = {
-  id: number;
-  title: string;
-  subtitle: string;
-  priority: string;
-  badgeColor: string;
-  waiting: string;
-};
 
 type StaffMember = {
   id: number;
@@ -69,21 +42,6 @@ type StaffMember = {
   name: string;
   status: string;
   place: string;
-  color: string;
-};
-
-type ActiveJob = {
-  id: number;
-  title: string;
-  detail: string;
-  staff: string;
-  color: string;
-};
-
-type ActivityItem = {
-  label: string;
-  time: string;
-  actor: string;
   color: string;
 };
 
@@ -309,17 +267,7 @@ const CleaningDashboard = () => {
       html.style.cssText = '';
       body.style.cssText = '';
     };
-  }, [isDark]);
-
-  useEffect(() => {
-    try {
-      // Help debugging in the dev preview
-      // eslint-disable-next-line no-console
-      console.log('CleaningDashboard mounted — charts should be visible');
-    } catch (e) {
-      // ignore
-    }
-  }, []);
+  }, [isDark, theme.pageBg]);
 
   // Chart data: weekly requests (example trends from hook state)
   const weeklyData = {
@@ -341,7 +289,7 @@ const CleaningDashboard = () => {
       y: { grid: { color: theme.cardBorder }, beginAtZero: true, ticks: { stepSize: 2 } },
     },
     maintainAspectRatio: false,
-  } as any;
+  } as Record<string, unknown>;
 
   // Doughnut: job status distribution
   const jobStatusData = {
@@ -354,7 +302,7 @@ const CleaningDashboard = () => {
     ],
   };
 
-  const doughnutOptions = { plugins: { legend: { position: 'bottom' } }, maintainAspectRatio: false } as any;
+  const doughnutOptions = { plugins: { legend: { position: 'bottom' as const } }, maintainAspectRatio: false };
 
   return (
     <div style={{

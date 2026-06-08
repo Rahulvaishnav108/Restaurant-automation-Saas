@@ -1,13 +1,7 @@
-// ─── StaffDashboard.tsx ───────────────────────────────────────
-// Location: src/features/staff/pages/StaffDashboard.tsx
-//
-// All data comes from useStaff() — zero hardcoded values.
-// Imports match exactly what usestaff.ts exports.
-
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  ShoppingBag, UtensilsCrossed, Users, UserCog, Settings,
+  UtensilsCrossed, Users, UserCog, Settings,
   BellRing, Search, ChefHat, Droplets, Sparkles, CheckCircle2,
   TableProperties, User, Sun, Moon, Download, Plus,
   TrendingUp, TrendingDown, Star, DollarSign, UserCheck,
@@ -62,34 +56,34 @@ type Theme = typeof darkTheme;
 // ─── Nav items ────────────────────────────────────────────────
 
 const navItems = [
-  { label: 'Staff Management',    Icon: Users,      to: '/staff' },
-  { label: 'Notifications',       Icon: Bell,       to: '/staff/notifications' },
-  { label: 'Profile',             Icon: UserCog,    to: '/staff/profile' },
-  { label: 'Settings',            Icon: Settings,   to: '/staff/settings' },
+  { label: 'Staff Management', Icon: Users, to: '/staff' },
+  { label: 'Notifications', Icon: Bell, to: '/staff/notifications' },
+  { label: 'Profile', Icon: UserCog, to: '/staff/profile' },
+  { label: 'Settings', Icon: Settings, to: '/staff/settings' },
 ];
 
 // ─── Status config ────────────────────────────────────────────
 
 const statusConfig: Record<TableStatus, { label: string; color: string; bg: string; dot: string }> = {
-  available:      { label: 'Available',      color: '#22c55e', bg: 'rgba(34,197,94,0.15)',  dot: '#22c55e' },
-  occupied:       { label: 'Occupied',       color: '#f97316', bg: 'rgba(249,115,22,0.15)', dot: '#f97316' },
-  order_placed:   { label: 'Order Placed',   color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', dot: '#f59e0b' },
-  food_ready:     { label: 'Food Ready',     color: '#f97316', bg: 'rgba(249,115,22,0.2)',  dot: '#f97316' },
-  served:         { label: 'Served',         color: '#8b5cf6', bg: 'rgba(139,92,246,0.15)', dot: '#8b5cf6' },
-  needs_cleaning: { label: 'Needs Cleaning', color: '#ef4444', bg: 'rgba(239,68,68,0.15)',  dot: '#ef4444' },
+  available: { label: 'Available', color: '#22c55e', bg: 'rgba(34,197,94,0.15)', dot: '#22c55e' },
+  occupied: { label: 'Occupied', color: '#f97316', bg: 'rgba(249,115,22,0.15)', dot: '#f97316' },
+  order_placed: { label: 'Order Placed', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', dot: '#f59e0b' },
+  food_ready: { label: 'Food Ready', color: '#f97316', bg: 'rgba(249,115,22,0.2)', dot: '#f97316' },
+  served: { label: 'Served', color: '#8b5cf6', bg: 'rgba(139,92,246,0.15)', dot: '#8b5cf6' },
+  needs_cleaning: { label: 'Needs Cleaning', color: '#ef4444', bg: 'rgba(239,68,68,0.15)', dot: '#ef4444' },
 };
 
 const requestConfig = {
-  call_waiter:   { label: 'Call Waiter',   Icon: BellRing,        color: '#f97316' },
-  water_refill:  { label: 'Water Refill',  Icon: Droplets,        color: '#3b82f6' },
+  call_waiter: { label: 'Call Waiter', Icon: BellRing, color: '#f97316' },
+  water_refill: { label: 'Water Refill', Icon: Droplets, color: '#3b82f6' },
   extra_cutlery: { label: 'Extra Cutlery', Icon: UtensilsCrossed, color: '#8b5cf6' },
-  cleaning:      { label: 'Cleaning',      Icon: Sparkles,        color: '#22c55e' },
+  cleaning: { label: 'Cleaning', Icon: Sparkles, color: '#22c55e' },
 };
 
 const roleBadgeStyle: Record<string, { bg: string; color: string }> = {
-  Manager:   { bg: 'rgba(249,115,22,0.12)',  color: '#ea6c0a' },
-  Server:    { bg: 'rgba(34,197,94,0.12)',   color: '#16a34a' },
-  Chef:      { bg: 'rgba(59,130,246,0.12)',  color: '#2563eb' },
+  Manager: { bg: 'rgba(249,115,22,0.12)', color: '#ea6c0a' },
+  Server: { bg: 'rgba(34,197,94,0.12)', color: '#16a34a' },
+  Chef: { bg: 'rgba(59,130,246,0.12)', color: '#2563eb' },
   Bartender: { bg: 'rgba(139,92,246,0.12)', color: '#7c3aed' },
 };
 
@@ -148,18 +142,18 @@ const TableCard = ({
 
 const StaffDashboard: React.FC = () => {
   const { unreadCount } = useNotifications();
-  const [isDark,       setIsDark]       = useState(false);
-  const [isMobile,     setIsMobile]     = useState(window.innerWidth < 768);
-  const [sidebarOpen,  setSidebarOpen]  = useState(false);
-  const [activeNav,    setActiveNav]    = useState('Dashboard');
-  const [searchQuery,  setSearchQuery]  = useState('');
+  const [isDark, setIsDark] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const [searchQuery, setSearchQuery] = useState('');
   const [isNotificationWindowOpen, setIsNotificationWindowOpen] = useState(false);
-  const [isModalOpen,  setIsModalOpen]  = useState(false);
-  const [modalMode,    setModalMode]    = useState<'add' | 'edit'>('add');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
-  const [formName,     setFormName]     = useState('');
-  const [formPhone,    setFormPhone]    = useState('');
-  const [formRole,     setFormRole]     = useState<StaffMember['role']>('Server');
+  const [formName, setFormName] = useState('');
+  const [formPhone, setFormPhone] = useState('');
+  const [formRole, setFormRole] = useState<StaffMember['role']>('Server');
   const [formDepartment, setFormDepartment] = useState('Service');
   const [formHireDate, setFormHireDate] = useState('');
 
@@ -301,9 +295,9 @@ const StaffDashboard: React.FC = () => {
   );
 
   // ── Responsive helpers ──
-  const pad  = isMobile ? '14px' : '24px';
-  const gap  = isMobile ? '16px' : '24px';
-  const cp   = isMobile ? '12px' : '20px'; // card padding
+  const pad = isMobile ? '14px' : '24px';
+  const gap = isMobile ? '16px' : '24px';
+  const cp = isMobile ? '12px' : '20px'; // card padding
 
   const card = (extra?: React.CSSProperties): React.CSSProperties => ({
     background: theme.cardBg, border: `1px solid ${theme.cardBorder}`,
@@ -315,7 +309,7 @@ const StaffDashboard: React.FC = () => {
     color: theme.textPrimary, margin: '0 0 12px 0',
   };
 
-  const twoCol:  React.CSSProperties = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap };
+  const twoCol: React.CSSProperties = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap };
   const fourCol: React.CSSProperties = { display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4,1fr)', gap: '10px' };
   const fiveCol: React.CSSProperties = { display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(5,1fr)', gap: '10px' };
 
@@ -483,7 +477,6 @@ const StaffDashboard: React.FC = () => {
             key={label}
             to={to}
             onClick={(event) => {
-              setActiveNav(label);
               if (label === 'Notifications') {
                 event.preventDefault();
                 setIsNotificationWindowOpen(true);
@@ -630,11 +623,11 @@ const StaffDashboard: React.FC = () => {
           {/* ── Staff stats (from staffStats hook data) ── */}
           <div style={fiveCol}>
             {[
-              { label: 'Total Staff',     value: staffStats.totalStaff,    sub: staffStats.totalStaffTrend,   subColor: '#22c55e', Icon: Users,      iconBg: 'rgba(249,115,22,0.1)',  iconColor: '#f97316' },
-              { label: 'Active Today',    value: staffStats.activeToday,   sub: `${Math.round(staffStats.activeToday / staffStats.totalStaff * 100)}% of total`, subColor: theme.textMuted, Icon: UserCheck, iconBg: 'rgba(34,197,94,0.1)',  iconColor: '#22c55e' },
-              { label: 'On Leave',        value: staffStats.onLeave,       sub: `${Math.round(staffStats.onLeave / staffStats.totalStaff * 100)}% of total`,    subColor: theme.textMuted, Icon: UserMinus, iconBg: 'rgba(139,92,246,0.1)', iconColor: '#8b5cf6' },
-              { label: 'Payroll (May)',   value: staffStats.totalPayroll,  sub: staffStats.totalPayrollTrend, subColor: '#ef4444', Icon: DollarSign, iconBg: 'rgba(59,130,246,0.1)',  iconColor: '#3b82f6' },
-              { label: 'Avg Performance', value: staffStats.avgPerformance, sub: staffStats.avgPerfTrend,     subColor: '#22c55e', Icon: Star,       iconBg: 'rgba(245,158,11,0.1)',  iconColor: '#f59e0b' },
+              { label: 'Total Staff', value: staffStats.totalStaff, sub: staffStats.totalStaffTrend, subColor: '#22c55e', Icon: Users, iconBg: 'rgba(249,115,22,0.1)', iconColor: '#f97316' },
+              { label: 'Active Today', value: staffStats.activeToday, sub: `${Math.round(staffStats.activeToday / staffStats.totalStaff * 100)}% of total`, subColor: theme.textMuted, Icon: UserCheck, iconBg: 'rgba(34,197,94,0.1)', iconColor: '#22c55e' },
+              { label: 'On Leave', value: staffStats.onLeave, sub: `${Math.round(staffStats.onLeave / staffStats.totalStaff * 100)}% of total`, subColor: theme.textMuted, Icon: UserMinus, iconBg: 'rgba(139,92,246,0.1)', iconColor: '#8b5cf6' },
+              { label: 'Payroll (May)', value: staffStats.totalPayroll, sub: staffStats.totalPayrollTrend, subColor: '#ef4444', Icon: DollarSign, iconBg: 'rgba(59,130,246,0.1)', iconColor: '#3b82f6' },
+              { label: 'Avg Performance', value: staffStats.avgPerformance, sub: staffStats.avgPerfTrend, subColor: '#22c55e', Icon: Star, iconBg: 'rgba(245,158,11,0.1)', iconColor: '#f59e0b' },
             ].map(({ label, value, sub, subColor, Icon, iconBg, iconColor }) => (
               <div key={label} style={card()}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
@@ -651,9 +644,9 @@ const StaffDashboard: React.FC = () => {
           <div style={fourCol}>
             {[
               { label: 'Total Tables', value: floorStats.totalTables, color: '#f97316', Icon: TableProperties },
-              { label: 'Occupied',     value: floorStats.occupied,    color: '#f59e0b', Icon: Users           },
-              { label: 'Food Ready',   value: floorStats.foodReady,   color: '#22c55e', Icon: ChefHat         },
-              { label: 'Pending Reqs', value: floorStats.pendingReqs, color: '#8b5cf6', Icon: BellRing        },
+              { label: 'Occupied', value: floorStats.occupied, color: '#f59e0b', Icon: Users },
+              { label: 'Food Ready', value: floorStats.foodReady, color: '#22c55e', Icon: ChefHat },
+              { label: 'Pending Reqs', value: floorStats.pendingReqs, color: '#8b5cf6', Icon: BellRing },
             ].map(({ label, value, color, Icon }) => (
               <div key={label} style={card()}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -877,7 +870,7 @@ const StaffDashboard: React.FC = () => {
                 <TrendingUp size={12} /> {performance.trend}
               </p>
               <div style={{ position: 'relative', height: '140px' }}>
-                 <Bar data={perfChartData} options={chartOptions(true) as Record<string, unknown>} />
+                <Bar data={perfChartData} options={chartOptions(true) as Record<string, unknown>} />
               </div>
             </div>
 

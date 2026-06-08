@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../../app/providers/AuthProvider';
 import type {
   ProfileActivityItem,
@@ -37,7 +37,14 @@ const fallbackCleaningActivity: ProfileActivityItem[] = [
   { time: '11:15 AM', action: 'Restocked supplies in Main Washroom storage', badge: 'Supply', tone: 'slate' },
 ];
 
-function buildFallbackProfile(user: any): ProfileData {
+interface AuthUser {
+  id?: string;
+  name?: string;
+  email?: string;
+  mobile?: string;
+}
+
+function buildFallbackProfile(user: AuthUser | null | undefined): ProfileData {
   const shift: ProfileShiftItem[] = [
     { label: 'Shift Time', value: '09:00 AM - 05:00 PM' },
     { label: 'Role', value: 'Cleaning Lead' },
@@ -90,7 +97,7 @@ export function useProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     const fallback = buildFallbackProfile(user);
     setLoading(true);
     setError(null);
@@ -102,7 +109,7 @@ export function useProfile() {
       setProfile(fallback);
     }
     setLoading(false);
-  };
+  }, [user]);
 
   const saveProfile = async (updates: Partial<ProfileData>) => {
     const fallback = profile ?? buildFallbackProfile(user);
@@ -120,8 +127,9 @@ export function useProfile() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- async fetch on mount, setState is post-await
     void refresh();
-  }, [user]);
+  }, [refresh]);
 
   return {
     profile,

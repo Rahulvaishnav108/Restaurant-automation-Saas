@@ -17,12 +17,10 @@ import {
   ShieldCheck,
   Sparkles,
   UserCog,
-  Users,
   X,
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../../app/providers/AuthProvider';
-import { appRoutes } from '../../../shared/constants/routes';
 import { dispatchProfileSync } from '../../../shared/profile/profileSync';
 import type { ProfileData } from '../api/profile.api';
 import { NotificationWindow } from '../components/NotificationWindow';
@@ -31,7 +29,6 @@ import { useNotifications } from '../hooks/useNotifications';
 import { useThemeMode } from '../../../shared/hooks/useThemeMode';
 import { navbarDarkTheme, navbarLightTheme } from '../../../shared/theme';
 
-type Theme = typeof navbarDarkTheme;
 type ToneKey = 'purple' | 'amber' | 'blue' | 'green';
 type AreaToneKey = 'purple' | 'pink' | 'amber' | 'orange' | 'green';
 type ActivityToneKey = 'slate' | 'teal' | 'red' | 'green';
@@ -96,7 +93,7 @@ const metricIcons = {
   'Checklist Completion': CheckCircle2,
   'Avg Cleaning Time': Clock3,
   'Sanitation Score': Sparkles,
-} as any;
+} as Record<string, typeof CheckCircle2>;
 
 const cleaningNavItems: NavItem[] = [
   { label: 'Cleaning', Icon: Sparkles, to: '/cleaning' },
@@ -154,6 +151,7 @@ const CleaningProfile = () => {
 
   useEffect(() => {
     if (!profile) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing form fields from profile data
     setFormName(profile.name);
     setFormJoinDate(profile.joinDate || '');
     setFormRole(profile.role);
@@ -210,7 +208,7 @@ const CleaningProfile = () => {
       avatarUrl: formAvatarUrl,
     };
 
-    const success = await saveProfile(updates);
+    await saveProfile(updates);
     const syncedProfile: ProfileData = {
       ...profile,
       ...updates,

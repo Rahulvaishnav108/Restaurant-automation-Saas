@@ -15,14 +15,12 @@ import {
   Phone,
   Settings,
   ShieldCheck,
-  Sparkles,
   UserCog,
   Users,
   X,
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../../app/providers/AuthProvider';
-import { appRoutes } from '../../../shared/constants/routes';
 import { dispatchProfileSync } from '../../../shared/profile/profileSync';
 import type { ProfileData } from '../api/profile.api';
 import { NotificationWindow } from '../components/NotificationWindow';
@@ -31,7 +29,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import { useThemeMode } from '../../../shared/hooks/useThemeMode';
 import { navbarDarkTheme, navbarLightTheme } from '../../../shared/theme';
 
-type Theme = typeof navbarDarkTheme;
+
 type ToneKey = 'purple' | 'amber' | 'blue' | 'green';
 type AreaToneKey = 'purple' | 'pink' | 'amber' | 'orange' | 'green';
 type ActivityToneKey = 'slate' | 'teal' | 'red' | 'green';
@@ -96,7 +94,7 @@ const metricIcons = {
   'Guest Rating': Star,
   'Avg Table Turnover': Clock3,
   'Shift Attendance': Users,
-} as any;
+} as unknown as Record<string, typeof CheckCircle2>;
 
 // Fallback star icon for rating metric
 function Star({ size, color }: { size: number; color: string }) {
@@ -163,6 +161,7 @@ const StaffProfile = () => {
 
   useEffect(() => {
     if (!profile) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing form fields from profile data
     setFormName(profile.name);
     setFormJoinDate(profile.joinDate || '');
     setFormRole(profile.role);
@@ -219,7 +218,7 @@ const StaffProfile = () => {
       avatarUrl: formAvatarUrl,
     };
 
-    const success = await saveProfile(updates);
+    await saveProfile(updates);
     const syncedProfile: ProfileData = {
       ...profile,
       ...updates,
