@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
-
 import { QueryProvider }  from "./providers/QueryProvider";
 import { ThemeProvider }  from "./providers/ThemeProvider";
 import { AuthProvider }   from "./providers/AuthProvider";
@@ -16,17 +15,15 @@ import FeedbackPage       from "../features/customer/pages/FeedbackPage";
 import KitchenLayout      from "../layouts/KitchenLayout";
 import KitchenDashboard   from "../features/kitchen/pages/KitchenDashboard";
 
-
-import SuperAdminLayout   from "../layouts/SuperAdminLayout";
+import SuperAdminLayout    from "../layouts/SuperAdminLayout";
 import SuperAdminDashboard from "../features/superAdmin/pages/SuperadminDashboard";
-import Restaurants        from "../features/superAdmin/pages/Restaurants";
-import Analytics          from "../features/superAdmin/pages/Analytics";
-import Subscriptions      from "../features/superAdmin/pages/Subscriptions";
-import Transactions       from "../features/superAdmin/pages/Transactions";
-import Alerts             from "../features/superAdmin/pages/Alerts";
-import AuditLogs          from "../features/superAdmin/pages/AuditLogs";
+import Restaurants         from "../features/superAdmin/pages/Restaurants";
+import Analytics           from "../features/superAdmin/pages/Analytics";
+import Subscriptions       from "../features/superAdmin/pages/Subscriptions";
+import Transactions        from "../features/superAdmin/pages/Transactions";
+import Alerts              from "../features/superAdmin/pages/Alerts";
+import AuditLogs           from "../features/superAdmin/pages/AuditLogs";
 
-// Admin
 import AdminLayout              from "../layouts/AdminLayout";
 import AdminDashboard           from "../features/admin/pages/AdminDashboard";
 import OrdersPage               from "../features/admin/pages/OrdersPage";
@@ -37,15 +34,7 @@ import { InventoryPage }        from "../features/admin/pages/InventoryPage";
 import StaffManagementPage      from "../features/admin/pages/StaffManagementPage";
 import ReportsPage              from "../features/admin/pages/ReportsPage";
 import { TableManagementPage }  from "../features/admin/pages/TableManagementPage";
-import  SettingsPage          from "../features/admin/pages/SettingsPage";
-import  StaffManagementPage   from "../features/admin/pages/StaffManagementPage";
-import  ReportsPage           from "../features/admin/pages/ReportsPage";
-
-import {
-   
-  TableManagementPage,
-  MarketingPage, SettingsPage,
-} from "../features/admin/pages/StubPages";
+import SettingsPage             from "../features/admin/pages/SettingsPage";
 
 const AppRoutes = () => {
   const navigate = useNavigate();
@@ -65,7 +54,6 @@ const AppRoutes = () => {
           <Route index element={<KitchenDashboard />} />
         </Route>
 
-        {/* Admin */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index               element={<AdminDashboard />} />
           <Route path="orders"       element={<OrdersPage />} />
@@ -76,20 +64,17 @@ const AppRoutes = () => {
           <Route path="tables"       element={<TableManagementPage />} />
           <Route path="staff"        element={<StaffManagementPage />} />
           <Route path="reports"      element={<ReportsPage />} />
-          {/* <Route path="marketing"    element={<MarketingPage />} /> */}
           <Route path="settings"     element={<SettingsPage />} />
-
         </Route>
 
-        {/* Super Admin */}
         <Route path="/superadmin" element={<SuperAdminLayout />}>
-          <Route index                  element={<SuperAdminDashboard />} />
-          <Route path="restaurants"     element={<Restaurants />} />
-          <Route path="analytics"       element={<Analytics />} />
-          <Route path="subscriptions"   element={<Subscriptions />} />
-          <Route path="transactions"    element={<Transactions />} />
-          <Route path="alerts"          element={<Alerts />} />
-          <Route path="audit-logs"      element={<AuditLogs />} />
+          <Route index                      element={<SuperAdminDashboard />} />
+          <Route path="restaurants"         element={<Restaurants />} />
+          <Route path="analytics"           element={<Analytics />} />
+          <Route path="subscriptions"       element={<Subscriptions />} />
+          <Route path="transactions"        element={<Transactions />} />
+          <Route path="alerts"              element={<Alerts />} />
+          <Route path="audit-logs"          element={<AuditLogs />} />
         </Route>
       </Routes>
     </main>

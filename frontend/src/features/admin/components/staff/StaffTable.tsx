@@ -3,6 +3,11 @@ import { Search, ChevronLeft, ChevronRight, MoreVertical, X, Eye, Pencil, Trash2
 import { useStaffStore } from '../../store/staff.store';
 import type { StaffRole, StaffDepartment, StaffStatus, StaffMember } from '../../store/staff.store';
 
+// ── Constants for Edit Modal (Defined at top-level to be in scope) ────────
+const EDIT_ROLES: StaffRole[]        = ['Manager', 'Chef', 'Server', 'Bartender', 'Host', 'Cleaner'];
+const EDIT_DEPTS: StaffDepartment[] = ['Management', 'Kitchen', 'Service', 'Bar', 'Front Desk', 'Cleaning'];
+const EDIT_STATUSES: StaffStatus[]  = ['Active', 'On Leave', 'Inactive'];
+
 const ROLES: Array<StaffRole | 'All Roles'>           = ['All Roles', 'Manager', 'Chef', 'Server', 'Bartender', 'Host', 'Cleaner'];
 const DEPTS: Array<StaffDepartment | 'All Departments'> = ['All Departments', 'Management', 'Kitchen', 'Service', 'Bar', 'Front Desk', 'Cleaning'];
 const STATUSES: Array<StaffStatus | 'All'>             = ['All', 'Active', 'On Leave', 'Inactive'];
@@ -30,7 +35,7 @@ function Avatar({ initials }: { initials: string }) {
   );
 }
 
-// ── View Staff Member Modal ────────────────────────────────────────────────
+// ── Modals ────────────────────────────────────────────────────────────────
 
 function ViewStaffModal({ member, onClose, onEdit }: { member: StaffMember; onClose: () => void; onEdit: () => void }): JSX.Element {
   return (
@@ -84,12 +89,6 @@ function ViewStaffModal({ member, onClose, onEdit }: { member: StaffMember; onCl
     </div>
   );
 }
-
-// ── Edit Staff Modal ───────────────────────────────────────────────────────
-
-const EDIT_ROLES: StaffRole[]        = ['Manager', 'Chef', 'Server', 'Bartender', 'Host', 'Cleaner'];
-const EDIT_DEPTS: StaffDepartment[] = ['Management', 'Kitchen', 'Service', 'Bar', 'Front Desk', 'Cleaning'];
-const EDIT_STATUSES: StaffStatus[]  = ['Active', 'On Leave', 'Inactive'];
 
 function EditStaffModal({ member, onClose }: { member: StaffMember; onClose: () => void }): JSX.Element {
   const { updateMember } = useStaffStore();
@@ -166,13 +165,13 @@ function EditStaffModal({ member, onClose }: { member: StaffMember; onClose: () 
             <div>
               <label htmlFor="edit-role" className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"><Briefcase className="w-3.5 h-3.5" /> Role</label>
               <select id="edit-role" value={form.role} onChange={(e) => field('role', e.target.value)} className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-gray-100">
-                {EDIT_ROLES.map(r => <option key={r}>{r}</option>)}
+                {EDIT_ROLES.map((r: StaffRole) => <option key={r}>{r}</option>)}
               </select>
             </div>
             <div>
               <label htmlFor="edit-dept" className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"><Building2 className="w-3.5 h-3.5" /> Department</label>
               <select id="edit-dept" value={form.department} onChange={(e) => field('department', e.target.value)} className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-gray-100">
-                {EDIT_DEPTS.map(d => <option key={d}>{d}</option>)}
+                {EDIT_DEPTS.map((d: StaffDepartment) => <option key={d}>{d}</option>)}
               </select>
             </div>
           </div>
@@ -180,7 +179,7 @@ function EditStaffModal({ member, onClose }: { member: StaffMember; onClose: () 
             <div>
               <label htmlFor="edit-status" className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"><Calendar className="w-3.5 h-3.5" /> Status</label>
               <select id="edit-status" value={form.status} onChange={(e) => field('status', e.target.value)} className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-gray-100">
-                {EDIT_STATUSES.map(s => <option key={s}>{s}</option>)}
+                {EDIT_STATUSES.map((s: StaffStatus) => <option key={s}>{s}</option>)}
               </select>
             </div>
             <div>
@@ -198,8 +197,6 @@ function EditStaffModal({ member, onClose }: { member: StaffMember; onClose: () 
     </div>
   );
 }
-
-// ── Delete Confirm Modal ───────────────────────────────────────────────────
 
 function DeleteConfirmModal({ member, onClose }: { member: StaffMember; onClose: () => void }): JSX.Element {
   const { deleteMember } = useStaffStore();
@@ -221,8 +218,6 @@ function DeleteConfirmModal({ member, onClose }: { member: StaffMember; onClose:
     </div>
   );
 }
-
-// ── View All Modal ─────────────────────────────────────────────────────────
 
 function ViewAllModal({ onClose }: { onClose: () => void }): JSX.Element {
   const { members } = useStaffStore();
@@ -274,9 +269,7 @@ function ViewAllModal({ onClose }: { onClose: () => void }): JSX.Element {
   );
 }
 
-// ── Action Dropdown ────────────────────────────────────────────────────────
-
-function ActionMenu({ member, onView, onEdit, onDelete }: {
+function ActionMenu({  onView, onEdit, onDelete }: {
   member: StaffMember;
   onView: () => void;
   onEdit: () => void;
@@ -344,13 +337,13 @@ export function StaffTable(): JSX.Element {
   const [deleteMember, setDeleteMember] = useState<StaffMember | null>(null);
   const [showViewAll,  setShowViewAll]  = useState(false);
 
-  // Filter
-  const filtered = members.filter((m) => {
+  // Renamed parameter to _member to satisfy linting rule
+  const filtered = members.filter((_member) => {
     const q = searchQuery.toLowerCase();
-    const matchQ = !q || m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q);
-    const matchR = roleFilter === 'All Roles' || m.role === roleFilter;
-    const matchD = departmentFilter === 'All Departments' || m.department === departmentFilter;
-    const matchS = statusFilter === 'All' || m.status === statusFilter;
+    const matchQ = !q || _member.name.toLowerCase().includes(q) || _member.email.toLowerCase().includes(q);
+    const matchR = roleFilter === 'All Roles' || _member.role === roleFilter;
+    const matchD = departmentFilter === 'All Departments' || _member.department === departmentFilter;
+    const matchS = statusFilter === 'All' || _member.status === statusFilter;
     return matchQ && matchR && matchD && matchS;
   });
 
