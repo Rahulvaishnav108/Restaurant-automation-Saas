@@ -5,6 +5,7 @@
 // Imports match exactly what usestaff.ts exports.
 
 import React, { useState, useEffect } from 'react';
+import { NavLink } from 'react-router-dom';
 import {
   ShoppingBag, UtensilsCrossed, Users, UserCog, Settings,
   BellRing, Search, ChefHat, Droplets, Sparkles, CheckCircle2,
@@ -27,6 +28,8 @@ import type {
 
 // ── Hook (data + actions only, no types) ──
 import { useStaff } from '../hooks/usestaff';
+import { useNotifications } from '../hooks/useNotifications';
+import { NotificationWindow } from '../components/NotificationWindow';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
@@ -59,11 +62,10 @@ type Theme = typeof darkTheme;
 // ─── Nav items ────────────────────────────────────────────────
 
 const navItems = [
-  { label: 'Cleaning',            Icon: Sparkles },
-  { label: 'Staff Management',    Icon: Users       },
-  { label: 'Notifications',       Icon: ShoppingBag     },
-  { label: 'Profile',             Icon: UserCog       },
-  { label: 'Settings',            Icon: Settings        },
+  { label: 'Staff Management',    Icon: Users,      to: '/staff' },
+  { label: 'Notifications',       Icon: Bell,       to: '/staff/notifications' },
+  { label: 'Profile',             Icon: UserCog,    to: '/staff/profile' },
+  { label: 'Settings',            Icon: Settings,   to: '/staff/settings' },
 ];
 
 // ─── Status config ────────────────────────────────────────────
@@ -145,12 +147,13 @@ const TableCard = ({
 // ─── Main Dashboard ───────────────────────────────────────────
 
 const StaffDashboard: React.FC = () => {
+  const { unreadCount } = useNotifications();
   const [isDark,       setIsDark]       = useState(false);
   const [isMobile,     setIsMobile]     = useState(window.innerWidth < 768);
   const [sidebarOpen,  setSidebarOpen]  = useState(false);
   const [activeNav,    setActiveNav]    = useState('Dashboard');
   const [searchQuery,  setSearchQuery]  = useState('');
-  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isNotificationWindowOpen, setIsNotificationWindowOpen] = useState(false);
   const [isModalOpen,  setIsModalOpen]  = useState(false);
   const [modalMode,    setModalMode]    = useState<'add' | 'edit'>('add');
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
@@ -475,17 +478,57 @@ const StaffDashboard: React.FC = () => {
           </div>
         )}
 
-        {navItems.map(({ label, Icon }) => (
-          <button key={label} onClick={() => { setActiveNav(label); if (isMobile) setSidebarOpen(false); }} style={{
-            display: 'flex', alignItems: 'center', gap: '10px',
-            padding: '8px 12px', borderRadius: '10px', border: 'none', cursor: 'pointer',
-            fontSize: '12px', fontWeight: activeNav === label ? 600 : 400,
-            background: activeNav === label ? '#f97316' : 'transparent',
-            color: activeNav === label ? '#fff' : theme.navInactive,
-            width: '100%', textAlign: 'left', transition: 'all 0.15s', fontFamily: theme.font,
-          }}>
-            <Icon size={15} />{label}
-          </button>
+        {navItems.map(({ label, Icon, to }) => (
+          <NavLink
+            key={label}
+            to={to}
+            onClick={(event) => {
+              setActiveNav(label);
+              if (label === 'Notifications') {
+                event.preventDefault();
+                setIsNotificationWindowOpen(true);
+              }
+              if (isMobile) setSidebarOpen(false);
+            }}
+            style={({ isActive }) => ({
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '8px 12px',
+              borderRadius: '10px',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: isActive ? 600 : 400,
+              background: isActive ? '#f97316' : 'transparent',
+              color: isActive ? '#fff' : theme.navInactive,
+              width: '100%',
+              textAlign: 'left',
+              transition: 'all 0.15s',
+              textDecoration: 'none',
+              fontFamily: theme.font,
+              position: 'relative',
+            })}
+          >
+            <Icon size={15} />
+            <span style={{ flex: 1 }}>{label}</span>
+            {label === 'Notifications' && unreadCount > 0 && (
+              <span style={{
+                background: '#ef4444',
+                color: '#fff',
+                fontSize: '10px',
+                fontWeight: 700,
+                borderRadius: '999px',
+                padding: '2px 6px',
+                minWidth: '16px',
+                textAlign: 'center',
+                display: 'inline-block',
+                lineHeight: 1,
+              }}>
+                {unreadCount}
+              </span>
+            )}
+          </NavLink>
         ))}
 
         <div style={{ flex: 1 }} />
@@ -542,54 +585,6 @@ const StaffDashboard: React.FC = () => {
           </div>
 
           <div style={{ flex: 1 }} />
-
-          {/* Bell — badge count from requests.length, not hardcoded */}
-          <div style={{ position: 'relative' }}>
-            <button onClick={() => setIsNotificationOpen(prev => !prev)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: theme.textSecondary, padding: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Bell size={18} color={theme.textSecondary} />
-              {requests.length > 0 && (
-                <span style={{ position: 'absolute', top: '-5px', right: '-6px', background: '#f97316', color: '#fff', fontSize: '9px', fontWeight: 700, borderRadius: '999px', padding: '1px 4px', lineHeight: '13px' }}>
-                  {requests.length}
-                </span>
-              )}
-            </button>
-
-            {isNotificationOpen && (
-              <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 10px)', width: '340px', maxWidth: 'calc(100vw - 24px)', background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: '20px', boxShadow: '0 30px 60px rgba(0,0,0,0.15)', padding: '16px', zIndex: 60 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <div>
-                    <p style={{ fontSize: '13px', fontWeight: 700, color: theme.textPrimary, margin: 0 }}>Notifications</p>
-                    <p style={{ fontSize: '11px', color: theme.textMuted, margin: '4px 0 0 0' }}>{requests.length} new request{requests.length === 1 ? '' : 's'} waiting</p>
-                  </div>
-                  <button onClick={() => setIsNotificationOpen(false)} style={{ background: 'transparent', border: 'none', color: theme.textSecondary, cursor: 'pointer', fontSize: '16px' }}>×</button>
-                </div>
-                {requests.length === 0 ? (
-                  <div style={{ padding: '14px 0', textAlign: 'center', color: theme.textMuted, fontSize: '12px' }}>You&apos;re all caught up.</div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {requests.map(req => {
-                      const cfg = requestConfig[req.type];
-                      return (
-                        <div key={req.id} style={{ background: theme.miniCardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: '16px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <div style={{ width: '24px', height: '24px', borderRadius: '10px', background: `${cfg.color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: cfg.color }}>
-                                <cfg.Icon size={14} />
-                              </div>
-                              <p style={{ fontSize: '12px', fontWeight: 600, color: theme.textPrimary, margin: 0 }}>Table {req.tableNumber}</p>
-                            </div>
-                            <span style={{ fontSize: '10px', color: cfg.color, fontWeight: 700 }}>{cfg.label}</span>
-                          </div>
-                          <p style={{ fontSize: '11px', color: theme.textMuted, margin: 0 }}>{req.time}</p>
-                          <button onClick={() => { handleResolveRequest(req.id); setIsNotificationOpen(false); }} style={{ alignSelf: 'flex-start', background: '#f97316', color: '#fff', border: 'none', borderRadius: '10px', padding: '7px 12px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', fontFamily: theme.font }}>Resolve</button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
 
           {/* Theme toggle */}
           <button onClick={() => setIsDark(!isDark)} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 10px', borderRadius: '8px', cursor: 'pointer', border: `1px solid ${theme.cardBorder}`, background: theme.cardBg, color: theme.textSecondary, fontSize: '11px', fontFamily: theme.font }}>
@@ -1072,6 +1067,12 @@ const StaffDashboard: React.FC = () => {
           </div>
         )}
       </div>
+
+      <NotificationWindow
+        open={isNotificationWindowOpen}
+        onClose={() => setIsNotificationWindowOpen(false)}
+        theme={theme}
+      />
 
       <style>{`
         * { box-sizing: border-box; }
