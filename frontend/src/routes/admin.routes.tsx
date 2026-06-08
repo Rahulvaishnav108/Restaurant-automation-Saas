@@ -9,9 +9,9 @@ import { CustomersPage }  from '../features/admin/pages/CustomersPage';
 import { InventoryPage }  from '../features/admin/pages/InventoryPage';
 import  StaffManagementPage  from '../features/admin/pages/StaffManagementPage';
 import  ReportsPage  from '../features/admin/pages/ReportsPage';
+import { TableManagementPage } from '../features/admin/pages/TableManagementPage';
+import  SettingsPage from '../features/admin/pages/SettingsPage';
 import {
-  MarketingPage,
-  SettingsPage,
 } from '../features/admin/pages/StubPages';
 
 export const adminRoutes: RouteObject[] = [
@@ -27,7 +27,7 @@ export const adminRoutes: RouteObject[] = [
       { path: 'inventory',    element: <InventoryPage /> },
       { path: 'staff',        element: <StaffManagementPage /> },
       { path: 'reports',      element: <ReportsPage /> },
-      { path: 'marketing',    element: <MarketingPage /> },
+      { path: 'tables',       element: <TableManagementPage /> },      
       { path: 'settings',     element: <SettingsPage /> },
     ],
   },

@@ -7,7 +7,10 @@ const RANGES: DateRange[] = ['Daily', 'Weekly', 'Monthly'];
 // ── Orders Trend ──────────────────────────────────────────────────────────
 
 export function OrdersTrend(): JSX.Element {
-  const { ordersTrend, stats, ordersRange, setOrdersRange } = useReportsStore();
+  const { getOrdersTrend, getStats, ordersRange, setOrdersRange } = useReportsStore();
+
+  const ordersTrend = getOrdersTrend();
+  const stats       = getStats();
 
   const W = 380, H = 180, PAD = { t: 20, r: 16, b: 36, l: 44 };
   const chartW = W - PAD.l - PAD.r;
@@ -18,7 +21,7 @@ export function OrdersTrend(): JSX.Element {
   const range  = maxVal - minVal || 1;
 
   const pts = ordersTrend.map((d, i) => ({
-    x: PAD.l + (i / (ordersTrend.length - 1)) * chartW,
+    x: PAD.l + (i / Math.max(ordersTrend.length - 1, 1)) * chartW,
     y: PAD.t + (1 - (d.orders - minVal) / range) * chartH,
     ...d,
   }));
@@ -37,7 +40,6 @@ export function OrdersTrend(): JSX.Element {
             <span className="text-xl font-black text-gray-900 dark:text-gray-100">{stats.totalOrders.toLocaleString()}</span>
             <span className="text-xs text-green-500 font-semibold">{stats.totalOrdersChange}</span>
           </div>
-          <p className="text-[11px] text-gray-400 mt-0.5">vs May 5 – May 11, 2025</p>
         </div>
         <div className="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
           {RANGES.map((r) => (
@@ -47,7 +49,7 @@ export function OrdersTrend(): JSX.Element {
               className={`text-xs px-2.5 py-1.5 font-medium transition-colors ${
                 ordersRange === r
                   ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
             >
               {r}
@@ -59,8 +61,8 @@ export function OrdersTrend(): JSX.Element {
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto mt-2">
         <defs>
           <linearGradient id="ordGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.15" />
-            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+            <stop offset="0%"   stopColor="#3b82f6" stopOpacity="0.15" />
+            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0"    />
           </linearGradient>
         </defs>
         {ySteps.map((val, i) => {
@@ -68,7 +70,7 @@ export function OrdersTrend(): JSX.Element {
           return (
             <g key={i}>
               <line x1={PAD.l} y1={y} x2={PAD.l + chartW} y2={y} stroke="#f3f4f6" strokeWidth="1" className="dark:stroke-gray-800" />
-              <text x={PAD.l - 6} y={y + 4} textAnchor="end" fontSize="9" fill="#9ca3af">{val}</text>
+              <text x={PAD.l - 6} y={y + 4} textAnchor="end" fontSize="9" fill="#9ca3af">{val.toLocaleString()}</text>
             </g>
           );
         })}
@@ -88,7 +90,8 @@ export function OrdersTrend(): JSX.Element {
 // ── Sales By Channel ──────────────────────────────────────────────────────
 
 export function SalesByChannel(): JSX.Element {
-  const { salesByChannel, stats } = useReportsStore();
+  const { salesByChannel, getStats } = useReportsStore();
+  const stats = getStats();
 
   const r = 52, cx = 70, cy = 70, circumference = 2 * Math.PI * r;
   const segments = salesByChannel.reduce<Array<typeof salesByChannel[number] & { dash: number; offset: number }>>(
@@ -120,8 +123,8 @@ export function SalesByChannel(): JSX.Element {
                 transform={`rotate(-90 ${cx} ${cy})`}
               />
             ))}
-            <text x={cx} y={cy - 6} textAnchor="middle" fontSize="12" fontWeight="800" fill="#111827" className="dark:fill-gray-100">{stats.totalRevenue}</text>
-            <text x={cx} y={cy + 9} textAnchor="middle" fontSize="8" fill="#9ca3af">Total Revenue</text>
+            <text x={cx} y={cy - 6}  textAnchor="middle" fontSize="11" fontWeight="800" fill="#111827" className="dark:fill-gray-100">{stats.totalRevenue}</text>
+            <text x={cx} y={cy + 9}  textAnchor="middle" fontSize="8"  fill="#9ca3af">Total Revenue</text>
           </svg>
         </div>
       </div>

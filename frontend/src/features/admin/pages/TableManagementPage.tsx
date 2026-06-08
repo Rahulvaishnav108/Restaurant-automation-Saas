@@ -1,0 +1,112 @@
+import React from 'react';
+import { Plus, LayoutGrid } from 'lucide-react';
+import { useTablesStore } from '../store/tables.store';
+import {
+  TableStatCards,
+  TableFilterBar,
+  FloorMap,
+  TableGrid,
+  TableList,
+  TableDetailPanel,
+  TableModal,
+  TableOccupancySummary,
+} from '../components/tables';
+
+export function TableManagementPage(): JSX.Element {
+  const {
+    viewMode,
+    selectedFloor,
+    showAddModal,
+    showEditModal,
+    selectedTableId,
+    setFloor,
+    setShowAddModal,
+    setShowEditModal,
+  } = useTablesStore();
+
+  const floors = [1, 2];
+
+  return (
+    <div className="space-y-6">
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+            Table Management
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+            Monitor and manage all restaurant tables in real-time
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Floor switcher */}
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+            {floors.map(f => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setFloor(f)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                  selectedFloor === f
+                    ? 'bg-white dark:bg-gray-700 text-orange-500 shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400'
+                }`}
+              >
+                Floor {f}
+              </button>
+            ))}
+          </div>
+
+          {/* Add table */}
+          <button
+            type="button"
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Add Table
+          </button>
+        </div>
+      </div>
+
+      {/* ── Stat Cards ─────────────────────────────────────────────────── */}
+      <TableStatCards />
+
+      {/* ── Filters ────────────────────────────────────────────────────── */}
+      <TableFilterBar />
+
+      {/* ── Main Content ───────────────────────────────────────────────── */}
+      <div className="flex gap-5 items-start">
+        {/* Left – main view */}
+        <div className="flex-1 min-w-0 space-y-5">
+          {viewMode === 'floor-map' && <FloorMap />}
+          {viewMode === 'grid'      && <TableGrid />}
+          {viewMode === 'list'      && <TableList />}
+        </div>
+
+        {/* Right – detail + occupancy summary */}
+        <div className="flex-shrink-0 w-72 space-y-4">
+          {selectedTableId !== null
+            ? <TableDetailPanel />
+            : (
+              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 p-6 text-center text-sm text-gray-400 dark:text-gray-500">
+                <LayoutGrid className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                Select a table to view details and manage its status
+              </div>
+            )
+          }
+          <TableOccupancySummary />
+        </div>
+      </div>
+
+      {/* ── Modals ─────────────────────────────────────────────────────── */}
+      {showAddModal && (
+        <TableModal mode="add" onClose={() => setShowAddModal(false)} />
+      )}
+      {showEditModal && selectedTableId !== null && (
+        <TableModal mode="edit" onClose={() => setShowEditModal(false)} />
+      )}
+    </div>
+  );
+}

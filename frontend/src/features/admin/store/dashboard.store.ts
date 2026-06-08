@@ -123,11 +123,11 @@ const initialState: DashboardState = {
   ],
 
   recentOrders: [
-    { id: '#ORD-00124', customer: 'Sarah Johnson', amount: '$45.80', time: '3 mins ago'  },
-    { id: '#ORD-00123', customer: 'Sarah Johnson', amount: '$78.40', time: '15 mins ago' },
-    { id: '#ORD-00122', customer: 'Michael Brown', amount: '$62.10', time: '28 mins ago' },
-    { id: '#ORD-00121', customer: 'Emily Davis',   amount: '$25.30', time: '35 mins ago' },
-    { id: '#ORD-00120', customer: 'David Wilson',  amount: '$90.20', time: '41 mins ago' },
+    { id: '#ORD-00124', customer: 'Sarah Johnson', amount: '₹45.80', time: '3 mins ago'  },
+    { id: '#ORD-00123', customer: 'Sarah Johnson', amount: '₹78.40', time: '15 mins ago' },
+    { id: '#ORD-00122', customer: 'Michael Brown', amount: '₹62.10', time: '28 mins ago' },
+    { id: '#ORD-00121', customer: 'Emily Davis',   amount: '₹25.30', time: '35 mins ago' },
+    { id: '#ORD-00120', customer: 'David Wilson',  amount: '₹90.20', time: '41 mins ago' },
   ],
 
   staffMembers: [
