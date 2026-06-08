@@ -149,6 +149,9 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response) =
   const otp = await otpService.createOTP(email, 'email');
   await sendOTPEmail(email, otp);
 
+  sendSuccess(res, {
+    otpSent: true,
+  });
   void logAuditRaw({
     actorId: user._id.toString(),
     actorRole: user.role,
@@ -160,10 +163,6 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response) =
     ipAddress: req.ip,
     userAgent: req.headers['user-agent'],
   });
-
-  sendSuccess(res, {
-    otpSent: true,
-  });
 });
 
 export const verifyResetOtp = asyncHandler(async (req: Request, res: Response) => {
@@ -171,7 +170,7 @@ export const verifyResetOtp = asyncHandler(async (req: Request, res: Response) =
 
   await otpService.verifyOTP(email, 'email', otp);
 
-  const { generateSecureToken, hashToken: hashResetToken } = await import('../../utils/crypto');
+  //const { generateSecureToken, hashToken: hashResetToken } = await import('../../utils/crypto');
   const user = await UserModel.findOne({ email });
 
   if (!user) {
@@ -179,7 +178,7 @@ export const verifyResetOtp = asyncHandler(async (req: Request, res: Response) =
   }
 
   const resetToken = generateSecureToken(32);
-  const hashedToken = await hashResetToken(resetToken);
+  const hashedToken = await hashToken(resetToken);
 
   user.passwordResetToken = hashedToken;
   user.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000);
@@ -252,6 +251,7 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
     user = await UserModel.create({
       name: customerName,
       mobile,
+      email: `otp_${mobile}@placeholder.com`,
       role: UserRole.CUSTOMER,
       isMobileVerified: true,
     });
