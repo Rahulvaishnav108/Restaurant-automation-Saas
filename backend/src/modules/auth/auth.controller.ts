@@ -1,18 +1,23 @@
 import type { Request, Response } from 'express';
 import { env } from '../../config/env';
-import { AppError } from '../../utils/AppError';
-import { asyncHandler } from '../../utils/asyncHandler';
-import { COOKIE_OPTIONS } from '../../utils/constants';
-import { parseExpiry } from '../../utils/date';
-import { sendSuccess } from '../../utils/response';
+import { UserRole } from '../../constants/roles';
 import { ErrorCode } from '../../constants/errors';
 import { sendOTPEmail } from '../../services/mail.service';
 import * as otpService from '../../services/otp.service';
+import { generateTokenPair } from '../../services/jwt.service';
+import { AppError } from '../../utils/AppError';
+import { asyncHandler } from '../../utils/asyncHandler';
+import { hashToken } from '../../utils/crypto';
+import { COOKIE_OPTIONS } from '../../utils/constants';
+import { parseExpiry } from '../../utils/date';
+import { sendSuccess } from '../../utils/response';
 import * as authService from './auth.service';
 import { getMe } from '../users/users.controller';
-import { logAuditAction } from '../auditLogs/auditLogs.service';
-import { logger } from '../../config/logger';
-
+import { UserModel } from '../users/users.model';
+import { logAudit, logAuditRaw } from '../auditLogs/auditLogs.helper';
+import { AuditAction, AuditEntity } from '../auditLogs/auditLogs.types';
+import { generateSecureToken } from '../../utils/crypto';
+import logger from '../../config/logger';
 
 function setRefreshCookie(res: Response, refreshToken: string): void {
   res.cookie(env.REFRESH_COOKIE_NAME, refreshToken, {
@@ -36,17 +41,6 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
   setRefreshCookie(res, result.refreshToken);
 
-  logAuditAction({
-    req,
-    actorId: result.user._id,
-    actorRole: result.user.role,
-    restaurantId: result.user.restaurantId,
-    entityType: 'auth',
-    entityId: result.user._id.toString(),
-    action: 'REGISTER',
-    metadata: { email: result.user.email },
-  });
-
   sendSuccess(
     res,
     {
@@ -56,6 +50,17 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     },
     201,
   );
+
+  void logAuditRaw({
+    actorId: result.user._id.toString(),
+    actorRole: result.user.role,
+    entityType: AuditEntity.USER,
+    entityId: result.user._id.toString(),
+    action: AuditAction.AUTH_REGISTER,
+    metadata: { email: result.user.email },
+    ipAddress: req.ip,
+    userAgent: req.headers['user-agent'],
+  });
 });
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
@@ -66,21 +71,21 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 
   setRefreshCookie(res, result.refreshToken);
 
-  logAuditAction({
-    req,
-    actorId: result.user._id,
-    actorRole: result.user.role,
-    restaurantId: result.user.restaurantId,
-    entityType: 'auth',
-    entityId: result.user._id.toString(),
-    action: 'LOGIN',
-    metadata: { email: result.user.email },
-  });
-
   sendSuccess(res, {
     user: result.user,
     accessToken: result.accessToken,
     refreshToken: result.refreshToken,
+  });
+
+  void logAuditRaw({
+    actorId: result.user._id.toString(),
+    actorRole: result.user.role,
+    entityType: AuditEntity.USER,
+    entityId: result.user._id.toString(),
+    action: AuditAction.AUTH_LOGIN,
+    metadata: { email: result.user.email },
+    ipAddress: req.ip,
+    userAgent: req.headers['user-agent'],
   });
 });
 
@@ -99,6 +104,15 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
     accessToken: result.accessToken,
     refreshToken: result.refreshToken,
   });
+
+  if (req.user) {
+    void logAudit(req, {
+      entityType: AuditEntity.USER,
+      entityId: req.user._id.toString(),
+      action: AuditAction.AUTH_REFRESH,
+      metadata: {},
+    });
+  }
 });
 
 export const logout = asyncHandler(async (req: Request, res: Response) => {
@@ -106,115 +120,78 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
 
   if (req.user && refreshToken) {
     await authService.logout(req.user._id, refreshToken);
-    logAuditAction({
-      req,
-      actorId: req.user._id,
-      actorRole: req.user.role,
-      restaurantId: req.user.restaurantId,
-      entityType: 'auth',
-      entityId: req.user._id.toString(),
-      action: 'LOGOUT',
-    });
   }
 
   clearRefreshCookie(res);
 
   sendSuccess(res, { message: 'Logged out successfully' });
+
+  if (req.user) {
+    void logAudit(req, {
+      entityType: AuditEntity.USER,
+      entityId: req.user._id.toString(),
+      action: AuditAction.AUTH_LOGOUT,
+      metadata: {},
+    });
+  }
 });
 
 export const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
-  const { email, mobile } = req.body;
-  const identifier = email || mobile;
-  const type = email ? 'email' : 'mobile';
+  const { email } = req.body;
+  const user = await UserModel.findOne({ email });
 
-  const { UserModel } = await import('../users/users.model');
-  const user = await UserModel.findOne(type === 'email' ? { email: identifier } : { mobile: identifier });
-
-  if (!user) {
-    // Audit log the attempt on non-existent account
-    logAuditAction({
-      req,
-      entityType: 'auth',
-      entityId: 'unknown',
-      action: 'PASSWORD_RESET_REQUEST_FAILED',
-      metadata: { identifier, type, reason: 'User not found' },
-    });
-
+  if (!user || user.role === UserRole.CUSTOMER) {
     sendSuccess(res, {
-      message: 'If an account with those details exists, a password reset OTP has been sent.',
+      otpSent: true,
     });
     return;
   }
 
-  // Generate 5-minute OTP
-  const otp = await otpService.createOTP(identifier, type as 'email' | 'mobile');
-
-  if (type === 'email') {
-    await sendOTPEmail(identifier, otp);
-  }
-
-  logAuditAction({
-    req,
-    actorId: user._id,
-    actorRole: user.role,
-    restaurantId: user.restaurantId,
-    entityType: 'auth',
-    entityId: user._id.toString(),
-    action: 'PASSWORD_RESET_OTP_REQUESTED',
-    metadata: { identifier, type },
-  });
+  const otp = await otpService.createOTP(email, 'email');
+  await sendOTPEmail(email, otp);
 
   sendSuccess(res, {
-    message: `Password reset OTP sent to your ${type}`,
-    ...(!env.isProduction && { otp }),
+    otpSent: true,
+  });
+  void logAuditRaw({
+    actorId: user._id.toString(),
+    actorRole: user.role,
+    restaurantId: user.restaurantId?.toString(),
+    entityType: AuditEntity.USER,
+    entityId: user._id.toString(),
+    action: AuditAction.AUTH_FORGOT_PASSWORD,
+    metadata: { email },
+    ipAddress: req.ip,
+    userAgent: req.headers['user-agent'],
   });
 });
 
 export const verifyResetOtp = asyncHandler(async (req: Request, res: Response) => {
-  const { email, mobile, otp } = req.body;
-  const identifier = email || mobile;
-  const type = email ? 'email' : 'mobile';
+  const { email, otp } = req.body;
 
-  // 1. Verify OTP
-  await otpService.verifyOTP(identifier, type as 'email' | 'mobile', otp);
+  await otpService.verifyOTP(email, 'email', otp);
 
-  const { UserModel } = await import('../users/users.model');
-  const { generateSecureToken, hashToken } = await import('../../utils/crypto');
-
-  const user = await UserModel.findOne(type === 'email' ? { email: identifier } : { mobile: identifier });
+  //const { generateSecureToken, hashToken: hashResetToken } = await import('../../utils/crypto');
+  const user = await UserModel.findOne({ email });
 
   if (!user) {
     throw new AppError('User not found', 404, ErrorCode.NOT_FOUND);
   }
 
-  // Generate a short-lived password reset token (10 minutes)
   const resetToken = generateSecureToken(32);
   const hashedToken = await hashToken(resetToken);
 
   user.passwordResetToken = hashedToken;
-  user.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+  user.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000);
   await user.save();
 
-  logAuditAction({
-    req,
-    actorId: user._id,
-    actorRole: user.role,
-    restaurantId: user.restaurantId,
-    entityType: 'auth',
-    entityId: user._id.toString(),
-    action: 'PASSWORD_RESET_OTP_VERIFIED',
-    metadata: { identifier, type },
-  });
-
   sendSuccess(res, {
-    message: 'OTP verified successfully. Proceed to reset password.',
     resetToken,
   });
 });
 
 export const resetPassword = asyncHandler(async (req: Request, res: Response) => {
-  const { token, password } = req.body;
-  const { UserModel } = await import('../users/users.model');
+  const { resetToken, newPassword } = req.body;
   const { compareToken, hashPassword } = await import('../../utils/crypto');
 
   const users = await UserModel.find({
@@ -224,7 +201,7 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
   let matchedUser = null;
 
   for (const user of users) {
-    if (user.passwordResetToken && (await compareToken(token, user.passwordResetToken))) {
+    if (user.passwordResetToken && (await compareToken(resetToken, user.passwordResetToken))) {
       matchedUser = user;
       break;
     }
@@ -234,90 +211,68 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
     throw new AppError('Invalid or expired reset token', 400, ErrorCode.INVALID_REQUEST);
   }
 
-  matchedUser.password = await hashPassword(password);
+  matchedUser.password = await hashPassword(newPassword);
   matchedUser.passwordResetToken = undefined;
   matchedUser.passwordResetExpires = undefined;
-  matchedUser.refreshTokens = []; // Invalidate all active sessions/tokens
+  matchedUser.refreshTokens = [];
   await matchedUser.save();
 
-  logAuditAction({
-    req,
-    actorId: matchedUser._id,
+  void logAuditRaw({
+    actorId: matchedUser._id.toString(),
     actorRole: matchedUser.role,
-    restaurantId: matchedUser.restaurantId,
-    entityType: 'auth',
+    restaurantId: matchedUser.restaurantId?.toString(),
+    entityType: AuditEntity.USER,
     entityId: matchedUser._id.toString(),
-    action: 'PASSWORD_RESET_SUCCESSFUL',
+    action: AuditAction.AUTH_RESET_PASSWORD,
     metadata: { email: matchedUser.email },
+    ipAddress: req.ip,
+    userAgent: req.headers['user-agent'],
   });
 
-  sendSuccess(res, {
-    message: 'Password reset successful. All existing sessions have been revoked. Please log in with your new password.',
-  });
+  sendSuccess(res, {});
 });
 
 export const requestOtp = asyncHandler(async (req: Request, res: Response) => {
-  const { email, mobile } = req.body;
-  const identifier = email || mobile;
-  const type = email ? 'email' : 'mobile';
+  const { mobile } = req.body;
 
-  const otp = await otpService.createOTP(identifier, type as 'email' | 'mobile');
+  await otpService.createOTP(mobile, 'mobile');
 
-  if (type === 'email') {
-    await sendOTPEmail(identifier, otp);
-  }
-
-  sendSuccess(res, {
-    message: `OTP sent to your ${type}`,
-    ...(!env.isProduction && { otp }),
-  });
+  sendSuccess(res, { otpSent: true });
 });
 
 export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
-  const { email, mobile, otp, name } = req.body;
-  const identifier = email || mobile;
-  const type = email ? 'email' : 'mobile';
+  const { mobile, otp, name } = req.body;
 
-  // 1. Verify the OTP
-  await otpService.verifyOTP(identifier, type as 'email' | 'mobile', otp);
+  await otpService.verifyOTP(mobile, 'mobile', otp);
 
-  const { UserModel } = await import('../users/users.model');
-  const { generateTokenPair } = await import('../../services/jwt.service');
-  const { hashToken } = await import('../../utils/crypto');
-  const { parseExpiry } = await import('../../utils/date');
-  const { UserRole } = await import('../../constants/roles');
-
-  let user = await UserModel.findOne(type === 'email' ? { email: identifier } : { mobile: identifier });
+  let user = await UserModel.findOne({ mobile });
 
   if (!user) {
-    if (type === 'mobile') {
-      // Automatic customer signup if mobile OTP verified and customer doesn't exist
-      const customerName = name || 'Guest Customer';
-      user = await UserModel.create({
-        name: customerName,
-        mobile: identifier,
-        role: UserRole.CUSTOMER,
-        isMobileVerified: true,
-      });
+    const customerName = name || 'Guest Customer';
+    user = await UserModel.create({
+      name: customerName,
+      mobile,
+      email: `otp_${mobile}@placeholder.com`,
+      role: UserRole.CUSTOMER,
+      isMobileVerified: true,
+    });
 
-      logger.info(`Customer registered dynamically via OTP: ${identifier}`);
-    } else {
-      throw new AppError('User not found', 404, ErrorCode.NOT_FOUND);
-    }
+    logger.info(`Customer registered dynamically via OTP: ${mobile}`);
   } else {
-    // Update verification status
-    if (type === 'email') {
-      user.isEmailVerified = true;
-    } else {
-      user.isMobileVerified = true;
+    if (user.role !== UserRole.CUSTOMER) {
+      throw new AppError('OTP login is only available for customer accounts', 403, ErrorCode.FORBIDDEN);
+    }
+
+    user.isMobileVerified = true;
+    if (name) {
+      user.name = name;
     }
     await user.save();
   }
 
-  // Log in the user and issue tokens
   const payload = {
     _id: user._id.toString(),
-    email: user.email,
+    email: user.email ?? '',
     role: user.role,
     ...(user.restaurantId && { restaurantId: user.restaurantId.toString() }),
   };
@@ -336,19 +291,20 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
 
   setRefreshCookie(res, tokens.refreshToken);
 
-  logAuditAction({
-    req,
-    actorId: user._id,
+  void logAuditRaw({
+    actorId: user._id.toString(),
     actorRole: user.role,
-    restaurantId: user.restaurantId,
-    entityType: 'auth',
+    restaurantId: user.restaurantId?.toString(),
+    entityType: AuditEntity.USER,
     entityId: user._id.toString(),
-    action: 'OTP_LOGIN',
-    metadata: { identifier, type },
+    action: AuditAction.AUTH_LOGIN,
+    metadata: { mobile, mode: 'otp' },
+    ipAddress: req.ip,
+    userAgent: req.headers['user-agent'],
   });
 
   sendSuccess(res, {
-    user,
+    customerId: user._id,
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
   });
@@ -362,4 +318,11 @@ export const getSessions = asyncHandler(async (req: Request, res: Response) => {
 export const revokeSession = asyncHandler(async (req: Request, res: Response) => {
   await authService.revokeSession(req.user!._id, req.params.sessionId);
   sendSuccess(res, { message: 'Session revoked' });
+
+  void logAudit(req, {
+    entityType: AuditEntity.USER,
+    entityId: req.user!._id.toString(),
+    action: AuditAction.AUTH_SESSION_REVOKED,
+    metadata: { sessionId: req.params.sessionId },
+  });
 });

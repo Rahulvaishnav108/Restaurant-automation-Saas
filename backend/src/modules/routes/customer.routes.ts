@@ -11,6 +11,7 @@ import { Priority, RequestStatus, RequestType } from '../../constants/statuses';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
 import { feedbackBodySchema } from './customer.schema';
+import { getActiveLoyaltyRule } from '../loyalty/loyalty.service';
 
 export const customerRouter = Router();
 
@@ -142,15 +143,18 @@ customerRouter.get('/loyalty', async (req, res, next) => {
       restaurantId: req.tableSession!.restaurantId,
       mobile: req.tableSession!.mobile,
     });
+    const rule = await getActiveLoyaltyRule(req.tableSession!.restaurantId.toString());
 
-    const points = visits * 120;
-    const tier = points >= 500 ? 'Gold' : points >= 250 ? 'Silver' : 'Bronze';
+    const points = visits * rule.pointsPerVisit;
+    const tier = points >= rule.goldThreshold ? 'Gold' : points >= rule.silverThreshold ? 'Silver' : 'Bronze';
+    const nextRewardAt = tier === 'Gold' ? rule.goldThreshold : tier === 'Silver' ? rule.goldThreshold : rule.silverThreshold;
 
     ok(res, {
       wallet: {
         points,
         tier,
-        nextRewardAt: tier === 'Gold' ? points : tier === 'Silver' ? 500 : 250,
+        nextRewardAt,
+        rule,
       },
     });
   } catch (error) {

@@ -38,6 +38,15 @@ import StaffManagementPage      from "../features/admin/pages/StaffManagementPag
 import ReportsPage              from "../features/admin/pages/ReportsPage";
 import { TableManagementPage }  from "../features/admin/pages/TableManagementPage";
 import  SettingsPage          from "../features/admin/pages/SettingsPage";
+import  StaffManagementPage   from "../features/admin/pages/StaffManagementPage";
+import  ReportsPage           from "../features/admin/pages/ReportsPage";
+
+import {
+   
+  TableManagementPage,
+  MarketingPage, SettingsPage,
+} from "../features/admin/pages/StubPages";
+
 const AppRoutes = () => {
   const navigate = useNavigate();
   return (
