@@ -1,6 +1,8 @@
 import React from 'react';
-import { Plus, LayoutGrid } from 'lucide-react';
+import { Plus, LayoutGrid, Download } from 'lucide-react';
 import { useTablesStore } from '../store/tables.store';
+import { downloadAllQRCodes } from '../utils/downloadAllQRCodes';
+
 import {
   TableStatCards,
   TableFilterBar,
@@ -14,6 +16,7 @@ import {
 
 export function TableManagementPage(): JSX.Element {
   const {
+    tables,
     viewMode,
     selectedFloor,
     showAddModal,
@@ -34,6 +37,7 @@ export function TableManagementPage(): JSX.Element {
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">
             Table Management
           </h1>
+
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             Monitor and manage all restaurant tables in real-time
           </p>
@@ -42,7 +46,7 @@ export function TableManagementPage(): JSX.Element {
         <div className="flex items-center gap-2 flex-shrink-0">
           {/* Floor switcher */}
           <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
-            {floors.map(f => (
+            {floors.map((f) => (
               <button
                 key={f}
                 type="button"
@@ -57,6 +61,16 @@ export function TableManagementPage(): JSX.Element {
               </button>
             ))}
           </div>
+
+          {/* Download All QR */}
+          <button
+            type="button"
+            onClick={() => downloadAllQRCodes(tables)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
+          >
+            <Download className="w-4 h-4" />
+            Download All QR
+          </button>
 
           {/* Add table */}
           <button
@@ -81,31 +95,38 @@ export function TableManagementPage(): JSX.Element {
         {/* Left – main view */}
         <div className="flex-1 min-w-0 space-y-5">
           {viewMode === 'floor-map' && <FloorMap />}
-          {viewMode === 'grid'      && <TableGrid />}
-          {viewMode === 'list'      && <TableList />}
+          {viewMode === 'grid' && <TableGrid />}
+          {viewMode === 'list' && <TableList />}
         </div>
 
         {/* Right – detail + occupancy summary */}
         <div className="flex-shrink-0 w-72 space-y-4">
-          {selectedTableId !== null
-            ? <TableDetailPanel />
-            : (
-              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 p-6 text-center text-sm text-gray-400 dark:text-gray-500">
-                <LayoutGrid className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                Select a table to view details and manage its status
-              </div>
-            )
-          }
+          {selectedTableId !== null ? (
+            <TableDetailPanel />
+          ) : (
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 p-6 text-center text-sm text-gray-400 dark:text-gray-500">
+              <LayoutGrid className="w-8 h-8 mx-auto mb-2 opacity-40" />
+              Select a table to view details and manage its status
+            </div>
+          )}
+
           <TableOccupancySummary />
         </div>
       </div>
 
       {/* ── Modals ─────────────────────────────────────────────────────── */}
       {showAddModal && (
-        <TableModal mode="add" onClose={() => setShowAddModal(false)} />
+        <TableModal
+          mode="add"
+          onClose={() => setShowAddModal(false)}
+        />
       )}
+
       {showEditModal && selectedTableId !== null && (
-        <TableModal mode="edit" onClose={() => setShowEditModal(false)} />
+        <TableModal
+          mode="edit"
+          onClose={() => setShowEditModal(false)}
+        />
       )}
     </div>
   );

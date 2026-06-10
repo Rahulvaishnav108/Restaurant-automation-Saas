@@ -3,6 +3,7 @@ import { Users, Clock, IndianRupee, MoreVertical } from 'lucide-react';
 import { useTablesStore } from '../../store/tables.store';
 import type { TableStatus } from '../../store/tables.store';
 import { TableStatusBadge } from './TableStatusBadge';
+import { TableQRCode } from './TableQRCode';
 
 export function TableList(): JSX.Element {
   const { tables, filter, selectTable, selectedTableId, updateTableStatus } = useTablesStore();
@@ -10,13 +11,19 @@ export function TableList(): JSX.Element {
 
   const filtered = tables.filter(t => {
     if (filter.section !== 'All' && t.section !== filter.section) return false;
-    if (filter.status  !== 'All' && t.status  !== filter.status)  return false;
-    if (filter.floor   !== 'All' && t.floor   !== filter.floor)   return false;
+    if (filter.status !== 'All' && t.status !== filter.status) return false;
+    if (filter.floor !== 'All' && t.floor !== filter.floor) return false;
     if (filter.search && !t.label.toLowerCase().includes(filter.search.toLowerCase())) return false;
     return true;
   });
 
-  const statusOptions: TableStatus[] = ['Available', 'Occupied', 'Reserved', 'Cleaning', 'Blocked'];
+  const statusOptions: TableStatus[] = [
+    'Available',
+    'Occupied',
+    'Reserved',
+    'Cleaning',
+    'Blocked',
+  ];
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
@@ -29,50 +36,85 @@ export function TableList(): JSX.Element {
             <th className="text-left px-4 py-3 font-semibold">Seats</th>
             <th className="text-left px-4 py-3 font-semibold">Current Order</th>
             <th className="text-left px-4 py-3 font-semibold">Reserved For</th>
+            <th className="text-center px-4 py-3 font-semibold">QR Code</th>
             <th className="px-4 py-3" />
           </tr>
         </thead>
+
         <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
           {filtered.map(table => (
             <tr
               key={table.id}
-              onClick={() => selectTable(table.id === selectedTableId ? null : table.id)}
+              onClick={() =>
+                selectTable(table.id === selectedTableId ? null : table.id)
+              }
               className={`cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/40 ${
-                table.id === selectedTableId ? 'bg-orange-50/60 dark:bg-orange-950/20' : ''
+                table.id === selectedTableId
+                  ? 'bg-orange-50/60 dark:bg-orange-950/20'
+                  : ''
               }`}
             >
               <td className="px-5 py-3.5">
-                <span className="font-bold text-gray-800 dark:text-gray-100">{table.label}</span>
-                <span className="ml-2 text-xs text-gray-400">{table.shape}</span>
+                <span className="font-bold text-gray-800 dark:text-gray-100">
+                  {table.label}
+                </span>
+
+                <span className="ml-2 text-xs text-gray-400">
+                  {table.shape}
+                </span>
               </td>
-              <td className="px-4 py-3.5 text-gray-600 dark:text-gray-300">{table.section}</td>
+
+              <td className="px-4 py-3.5 text-gray-600 dark:text-gray-300">
+                {table.section}
+              </td>
+
               <td className="px-4 py-3.5">
                 <TableStatusBadge status={table.status} size="sm" />
               </td>
+
               <td className="px-4 py-3.5">
                 <span className="flex items-center gap-1 text-gray-600 dark:text-gray-300">
-                  <Users className="w-3.5 h-3.5 text-gray-400" /> {table.seats}
+                  <Users className="w-3.5 h-3.5 text-gray-400" />
+                  {table.seats}
                 </span>
               </td>
+
               <td className="px-4 py-3.5">
                 {table.currentOrder ? (
                   <div className="flex items-center gap-3">
-                    <span className="font-mono text-xs text-gray-500">{table.currentOrder.id}</span>
+                    <span className="font-mono text-xs text-gray-500">
+                      {table.currentOrder.id}
+                    </span>
+
                     <span className="flex items-center gap-0.5 text-xs font-semibold text-orange-600 dark:text-orange-400">
                       <IndianRupee className="w-3 h-3" />
                       {table.currentOrder.amount.toLocaleString('en-IN')}
                     </span>
+
                     <span className="flex items-center gap-1 text-xs text-gray-400">
-                      <Clock className="w-3 h-3" /> {table.currentOrder.time}
+                      <Clock className="w-3 h-3" />
+                      {table.currentOrder.time}
                     </span>
                   </div>
                 ) : (
                   <span className="text-gray-300 dark:text-gray-600">—</span>
                 )}
               </td>
+
               <td className="px-4 py-3.5 text-sm text-blue-600 dark:text-blue-400">
-                {table.reservedFor || <span className="text-gray-300 dark:text-gray-600">—</span>}
+                {table.reservedFor || (
+                  <span className="text-gray-300 dark:text-gray-600">—</span>
+                )}
               </td>
+
+              <td className="px-4 py-3.5">
+                <TableQRCode
+                  tableId={table.id}
+                  tableLabel={table.label}
+                  floor={table.floor}
+                />
+              </td>
+
               <td className="px-4 py-3.5 relative">
                 <button
                   type="button"
@@ -93,7 +135,10 @@ export function TableList(): JSX.Element {
                         <button
                           key={s}
                           type="button"
-                          onClick={() => { updateTableStatus(table.id, s); setOpenMenu(null); }}
+                          onClick={() => {
+                            updateTableStatus(table.id, s);
+                            setOpenMenu(null);
+                          }}
                           className="w-full text-left px-4 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                         >
                           → {s}
@@ -104,9 +149,13 @@ export function TableList(): JSX.Element {
               </td>
             </tr>
           ))}
+
           {filtered.length === 0 && (
             <tr>
-              <td colSpan={7} className="py-16 text-center text-gray-400 text-sm">
+              <td
+                colSpan={8}
+                className="py-16 text-center text-gray-400 text-sm"
+              >
                 No tables match the current filters.
               </td>
             </tr>

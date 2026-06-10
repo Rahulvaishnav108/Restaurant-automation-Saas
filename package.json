@@ -16,6 +16,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.12.2",
+    "@types/qrcode": "^1.5.6",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "concurrently": "^8.2.0",
@@ -26,5 +27,8 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "prettier": "^3.8.3",
     "typescript": "5.5.4"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
   }
 }
