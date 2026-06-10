@@ -9,18 +9,9 @@ export const cleaningRoutes: RouteObject[] = [
     path: '/cleaning',
     element: <CleaningLayout />,
     children: [
-      {
-        index: true,
-        element: <CleaningDashboard />,
-      },
-      {
-        path: 'profile',
-        element: <CleaningProfile />,
-      },
-      {
-        path: 'settings',
-        element: <CleaningSettings />,
-      },
+      {index: true, element: <CleaningDashboard />},
+      {path: 'profile',element: <CleaningProfile />},
+      {path: 'settings',element: <CleaningSettings />},
     ],
   },
 ];

@@ -7,9 +7,7 @@ export const kitchenRoutes: RouteObject[] = [
     path: '/kitchen',
     element: <KitchenLayout />,
     children: [
-      {
-        index: true,
-        element: <KitchenDashboard />,
+      {index: true, element: <KitchenDashboard />,
       },
     ],
   },

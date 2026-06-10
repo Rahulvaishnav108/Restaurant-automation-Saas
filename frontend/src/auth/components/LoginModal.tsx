@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { X, Eye, EyeOff } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import { useTheme } from "../../app/providers/ThemeProvider";
 import { useAuth } from "../AuthProvider";
@@ -15,6 +15,9 @@ export default function LoginModal({
   onClose,
 }: LoginModalProps): JSX.Element | null{
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
 
   const { theme, toggleTheme } = useTheme();
   const { signIn } = useAuth();
@@ -46,7 +49,17 @@ export default function LoginModal({
 
       onClose();
 
-      navigate("/dashboard");
+      if (from) {
+        navigate(from);
+      } else if (authenticatedUser.role === 'super-admin') {
+        navigate("/superadmin");
+      } else if (authenticatedUser.role === 'admin') {
+        navigate("/admin");
+      } else if (authenticatedUser.role === 'customer') {
+        navigate("/customer");
+      } else {
+        navigate(`/${authenticatedUser.role}`);
+      }
     } catch (err: unknown) {
       console.error(err);
       const errorResponse = err as {

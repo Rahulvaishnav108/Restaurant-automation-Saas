@@ -10,10 +10,13 @@ import {
   FileText,
   Sun, 
   Moon, 
-  ChevronDown 
+  ChevronDown,
+  LogOut
 } from "lucide-react";
+import { useAuth } from "../auth/AuthProvider";
 
 export default function SuperAdminLayout() {
+  const { signOut } = useAuth();
   // Initialize state from localStorage
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
@@ -196,6 +199,18 @@ export default function SuperAdminLayout() {
             <FileText size={18} />
             <span>Audit Logs</span>
           </NavLink>
+
+          <button
+            onClick={signOut}
+            className={`flex items-center gap-3.5 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 w-full text-left mt-4 ${
+              darkMode 
+                ? "text-red-400 hover:text-red-300 hover:bg-red-950/20" 
+                : "text-red-600 hover:text-red-700 hover:bg-red-50"
+            }`}
+          >
+            <LogOut size={18} />
+            <span>Sign Out</span>
+          </button>
         </nav>
 
         {/* FOOTER SYSTEM CONTROLS */}
