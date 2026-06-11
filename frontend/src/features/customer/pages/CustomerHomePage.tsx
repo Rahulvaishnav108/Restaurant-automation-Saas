@@ -17,11 +17,6 @@ export default function CustomerHomePage() {
         <p className="text-sm text-sd-on-surface-variant font-sans">What would you like to order today?</p>
       </div>
 
-      {/* Categories */}
-      <section className="mb-8">
-        <CategoryFilter />
-      </section>
-
       {/* Hero Banner */}
       <section className="mb-8">
         <div className="relative overflow-hidden rounded-[2rem] bg-[#FFF2EA] h-48 md:h-64 flex items-center">
@@ -86,6 +81,11 @@ export default function CustomerHomePage() {
 
       {/* Quick Actions — extra features */}
       <QuickActions />
+
+      {/* Categories */}
+      <section className="mb-8 mt-4">
+        <CategoryFilter />
+      </section>
 
       {/* Recommended */}
       <section className="mb-8">

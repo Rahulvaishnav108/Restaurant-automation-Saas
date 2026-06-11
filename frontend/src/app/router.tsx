@@ -28,6 +28,7 @@ function AppRouter(): JSX.Element {
 
     // ── Customer dashboard (public for now, wrap in guards later) ─
     ...customerRoutes,
+    ...kitchenRoutes,
 
     // ── Protected: Role-gated app shells ─────────────────────
     {
@@ -36,10 +37,6 @@ function AppRouter(): JSX.Element {
         {
           element: <RoleGuard roles={['staff']} />,
           children: staffRoutes,
-        },
-        {
-          element: <RoleGuard roles={['kitchen']} />,
-          children: kitchenRoutes,
         },
         {
           element: <RoleGuard roles={['cleaning']} />,

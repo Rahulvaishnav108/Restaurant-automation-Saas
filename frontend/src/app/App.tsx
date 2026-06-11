@@ -8,7 +8,7 @@ import LandingPage        from "../features/customer/pages/LandingPage";
 import LoginPage          from "../auth/pages/LoginPage";
 
 import KitchenLayout      from "../layouts/KitchenLayout";
-import KitchenDashboard   from "../features/kitchen/pages/KitchenDashboard";
+import KitchenOverviewPage   from "../features/kitchen/pages/KitchenOverviewPage";
 
 import SuperAdminLayout    from "../layouts/SuperAdminLayout";
 import SuperAdminDashboard from "../features/superAdmin/pages/SuperadminDashboard";
@@ -39,7 +39,7 @@ const AppRoutes = () => {
         <Route path="/login"       element={<LoginPage />} />
 
         <Route path="/kitchen" element={<KitchenLayout />}>
-          <Route index element={<KitchenDashboard />} />
+          <Route index element={<KitchenOverviewPage />} />
         </Route>
 
         <Route path="/admin" element={<AdminLayout />}>

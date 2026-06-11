@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import QRScannerModal from './QRScannerModal';
 
 const NAV_ITEMS = [
   { to: '/customer/home', icon: 'home', label: 'Home' },
@@ -15,6 +16,9 @@ interface Props {
 }
 
 export default function CustomerSidebar({ collapsed, onToggle }: Props) {
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
+
   return (
     <aside
       className={`hidden md:flex flex-col h-screen fixed left-0 top-0 bg-sd-surface border-r border-sd-surface-variant z-50 transition-all duration-300 group ${
@@ -49,7 +53,48 @@ export default function CustomerSidebar({ collapsed, onToggle }: Props) {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-2 overflow-y-auto sd-custom-scrollbar">
-        {NAV_ITEMS.map(({ to, icon, label }) => (
+        {/* Render first two items: Home, Menu */}
+        {NAV_ITEMS.slice(0, 2).map(({ to, icon, label }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 font-sans text-sm font-semibold group ${
+                isActive
+                  ? 'bg-sd-primary-container text-white shadow-md'
+                  : 'text-sd-on-surface-variant hover:bg-sd-surface-container'
+              } ${collapsed ? 'justify-center' : ''}`
+            }
+            title={collapsed ? label : undefined}
+          >
+            {({ isActive }) => (
+              <>
+                <span
+                  className="material-symbols-outlined text-[22px]"
+                  style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
+                >
+                  {icon}
+                </span>
+                {!collapsed && <span>{label}</span>}
+              </>
+            )}
+          </NavLink>
+        ))}
+
+        {/* Center/Middle: Scan QR Action button */}
+        <button
+          onClick={() => setScannerOpen(true)}
+          className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 font-sans text-sm font-semibold text-sd-on-surface-variant hover:bg-sd-surface-container w-full ${
+            collapsed ? 'justify-center' : ''
+          }`}
+          title={collapsed ? 'Scan QR' : undefined}
+        >
+          <span className="material-symbols-outlined text-[22px]">qr_code_scanner</span>
+          {!collapsed && <span>Scan QR</span>}
+        </button>
+
+        {/* Render remaining items: Orders, Reservations, Feedback */}
+        {NAV_ITEMS.slice(2).map(({ to, icon, label }) => (
           <NavLink
             key={to}
             to={to}
@@ -113,6 +158,24 @@ export default function CustomerSidebar({ collapsed, onToggle }: Props) {
           {!collapsed && <span>Profile</span>}
         </NavLink>
       </div>
+
+      {/* QR Scanner Modal Overlay */}
+      <QRScannerModal
+        isOpen={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScanSuccess={(tableId) => {
+          setScannerOpen(false);
+          setToastMsg(`✅ Connected to Table ${tableId}!`);
+          setTimeout(() => setToastMsg(''), 3000);
+        }}
+      />
+
+      {/* Local Success Toast */}
+      {toastMsg && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-sd-inverse-surface text-white px-6 py-3 rounded-2xl shadow-xl z-[100] animate-fadeIn font-sans text-sm font-semibold">
+          {toastMsg}
+        </div>
+      )}
     </aside>
   );
 }
