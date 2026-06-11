@@ -2,21 +2,17 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Star, 
-  Sparkles, 
   Lock, 
   Award, 
-  MessageSquare,
   Volume2,
-  Bell,
-  Trash2,
   Camera,
   Heart
 } from 'lucide-react';
-import { useCustomerStore, MENU_ITEMS } from '../store/customer.store';
+import { useCustomerStore } from '../store/customer.store';
 
 export default function FeedbackPage() {
   const navigate = useNavigate();
-  const { tableCode, orders } = useCustomerStore();
+  const { orders } = useCustomerStore();
 
   const latestOrder = orders[0] || {
     id: '#ORD-12456',
@@ -98,37 +94,40 @@ export default function FeedbackPage() {
             
             <div className="flex justify-center gap-8 w-full max-w-xs">
               {/* Bad */}
-              <div 
+              <button 
+                type="button"
                 onClick={() => setOverallRating('bad')}
-                className={`flex flex-col items-center gap-1 cursor-pointer group transition-transform hover:scale-105 ${
+                className={`flex flex-col items-center gap-1 cursor-pointer group transition-transform hover:scale-105 focus:outline-none ${
                   overallRating === 'bad' ? 'scale-110 font-bold text-orange-500' : 'opacity-50'
                 }`}
               >
                 <span className="text-4.5xl select-none">😠</span>
                 <span className="text-[10px]">Very Bad</span>
-              </div>
+              </button>
 
               {/* Okay */}
-              <div 
+              <button 
+                type="button"
                 onClick={() => setOverallRating('okay')}
-                className={`flex flex-col items-center gap-1 cursor-pointer group transition-transform hover:scale-105 ${
+                className={`flex flex-col items-center gap-1 cursor-pointer group transition-transform hover:scale-105 focus:outline-none ${
                   overallRating === 'okay' ? 'scale-110 font-bold text-orange-500' : 'opacity-50'
                 }`}
               >
                 <span className="text-4.5xl select-none">😐</span>
                 <span className="text-[10px]">Okay</span>
-              </div>
+              </button>
 
               {/* Excellent */}
-              <div 
+              <button 
+                type="button"
                 onClick={() => setOverallRating('excellent')}
-                className={`flex flex-col items-center gap-1 cursor-pointer group transition-transform hover:scale-105 ${
+                className={`flex flex-col items-center gap-1 cursor-pointer group transition-transform hover:scale-105 focus:outline-none ${
                   overallRating === 'excellent' ? 'scale-110 font-bold text-orange-500' : 'opacity-50'
                 }`}
               >
                 <span className="text-4.5xl select-none">🤩</span>
                 <span className="text-[10px]">Amazing!</span>
-              </div>
+              </button>
             </div>
 
             <div className="w-full max-w-xs py-2 bg-green-500/10 border border-green-500/10 rounded-xl text-green-500 text-xs font-bold">
@@ -148,11 +147,16 @@ export default function FeedbackPage() {
                 </div>
                 <div>
                   <p className="text-xs font-bold">Food Quality</p>
-                  <div className="flex gap-1 mt-1 text-orange-500 cursor-pointer">
+                  <div className="flex gap-1 mt-1 text-orange-500">
                     {[1, 2, 3, 4, 5].map(s => (
-                      <span key={s} onClick={() => setFoodRating(s)}>
+                      <button 
+                        type="button" 
+                        key={s} 
+                        onClick={() => setFoodRating(s)}
+                        className="focus:outline-none"
+                      >
                         <Star className={`w-4 h-4 ${s <= foodRating ? 'fill-current' : 'text-slate-300 dark:text-slate-700'}`} />
-                      </span>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -165,11 +169,16 @@ export default function FeedbackPage() {
                 </div>
                 <div>
                   <p className="text-xs font-bold">Taste</p>
-                  <div className="flex gap-1 mt-1 text-orange-500 cursor-pointer">
+                  <div className="flex gap-1 mt-1 text-orange-500">
                     {[1, 2, 3, 4, 5].map(s => (
-                      <span key={s} onClick={() => setTasteRating(s)}>
+                      <button 
+                        type="button" 
+                        key={s} 
+                        onClick={() => setTasteRating(s)}
+                        className="focus:outline-none"
+                      >
                         <Star className={`w-4 h-4 ${s <= tasteRating ? 'fill-current' : 'text-slate-300 dark:text-slate-700'}`} />
-                      </span>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -182,11 +191,16 @@ export default function FeedbackPage() {
                 </div>
                 <div>
                   <p className="text-xs font-bold">Service Time</p>
-                  <div className="flex gap-1 mt-1 text-orange-500 cursor-pointer">
+                  <div className="flex gap-1 mt-1 text-orange-500">
                     {[1, 2, 3, 4, 5].map(s => (
-                      <span key={s} onClick={() => setDeliveryRating(s)}>
+                      <button 
+                        type="button" 
+                        key={s} 
+                        onClick={() => setDeliveryRating(s)}
+                        className="focus:outline-none"
+                      >
                         <Star className={`w-4 h-4 ${s <= deliveryRating ? 'fill-current' : 'text-slate-300 dark:text-slate-700'}`} />
-                      </span>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -199,11 +213,16 @@ export default function FeedbackPage() {
                 </div>
                 <div>
                   <p className="text-xs font-bold">Table Cleanliness</p>
-                  <div className="flex gap-1 mt-1 text-orange-500 cursor-pointer">
+                  <div className="flex gap-1 mt-1 text-orange-500">
                     {[1, 2, 3, 4, 5].map(s => (
-                      <span key={s} onClick={() => setPackagingRating(s)}>
+                      <button 
+                        type="button" 
+                        key={s} 
+                        onClick={() => setPackagingRating(s)}
+                        className="focus:outline-none"
+                      >
                         <Star className={`w-4 h-4 ${s <= packagingRating ? 'fill-current' : 'text-slate-300 dark:text-slate-700'}`} />
-                      </span>
+                      </button>
                     ))}
                   </div>
                 </div>

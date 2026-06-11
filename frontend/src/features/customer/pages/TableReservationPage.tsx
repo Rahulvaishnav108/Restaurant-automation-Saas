@@ -11,19 +11,15 @@ import {
   Gift, 
   Sparkles, 
   PhoneCall, 
-  MessagesSquare, 
-  ChevronRight,
-  UserCheck
+  MessagesSquare
 } from 'lucide-react';
-import { useCustomerStore } from '../store/customer.store';
+
 
 export default function TableReservationPage() {
   const navigate = useNavigate();
-  const { tableCode } = useCustomerStore();
 
   const [guests, setGuests] = useState('2 Guests');
   const [date, setDate] = useState('24 May 2026');
-  const [time, setTime] = useState('7:00 PM');
   const [area, setArea] = useState('Any Preference');
   const [specialRequest, setSpecialRequest] = useState('');
 
@@ -103,7 +99,7 @@ export default function TableReservationPage() {
               
               {/* Guests Selection */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400">Number of Guests</label>
+                <span className="block text-[10px] font-bold text-slate-400">Number of Guests</span>
                 <div className="relative">
                   <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <select 
@@ -121,7 +117,7 @@ export default function TableReservationPage() {
 
               {/* Date Input */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400">Date</label>
+                <span className="block text-[10px] font-bold text-slate-400">Date</span>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input 
@@ -135,7 +131,7 @@ export default function TableReservationPage() {
 
               {/* Time Selection */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400">Time</label>
+                <span className="block text-[10px] font-bold text-slate-400">Time</span>
                 <div className="relative">
                   <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <select 
@@ -152,7 +148,7 @@ export default function TableReservationPage() {
 
               {/* Area Preference */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400">Area Preference (Optional)</label>
+                <span className="block text-[10px] font-bold text-slate-400">Area Preference (Optional)</span>
                 <div className="relative">
                   <Compass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <select 
@@ -170,7 +166,7 @@ export default function TableReservationPage() {
 
               {/* Special Requests */}
               <div className="md:col-span-2 space-y-1">
-                <label className="text-[10px] font-bold text-slate-400">Special Request (Optional)</label>
+                <span className="block text-[10px] font-bold text-slate-400">Special Request (Optional)</span>
                 <div className="relative">
                   <FileText className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
                   <textarea 
@@ -204,10 +200,11 @@ export default function TableReservationPage() {
               {timeSlots.map((slot) => {
                 const active = selectedSlot === slot.time;
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={slot.time}
                     onClick={() => setSelectedSlot(slot.time)}
-                    className={`p-3.5 border rounded-2xl flex flex-col items-center gap-1 cursor-pointer transition-all ${
+                    className={`p-3.5 border rounded-2xl flex flex-col items-center gap-1 cursor-pointer transition-all focus:outline-none ${
                       active
                         ? 'border-orange-500 bg-orange-500/5 dark:bg-orange-950/20 text-orange-500 ring-2 ring-orange-500/10'
                         : 'border-slate-100 dark:border-slate-800 hover:border-orange-500/30 text-slate-700 dark:text-slate-350'
@@ -219,7 +216,7 @@ export default function TableReservationPage() {
                     }`}>
                       {slot.status}
                     </span>
-                  </div>
+                  </button>
                 );
               })}
             </div>

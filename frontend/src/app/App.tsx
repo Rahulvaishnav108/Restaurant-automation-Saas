@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryProvider }  from "./providers/QueryProvider";
 import { ThemeProvider }  from "./providers/ThemeProvider";
 import { AuthProvider }   from "./providers/AuthProvider";
@@ -34,7 +34,6 @@ import { TableManagementPage }  from "../features/admin/pages/TableManagementPag
 import SettingsPage             from "../features/admin/pages/SettingsPage";
 
 const AppRoutes = () => {
-  const navigate = useNavigate();
   return (
     <main className="min-h-screen bg-[rgb(var(--page-bg))] text-[rgb(var(--text))]">
       <Routes>

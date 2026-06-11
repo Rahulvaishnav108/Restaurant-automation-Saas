@@ -176,9 +176,10 @@ export default function CheckoutPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               
               {/* UPI */}
-              <div 
+              <button 
+                type="button"
                 onClick={() => setPaymentMethod('upi')}
-                className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 relative ${
+                className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 relative text-left w-full ${
                   paymentMethod === 'upi'
                     ? 'border-orange-500 bg-orange-50/20 dark:bg-orange-950/10'
                     : 'border-slate-100 dark:border-slate-800 hover:border-orange-500/30'
@@ -194,12 +195,13 @@ export default function CheckoutPage() {
                 {paymentMethod === 'upi' && (
                   <div className="absolute top-3 right-3 w-4 h-4 rounded-full bg-orange-500 flex items-center justify-center text-white text-[9px] font-bold">✓</div>
                 )}
-              </div>
+              </button>
 
               {/* Cards */}
-              <div 
+              <button 
+                type="button"
                 onClick={() => setPaymentMethod('card')}
-                className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 relative ${
+                className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 relative text-left w-full ${
                   paymentMethod === 'card'
                     ? 'border-orange-500 bg-orange-50/20 dark:bg-orange-950/10'
                     : 'border-slate-100 dark:border-slate-800 hover:border-orange-500/30'
@@ -215,12 +217,13 @@ export default function CheckoutPage() {
                 {paymentMethod === 'card' && (
                   <div className="absolute top-3 right-3 w-4 h-4 rounded-full bg-orange-500 flex items-center justify-center text-white text-[9px] font-bold">✓</div>
                 )}
-              </div>
+              </button>
 
               {/* Net Banking */}
-              <div 
+              <button 
+                type="button"
                 onClick={() => setPaymentMethod('netbanking')}
-                className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 relative ${
+                className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 relative text-left w-full ${
                   paymentMethod === 'netbanking'
                     ? 'border-orange-500 bg-orange-50/20 dark:bg-orange-950/10'
                     : 'border-slate-100 dark:border-slate-800 hover:border-orange-500/30'
@@ -236,7 +239,7 @@ export default function CheckoutPage() {
                 {paymentMethod === 'netbanking' && (
                   <div className="absolute top-3 right-3 w-4 h-4 rounded-full bg-orange-500 flex items-center justify-center text-white text-[9px] font-bold">✓</div>
                 )}
-              </div>
+              </button>
             </div>
           </section>
 

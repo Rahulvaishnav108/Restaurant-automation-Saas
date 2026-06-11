@@ -2,7 +2,6 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
-  Sparkles, 
   Clock, 
   ShieldCheck, 
   Flame, 
@@ -10,12 +9,8 @@ import {
   Heart,
   Plus,
   Minus,
-  UtensilsCrossed,
   ShoppingBag,
-  BellRing,
   Trash2,
-  CalendarDays,
-  Store,
   Compass
 } from 'lucide-react';
 import { useCustomerStore, MENU_ITEMS } from '../store/customer.store';
@@ -85,7 +80,7 @@ export default function CustomerDashboard() {
             
             <div className="relative z-10 flex-1 space-y-4 text-center md:text-left">
               <span className="inline-block px-3 py-1 bg-orange-500/10 text-orange-500 dark:text-orange-400 font-bold text-xs rounded-full">
-                Today's Special
+                Today&apos;s Special
               </span>
               <h3 className="text-xl sm:text-2xl font-black leading-tight text-slate-900 dark:text-white">
                 Delicious food delivered straight to your table

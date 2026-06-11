@@ -2,15 +2,12 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
-  Flame, 
-  Star, 
   Heart,
   Plus,
   Minus,
   ShoppingBag,
   Trash2,
-  ChefHat,
-  Filter
+  ChefHat
 } from 'lucide-react';
 import { useCustomerStore, MENU_ITEMS } from '../store/customer.store';
 
@@ -50,7 +47,7 @@ export default function MenuPage() {
 
   // Filtered and Sorted Menu Items
   const filteredMenuItems = useMemo(() => {
-    let items = MENU_ITEMS.filter((item) => {
+    const items = MENU_ITEMS.filter((item) => {
       const matchesCategory = category === 'All' || item.cat === category;
       const matchesSearch = !search.trim() || `${item.name} ${item.desc} ${item.cat}`.toLowerCase().includes(search.toLowerCase());
       const matchesVeg = !vegOnly || item.veg;
@@ -91,11 +88,13 @@ export default function MenuPage() {
             </div>
 
             {/* Veg Mode Switcher */}
-            <label className="flex items-center gap-2 cursor-pointer select-none">
+            <div className="flex items-center gap-2 select-none">
               <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Veg Only</span>
-              <div 
+              <button 
+                type="button"
                 onClick={toggleVegOnly}
-                className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ${
+                aria-label="Toggle Veg Only"
+                className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 focus:outline-none ${
                   vegOnly ? 'bg-green-500' : 'bg-slate-200 dark:bg-slate-800'
                 }`}
               >
@@ -104,15 +103,17 @@ export default function MenuPage() {
                     vegOnly ? 'translate-x-4' : ''
                   }`}
                 />
-              </div>
-            </label>
+              </button>
+            </div>
 
             {/* Spicy Mode Switcher */}
-            <label className="flex items-center gap-2 cursor-pointer select-none">
+            <div className="flex items-center gap-2 select-none">
               <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Spicy 🔥</span>
-              <div 
+              <button 
+                type="button"
                 onClick={() => setSpicyOnly(!spicyOnly)}
-                className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ${
+                aria-label="Toggle Spicy Only"
+                className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 focus:outline-none ${
                   spicyOnly ? 'bg-orange-500' : 'bg-slate-200 dark:bg-slate-800'
                 }`}
               >
@@ -121,8 +122,8 @@ export default function MenuPage() {
                     spicyOnly ? 'translate-x-4' : ''
                   }`}
                 />
-              </div>
-            </label>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -160,7 +161,7 @@ export default function MenuPage() {
               <span className="text-xs text-slate-400">Sort by:</span>
               <select 
                 value={sortBy} 
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={(e) => setSortBy(e.target.value as 'recommended' | 'priceAsc' | 'priceDesc')}
                 className="bg-transparent border-none text-xs font-bold text-orange-500 focus:ring-0 p-0 cursor-pointer"
               >
                 <option value="recommended">Recommended</option>

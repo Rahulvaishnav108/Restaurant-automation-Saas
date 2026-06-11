@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   User, 
@@ -12,7 +12,6 @@ import {
   Bell, 
   Moon, 
   Sun, 
-  Heart,
   ChevronRight, 
   LogOut, 
   CalendarDays, 
@@ -21,7 +20,6 @@ import {
   PhoneCall, 
   MessagesSquare 
 } from 'lucide-react';
-import { useCustomerStore } from '../store/customer.store';
 import { useAuth } from '../../../auth/AuthProvider';
 import { useTheme } from '../../../app/providers/ThemeProvider';
 

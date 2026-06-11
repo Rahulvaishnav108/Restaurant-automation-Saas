@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { 
   MapPin, 
   HelpCircle, 
-  Bell, 
-  ChevronDown, 
   Clock, 
   Check, 
   Flame, 
