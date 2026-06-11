@@ -1,4 +1,4 @@
-import type { CustomerCartItem, CustomerMenuItem } from '../components';
+import type { CustomerCartItem, CustomerMenuItem } from '../store/customer.store';
 
 export const formatRupees = (value: number) => `₹${value}`;
 

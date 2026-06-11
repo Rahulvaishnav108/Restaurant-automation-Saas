@@ -152,3 +152,44 @@
     box-shadow: var(--shadow-soft);
   }
 }
+
+/* ── Smart Dining Dashboard Utilities ──────────────────────── */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  user-select: none;
+}
+
+.sd-custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.sd-custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sd-custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e1e3e4;
+  border-radius: 10px;
+}
+
+.sd-food-card-shadow {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+}
+
+.sd-no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.sd-no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Sidebar collapsed toggle hover animation */
+aside.group button[title="Expand sidebar"] {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.25s ease !important;
+}
+aside.group:hover button[title="Expand sidebar"] {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+

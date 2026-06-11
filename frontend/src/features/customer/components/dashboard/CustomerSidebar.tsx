@@ -1,105 +1,117 @@
-import React, { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, UtensilsCrossed, LogOut } from 'lucide-react';
-import { customerNavItems } from './customerNav';
-import { useAuth } from '../../../../auth/AuthProvider';
+import React from 'react';
+import { NavLink } from 'react-router-dom';
 
-export default function CustomerSidebar() {
-  const [collapsed, setCollapsed] = useState(false);
-  const { signOut, user } = useAuth();
-  const navigate = useNavigate();
+const NAV_ITEMS = [
+  { to: '/customer/home', icon: 'home', label: 'Home' },
+  { to: '/customer/menu', icon: 'restaurant_menu', label: 'Menu' },
+  { to: '/customer/orders', icon: 'receipt_long', label: 'Orders' },
+  { to: '/customer/reservations', icon: 'event_seat', label: 'Reservations' },
+  { to: '/customer/feedback', icon: 'rate_review', label: 'Feedback' },
+];
 
-  function handleLogout() {
-    signOut();
-    navigate('/');
-  }
+interface Props {
+  collapsed: boolean;
+  onToggle: () => void;
+}
 
+export default function CustomerSidebar({ collapsed, onToggle }: Props) {
   return (
     <aside
-      className={`relative hidden md:flex flex-col bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 transition-all duration-300 flex-shrink-0 min-h-screen ${
-        collapsed ? 'w-[72px]' : 'w-[220px]'
+      className={`hidden md:flex flex-col h-screen fixed left-0 top-0 bg-sd-surface border-r border-sd-surface-variant z-50 transition-all duration-300 group ${
+        collapsed ? 'w-[72px]' : 'w-64'
       }`}
     >
-      {/* Logo */}
-      <button
-        type="button"
-        className="w-full flex items-center gap-2.5 px-4 py-4 border-b border-gray-100 dark:border-gray-800 cursor-pointer select-none text-left bg-transparent"
-        onClick={() => navigate('/customer')}
-      >
-        <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-[#FF9F00] flex items-center justify-center shadow-md">
-          <UtensilsCrossed className="w-5 h-5 text-white" />
+      {/* Header */}
+      <div className={`flex ${collapsed ? 'flex-col items-center gap-4 px-2' : 'items-center justify-between px-4'} py-5 border-b border-sd-surface-variant/50 shrink-0`}>
+        <div className="flex items-center gap-3">
+          <div className="bg-sd-primary-container w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0">
+            <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+              restaurant
+            </span>
+          </div>
+          {!collapsed && (
+            <div className="overflow-hidden">
+              <h1 className="text-lg font-bold text-sd-primary font-sans whitespace-nowrap">Smart Dining</h1>
+              <p className="text-xs text-sd-on-surface-variant font-sans">Table T07</p>
+            </div>
+          )}
         </div>
-        {!collapsed && (
-          <span className="font-extrabold text-lg text-[#FF9F00] tracking-tight truncate">
-            ServeSphere
+        <button
+          onClick={onToggle}
+          className="p-1.5 text-sd-on-surface-variant hover:bg-sd-surface-container rounded-lg transition-all duration-200"
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          <span className="material-symbols-outlined text-[22px]">
+            {collapsed ? 'left_panel_open' : 'left_panel_close'}
           </span>
-        )}
-      </button>
+        </button>
+      </div>
 
-      {/* Collapse toggle */}
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-[66px] z-10 w-6 h-6 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow flex items-center justify-center text-gray-400 hover:text-[#FF9F00] transition-colors"
-        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      >
-        {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
-      </button>
-
-      {/* Nav items */}
-      <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-        {customerNavItems.map(({ tab, label, icon: Icon, path }) => (
+      {/* Navigation */}
+      <nav className="flex-1 space-y-1 px-2 overflow-y-auto sd-custom-scrollbar">
+        {NAV_ITEMS.map(({ to, icon, label }) => (
           <NavLink
-            key={tab}
-            to={path}
-            end={path === '/customer'}
+            key={to}
+            to={to}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group ${
+              `flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 font-sans text-sm font-semibold group ${
                 isActive
-                  ? 'bg-orange-50 dark:bg-orange-950/40 text-[#FF9F00]'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
-              }`
+                  ? 'bg-sd-primary-container text-white shadow-md'
+                  : 'text-sd-on-surface-variant hover:bg-sd-surface-container'
+              } ${collapsed ? 'justify-center' : ''}`
             }
             title={collapsed ? label : undefined}
           >
             {({ isActive }) => (
               <>
-                <Icon
-                  className={`w-[18px] h-[18px] flex-shrink-0 transition-colors ${
-                    isActive
-                      ? 'text-[#FF9F00]'
-                      : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300'
-                  }`}
-                />
-                {!collapsed && <span className="truncate">{label}</span>}
+                <span
+                  className="material-symbols-outlined text-[22px]"
+                  style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
+                >
+                  {icon}
+                </span>
+                {!collapsed && <span>{label}</span>}
               </>
             )}
           </NavLink>
         ))}
       </nav>
 
-      {/* User + Logout */}
-      <div className="px-2 py-3 border-t border-gray-100 dark:border-gray-800">
-        {!collapsed && user && (
-          <div className="flex items-center gap-2.5 px-3 py-2 mb-1">
-            <div className="w-8 h-8 rounded-full bg-[#FF9F00]/20 flex items-center justify-center flex-shrink-0">
-              <span className="text-[#FF9F00] font-bold text-sm">
-                {user.name.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{user.name}</p>
-              <p className="text-xs text-gray-400 truncate">{user.restaurantName}</p>
-            </div>
+      {/* Promo Card */}
+      {!collapsed && (
+        <div className="mx-3 mb-3">
+          <div className="bg-sd-primary-container/10 rounded-xl p-4 border border-sd-primary/20 relative overflow-hidden">
+            <p className="text-sd-primary font-bold text-sm font-sans mb-1">Get 20% OFF</p>
+            <p className="text-sd-on-surface-variant text-xs font-sans mb-3">on your first order</p>
+            <NavLink
+              to="/customer/menu"
+              className="inline-block bg-sd-primary-container text-white px-4 py-2 rounded-lg text-xs font-bold hover:opacity-90 transition-opacity font-sans"
+            >
+              Order Now
+            </NavLink>
+            <span className="material-symbols-outlined absolute -bottom-2 -right-2 text-sd-primary/10 text-6xl rotate-12">
+              celebration
+            </span>
           </div>
-        )}
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-500 transition-all"
-          title={collapsed ? 'Logout' : undefined}
+        </div>
+      )}
+
+      {/* Profile */}
+      <div className="border-t border-sd-surface-variant/50 px-2 py-2">
+        <NavLink
+          to="/customer/profile"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-3 rounded-xl transition-colors font-sans text-sm font-semibold ${
+              isActive
+                ? 'bg-sd-primary-container text-white'
+                : 'text-sd-on-surface-variant hover:bg-sd-surface-container'
+            } ${collapsed ? 'justify-center' : ''}`
+          }
+          title={collapsed ? 'Profile' : undefined}
         >
-          <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
-          {!collapsed && <span>Logout</span>}
-        </button>
+          <span className="material-symbols-outlined">person</span>
+          {!collapsed && <span>Profile</span>}
+        </NavLink>
       </div>
     </aside>
   );

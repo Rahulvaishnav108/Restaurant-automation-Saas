@@ -1,47 +1,27 @@
-import React from 'react';
+import { Navigate } from 'react-router-dom';
 import type { RouteObject } from 'react-router-dom';
 import CustomerLayout from '../layouts/CustomerLayout';
-import CustomerDashboard from '../features/customer/pages/CustomerDashboard';
-import MenuPage from '../features/customer/pages/MenuPage';
-import CheckoutPage from '../features/customer/pages/CheckoutPage';
-import OrderTrackingPage from '../features/customer/pages/OrderTrackingPage';
-import TableReservationPage from '../features/customer/pages/TableReservationPage';
-import FeedbackPage from '../features/customer/pages/FeedbackPage';
-import ProfilePage from '../features/customer/pages/ProfilePage';
+import CustomerHomePage from '../features/customer/pages/CustomerHomePage';
+import CustomerMenuPage from '../features/customer/pages/CustomerMenuPage';
+import CustomerCheckoutPage from '../features/customer/pages/CustomerCheckoutPage';
+import CustomerOrderTrackingPage from '../features/customer/pages/CustomerOrderTrackingPage';
+import CustomerReservationPage from '../features/customer/pages/CustomerReservationPage';
+import CustomerFeedbackPage from '../features/customer/pages/CustomerFeedbackPage';
+import CustomerProfilePage from '../features/customer/pages/CustomerProfilePage';
 
 export const customerRoutes: RouteObject[] = [
   {
     path: '/customer',
     element: <CustomerLayout />,
     children: [
-      {
-        index: true,
-        element: <CustomerDashboard />,
-      },
-      {
-        path: 'menu',
-        element: <MenuPage />,
-      },
-      {
-        path: 'checkout',
-        element: <CheckoutPage />,
-      },
-      {
-        path: 'orders',
-        element: <OrderTrackingPage />,
-      },
-      {
-        path: 'reservations',
-        element: <TableReservationPage />,
-      },
-      {
-        path: 'feedback',
-        element: <FeedbackPage />,
-      },
-      {
-        path: 'profile',
-        element: <ProfilePage />,
-      },
+      { index: true, element: <Navigate to="home" replace /> },
+      { path: 'home', element: <CustomerHomePage /> },
+      { path: 'menu', element: <CustomerMenuPage /> },
+      { path: 'checkout', element: <CustomerCheckoutPage /> },
+      { path: 'orders', element: <CustomerOrderTrackingPage /> },
+      { path: 'reservations', element: <CustomerReservationPage /> },
+      { path: 'feedback', element: <CustomerFeedbackPage /> },
+      { path: 'profile', element: <CustomerProfilePage /> },
     ],
   },
 ];
