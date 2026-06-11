@@ -13,8 +13,12 @@ import {
   ChevronDown,
   LogOut
 } from "lucide-react";
+<<<<<<< HEAD
 import { useAuth } from "../auth/AuthProvider";
 
+=======
+import Navbar from "../features/superAdmin/components/dashboard/Navbar";
+>>>>>>> b7bb77d (Add and Update Transaction)
 export default function SuperAdminLayout() {
   const { signOut } = useAuth();
   // Initialize state from localStorage
@@ -246,9 +250,15 @@ export default function SuperAdminLayout() {
         </div>
       </aside>
 
-      {/* DASHBOARD ROUTE OUTLET */}
+      {/* DASHBOARD ROUTE OUTLET VIEWPORT */}
       <main className="flex-1 min-w-0 flex flex-col overflow-y-auto">
-        <Outlet />
+        {/* Navbar sits on top of the layout container workspace seamlessly */}
+        <Navbar darkMode={darkMode} onThemeToggle={toggleTheme} />
+        
+        {/* Page contents (Dashboard, Transactions, etc.) render here */}
+        <div className="flex-1">
+          <Outlet context={{ darkMode }} />
+        </div>
       </main>
     </div>
   );
