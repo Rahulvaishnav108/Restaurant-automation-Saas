@@ -13,12 +13,8 @@ import {
   ChevronDown,
   LogOut
 } from "lucide-react";
-<<<<<<< HEAD
 import { useAuth } from "../auth/AuthProvider";
-
-=======
 import Navbar from "../features/superAdmin/components/dashboard/Navbar";
->>>>>>> b7bb77d (Add and Update Transaction)
 export default function SuperAdminLayout() {
   const { signOut } = useAuth();
   // Initialize state from localStorage
