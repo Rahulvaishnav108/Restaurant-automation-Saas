@@ -6,7 +6,9 @@ export default function CustomerBottomNav() {
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
       <div className="flex items-center justify-around px-2 py-1 safe-area-pb">
-        {customerNavItems.map(({ tab, label, icon: Icon, path }) => (
+        {customerNavItems
+          .filter((item) => ['home', 'menu', 'checkout', 'orders', 'profile'].includes(item.tab))
+          .map(({ tab, label, icon: Icon, path }) => (
           <NavLink
             key={tab}
             to={path}

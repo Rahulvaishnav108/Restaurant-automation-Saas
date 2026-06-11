@@ -2,7 +2,12 @@ import React from 'react';
 import type { RouteObject } from 'react-router-dom';
 import CustomerLayout from '../layouts/CustomerLayout';
 import CustomerDashboard from '../features/customer/pages/CustomerDashboard';
-import MaintenancePage from '../features/customer/pages/MaintenancePage';
+import MenuPage from '../features/customer/pages/MenuPage';
+import CheckoutPage from '../features/customer/pages/CheckoutPage';
+import OrderTrackingPage from '../features/customer/pages/OrderTrackingPage';
+import TableReservationPage from '../features/customer/pages/TableReservationPage';
+import FeedbackPage from '../features/customer/pages/FeedbackPage';
+import ProfilePage from '../features/customer/pages/ProfilePage';
 
 export const customerRoutes: RouteObject[] = [
   {
@@ -15,39 +20,27 @@ export const customerRoutes: RouteObject[] = [
       },
       {
         path: 'menu',
-        element: (
-          <MaintenancePage
-            title="Menu"
-            description="Full menu with categories, filters, and cart is coming soon."
-          />
-        ),
+        element: <MenuPage />,
+      },
+      {
+        path: 'checkout',
+        element: <CheckoutPage />,
       },
       {
         path: 'orders',
-        element: (
-          <MaintenancePage
-            title="My Orders"
-            description="Live order tracking and order history is coming soon."
-          />
-        ),
+        element: <OrderTrackingPage />,
       },
       {
-        path: 'services',
-        element: (
-          <MaintenancePage
-            title="Services"
-            description="Call waiter, request cleaning, and other table services coming soon."
-          />
-        ),
+        path: 'reservations',
+        element: <TableReservationPage />,
+      },
+      {
+        path: 'feedback',
+        element: <FeedbackPage />,
       },
       {
         path: 'profile',
-        element: (
-          <MaintenancePage
-            title="Profile"
-            description="Your profile, preferences, loyalty wallet, and theme settings coming soon."
-          />
-        ),
+        element: <ProfilePage />,
       },
     ],
   },
