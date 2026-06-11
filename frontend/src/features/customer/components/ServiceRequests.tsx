@@ -6,6 +6,7 @@ export type ServiceRequestItem = {
   label: string;
   description: string;
   type: 'waiter' | 'water' | 'cleaning' | 'other';
+  status?: string;
 };
 
 type ServiceRequestsProps = {

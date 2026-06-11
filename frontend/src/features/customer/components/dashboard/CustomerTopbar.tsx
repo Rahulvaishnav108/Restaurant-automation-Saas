@@ -133,9 +133,11 @@ export default function CustomerTopbar() {
 
       {/* Close dropdowns on outside click */}
       {(notifOpen || themeOpen) && (
-        <div
-          className="fixed inset-0 z-30"
+        <button
+          type="button"
+          className="fixed inset-0 z-30 w-full h-full cursor-default bg-transparent border-none outline-none"
           onClick={() => { setNotifOpen(false); setThemeOpen(false); }}
+          aria-label="Close menus"
         />
       )}
     </header>

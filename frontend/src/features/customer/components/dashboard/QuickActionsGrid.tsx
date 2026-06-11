@@ -61,7 +61,14 @@ export default function QuickActionsGrid() {
   const [sent, setSent] = useState<string | null>(null);
 
   function handleAction(id: string, label: string) {
-    requestService({ id, label, status: 'Pending' } as any);
+    const type = (['waiter', 'water', 'cleaning'].includes(id) ? id : 'other') as 'waiter' | 'water' | 'cleaning' | 'other';
+    requestService({
+      id,
+      label,
+      description: `Request for ${label}`,
+      type,
+      status: 'Pending',
+    });
     setSent(id);
     setTimeout(() => setSent(null), 2000);
   }

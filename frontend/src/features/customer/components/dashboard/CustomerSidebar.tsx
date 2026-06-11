@@ -21,8 +21,9 @@ export default function CustomerSidebar() {
       }`}
     >
       {/* Logo */}
-      <div
-        className="flex items-center gap-2.5 px-4 py-4 border-b border-gray-100 dark:border-gray-800 cursor-pointer select-none"
+      <button
+        type="button"
+        className="w-full flex items-center gap-2.5 px-4 py-4 border-b border-gray-100 dark:border-gray-800 cursor-pointer select-none text-left bg-transparent"
         onClick={() => navigate('/customer')}
       >
         <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-[#FF9F00] flex items-center justify-center shadow-md">
@@ -33,7 +34,7 @@ export default function CustomerSidebar() {
             ServeSphere
           </span>
         )}
-      </div>
+      </button>
 
       {/* Collapse toggle */}
       <button
