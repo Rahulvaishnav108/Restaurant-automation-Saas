@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
 import Navbar from "../features/superAdmin/components/dashboard/Navbar";
+
 export default function SuperAdminLayout() {
   const { signOut } = useAuth();
   // Initialize state from localStorage
