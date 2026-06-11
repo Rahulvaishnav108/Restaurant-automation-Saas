@@ -5,7 +5,7 @@ export type TrackedOrder = {
   id: string;
   items: string;
   total: number;
-  status: 'Placed' | 'Preparing' | 'Served' | 'Completed';
+  status: 'Placed' | 'Preparing' | 'Ready' | 'Served' | 'Completed';
   eta: string;
 };
 
@@ -17,6 +17,7 @@ type OrderTrackerProps = {
 const STATUS_ICON = {
   Placed: ShoppingBag,
   Preparing: Flame,
+  Ready: Flame,
   Served: CheckCircle2,
   Completed: CheckCircle2,
 };
