@@ -1,28 +1,90 @@
-export default function UnderMaintenance() {
+import React, { useState, useEffect } from 'react';
+
+import { LogType, initialLogs } from "../store/AuditLogs";
+import { exportLogsAsCSV } from "../utils/Auditlogsutils";
+
+import AuditLogsHeader from "../components/Audit/Auditlogsheader";
+import AuditLogsKPICards from "../components/Audit/Auditlogskpicards";
+import AuditLogsFilterBar from "../components/Audit/Auditlogsfilterbar";
+import AuditLogsTable from "../components/Audit/Auditlogstable";
+import AuditLogsMobileCards from "../components/Audit/Auditlogsmobilecards";
+
+export default function AuditLogsPage() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedType, setSelectedType] = useState<LogType | 'All'>('All');
+
+  // Dark mode: initialise from localStorage, default to dark
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    return saved ? saved === 'dark' : true;
+  });
+
+  // Sync theme when a global "sync-app-theme" event fires (e.g. from Layout sidebar)
+  useEffect(() => {
+    const handleThemeSync = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.darkMode !== undefined) {
+        setDarkMode(customEvent.detail.darkMode);
+      }
+    };
+    window.addEventListener('sync-app-theme', handleThemeSync);
+    return () => window.removeEventListener('sync-app-theme', handleThemeSync);
+  }, []);
+
+  // Keep <html> class in sync for Tailwind dark: variants
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+  }, [darkMode]);
+
+  // --- Derived data ---
+  const filteredLogs = initialLogs.filter((log) => {
+    const query = searchTerm.toLowerCase();
+    const matchesSearch =
+      log.action.toLowerCase().includes(query) ||
+      log.performedBy.toLowerCase().includes(query) ||
+      log.target.toLowerCase().includes(query);
+    const matchesType = selectedType === 'All' || log.type === selectedType;
+    return matchesSearch && matchesType;
+  });
+
+  const handleExport = () => exportLogsAsCSV(filteredLogs);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#020817] text-white px-6">
-      <div className="text-center">
-        
-        {/* Icon */}
-        <div className="text-7xl mb-6">
-          🚧
+    <div
+      className={`min-h-screen font-sans antialiased transition-colors duration-300 px-4 sm:px-6 py-6 sm:py-8 ${
+        darkMode ? 'bg-[#020817] text-slate-50' : 'bg-[#F8FAFC] text-slate-900'
+      }`}
+    >
+      <div className="max-w-7xl mx-auto">
+
+        {/* 1. Page header + export button */}
+        <AuditLogsHeader darkMode={darkMode} onExport={handleExport} />
+
+        {/* 2. KPI summary cards */}
+        <AuditLogsKPICards darkMode={darkMode} logs={initialLogs} />
+
+        {/* 3. Search & type-filter bar */}
+        <AuditLogsFilterBar
+          darkMode={darkMode}
+          searchTerm={searchTerm}
+          selectedType={selectedType}
+          onSearchChange={setSearchTerm}
+          onTypeChange={setSelectedType}
+        />
+
+        {/* 4. Data table / card list */}
+        <div
+          className={`rounded-2xl border overflow-hidden shadow-sm ${
+            darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200/80'
+          }`}
+        >
+          {/* Desktop table */}
+          <AuditLogsTable darkMode={darkMode} logs={filteredLogs} />
+
+          {/* Mobile card list */}
+          <AuditLogsMobileCards darkMode={darkMode} logs={filteredLogs} />
         </div>
 
-        {/* Heading */}
-        <h1 className="text-5xl font-bold mb-4">
-          Page Under Maintenance
-        </h1>
-
-        {/* Subtitle */}
-        <p className="text-slate-400 text-lg max-w-xl mx-auto leading-relaxed">
-          We&apos;re currently working on this page to improve your experience.
-          Please check back later.
-        </p>
-
-        {/* Coming Soon Badge */}
-        <div className="mt-8 inline-flex items-center px-6 py-3 rounded-full bg-orange-500/20 border border-orange-500/30 text-orange-400 font-semibold tracking-wide">
-          Coming Soon
-        </div>
       </div>
     </div>
   );

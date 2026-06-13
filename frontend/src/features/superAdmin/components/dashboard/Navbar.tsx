@@ -49,7 +49,7 @@ export default function Navbar({ darkMode, onThemeToggle }: NavbarProps) {
   ];
 
   return (
-    <header className={`sticky top-0 z-50 h-16 w-full border-b backdrop-blur-md transition-all duration-300 ${darkMode ? "bg-slate-950/80 border-slate-800 shadow-md shadow-black/10" : "bg-white/80 border-slate-200/80 shadow-sm shadow-slate-100/40"}`}>
+    <header className={`fixed top-0 left-[260px] right-0 z-50 h-16 border-b backdrop-blur-md transition-all duration-300 ${darkMode ? "bg-slate-950/80 border-slate-800 shadow-md shadow-black/10" : "bg-white/80 border-slate-200/80 shadow-sm shadow-slate-100/40"}`}>
       <div className="w-full h-full px-4 sm:px-8 flex items-center justify-between" ref={dropdownRef}>
         <div className="flex items-center gap-3 min-w-[200px]">
           <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center font-black text-white text-base">⬢</div>
