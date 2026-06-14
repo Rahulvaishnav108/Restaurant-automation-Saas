@@ -1,9 +1,17 @@
 import React from 'react';
 import { LIVE_ALERTS } from '../../store/kitchenData';
 
-export default function LiveAlertsBar() {
+interface Props {
+  sidebarCollapsed: boolean;
+}
+
+export default function LiveAlertsBar({ sidebarCollapsed }: Props) {
   return (
-    <footer className="hidden lg:flex fixed bottom-0 left-64 right-0 bg-white border-t border-slate-200 h-14 items-center px-8 z-50 overflow-hidden">
+    <footer
+      className={`hidden lg:flex fixed bottom-0 right-0 bg-white border-t border-slate-200 h-14 items-center px-8 z-50 overflow-hidden transition-all duration-300 ${
+        sidebarCollapsed ? 'left-[72px]' : 'left-64'
+      }`}
+    >
       <div className="flex items-center gap-2 text-red-500 font-bold text-xs uppercase tracking-widest mr-12 whitespace-nowrap font-sans">
         <span className="animate-pulse">📢</span>
         LIVE ALERTS
@@ -23,3 +31,4 @@ export default function LiveAlertsBar() {
     </footer>
   );
 }
+

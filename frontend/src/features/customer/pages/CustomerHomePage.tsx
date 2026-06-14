@@ -19,7 +19,7 @@ export default function CustomerHomePage() {
 
       {/* Hero Banner */}
       <section className="mb-8">
-        <div className="relative overflow-hidden rounded-[2rem] bg-[#FFF2EA] h-48 md:h-64 flex items-center">
+        <div className="relative overflow-hidden rounded-[2rem] bg-[#FFF2EA] dark:bg-[#1a110c] border border-sd-surface-variant/40 dark:border-sd-primary/10 h-48 md:h-64 flex items-center">
           <div className="relative z-10 pl-6 md:pl-10 w-full md:w-1/2">
             <span className="inline-block px-3 py-1 bg-sd-primary/10 text-sd-primary font-bold text-xs rounded-full mb-2 font-sans">
               Today&apos;s Special
@@ -38,7 +38,7 @@ export default function CustomerHomePage() {
             </Link>
           </div>
           <div className="hidden md:flex relative w-1/2 h-full items-center justify-end pr-10">
-            <div className="absolute top-6 right-12 bg-sd-primary-container text-white p-3 rounded-full w-16 h-16 flex flex-col items-center justify-center rotate-12 shadow-xl z-20 border-4 border-white">
+            <div className="absolute top-6 right-12 bg-sd-primary-container text-white p-3 rounded-full w-16 h-16 flex flex-col items-center justify-center rotate-12 shadow-xl z-20 border-4 border-white dark:border-[#1a110c]">
               <span className="text-lg font-bold font-sans">20%</span>
               <span className="text-[8px] font-bold uppercase tracking-widest font-sans">OFF</span>
             </div>
@@ -59,14 +59,14 @@ export default function CustomerHomePage() {
       {/* Features Grid */}
       <section className="mb-8 grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { icon: 'bolt', label: 'Fast Delivery', desc: 'On-time service', color: 'bg-orange-100 text-orange-600' },
-          { icon: 'ecg_heart', label: 'Fresh Food', desc: 'Hygienic & tasty', color: 'bg-green-100 text-green-600' },
-          { icon: 'location_on', label: 'Live Tracking', desc: 'Track your order', color: 'bg-blue-100 text-blue-600' },
-          { icon: 'verified', label: 'Best Offers', desc: 'Exciting deals', color: 'bg-purple-100 text-purple-600' },
+          { icon: 'bolt', label: 'Fast Delivery', desc: 'On-time service', color: 'bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400' },
+          { icon: 'ecg_heart', label: 'Fresh Food', desc: 'Hygienic & tasty', color: 'bg-green-100 dark:bg-green-950/40 text-green-600 dark:text-green-400' },
+          { icon: 'location_on', label: 'Live Tracking', desc: 'Track your order', color: 'bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400' },
+          { icon: 'verified', label: 'Best Offers', desc: 'Exciting deals', color: 'bg-purple-100 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400' },
         ].map(({ icon, label, desc, color }) => (
           <div
             key={label}
-            className="bg-white p-5 rounded-2xl border border-sd-outline-variant flex flex-col items-center text-center gap-2.5 hover:shadow-md transition-all"
+            className="bg-white dark:bg-sd-surface-container p-5 rounded-2xl border border-sd-outline-variant dark:border-sd-outline-variant/40 flex flex-col items-center text-center gap-2.5 hover:shadow-md transition-all"
           >
             <div className={`w-12 h-12 rounded-full ${color} flex items-center justify-center shrink-0`}>
               <span className="material-symbols-outlined text-[24px]">{icon}</span>

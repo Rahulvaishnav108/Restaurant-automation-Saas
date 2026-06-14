@@ -21,7 +21,7 @@ export default function CustomerSidebar({ collapsed, onToggle }: Props) {
 
   return (
     <aside
-      className={`hidden md:flex flex-col h-screen fixed left-0 top-0 bg-sd-surface border-r border-sd-surface-variant z-50 transition-all duration-300 group ${
+      className={`hidden md:flex flex-col h-screen fixed left-0 top-0 bg-sd-surface-container-low border-r border-sd-surface-variant z-50 transition-all duration-300 group ${
         collapsed ? 'w-[72px]' : 'w-64'
       }`}
     >
@@ -46,7 +46,7 @@ export default function CustomerSidebar({ collapsed, onToggle }: Props) {
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           <span className="material-symbols-outlined text-[22px]">
-            {collapsed ? 'left_panel_open' : 'left_panel_close'}
+            {collapsed ? 'menu_open' : 'menu'}
           </span>
         </button>
       </div>

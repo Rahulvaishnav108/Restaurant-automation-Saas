@@ -9,6 +9,7 @@ interface Props {
 export default function QRScannerModal({ isOpen, onClose, onScanSuccess }: Props) {
   const [cameraActive, setCameraActive] = useState(false);
   const [scanned, setScanned] = useState(false);
+  const [cameraSupport, setCameraSupport] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -23,25 +24,37 @@ export default function QRScannerModal({ isOpen, onClose, onScanSuccess }: Props
 
     let isMounted = true;
 
-    // Request camera stream
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-      .then((stream) => {
-        if (isMounted) {
-          streamRef.current = stream;
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-            videoRef.current.setAttribute('playsinline', 'true');
-            videoRef.current.play().catch(e => console.error("Error playing video:", e));
+    // Request camera stream safely
+    if (navigator?.mediaDevices?.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        .then((stream) => {
+          if (isMounted) {
+            streamRef.current = stream;
+            if (videoRef.current) {
+              videoRef.current.srcObject = stream;
+              videoRef.current.setAttribute('playsinline', 'true');
+              videoRef.current.play().catch(e => console.error("Error playing video:", e));
+            }
+            setCameraActive(true);
+            setCameraSupport(true);
           }
-          setCameraActive(true);
-        }
-      })
-      .catch((err) => {
-        console.warn("Camera permission denied or not available, falling back to simulation:", err);
+        })
+        .catch((err) => {
+          console.warn("Camera permission denied or not available, falling back to simulation:", err);
+          if (isMounted) {
+            setCameraActive(false);
+            setCameraSupport(false);
+          }
+        });
+    } else {
+      console.warn("navigator.mediaDevices or getUserMedia is not supported in this browser context (e.g., HTTP on non-localhost).");
+      setTimeout(() => {
         if (isMounted) {
           setCameraActive(false);
+          setCameraSupport(false);
         }
-      });
+      }, 0);
+    }
 
     // Simulated scanning timeout
     const scanTimer = setTimeout(() => {
@@ -130,12 +143,22 @@ export default function QRScannerModal({ isOpen, onClose, onScanSuccess }: Props
             />
           ) : (
             <div className="flex flex-col items-center justify-center text-center p-6 gap-3 select-none">
-              <div className="w-20 h-20 bg-sd-primary-container/10 border border-sd-primary-container/30 rounded-2xl flex items-center justify-center text-sd-primary-container animate-pulse">
-                <span className="material-symbols-outlined text-5xl">qr_code_2</span>
+              <div className="w-16 h-16 bg-sd-primary-container/10 border border-sd-primary-container/30 rounded-2xl flex items-center justify-center text-sd-primary-container animate-pulse">
+                <span className="material-symbols-outlined text-4xl">
+                  {cameraSupport ? 'qr_code_2' : 'videocam_off'}
+                </span>
               </div>
-              <div>
-                <p className="text-sm font-bold font-sans">Connecting Camera Feed...</p>
-                <p className="text-[11px] text-white/50 font-sans mt-0.5 max-w-[180px]">Demo mode will automatically scan Table T07</p>
+              <div className="space-y-1">
+                <p className="text-sm font-bold font-sans">
+                  {cameraSupport ? 'Connecting Camera Feed...' : 'Camera Access Disabled'}
+                </p>
+                <p className="text-[10px] text-white/50 font-sans max-w-[200px] leading-relaxed">
+                  {!window.isSecureContext
+                    ? 'Camera access requires HTTPS or localhost. Scanning simulated table T07...'
+                    : cameraSupport
+                      ? 'Demo mode will automatically scan Table T07'
+                      : 'Camera permission denied. Scanning simulated table T07...'}
+                </p>
               </div>
             </div>
           )}

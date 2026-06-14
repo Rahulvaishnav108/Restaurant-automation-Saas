@@ -239,7 +239,7 @@ export interface SettingsSection {
 }
 
 export const SETTINGS_SECTIONS: SettingsSection[] = [
-  { id: 'general', title: 'General', description: 'Kitchen name, timezone, language preferences', icon: '⚙️' },
+  { id: 'general', title: 'General & Preferences', description: 'Kitchen name, timezone, theme and language preferences', icon: '⚙️' },
   { id: 'stations', title: 'Station Setup', description: 'Add, edit, or remove kitchen stations', icon: '🍳' },
   { id: 'notifications', title: 'Notifications', description: 'Alert preferences, sound, auto-dismiss settings', icon: '🔔' },
   { id: 'display', title: 'Display & KDS', description: 'Order card size, column layout, color coding', icon: '🖥️' },

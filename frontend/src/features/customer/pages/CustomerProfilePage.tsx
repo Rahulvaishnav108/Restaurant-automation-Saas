@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '../../../app/providers/ThemeProvider';
 
 const STATS = [
   { icon: 'event_available', value: '12', label: 'Reservations', color: 'bg-orange-100 text-orange-600' },
@@ -17,15 +18,10 @@ const MENU_ITEMS = [
   { icon: 'notifications_active', label: 'Notifications', desc: 'Manage your alert preferences', color: 'bg-yellow-50 text-yellow-600' },
 ];
 
-const PREFERENCES = [
-  { icon: 'palette', label: 'Theme', color: 'text-purple-600', value: 'Light' },
-  { icon: 'support_agent', label: 'Help & Support', color: 'text-blue-600' },
-  { icon: 'verified_user', label: 'Privacy Policy', color: 'text-green-600' },
-  { icon: 'description', label: 'Terms & Conditions', color: 'text-orange-600' },
-];
-
 export default function CustomerProfilePage() {
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
+  const [themeExpanded, setThemeExpanded] = useState(false);
 
   return (
     <div className="p-4 md:p-8 pb-24 md:pb-8 overflow-y-auto h-full sd-custom-scrollbar">
@@ -119,18 +115,69 @@ export default function CustomerProfilePage() {
               <p className="text-sm font-bold font-sans">Preferences</p>
             </div>
             <div className="divide-y divide-sd-surface-variant">
-              {PREFERENCES.map(({ icon, label, color, value }) => (
-                <button key={label} className="w-full flex items-center justify-between p-4 hover:bg-sd-surface-container-low transition-colors group">
+              {/* Theme Preferences Accordion/Toggle */}
+              <div className="flex flex-col">
+                <button 
+                  onClick={() => setThemeExpanded(!themeExpanded)}
+                  className="w-full flex items-center justify-between p-4 hover:bg-sd-surface-container-low transition-colors group"
+                >
                   <div className="flex items-center gap-3">
-                    <span className={`material-symbols-outlined ${color} text-[20px]`}>{icon}</span>
-                    <span className="text-sm font-bold font-sans">{label}</span>
+                    <span className="material-symbols-outlined text-purple-600 text-[20px]">palette</span>
+                    <span className="text-sm font-bold font-sans">Theme</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    {value && <span className="text-xs text-sd-primary font-bold font-sans">{value}</span>}
-                    <span className="material-symbols-outlined text-sd-surface-variant group-hover:text-sd-primary transition-all text-[18px] group-hover:translate-x-1">chevron_right</span>
+                    <span className="text-xs text-sd-primary font-bold font-sans capitalize">{theme}</span>
+                    <span className={`material-symbols-outlined text-sd-surface-variant group-hover:text-sd-primary transition-all text-[18px] ${themeExpanded ? 'rotate-90' : ''}`}>
+                      chevron_right
+                    </span>
                   </div>
                 </button>
-              ))}
+                {themeExpanded && (
+                  <div className="px-4 pb-4 pt-1 bg-sd-surface-container-low/50 flex flex-col gap-2 border-t border-sd-surface-variant/40">
+                    <p className="text-[11px] text-sd-on-surface-variant font-bold mb-1">Select Appearance</p>
+                    <div className="flex gap-2">
+                      {(['light', 'dark', 'system'] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          onClick={() => setTheme(mode)}
+                          className={`flex-1 py-2 border rounded-xl text-center capitalize text-xs font-bold font-sans transition-all ${
+                            theme === mode
+                              ? 'bg-sd-primary-container/10 border-sd-primary-container text-sd-primary'
+                              : 'bg-white border-sd-outline-variant text-sd-on-surface-variant hover:bg-sd-surface-container-low'
+                          }`}
+                        >
+                          {mode}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Other Preferences */}
+              <button className="w-full flex items-center justify-between p-4 hover:bg-sd-surface-container-low transition-colors group">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-blue-600 text-[20px]">support_agent</span>
+                  <span className="text-sm font-bold font-sans">Help & Support</span>
+                </div>
+                <span className="material-symbols-outlined text-sd-surface-variant group-hover:text-sd-primary transition-all text-[18px] group-hover:translate-x-1">chevron_right</span>
+              </button>
+
+              <button className="w-full flex items-center justify-between p-4 hover:bg-sd-surface-container-low transition-colors group">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-green-600 text-[20px]">verified_user</span>
+                  <span className="text-sm font-bold font-sans">Privacy Policy</span>
+                </div>
+                <span className="material-symbols-outlined text-sd-surface-variant group-hover:text-sd-primary transition-all text-[18px] group-hover:translate-x-1">chevron_right</span>
+              </button>
+
+              <button className="w-full flex items-center justify-between p-4 hover:bg-sd-surface-container-low transition-colors group">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-orange-600 text-[20px]">description</span>
+                  <span className="text-sm font-bold font-sans">Terms & Conditions</span>
+                </div>
+                <span className="material-symbols-outlined text-sd-surface-variant group-hover:text-sd-primary transition-all text-[18px] group-hover:translate-x-1">chevron_right</span>
+              </button>
             </div>
           </div>
 

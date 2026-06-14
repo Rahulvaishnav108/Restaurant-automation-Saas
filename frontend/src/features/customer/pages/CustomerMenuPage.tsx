@@ -15,33 +15,18 @@ export default function CustomerMenuPage() {
             <h2 className="text-2xl font-bold text-sd-on-surface font-sans">Our Menu</h2>
             <p className="text-sm text-sd-on-surface-variant font-sans">Delicious meals, made just for you.</p>
           </div>
-          {/* Toggles */}
-          <div className="hidden sm:flex items-center gap-4">
-            <label className="flex items-center cursor-pointer gap-2">
-              <span className="text-sm font-semibold text-sd-on-surface-variant font-sans">Veg Mode</span>
-              <div className="relative inline-flex h-5 w-9 items-center rounded-full bg-sd-surface-variant transition-colors">
-                <input
-                  className="sr-only peer"
-                  type="checkbox"
-                  checked={vegOnly}
-                  onChange={(e) => setVegOnly(e.target.checked)}
-                />
-                <div className={`absolute left-0.5 h-4 w-4 rounded-full shadow-sm transition-all ${vegOnly ? 'translate-x-4 bg-sd-secondary' : 'bg-white'}`} />
-              </div>
-            </label>
-          </div>
         </div>
 
         {/* Category Filter */}
         <CategoryFilter />
 
         {/* Sub-filters */}
-        <div className="flex items-center justify-between border-b border-sd-surface-variant pb-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center justify-between border-b border-sd-surface-variant pb-4">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
               <span className="text-xs text-sd-on-surface-variant font-sans">Sort by:</span>
               <select
-                className="bg-transparent border-none focus:ring-0 text-sm font-semibold text-sd-primary p-0 cursor-pointer font-sans"
+                className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 focus:border-transparent text-sm font-semibold text-sd-primary p-0 cursor-pointer font-sans"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
@@ -52,19 +37,52 @@ export default function CustomerMenuPage() {
               </select>
             </div>
           </div>
-          <label className="hidden sm:flex items-center gap-2 cursor-pointer">
-            <span className="material-symbols-outlined text-sd-primary text-[18px]">local_fire_department</span>
-            <span className="text-sm font-semibold text-sd-on-surface-variant font-sans">Spicy</span>
-            <div className="relative inline-flex h-5 w-9 items-center rounded-full bg-sd-surface-variant">
-              <input
-                className="sr-only peer"
-                type="checkbox"
-                checked={spicyOnly}
-                onChange={(e) => setSpicyOnly(e.target.checked)}
-              />
-              <div className={`absolute left-0.5 h-4 w-4 rounded-full shadow-sm transition-all ${spicyOnly ? 'translate-x-4 bg-sd-primary' : 'bg-white'}`} />
-            </div>
-          </label>
+          <div className="flex items-center justify-between sm:justify-start gap-4 sm:gap-6 w-full sm:w-auto">
+            {/* Veg Mode Toggle */}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <span className="text-sm font-semibold text-sd-on-surface-variant font-sans">Veg Mode</span>
+              <div
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                  vegOnly ? 'bg-sd-secondary/20' : 'bg-sd-surface-variant'
+                }`}
+              >
+                <input
+                  className="sr-only peer"
+                  type="checkbox"
+                  checked={vegOnly}
+                  onChange={(e) => setVegOnly(e.target.checked)}
+                />
+                <div
+                  className={`absolute left-0.5 h-4 w-4 rounded-full shadow-sm transition-all ${
+                    vegOnly ? 'translate-x-4 bg-sd-secondary' : 'bg-white'
+                  }`}
+                />
+              </div>
+            </label>
+
+            {/* Spicy Toggle */}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <span className="material-symbols-outlined text-sd-primary text-[18px]">local_fire_department</span>
+              <span className="text-sm font-semibold text-sd-on-surface-variant font-sans">Spicy</span>
+              <div
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                  spicyOnly ? 'bg-sd-primary/20' : 'bg-sd-surface-variant'
+                }`}
+              >
+                <input
+                  className="sr-only peer"
+                  type="checkbox"
+                  checked={spicyOnly}
+                  onChange={(e) => setSpicyOnly(e.target.checked)}
+                />
+                <div
+                  className={`absolute left-0.5 h-4 w-4 rounded-full shadow-sm transition-all ${
+                    spicyOnly ? 'translate-x-4 bg-sd-primary' : 'bg-white'
+                  }`}
+                />
+              </div>
+            </label>
+          </div>
         </div>
 
         {/* Search results info */}

@@ -9,11 +9,11 @@ interface QuickAction {
 }
 
 const ACTIONS: QuickAction[] = [
-  { icon: 'receipt_long', label: 'Request Bill', description: 'Get your bill at the table', color: 'text-orange-600', bgColor: 'bg-orange-100' },
-  { icon: 'restaurant', label: 'Extra Cutlery', description: 'Request additional cutlery', color: 'text-blue-600', bgColor: 'bg-blue-100' },
-  { icon: 'water_drop', label: 'Call for Water', description: 'Request water service', color: 'text-cyan-600', bgColor: 'bg-cyan-100' },
-  { icon: 'cleaning_services', label: 'Cleaning Staff', description: 'Request table cleaning', color: 'text-green-600', bgColor: 'bg-green-100' },
-  { icon: 'support_agent', label: 'Call Waiter', description: 'Request waiter assistance', color: 'text-purple-600', bgColor: 'bg-purple-100' },
+  { icon: 'receipt_long', label: 'Request Bill', description: 'Get your bill at the table', color: 'text-orange-600 dark:text-orange-400', bgColor: 'bg-orange-100 dark:bg-orange-950/40' },
+  { icon: 'restaurant', label: 'Extra Cutlery', description: 'Request additional cutlery', color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-100 dark:bg-blue-950/40' },
+  { icon: 'water_drop', label: 'Call for Water', description: 'Request water service', color: 'text-cyan-600 dark:text-cyan-400', bgColor: 'bg-cyan-100 dark:bg-cyan-950/40' },
+  { icon: 'cleaning_services', label: 'Cleaning Staff', description: 'Request table cleaning', color: 'text-green-600 dark:text-green-400', bgColor: 'bg-green-100 dark:bg-green-950/40' },
+  { icon: 'support_agent', label: 'Call Waiter', description: 'Request waiter assistance', color: 'text-purple-600 dark:text-purple-400', bgColor: 'bg-purple-100 dark:bg-purple-950/40' },
 ];
 
 export default function QuickActions() {
@@ -53,23 +53,23 @@ export default function QuickActions() {
                 disabled={isSent}
                 className={`flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all group ${
                   isSent
-                    ? 'border-sd-secondary/30 bg-sd-secondary-container/10 cursor-default'
-                    : 'border-sd-outline-variant bg-white hover:shadow-md hover:border-sd-primary/30 active:scale-95'
+                    ? 'border-sd-secondary/30 dark:border-green-800/30 bg-sd-secondary-container/10 dark:bg-green-950/20 cursor-default'
+                    : 'border-sd-outline-variant dark:border-sd-outline-variant/40 bg-white dark:bg-sd-surface-container hover:shadow-md hover:border-sd-primary/30 active:scale-95'
                 }`}
               >
                 <div
                   className={`w-12 h-12 rounded-xl flex items-center justify-center transition-transform ${
-                    isSent ? 'bg-sd-secondary-container/20' : action.bgColor
+                    isSent ? 'bg-sd-secondary-container/20 dark:bg-green-950/40' : action.bgColor
                   } ${!isSent ? 'group-hover:scale-110' : ''}`}
                 >
                   <span
-                    className={`material-symbols-outlined text-[24px] ${isSent ? 'text-sd-secondary' : action.color}`}
+                    className={`material-symbols-outlined text-[24px] ${isSent ? 'text-sd-secondary dark:text-green-400' : action.color}`}
                     style={{ fontVariationSettings: isSent ? "'FILL' 1" : "'FILL' 0" }}
                   >
                     {isSent ? 'check_circle' : action.icon}
                   </span>
                 </div>
-                <span className={`text-xs font-bold font-sans ${isSent ? 'text-sd-secondary' : 'text-sd-on-surface'}`}>
+                <span className={`text-xs font-bold font-sans ${isSent ? 'text-sd-secondary dark:text-green-400' : 'text-sd-on-surface'}`}>
                   {isSent ? 'Sent!' : action.label}
                 </span>
               </button>

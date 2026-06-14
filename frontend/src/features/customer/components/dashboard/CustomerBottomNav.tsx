@@ -24,14 +24,14 @@ export default function CustomerBottomNav() {
 
   return (
     <>
-      <nav className="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center h-16 px-2 pb-[env(safe-area-inset-bottom)] bg-sd-surface border-t border-sd-surface-variant shadow-lg z-40 overflow-visible">
+      <nav className="md:hidden fixed bottom-0 left-0 w-full flex items-center h-16 px-2 pb-[env(safe-area-inset-bottom)] bg-sd-surface border-t border-sd-surface-variant shadow-lg z-40 overflow-visible">
         {/* Left Nav Items */}
         {leftNav.map(({ to, icon, label }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-0.5 ${
+              `flex-1 flex flex-col items-center justify-center gap-0.5 ${
                 isActive
                   ? 'text-sd-primary'
                   : 'text-sd-on-surface-variant'
@@ -40,12 +40,16 @@ export default function CustomerBottomNav() {
           >
             {({ isActive }) => (
               <>
-                <span
-                  className={`material-symbols-outlined text-[22px] ${isActive ? 'bg-sd-primary-container/10 rounded-full px-4 py-1' : ''}`}
-                  style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
-                >
-                  {icon}
-                </span>
+                <div className={`flex items-center justify-center w-12 h-7 rounded-full transition-all ${
+                  isActive ? 'bg-sd-primary-container/10' : 'bg-transparent'
+                }`}>
+                  <span
+                    className="material-symbols-outlined text-[22px]"
+                    style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
+                  >
+                    {icon}
+                  </span>
+                </div>
                 <span className="text-[10px] font-semibold font-sans">{label}</span>
               </>
             )}
@@ -53,10 +57,10 @@ export default function CustomerBottomNav() {
         ))}
 
         {/* Center: Scan QR Button (Elevated) */}
-        <div className="flex flex-col items-center justify-center relative -top-3.5 z-50">
+        <div className="flex-1 flex flex-col items-center justify-center relative -top-3.5 z-50">
           <button
             onClick={() => setScannerOpen(true)}
-            className="w-14 h-14 bg-sd-primary-container text-white rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(255,92,0,0.35)] hover:scale-105 active:scale-95 transition-all border-[4px] border-white shrink-0"
+            className="w-14 h-14 bg-sd-primary-container text-white rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(255,92,0,0.35)] hover:scale-105 active:scale-95 transition-all border-[4px] border-white dark:border-sd-surface shrink-0"
             title="Scan QR"
           >
             <span className="material-symbols-outlined text-[24px]">qr_code_scanner</span>
@@ -70,7 +74,7 @@ export default function CustomerBottomNav() {
             key={to}
             to={to}
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-0.5 ${
+              `flex-1 flex flex-col items-center justify-center gap-0.5 ${
                 isActive
                   ? 'text-sd-primary'
                   : 'text-sd-on-surface-variant'
@@ -79,12 +83,16 @@ export default function CustomerBottomNav() {
           >
             {({ isActive }) => (
               <>
-                <span
-                  className={`material-symbols-outlined text-[22px] ${isActive ? 'bg-sd-primary-container/10 rounded-full px-4 py-1' : ''}`}
-                  style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
-                >
-                  {icon}
-                </span>
+                <div className={`flex items-center justify-center w-12 h-7 rounded-full transition-all ${
+                  isActive ? 'bg-sd-primary-container/10' : 'bg-transparent'
+                }`}>
+                  <span
+                    className="material-symbols-outlined text-[22px]"
+                    style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
+                  >
+                    {icon}
+                  </span>
+                </div>
                 <span className="text-[10px] font-semibold font-sans">{label}</span>
               </>
             )}

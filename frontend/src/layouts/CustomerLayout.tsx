@@ -38,7 +38,7 @@ export default function CustomerLayout() {
   return (
     <CartProvider>
       <SearchProvider>
-        <div className="flex h-screen overflow-hidden bg-sd-surface">
+        <div className="flex h-screen overflow-hidden bg-sd-surface customer-panel">
           {/* Desktop Sidebar */}
           <CustomerSidebar
             collapsed={sidebarCollapsed}

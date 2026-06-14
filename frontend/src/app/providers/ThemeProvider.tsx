@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-export type ThemeMode = "light" | "dark";
+export type ThemeMode = "light" | "dark" | "system";
 
 type ThemeContextValue = {
   theme: ThemeMode;
@@ -16,8 +16,8 @@ const STORAGE_KEY = "servesphere-theme";
 function getInitialTheme(): ThemeMode {
   if (typeof window === "undefined") return "light";
   const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved === "light" || saved === "dark") return saved;
-  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  if (saved === "light" || saved === "dark" || saved === "system") return saved as ThemeMode;
+  return "light"; // Default to light mode
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -25,18 +25,57 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.toggle("dark", theme === "dark");
+    
+    const applyTheme = () => {
+      let isDark = false;
+      if (theme === "dark") {
+        isDark = true;
+      } else if (theme === "system") {
+        isDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+      }
+      root.classList.toggle("dark", isDark);
+    };
+
+    applyTheme();
     localStorage.setItem(STORAGE_KEY, theme);
+
+    if (theme === "system") {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const handleChange = () => {
+        applyTheme();
+      };
+      
+      if (mediaQuery.addEventListener) {
+        mediaQuery.addEventListener("change", handleChange);
+      } else {
+        mediaQuery.addListener(handleChange);
+      }
+      return () => {
+        if (mediaQuery.removeEventListener) {
+          mediaQuery.removeEventListener("change", handleChange);
+        } else {
+          mediaQuery.removeListener(handleChange);
+        }
+      };
+    }
   }, [theme]);
 
   const value = useMemo<ThemeContextValue>(() => {
     return {
       theme,
       setTheme: (next) => setThemeState(next),
-      toggleTheme: () => setThemeState((prev) => (prev === "dark" ? "light" : "dark")),
+      toggleTheme: () => {
+        setThemeState((prev) => {
+          if (prev === "system") {
+            const isDarkSystem = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+            return isDarkSystem ? "light" : "dark";
+          }
+          return prev === "dark" ? "light" : "dark";
+        });
+      },
       syncThemeFromProfile: (profileTheme) => {
-        if (profileTheme === "light" || profileTheme === "dark") {
-          setThemeState(profileTheme);
+        if (profileTheme === "light" || profileTheme === "dark" || profileTheme === "system") {
+          setThemeState(profileTheme as ThemeMode);
         }
       },
     };

@@ -46,7 +46,18 @@ export default function FoodCard({ item }: Props) {
       {/* Content */}
       <div className="p-5 flex-1 flex flex-col">
         <div className="flex justify-between items-start mb-1.5">
-          <h4 className="text-base font-bold text-sd-on-surface font-sans">{item.name}</h4>
+          <div className="flex items-center gap-2 min-w-0">
+            {item.isVeg ? (
+              <div className="w-4 h-4 border-2 border-green-700 rounded-none flex items-center justify-center shrink-0" style={{ borderRadius: '0px' }} title="Veg">
+                <div className="w-2 h-2 rounded-full bg-green-700" />
+              </div>
+            ) : (
+              <div className="w-4 h-4 border-2 border-red-700 rounded-none flex items-center justify-center shrink-0" style={{ borderRadius: '0px' }} title="Non-Veg">
+                <div className="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[8px] border-b-red-700" />
+              </div>
+            )}
+            <h4 className="text-base font-bold text-sd-on-surface font-sans leading-tight">{item.name}</h4>
+          </div>
           <div className="flex items-center gap-1 text-sd-secondary font-bold shrink-0 ml-2">
             <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>
               star
