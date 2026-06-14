@@ -1,4 +1,4 @@
-// import React from 'react'; // Not needed with modern JSX transform
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { AdminSidebar } from '../features/admin/components/AdminSidebar';
 import { AdminTopbar } from '../features/admin/components/AdminTopbar';
@@ -6,14 +6,29 @@ import { AdminSearchProvider } from '../features/admin/context/Adminsearchcontex
 import { AdminNotificationsProvider } from '../features/admin/context/Adminnotificationscontext';
 
 export default function AdminLayout(): JSX.Element {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const handleOpenSidebar = () => {
+    setSidebarOpen(true);
+  };
+
+  const handleCloseSidebar = () => {
+    setSidebarOpen(false);
+  };
+
   return (
     <AdminNotificationsProvider>
       <AdminSearchProvider>
         <div className="flex h-screen bg-gray-50 dark:bg-gray-950 overflow-hidden transition-colors duration-200">
-          <AdminSidebar />
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <AdminTopbar />
-            <main className="flex-1 overflow-y-auto p-6">
+          <AdminSidebar
+            mobileOpen={sidebarOpen}
+            onMobileClose={handleCloseSidebar}
+          />
+
+          <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+            <AdminTopbar onMenuToggle={handleOpenSidebar} />
+
+            <main className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6">
               <Outlet />
             </main>
           </div>

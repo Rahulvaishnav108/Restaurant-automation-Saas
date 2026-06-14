@@ -5,10 +5,9 @@ import { useReservationsStore } from '../../store/reservations.store';
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
+  'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-// Dates with reservations (hardcoded for demo)
 const reservationDates: Record<number, 'confirmed' | 'pending' | 'cancelled' | 'walkin'> = {
   2: 'confirmed', 3: 'walkin', 7: 'pending', 10: 'confirmed',
   12: 'confirmed', 14: 'cancelled', 17: 'confirmed', 19: 'pending',
@@ -17,7 +16,7 @@ const reservationDates: Record<number, 'confirmed' | 'pending' | 'cancelled' | '
 
 export function ReservationCalendar(): JSX.Element {
   const { calendarView, setCalendarView } = useReservationsStore();
-  const [month, setMonth] = useState(4); // May = 4 (0-indexed)
+  const [month, setMonth] = useState(4);
   const [year, setYear] = useState(2025);
   const [selectedDay, setSelectedDay] = useState(20);
 
@@ -45,16 +44,16 @@ export function ReservationCalendar(): JSX.Element {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 sm:p-5">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-gray-800 dark:text-gray-100">Reservation Calendar</h3>
-        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h3 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-100">Reservation Calendar</h3>
+        <div className="flex items-center gap-0.5 sm:gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
           {(['Day', 'Week', 'Month'] as const).map((v) => (
             <button
               key={v}
               onClick={() => setCalendarView(v)}
-              className={`px-3 py-1 text-xs font-medium rounded-lg transition-all ${
+              className={`px-2 sm:px-3 py-1 text-[11px] sm:text-xs font-medium rounded-lg transition-all ${
                 calendarView === v
                   ? 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm'
                   : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
@@ -67,18 +66,24 @@ export function ReservationCalendar(): JSX.Element {
       </div>
 
       {/* Month navigation */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
         <button
-          onClick={() => { if (month === 0) { setMonth(11); setYear(y => y - 1); } else setMonth(m => m - 1); }}
+          onClick={() => {
+            if (month === 0) { setMonth(11); setYear((y) => y - 1); }
+            else setMonth((m) => m - 1);
+          }}
           className="w-7 h-7 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center transition-colors"
         >
           <ChevronLeft className="w-4 h-4 text-gray-400" />
         </button>
-        <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+        <span className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-100">
           {MONTHS[month]} {year}
         </span>
         <button
-          onClick={() => { if (month === 11) { setMonth(0); setYear(y => y + 1); } else setMonth(m => m + 1); }}
+          onClick={() => {
+            if (month === 11) { setMonth(0); setYear((y) => y + 1); }
+            else setMonth((m) => m + 1);
+          }}
           className="w-7 h-7 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center transition-colors"
         >
           <ChevronRight className="w-4 h-4 text-gray-400" />
@@ -86,9 +91,9 @@ export function ReservationCalendar(): JSX.Element {
       </div>
 
       {/* Day labels */}
-      <div className="grid grid-cols-7 mb-2">
+      <div className="grid grid-cols-7 mb-1 sm:mb-2">
         {DAYS.map((d) => (
-          <div key={d} className="text-center text-[11px] font-medium text-gray-400 dark:text-gray-500 py-1">
+          <div key={d} className="text-center text-[10px] sm:text-[11px] font-medium text-gray-400 dark:text-gray-500 py-1">
             {d}
           </div>
         ))}
@@ -104,7 +109,7 @@ export function ReservationCalendar(): JSX.Element {
             <button
               key={i}
               onClick={() => cell.current && setSelectedDay(cell.day)}
-              className={`relative flex flex-col items-center justify-center w-full aspect-square rounded-xl text-xs transition-all ${
+              className={`relative flex flex-col items-center justify-center w-full aspect-square rounded-xl text-[11px] sm:text-xs transition-all ${
                 isSelected
                   ? 'bg-orange-500 text-white font-bold'
                   : isToday
@@ -116,7 +121,7 @@ export function ReservationCalendar(): JSX.Element {
             >
               {cell.day}
               {dot && !isSelected && (
-                <span className={`absolute bottom-1 w-1 h-1 rounded-full ${dotColor[dot]}`} />
+                <span className={`absolute bottom-0.5 w-1 h-1 rounded-full ${dotColor[dot]}`} />
               )}
             </button>
           );
@@ -124,15 +129,15 @@ export function ReservationCalendar(): JSX.Element {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-3 mt-4 pt-3 border-t border-gray-50 dark:border-gray-800">
+      <div className="flex items-center flex-wrap gap-2 sm:gap-3 mt-3 sm:mt-4 pt-3 border-t border-gray-50 dark:border-gray-800">
         {[
           { label: 'Confirmed', color: 'bg-green-500' },
           { label: 'Pending', color: 'bg-amber-400' },
           { label: 'Cancelled', color: 'bg-red-400' },
           { label: 'Walk-in', color: 'bg-purple-400' },
         ].map(({ label, color }) => (
-          <span key={label} className="flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-500">
-            <span className={`w-2 h-2 rounded-full ${color}`} />
+          <span key={label} className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] text-gray-400 dark:text-gray-500">
+            <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${color}`} />
             {label}
           </span>
         ))}

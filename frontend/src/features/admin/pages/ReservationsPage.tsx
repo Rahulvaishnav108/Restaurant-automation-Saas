@@ -34,7 +34,6 @@ export default function ReservationsPage(): JSX.Element {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showDateModal, setShowDateModal] = useState(false);
 
-  // New reservation form state
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -49,7 +48,6 @@ export default function ReservationsPage(): JSX.Element {
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState(false);
 
-  // Filter local state (applied only on "Apply")
   const [localFilterStatus, setLocalFilterStatus] = useState<'All' | ReservationStatus>(filterStatus);
   const [localFilterTime, setLocalFilterTime] = useState(filterTime);
 
@@ -112,31 +110,31 @@ export default function ReservationsPage(): JSX.Element {
   const isFilterActive = filterStatus !== 'All' || filterTime !== '';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Reservations</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+          <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Reservations</h1>
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             Manage all restaurant reservations and table bookings
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap sm:flex-shrink-0">
           {/* Date Picker */}
           <div className="relative">
             <button
               type="button"
               onClick={() => { setShowDateModal((v) => !v); setShowFilterModal(false); }}
-              className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
-              <CalendarDays className="w-4 h-4 text-gray-400" />
-              {selectedDate}
-              <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+              <CalendarDays className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400" />
+              <span className="max-w-[90px] sm:max-w-none truncate">{selectedDate}</span>
+              <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400" />
             </button>
 
             {showDateModal && (
-              <div className="absolute right-0 top-full mt-2 z-30 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-xl p-2 w-52">
+              <div className="absolute left-0 sm:right-0 sm:left-auto top-full mt-2 z-30 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-xl p-2 w-52">
                 {DATES.map((d) => (
                   <button
                     key={d}
@@ -161,13 +159,13 @@ export default function ReservationsPage(): JSX.Element {
             <button
               type="button"
               onClick={() => { setShowFilterModal((v) => !v); setShowDateModal(false); }}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors border ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors border ${
                 isFilterActive
                   ? 'bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800 text-orange-600'
                   : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
             >
-              <Filter className="w-4 h-4" />
+              <Filter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               Filter
               {isFilterActive && (
                 <span className="w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0" />
@@ -237,10 +235,10 @@ export default function ReservationsPage(): JSX.Element {
           <button
             type="button"
             onClick={() => { setShowNewModal(true); setShowDateModal(false); setShowFilterModal(false); }}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs sm:text-sm font-semibold transition-colors shadow-sm whitespace-nowrap"
           >
-            <Plus className="w-4 h-4" />
-            New Reservation
+            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="hidden xs:inline">New </span>Reservation
           </button>
         </div>
       </div>
@@ -258,18 +256,18 @@ export default function ReservationsPage(): JSX.Element {
       {/* Stats */}
       <ReservationStatCards />
 
-      {/* Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <div className="lg:col-span-4">
+      {/* Main grid — stacks on mobile, 12-col on lg */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
+        <div className="md:col-span-1 lg:col-span-4">
           <ReservationCalendar />
         </div>
-        <div className="lg:col-span-3">
+        <div className="md:col-span-1 lg:col-span-3">
           <UpcomingReservationsList />
         </div>
-        <div className="lg:col-span-3">
+        <div className="md:col-span-1 lg:col-span-3">
           <TableAvailabilityGrid />
         </div>
-        <div className="lg:col-span-2">
+        <div className="md:col-span-1 lg:col-span-2">
           <GuestDetailsPanel />
         </div>
       </div>
@@ -280,7 +278,7 @@ export default function ReservationsPage(): JSX.Element {
 
       {/* ─── New Reservation Modal ─── */}
       {showNewModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm">
           <button
             type="button"
             aria-label="Close modal"
@@ -289,13 +287,13 @@ export default function ReservationsPage(): JSX.Element {
           />
 
           <div
-            className="relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-2xl p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto"
+            className="relative bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl border border-gray-100 dark:border-gray-800 shadow-2xl p-5 sm:p-6 w-full sm:max-w-md sm:mx-4 max-h-[92vh] overflow-y-auto"
             role="dialog"
             aria-modal="true"
             aria-labelledby="new-reservation-title"
           >
             <div className="flex items-center justify-between mb-4">
-              <h2 id="new-reservation-title" className="text-lg font-bold text-gray-900 dark:text-white">
+              <h2 id="new-reservation-title" className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
                 New Reservation
               </h2>
               <button
@@ -397,14 +395,14 @@ export default function ReservationsPage(): JSX.Element {
                   <button
                     type="button"
                     onClick={() => { setShowNewModal(false); setFormError(''); }}
-                    className="flex-1 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors"
+                    className="flex-1 py-2.5 sm:py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={handleCreateReservation}
-                    className="flex-1 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-colors"
+                    className="flex-1 py-2.5 sm:py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-colors"
                   >
                     Create Reservation
                   </button>

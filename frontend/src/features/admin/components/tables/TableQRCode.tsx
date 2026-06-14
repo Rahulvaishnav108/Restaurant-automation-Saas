@@ -42,10 +42,34 @@ export function TableQRCode({
     const img = new Image();
 
     img.onload = () => {
-      canvas.width = 600;
-      canvas.height = 600;
+      const qrSize = 600;
+      const labelAreaHeight = 120;
 
-      ctx?.drawImage(img, 0, 0, 600, 600);
+      canvas.width = qrSize;
+      canvas.height = qrSize + labelAreaHeight;
+
+      if (!ctx) return;
+
+      // White background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw QR code
+      ctx.drawImage(img, 0, 0, qrSize, qrSize);
+
+      // Draw table label (table number)
+      ctx.fillStyle = '#111827';
+      ctx.font = 'bold 48px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(tableLabel, canvas.width / 2, qrSize + 55);
+
+      // Draw floor and section
+      const subLabel = section
+        ? `${section} • Floor ${floor}`
+        : `Floor ${floor}`;
+      ctx.fillStyle = '#6b7280';
+      ctx.font = '32px Arial, sans-serif';
+      ctx.fillText(subLabel, canvas.width / 2, qrSize + 100);
 
       const pngFile = canvas.toDataURL('image/png');
 

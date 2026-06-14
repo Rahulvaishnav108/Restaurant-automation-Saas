@@ -10,14 +10,14 @@ function ModalShell({
   title: string; subtitle?: string; onClose: () => void; children: React.ReactNode;
 }): JSX.Element {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <button 
         type="button" 
         aria-label="Close modal" 
         className="absolute inset-0 bg-black/50 backdrop-blur-sm w-full h-full cursor-default" 
         onClick={onClose} 
       />
-      <div className="relative z-10 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[88vh] flex flex-col">
+      <div className="relative z-10 bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-[92vh] flex flex-col">
         <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
           <div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{title}</h2>

@@ -17,17 +17,17 @@ export function RestaurantInfoCard(): JSX.Element {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 sm:p-6">
       <h3 className="text-base font-bold text-gray-800 dark:text-gray-100 mb-5">Restaurant Information</h3>
 
-      <div className="flex items-start gap-5">
+      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
         {/* Icon */}
         <div className="w-14 h-14 rounded-2xl bg-green-50 dark:bg-green-950/40 border border-green-100 dark:border-green-900 flex items-center justify-center flex-shrink-0">
           <Store className="w-7 h-7 text-green-500 dark:text-green-400" />
         </div>
 
         {/* Fields */}
-        <div className="flex-1 grid grid-cols-2 gap-x-6 gap-y-4">
+        <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
           <Field label="Restaurant Name">
             {editingRestaurant
               ? <input className={inputCls} value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} />
@@ -48,7 +48,7 @@ export function RestaurantInfoCard(): JSX.Element {
               ? <input className={inputCls} value={draft.phone} onChange={e => setDraft(d => ({ ...d, phone: e.target.value }))} />
               : <Value>{restaurant.phone}</Value>}
           </Field>
-          <Field label="Address" className="col-span-2">
+          <Field label="Address" className="sm:col-span-2">
             {editingRestaurant
               ? <input className={inputCls} value={draft.address} onChange={e => setDraft(d => ({ ...d, address: e.target.value }))} />
               : <Value>{restaurant.address}</Value>}
@@ -56,7 +56,7 @@ export function RestaurantInfoCard(): JSX.Element {
         </div>
       </div>
 
-      <div className="mt-5 flex justify-end gap-2">
+      <div className="mt-5 flex flex-col sm:flex-row justify-end gap-2">
         {editingRestaurant ? (
           <>
             <button onClick={handleCancel} className={secondaryBtn}>Cancel</button>

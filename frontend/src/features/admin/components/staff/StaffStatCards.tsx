@@ -1,6 +1,7 @@
 import React from 'react';
 import { Users, UserCheck, UserMinus, Wallet, Star } from 'lucide-react';
 import { useStaffStore } from '../../store/staff.store';
+
 interface StatCardProps {
   icon: React.ReactNode;
   iconBg: string;
@@ -11,16 +12,30 @@ interface StatCardProps {
   right?: React.ReactNode;
 }
 
-function StatCard({ icon, iconBg, label, value, sub, subColor = 'text-green-500', right }: StatCardProps) {
+function StatCard({
+  icon,
+  iconBg,
+  label,
+  value,
+  sub,
+  subColor = 'text-green-500',
+  right,
+}: StatCardProps) {
   return (
-    <div className="flex-1 min-w-0 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl px-5 py-4 flex items-center gap-4">
-      <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
+    <div className="flex-1 min-w-0 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl px-4 sm:px-5 py-4 flex items-center gap-3 sm:gap-4">
+      <div
+        className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}
+      >
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{label}</p>
-        <p className="text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight">{value}</p>
-        {sub && <p className={`text-xs font-medium mt-0.5 ${subColor}`}>{sub}</p>}
+        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium truncate">{label}</p>
+        <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
+          {value}
+        </p>
+        {sub && (
+          <p className={`text-xs font-medium mt-0.5 truncate ${subColor}`}>{sub}</p>
+        )}
       </div>
       {right && <div className="flex-shrink-0">{right}</div>}
     </div>
@@ -30,13 +45,14 @@ function StatCard({ icon, iconBg, label, value, sub, subColor = 'text-green-500'
 export function StaffStatCards(): JSX.Element {
   const { stats, attendanceBreakdown } = useStaffStore();
 
-  // Donut chart dimensions
-  const r = 30, cx = 40, cy = 40;
+  const r = 30;
+  const cx = 40;
+  const cy = 40;
   const circumference = 2 * Math.PI * r;
   const filledDash = (stats.attendancePct / 100) * circumference;
 
   return (
-    <div className="flex flex-wrap gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-wrap gap-3">
       {/* Total Staff */}
       <StatCard
         icon={<Users className="w-5 h-5 text-orange-500" />}
@@ -87,13 +103,15 @@ export function StaffStatCards(): JSX.Element {
         subColor="text-green-500"
       />
 
-      {/* Attendance donut */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl px-5 py-4 flex items-center gap-4">
+      {/* Attendance Donut */}
+      <div className="col-span-2 sm:col-span-1 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl px-4 sm:px-5 py-4 flex items-center gap-3 sm:gap-4 lg:flex-shrink-0">
         <div className="relative flex-shrink-0">
           <svg width="80" height="80" viewBox="0 0 80 80">
             <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f3f4f6" strokeWidth="8" />
             <circle
-              cx={cx} cy={cy} r={r}
+              cx={cx}
+              cy={cy}
+              r={r}
               fill="none"
               stroke="#22c55e"
               strokeWidth="8"
@@ -101,19 +119,37 @@ export function StaffStatCards(): JSX.Element {
               strokeLinecap="round"
               transform={`rotate(-90 ${cx} ${cy})`}
             />
-            <text x={cx} y={cy + 5} textAnchor="middle" fontSize="13" fontWeight="700" fill="#111827" className="dark:fill-gray-100">
+            <text
+              x={cx}
+              y={cy + 5}
+              textAnchor="middle"
+              fontSize="13"
+              fontWeight="700"
+              fill="#111827"
+              className="dark:fill-gray-100"
+            >
               {stats.attendancePct}%
             </text>
           </svg>
         </div>
         <div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">This Month Attendance</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">
+            This Month Attendance
+          </p>
           <div className="space-y-0.5">
             {attendanceBreakdown.map((ab) => (
-              <div key={ab.label} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: ab.color }} />
-                <span>{ab.label}</span>
-                <span className="font-semibold text-gray-800 dark:text-gray-200 ml-auto pl-2">{ab.count}</span>
+              <div
+                key={ab.label}
+                className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400"
+              >
+                <span
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ background: ab.color }}
+                />
+                <span className="truncate">{ab.label}</span>
+                <span className="font-semibold text-gray-800 dark:text-gray-200 ml-auto pl-2">
+                  {ab.count}
+                </span>
               </div>
             ))}
           </div>

@@ -107,6 +107,60 @@ interface TablesStore extends TablesState {
   setShowEditModal:     (v: boolean) => void;
 }
 
+// ── Layout helpers ─────────────────────────────────────────────────────────
+
+const SHAPE_SIZE: Record<TableShape, { w: number; h: number }> = {
+  Rectangle: { w: 14, h: 10 },
+  Square:    { w: 10, h: 10 },
+  Round:     { w: 9,  h: 9  },
+};
+
+function overlaps(
+  ax: number, ay: number, aw: number, ah: number,
+  bx: number, by: number, bw: number, bh: number,
+  pad = 3,
+): boolean {
+  return (
+    ax - aw / 2 - pad < bx + bw / 2 + pad &&
+    ax + aw / 2 + pad > bx - bw / 2 - pad &&
+    ay - ah / 2 - pad < by + bh / 2 + pad &&
+    ay + ah / 2 + pad > by - bh / 2 - pad
+  );
+}
+
+function findFreePosition(
+  floor: number,
+  shape: TableShape,
+  existingTables: Table[],
+): { x: number; y: number } {
+  const { w, h } = SHAPE_SIZE[shape];
+  const floorTables = existingTables.filter(t => t.floor === floor);
+
+  const stepX = w + 4;
+  const stepY = h + 5;
+
+  for (let row = 0; row < 15; row++) {
+    for (let col = 0; col < 8; col++) {
+      const x = 8 + col * stepX;
+      const y = 10 + row * stepY;
+
+      // Stay within the canvas bounds
+      if (x + w / 2 > 98 || y + h / 2 > 98) continue;
+
+      const collision = floorTables.some(t => {
+        const { w: tw, h: th } = SHAPE_SIZE[t.shape];
+        return overlaps(x, y, w, h, t.x, t.y, tw, th);
+      });
+
+      if (!collision) return { x, y };
+    }
+  }
+
+  return { x: 8, y: 10 }; // fallback
+}
+
+// ── Stats ──────────────────────────────────────────────────────────────────
+
 function computeStats(tables: Table[]): TableStats {
   const total     = tables.length;
   const available = tables.filter(t => t.status === 'Available').length;
@@ -167,8 +221,9 @@ export const useTablesStore = create<TablesStore>((set, _get) => ({
 
   addTable: (t) =>
     set((s) => {
-      const id     = Math.max(...s.tables.map(x => x.id)) + 1;
-      const tables = [...s.tables, { ...t, id }];
+      const id  = Math.max(...s.tables.map(x => x.id)) + 1;
+      const pos = findFreePosition(t.floor, t.shape, s.tables);
+      const tables = [...s.tables, { ...t, id, x: pos.x, y: pos.y }];
       return { tables, stats: computeStats(tables) };
     }),
 

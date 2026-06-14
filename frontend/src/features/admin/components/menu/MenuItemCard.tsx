@@ -13,15 +13,15 @@ const FALLBACK_IMG = 'https://via.placeholder.com/70x70/f3f4f6/9ca3af?text=dish'
 export function MenuItemCard({ item }: Props): JSX.Element {
   const { toggleItemEnabled, updateItem, deleteItem, categories } = useMenuStore();
 
-  const [showMenu,    setShowMenu]    = useState(false);
-  const [showEdit,    setShowEdit]    = useState(false);
-  const [editName,    setEditName]    = useState(item.name);
-  const [editDesc,    setEditDesc]    = useState(item.description);
-  const [editPrice,   setEditPrice]   = useState(String(item.price));
-  const [editStock,   setEditStock]   = useState(String(item.stock));
-  const [editStatus,  setEditStatus]  = useState<MenuItemStatus>(item.status);
-  const [editCat,     setEditCat]     = useState(item.category);
-  const [confirmDel,  setConfirmDel]  = useState(false);
+  const [showMenu,   setShowMenu]   = useState(false);
+  const [showEdit,   setShowEdit]   = useState(false);
+  const [editName,   setEditName]   = useState(item.name);
+  const [editDesc,   setEditDesc]   = useState(item.description);
+  const [editPrice,  setEditPrice]  = useState(String(item.price));
+  const [editStock,  setEditStock]  = useState(String(item.stock));
+  const [editStatus, setEditStatus] = useState<MenuItemStatus>(item.status);
+  const [editCat,    setEditCat]    = useState(item.category);
+  const [confirmDel, setConfirmDel] = useState(false);
 
   const validCategories = categories.filter((c) => c.id !== 'all');
 
@@ -127,8 +127,10 @@ export function MenuItemCard({ item }: Props): JSX.Element {
         }`} />
       </button>
 
-      {/* Actions menu */}
-      <div className="absolute top-9 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* Actions menu —
+          On desktop: hidden until hover (group-hover)
+          On touch: always visible (touch-device class via CSS or just always show on small screens) */}
+      <div className="absolute top-9 right-3 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
         <div className="relative">
           <button
             onClick={() => setShowMenu((v) => !v)}
@@ -137,20 +139,29 @@ export function MenuItemCard({ item }: Props): JSX.Element {
             <MoreVertical className="w-3.5 h-3.5" />
           </button>
           {showMenu && (
-            <div className="absolute right-0 top-7 z-20 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-lg py-1 w-28">
+            <>
+              {/* Click-outside backdrop */}
               <button
-                onClick={() => { setShowEdit(true); setShowMenu(false); }}
-                className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                <Pencil className="w-3.5 h-3.5 text-orange-400" /> Edit
-              </button>
-              <button
-                onClick={() => { setConfirmDel(true); setShowMenu(false); }}
-                className="flex items-center gap-2 w-full px-3 py-2 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
-              >
-                <Trash2 className="w-3.5 h-3.5" /> Delete
-              </button>
-            </div>
+                type="button"
+                className="fixed inset-0 z-10 w-full h-full cursor-default"
+                aria-label="Close menu"
+                onClick={() => setShowMenu(false)}
+              />
+              <div className="absolute right-0 top-7 z-20 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-lg py-1 w-28">
+                <button
+                  onClick={() => { setShowEdit(true); setShowMenu(false); }}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <Pencil className="w-3.5 h-3.5 text-orange-400" /> Edit
+                </button>
+                <button
+                  onClick={() => { setConfirmDel(true); setShowMenu(false); }}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Delete
+                </button>
+              </div>
+            </>
           )}
         </div>
       </div>
