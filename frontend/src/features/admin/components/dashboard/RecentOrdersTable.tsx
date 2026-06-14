@@ -24,7 +24,7 @@ export function RecentOrdersTable(): JSX.Element {
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 transition-colors duration-200">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50 dark:border-gray-800">
+      <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-gray-50 dark:border-gray-800">
         <h3 className="font-semibold text-gray-800 dark:text-gray-100">Recent Orders</h3>
         <button
           onClick={handleViewAll}
@@ -34,15 +34,15 @@ export function RecentOrdersTable(): JSX.Element {
         </button>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full min-w-[420px]">
           <thead>
             <tr className="border-b border-gray-50 dark:border-gray-800">
-              <th className="text-left text-xs font-medium text-gray-400 dark:text-gray-500 px-5 py-3 uppercase tracking-wide">Order</th>
-              <th className="text-left text-xs font-medium text-gray-400 dark:text-gray-500 px-5 py-3 uppercase tracking-wide">Table</th>
-              <th className="text-left text-xs font-medium text-gray-400 dark:text-gray-500 px-5 py-3 uppercase tracking-wide hidden md:table-cell">Items</th>
-              <th className="text-left text-xs font-medium text-gray-400 dark:text-gray-500 px-5 py-3 uppercase tracking-wide">Total</th>
-              <th className="text-left text-xs font-medium text-gray-400 dark:text-gray-500 px-5 py-3 uppercase tracking-wide">Status</th>
-              <th className="text-left text-xs font-medium text-gray-400 dark:text-gray-500 px-5 py-3 uppercase tracking-wide hidden sm:table-cell">Time</th>
+              <th className="text-left text-xs font-medium text-gray-400 dark:text-gray-500 px-4 sm:px-5 py-3 uppercase tracking-wide">Order</th>
+              <th className="text-left text-xs font-medium text-gray-400 dark:text-gray-500 px-4 sm:px-5 py-3 uppercase tracking-wide">Table</th>
+              <th className="text-left text-xs font-medium text-gray-400 dark:text-gray-500 px-4 sm:px-5 py-3 uppercase tracking-wide hidden lg:table-cell">Items</th>
+              <th className="text-left text-xs font-medium text-gray-400 dark:text-gray-500 px-4 sm:px-5 py-3 uppercase tracking-wide">Total</th>
+              <th className="text-left text-xs font-medium text-gray-400 dark:text-gray-500 px-4 sm:px-5 py-3 uppercase tracking-wide">Status</th>
+              <th className="text-left text-xs font-medium text-gray-400 dark:text-gray-500 px-4 sm:px-5 py-3 uppercase tracking-wide hidden sm:table-cell">Time</th>
             </tr>
           </thead>
           <tbody>
@@ -50,18 +50,18 @@ export function RecentOrdersTable(): JSX.Element {
               <tr
                 key={order.id}
                 onClick={handleViewAll}
-                className="border-b border-gray-50 dark:border-gray-800/60 hover:bg-gray-50/50 dark:hover:bg-gray-800/40 transition-colors cursor-pointer"
+                className="border-b border-gray-50 dark:border-gray-800/60 hover:bg-gray-50/50 dark:hover:bg-gray-800/40 transition-colors cursor-pointer last:border-b-0"
               >
-                <td className="px-5 py-3.5 text-sm font-semibold text-gray-800 dark:text-gray-100">{order.id}</td>
-                <td className="px-5 py-3.5 text-sm text-gray-600 dark:text-gray-400">{order.table}</td>
-                <td className="px-5 py-3.5 text-sm text-gray-500 dark:text-gray-500 hidden md:table-cell max-w-[180px] truncate">{order.items}</td>
-                <td className="px-5 py-3.5 text-sm font-semibold text-gray-800 dark:text-gray-100">{order.total}</td>
-                <td className="px-5 py-3.5">
-                  <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${order.statusColor}`}>
+                <td className="px-4 sm:px-5 py-3.5 text-sm font-semibold text-gray-800 dark:text-gray-100 whitespace-nowrap">{order.id}</td>
+                <td className="px-4 sm:px-5 py-3.5 text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">{order.table}</td>
+                <td className="px-4 sm:px-5 py-3.5 text-sm text-gray-500 dark:text-gray-500 hidden lg:table-cell max-w-[180px] truncate">{order.items}</td>
+                <td className="px-4 sm:px-5 py-3.5 text-sm font-semibold text-gray-800 dark:text-gray-100 whitespace-nowrap">{order.total}</td>
+                <td className="px-4 sm:px-5 py-3.5 whitespace-nowrap">
+                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${order.statusColor}`}>
                     {order.status}
                   </span>
                 </td>
-                <td className="px-5 py-3.5 text-xs text-gray-400 dark:text-gray-500 hidden sm:table-cell">{order.time}</td>
+                <td className="px-4 sm:px-5 py-3.5 text-xs text-gray-400 dark:text-gray-500 hidden sm:table-cell whitespace-nowrap">{order.time}</td>
               </tr>
             ))}
           </tbody>

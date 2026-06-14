@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingBag, UtensilsCrossed, CalendarDays,
   Users, Package, UserCog, BarChart3, Settings,
-  ChevronLeft, ChevronRight, ArrowRight, Crown, LayoutGrid,
+  ChevronLeft, ChevronRight, ArrowRight, Crown, LayoutGrid, X,
 } from 'lucide-react';
 
 const navItems = [
@@ -19,15 +19,44 @@ const navItems = [
   { label: 'Settings',            icon: Settings,        to: '/admin/settings' },
 ];
 
-export function AdminSidebar(): JSX.Element {
+interface AdminSidebarProps {
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}
+
+export function AdminSidebar({ mobileOpen = false, onMobileClose }: AdminSidebarProps): JSX.Element {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
-  return (
-    <aside className={`relative flex flex-col bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 transition-all duration-300 ${collapsed ? 'w-[72px]' : 'w-[220px]'} min-h-screen flex-shrink-0`}>
+  const pathnameRef = useRef(location.pathname);
 
-      {/* Logo — clicking navigates to /admin */}
+  // Close mobile drawer on route change
+  useEffect(() => {
+    if (pathnameRef.current === location.pathname) return;
+    pathnameRef.current = location.pathname;
+    onMobileClose?.();
+  }, [location.pathname, onMobileClose]);
+
+  // Close mobile drawer on Escape
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onMobileClose?.();
+    }
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [onMobileClose]);
+
+  const sidebarContent = (
+    <aside
+      className={`
+        relative flex flex-col bg-white dark:bg-gray-900
+        border-r border-gray-100 dark:border-gray-800
+        transition-all duration-300 h-full
+        ${collapsed ? 'w-[72px]' : 'w-[220px]'}
+      `}
+    >
+      {/* Logo */}
       <div
         className="flex items-center gap-2.5 px-4 py-4 border-b border-gray-100 dark:border-gray-800 cursor-pointer select-none"
         onClick={() => navigate('/admin')}
@@ -41,10 +70,21 @@ export function AdminSidebar(): JSX.Element {
         {!collapsed && <span className="font-extrabold text-lg text-orange-500 tracking-tight">RestoHub</span>}
       </div>
 
-      {/* Collapse toggle */}
+      {/* Mobile close button (visible only in drawer) */}
+      {mobileOpen && (
+        <button
+          onClick={onMobileClose}
+          className="absolute top-3 right-3 w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors lg:hidden"
+          aria-label="Close menu"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      )}
+
+      {/* Desktop collapse toggle */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-[66px] z-10 w-6 h-6 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow flex items-center justify-center text-gray-400 hover:text-orange-500 transition-colors"
+        className="absolute -right-3 top-[66px] z-10 w-6 h-6 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow flex items-center justify-center text-gray-400 hover:text-orange-500 transition-colors hidden lg:flex"
         aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
         {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
@@ -92,5 +132,33 @@ export function AdminSidebar(): JSX.Element {
         </div>
       )}
     </aside>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <div className="hidden lg:flex min-h-screen flex-shrink-0">
+        {sidebarContent}
+      </div>
+
+      {/* Mobile drawer overlay */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            role="button"
+            tabIndex={0}
+            aria-label="Close navigation"
+            onClick={onMobileClose}
+            onKeyDown={(e) => e.key === 'Enter' && onMobileClose?.()}
+          />
+          {/* Drawer panel */}
+          <div className="absolute left-0 top-0 h-full w-[240px] shadow-2xl z-50">
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+    </>
   );
 }

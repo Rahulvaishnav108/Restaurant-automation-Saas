@@ -13,7 +13,21 @@ interface StatusDist {
   expiringSoonPct: number;
 }
 
-function buildArcs(d: StatusDist) {
+interface ArcSegment {
+  label: string;
+  value: number;
+  count: number;
+  color: string;
+  dash: number;
+  gap: number;
+  rotate: number;
+  cx: number;
+  cy: number;
+  r: number;
+  strokeW: number;
+}
+
+function buildArcs(d: StatusDist): ArcSegment[] {
   const cx = 60, cy = 60, r = 44, strokeW = 16;
   const circ = 2 * Math.PI * r;
   const segments = [
@@ -35,7 +49,7 @@ function buildArcs(d: StatusDist) {
 function DonutSVG({ size = 120 }: { size?: number }) {
   const { statusDistribution: d } = useInventoryStore();
   const arcs = buildArcs(d);
-  const cx = arcs[0].cx, cy = arcs[0].cy, r = arcs[0].r, strokeW = arcs[0].strokeW;
+  const { cx, cy, r, strokeW } = arcs[0];
 
   return (
     <svg width={size} height={size} viewBox="0 0 120 120">
@@ -63,14 +77,14 @@ function DonutModal() {
   if (!showDonutModal) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <button 
-        type="button" 
-        className="absolute inset-0 bg-black/40 w-full h-full cursor-default" 
-        onClick={() => setShowDonutModal(false)} 
-        aria-label="Close modal" 
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/40 w-full h-full cursor-default"
+        onClick={() => setShowDonutModal(false)}
+        aria-label="Close modal"
       />
-      <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
+      <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-5 sm:p-6">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/40 flex items-center justify-center">
@@ -78,7 +92,11 @@ function DonutModal() {
             </div>
             <h2 className="text-base font-bold text-gray-900 dark:text-white">Stock Status Distribution</h2>
           </div>
-          <button onClick={() => setShowDonutModal(false)} className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          <button
+            type="button"
+            onClick={() => setShowDonutModal(false)}
+            className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
             <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>
@@ -100,7 +118,8 @@ function DonutModal() {
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{seg.label}</p>
                 <p className="text-sm font-bold text-gray-800 dark:text-white">
-                  {seg.count} <span className="text-xs font-normal text-gray-400">({seg.value}%)</span>
+                  {seg.count}{' '}
+                  <span className="text-xs font-normal text-gray-400">({seg.value}%)</span>
                 </p>
               </div>
             </div>
@@ -118,29 +137,31 @@ export function StockStatusDonut() {
   return (
     <>
       <DonutModal />
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 sm:p-5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold text-gray-900 dark:text-white">Stock Status Distribution</h3>
           <button
+            type="button"
             onClick={() => setShowDonutModal(true)}
-            className="flex items-center gap-1 text-xs text-orange-500 hover:text-orange-600 dark:text-orange-400 font-medium transition-colors"
+            className="text-xs text-orange-500 hover:text-orange-600 dark:text-orange-400 font-medium transition-colors"
           >
             View all
           </button>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 sm:gap-6">
           <div className="flex-shrink-0">
-            <DonutSVG size={120} />
+            <DonutSVG size={100} />
           </div>
 
-          <div className="space-y-2 flex-1">
+          <div className="space-y-2 flex-1 min-w-0">
             {arcs.map((seg) => (
               <div key={seg.label} className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: seg.color }} />
-                <span className="text-xs text-gray-500 dark:text-gray-400 flex-1">{seg.label}</span>
-                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  {seg.count} <span className="text-gray-400 dark:text-gray-500">({seg.value}%)</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 flex-1 truncate">{seg.label}</span>
+                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                  {seg.count}{' '}
+                  <span className="text-gray-400 dark:text-gray-500">({seg.value}%)</span>
                 </span>
               </div>
             ))}

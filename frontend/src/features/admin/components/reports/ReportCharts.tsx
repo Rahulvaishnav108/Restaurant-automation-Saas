@@ -32,16 +32,20 @@ export function OrdersTrend(): JSX.Element {
   const ySteps = [maxVal, Math.round((maxVal + minVal) / 2), minVal];
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 flex-1 min-w-0">
-      <div className="flex items-start justify-between mb-1">
-        <div>
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 min-w-0 w-full">
+      <div className="flex items-start justify-between gap-2 mb-1 flex-wrap">
+        <div className="min-w-0">
           <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Orders Trend</h3>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xl font-black text-gray-900 dark:text-gray-100">{stats.totalOrders.toLocaleString()}</span>
-            <span className="text-xs text-green-500 font-semibold">{stats.totalOrdersChange}</span>
+            <span className="text-lg sm:text-xl font-black text-gray-900 dark:text-gray-100">
+              {stats.totalOrders.toLocaleString()}
+            </span>
+            <span className="text-xs text-green-500 font-semibold flex-shrink-0">
+              {stats.totalOrdersChange}
+            </span>
           </div>
         </div>
-        <div className="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+        <div className="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden flex-shrink-0">
           {RANGES.map((r) => (
             <button
               key={r}
@@ -69,8 +73,13 @@ export function OrdersTrend(): JSX.Element {
           const y = PAD.t + (i / (ySteps.length - 1)) * chartH;
           return (
             <g key={i}>
-              <line x1={PAD.l} y1={y} x2={PAD.l + chartW} y2={y} stroke="#f3f4f6" strokeWidth="1" className="dark:stroke-gray-800" />
-              <text x={PAD.l - 6} y={y + 4} textAnchor="end" fontSize="9" fill="#9ca3af">{val.toLocaleString()}</text>
+              <line
+                x1={PAD.l} y1={y} x2={PAD.l + chartW} y2={y}
+                stroke="#f3f4f6" strokeWidth="1" className="dark:stroke-gray-800"
+              />
+              <text x={PAD.l - 6} y={y + 4} textAnchor="end" fontSize="9" fill="#9ca3af">
+                {val.toLocaleString()}
+              </text>
             </g>
           );
         })}
@@ -94,22 +103,21 @@ export function SalesByChannel(): JSX.Element {
   const stats = getStats();
 
   const r = 52, cx = 70, cy = 70, circumference = 2 * Math.PI * r;
-  const segments = salesByChannel.reduce<Array<typeof salesByChannel[number] & { dash: number; offset: number }>>(
-    (acc, ch) => {
-      const prev   = acc[acc.length - 1];
-      const offset = prev ? prev.offset + prev.dash : 0;
-      const dash   = (ch.pct / 100) * circumference;
-      acc.push({ ...ch, dash, offset });
-      return acc;
-    },
-    []
-  );
+  const segments = salesByChannel.reduce<
+    Array<(typeof salesByChannel)[number] & { dash: number; offset: number }>
+  >((acc, ch) => {
+    const prev   = acc[acc.length - 1];
+    const offset = prev ? prev.offset + prev.dash : 0;
+    const dash   = (ch.pct / 100) * circumference;
+    acc.push({ ...ch, dash, offset });
+    return acc;
+  }, []);
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 w-64 flex-shrink-0">
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 w-full lg:w-64 lg:flex-shrink-0">
       <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-3">Sales by Channel</h3>
-      <div className="flex items-center gap-3">
-        <div className="relative flex-shrink-0">
+      <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+        <div className="relative flex-shrink-0 mx-auto sm:mx-0">
           <svg width="140" height="140" viewBox="0 0 140 140">
             {segments.map((seg, i) => (
               <circle
@@ -123,24 +131,26 @@ export function SalesByChannel(): JSX.Element {
                 transform={`rotate(-90 ${cx} ${cy})`}
               />
             ))}
-            <text x={cx} y={cy - 6}  textAnchor="middle" fontSize="11" fontWeight="800" fill="#111827" className="dark:fill-gray-100">{stats.totalRevenue}</text>
+            <text x={cx} y={cy - 6}  textAnchor="middle" fontSize="11" fontWeight="800" fill="#111827" className="dark:fill-gray-100">
+              {stats.totalRevenue}
+            </text>
             <text x={cx} y={cy + 9}  textAnchor="middle" fontSize="8"  fill="#9ca3af">Total Revenue</text>
           </svg>
         </div>
-      </div>
-      <div className="space-y-2 mt-2">
-        {salesByChannel.map((ch) => (
-          <div key={ch.channel} className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full" style={{ background: ch.color }} />
-              <span className="text-gray-600 dark:text-gray-400">{ch.channel}</span>
+        <div className="space-y-2 flex-1 min-w-0 w-full">
+          {salesByChannel.map((ch) => (
+            <div key={ch.channel} className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: ch.color }} />
+                <span className="text-gray-600 dark:text-gray-400 truncate">{ch.channel}</span>
+              </div>
+              <div className="text-right flex-shrink-0 ml-2">
+                <span className="font-semibold text-gray-800 dark:text-gray-200">{ch.pct}%</span>
+                <span className="text-gray-400 ml-1">{ch.amount}</span>
+              </div>
             </div>
-            <div className="text-right">
-              <span className="font-semibold text-gray-800 dark:text-gray-200">{ch.pct}%</span>
-              <span className="text-gray-400 ml-1">{ch.amount}</span>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );

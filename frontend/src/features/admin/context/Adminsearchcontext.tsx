@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, type PropsWithChildren } from 'react';
+import React, { createContext, useContext, useState, useCallback, type PropsWithChildren } from 'react';
 
 interface AdminSearchContextValue {
   searchQuery: string;
@@ -8,7 +8,8 @@ interface AdminSearchContextValue {
 const AdminSearchContext = createContext<AdminSearchContextValue | null>(null);
 
 export function AdminSearchProvider({ children }: PropsWithChildren) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQueryRaw] = useState('');
+  const setSearchQuery = useCallback((q: string) => setSearchQueryRaw(q), []);
   return (
     <AdminSearchContext.Provider value={{ searchQuery, setSearchQuery }}>
       {children}

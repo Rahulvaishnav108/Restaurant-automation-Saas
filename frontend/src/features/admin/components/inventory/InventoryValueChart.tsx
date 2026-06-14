@@ -2,14 +2,18 @@ import React from 'react';
 import { X, TrendingUp } from 'lucide-react';
 import { useInventoryStore } from '../../store/inventory.store';
 
-function formatINR(val: number) {
+function formatINR(val: number): string {
   return '₹' + val.toLocaleString('en-IN', { minimumFractionDigits: 0 });
 }
 
-function Chart({ valueOverTime, W, H, PAD }: {
+interface ChartProps {
   valueOverTime: { label: string; value: number }[];
-  W: number; H: number; PAD: { top: number; right: number; bottom: number; left: number };
-}) {
+  W: number;
+  H: number;
+  PAD: { top: number; right: number; bottom: number; left: number };
+}
+
+function Chart({ valueOverTime, W, H, PAD }: ChartProps) {
   const innerW = W - PAD.left - PAD.right;
   const innerH = H - PAD.top - PAD.bottom;
 
@@ -21,11 +25,16 @@ function Chart({ valueOverTime, W, H, PAD }: {
   const toY = (v: number) => PAD.top + innerH - ((v - minV) / (maxV - minV)) * innerH;
 
   const pts = vals.map((v, i) => `${toX(i)},${toY(v)}`).join(' ');
-  const areaPath = `M${toX(0)},${toY(vals[0])} ` +
+  const areaPath =
+    `M${toX(0)},${toY(vals[0])} ` +
     vals.slice(1).map((v, i) => `L${toX(i + 1)},${toY(v)}`).join(' ') +
     ` L${toX(vals.length - 1)},${H - PAD.bottom} L${toX(0)},${H - PAD.bottom} Z`;
 
-  const yTicks = [Math.round(minV / 1000) * 1000, Math.round((minV + (maxV - minV) / 2) / 1000) * 1000, maxV];
+  const yTicks = [
+    Math.round(minV / 1000) * 1000,
+    Math.round((minV + (maxV - minV) / 2) / 1000) * 1000,
+    maxV,
+  ];
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="xMidYMid meet">
@@ -33,11 +42,16 @@ function Chart({ valueOverTime, W, H, PAD }: {
         const y = toY(t);
         return (
           <g key={t}>
-            <line x1={PAD.left} x2={W - PAD.right} y1={y} y2={y}
+            <line
+              x1={PAD.left} x2={W - PAD.right} y1={y} y2={y}
               stroke="currentColor" strokeWidth="0.5" strokeDasharray="3 3"
-              className="text-gray-100 dark:text-gray-800" />
-            <text x={PAD.left - 4} y={y + 3} textAnchor="end"
-              className="fill-gray-400 dark:fill-gray-600" style={{ fontSize: W > 300 ? 8 : 7 }}>
+              className="text-gray-100 dark:text-gray-800"
+            />
+            <text
+              x={PAD.left - 4} y={y + 3} textAnchor="end"
+              className="fill-gray-400 dark:fill-gray-600"
+              style={{ fontSize: W > 300 ? 8 : 7 }}
+            >
               {formatINR(t)}
             </text>
           </g>
@@ -56,8 +70,11 @@ function Chart({ valueOverTime, W, H, PAD }: {
       {vals.map((v, i) => (
         <g key={i}>
           <circle cx={toX(i)} cy={toY(v)} r="3.5" fill="white" stroke="#f97316" strokeWidth="2" />
-          <text x={toX(i)} y={H - PAD.bottom + 12} textAnchor="middle"
-            className="fill-gray-400 dark:fill-gray-500" style={{ fontSize: 8 }}>
+          <text
+            x={toX(i)} y={H - PAD.bottom + 12} textAnchor="middle"
+            className="fill-gray-400 dark:fill-gray-500"
+            style={{ fontSize: 8 }}
+          >
             {valueOverTime[i].label}
           </text>
         </g>
@@ -75,14 +92,14 @@ function ValueChartModal() {
   const pct    = prev ? (((latest - prev) / prev) * 100).toFixed(1) : '0';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <button 
-        type="button" 
-        className="absolute inset-0 bg-black/40 w-full h-full cursor-default" 
-        onClick={() => setShowValueChartModal(false)} 
-        aria-label="Close modal" 
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/40 w-full h-full cursor-default"
+        onClick={() => setShowValueChartModal(false)}
+        aria-label="Close modal"
       />
-      <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-xl mx-4 p-6">
+      <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-xl p-5 sm:p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-950/40 flex items-center justify-center">
@@ -90,7 +107,11 @@ function ValueChartModal() {
             </div>
             <h2 className="text-base font-bold text-gray-900 dark:text-white">Inventory Value Over Time</h2>
           </div>
-          <button onClick={() => setShowValueChartModal(false)} className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          <button
+            type="button"
+            onClick={() => setShowValueChartModal(false)}
+            className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
             <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>
@@ -104,7 +125,7 @@ function ValueChartModal() {
 
         <Chart valueOverTime={valueOverTime} W={480} H={180} PAD={{ top: 16, right: 20, bottom: 32, left: 52 }} />
 
-        <div className="mt-4 grid grid-cols-5 gap-2">
+        <div className="mt-4 grid grid-cols-3 sm:grid-cols-5 gap-2">
           {valueOverTime.map((d) => (
             <div key={d.label} className="text-center">
               <p className="text-xs font-bold text-gray-800 dark:text-white">{formatINR(d.value)}</p>
@@ -120,18 +141,20 @@ function ValueChartModal() {
 export function InventoryValueChart() {
   const { valueOverTime, setShowValueChartModal } = useInventoryStore();
 
-  const W = 320, H = 100, PAD = { top: 12, right: 12, bottom: 24, left: 44 };
+  const W = 320, H = 100;
+  const PAD = { top: 12, right: 12, bottom: 24, left: 44 };
   const latest = valueOverTime[valueOverTime.length - 1]?.value ?? 0;
 
   return (
     <>
       <ValueChartModal />
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 sm:p-5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold text-gray-900 dark:text-white">Inventory Value Over Time</h3>
           <button
+            type="button"
             onClick={() => setShowValueChartModal(true)}
-            className="flex items-center gap-1 text-xs text-orange-500 hover:text-orange-600 dark:text-orange-400 font-medium transition-colors"
+            className="text-xs text-orange-500 hover:text-orange-600 dark:text-orange-400 font-medium transition-colors"
           >
             View all
           </button>

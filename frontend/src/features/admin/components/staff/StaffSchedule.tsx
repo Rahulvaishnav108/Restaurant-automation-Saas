@@ -39,14 +39,17 @@ function ScheduleModal({ shifts, onClose }: { shifts: Shift[]; onClose: () => vo
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <button 
         type="button" 
         aria-label="Close modal" 
         className="absolute inset-0 bg-black/50 backdrop-blur-sm w-full h-full cursor-default" 
         onClick={onClose} 
       />
-      <div className="relative z-10 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md">
+      <div className="relative z-10 bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md">
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 rounded-full bg-gray-200 dark:bg-gray-700" />
+        </div>
         <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
           <div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Today&apos;s Full Schedule</h2>
@@ -93,14 +96,17 @@ function ScheduleModal({ shifts, onClose }: { shifts: Shift[]; onClose: () => vo
 
 function BirthdaysModal({ birthdays, onClose }: { birthdays: UpcomingBirthday[]; onClose: () => void }): JSX.Element {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <button 
         type="button" 
         aria-label="Close modal" 
         className="absolute inset-0 bg-black/50 backdrop-blur-sm w-full h-full cursor-default" 
         onClick={onClose} 
       />
-      <div className="relative z-10 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm">
+      <div className="relative z-10 bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-sm">
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 rounded-full bg-gray-200 dark:bg-gray-700" />
+        </div>
         <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
           <div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Upcoming Birthdays</h2>

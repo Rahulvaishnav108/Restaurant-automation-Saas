@@ -6,6 +6,12 @@ export type MenuItemStatus = 'Available' | 'Unavailable' | 'Low Stock' | 'Out of
 export type SortOption = 'Name A-Z' | 'Name Z-A' | 'Price Low-High' | 'Price High-Low' | 'Stock Low-High';
 export type FilterTab = 'All Items' | 'Available' | 'Unavailable' | 'Low Stock';
 
+export interface AdvancedFilter {
+  minPrice: string;
+  maxPrice: string;
+  statuses: MenuItemStatus[];
+}
+
 export interface MenuItem {
   id: string;
   name: string;
@@ -14,7 +20,6 @@ export interface MenuItem {
   category: string;
   status: MenuItemStatus;
   stock: number;
-  /** Can be a remote URL, a blob: URL, or a base64 data URI for locally uploaded images */
   image: string;
   enabled: boolean;
 }
@@ -33,6 +38,7 @@ export interface MenuStore {
   // Filters / UI state
   activeCategory: string;
   activeFilter: FilterTab;
+  advancedFilter: AdvancedFilter;
   searchQuery: string;
   sortOption: SortOption;
   currentPage: number;
@@ -41,6 +47,7 @@ export interface MenuStore {
   // Actions – items
   setActiveCategory: (id: string) => void;
   setActiveFilter: (f: FilterTab) => void;
+  setAdvancedFilter: (f: AdvancedFilter) => void;
   setSearchQuery: (q: string) => void;
   setSortOption: (s: SortOption) => void;
   setCurrentPage: (p: number) => void;
@@ -150,6 +157,8 @@ function rebuildCounts(items: MenuItem[], categories: Category[]): Category[] {
   }));
 }
 
+const DEFAULT_ADVANCED_FILTER: AdvancedFilter = { minPrice: '', maxPrice: '', statuses: [] };
+
 // ── Store ─────────────────────────────────────────────────────────────────────
 
 let nextItemId = 100;
@@ -159,18 +168,20 @@ export const useMenuStore = create<MenuStore>((set) => ({
   items:      seedItems,
   categories: rebuildCounts(seedItems, seedCategories),
 
-  activeCategory: 'all',
-  activeFilter:   'All Items',
-  searchQuery:    '',
-  sortOption:     'Name A-Z',
-  currentPage:    1,
-  perPage:        12,
+  activeCategory:  'all',
+  activeFilter:    'All Items',
+  advancedFilter:  DEFAULT_ADVANCED_FILTER,
+  searchQuery:     '',
+  sortOption:      'Name A-Z',
+  currentPage:     1,
+  perPage:         12,
 
-  setActiveCategory: (id)  => set({ activeCategory: id, currentPage: 1 }),
-  setActiveFilter:   (f)   => set({ activeFilter: f,   currentPage: 1 }),
-  setSearchQuery:    (q)   => set({ searchQuery: q,    currentPage: 1 }),
-  setSortOption:     (s)   => set({ sortOption: s }),
-  setCurrentPage:    (p)   => set({ currentPage: p }),
+  setActiveCategory:  (id) => set({ activeCategory: id,  currentPage: 1 }),
+  setActiveFilter:    (f)  => set({ activeFilter: f,     currentPage: 1 }),
+  setAdvancedFilter:  (f)  => set({ advancedFilter: f,   currentPage: 1 }),
+  setSearchQuery:     (q)  => set({ searchQuery: q,      currentPage: 1 }),
+  setSortOption:      (s)  => set({ sortOption: s }),
+  setCurrentPage:     (p)  => set({ currentPage: p }),
 
   toggleItemEnabled: (id) =>
     set((state) => {
@@ -215,7 +226,6 @@ export const useMenuStore = create<MenuStore>((set) => ({
         name,
         count: 0,
       };
-      // Insert before trailing "all"; keep 'all' first
       const withoutAll = state.categories.filter((c) => c.id !== 'all');
       const allCat     = state.categories.find((c)  => c.id === 'all')!;
       return { categories: [allCat, ...withoutAll, newCat] };
@@ -230,7 +240,6 @@ export const useMenuStore = create<MenuStore>((set) => ({
 
   deleteCategory: (id) =>
     set((state) => {
-      // Reassign items in that category to 'all' (uncategorised)
       const items = state.items.map((item) =>
         item.category === id ? { ...item, category: 'uncategorised' } : item
       );
@@ -244,19 +253,34 @@ export const useMenuStore = create<MenuStore>((set) => ({
     }),
 }));
 
-// ── Selectors (pure functions, no hooks) ──────────────────────────────────────
+// ── Selector (pure, no hooks) ─────────────────────────────────────────────────
 
 export function getFilteredItems(store: MenuStore): MenuItem[] {
   let result = [...store.items];
 
+  // Category
   if (store.activeCategory !== 'all') {
     result = result.filter((i) => i.category === store.activeCategory);
   }
 
+  // Tab filter
   if (store.activeFilter === 'Available')   result = result.filter((i) => i.status === 'Available');
   if (store.activeFilter === 'Unavailable') result = result.filter((i) => i.status === 'Unavailable' || i.status === 'Out of Stock');
   if (store.activeFilter === 'Low Stock')   result = result.filter((i) => i.status === 'Low Stock');
 
+  // Advanced filter — price range
+  const { minPrice, maxPrice, statuses } = store.advancedFilter;
+  const min = minPrice !== '' ? parseFloat(minPrice) : null;
+  const max = maxPrice !== '' ? parseFloat(maxPrice) : null;
+  if (min !== null && !isNaN(min)) result = result.filter((i) => i.price >= min);
+  if (max !== null && !isNaN(max)) result = result.filter((i) => i.price <= max);
+
+  // Advanced filter — statuses (additive: show any of the selected)
+  if (statuses.length > 0) {
+    result = result.filter((i) => statuses.includes(i.status));
+  }
+
+  // Search
   if (store.searchQuery.trim()) {
     const q = store.searchQuery.toLowerCase();
     result = result.filter((i) =>
@@ -264,6 +288,7 @@ export function getFilteredItems(store: MenuStore): MenuItem[] {
     );
   }
 
+  // Sort
   switch (store.sortOption) {
     case 'Name A-Z':       result.sort((a, b) => a.name.localeCompare(b.name)); break;
     case 'Name Z-A':       result.sort((a, b) => b.name.localeCompare(a.name)); break;

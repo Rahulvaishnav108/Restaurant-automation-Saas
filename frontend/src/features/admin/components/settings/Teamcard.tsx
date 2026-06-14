@@ -13,19 +13,19 @@ export function TeamCard(): JSX.Element {
   ];
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 sm:p-6">
       <h3 className="text-base font-bold text-gray-800 dark:text-gray-100 mb-5">Team &amp; Permissions</h3>
 
-      <div className="flex items-start gap-4">
+      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
         {/* Icon */}
         <div className="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-900 flex items-center justify-center flex-shrink-0">
           <Users className="w-6 h-6 text-amber-500 dark:text-amber-400" />
         </div>
 
         {/* Stats */}
-        <div className="flex-1 space-y-2.5">
+        <div className="flex-1 w-full space-y-2.5">
           {rows.map(({ label, value, bold }) => (
-            <div key={label} className="flex items-center justify-between">
+            <div key={label} className="flex items-center justify-between gap-3">
               <span className={`text-sm ${bold ? 'font-semibold text-gray-800 dark:text-gray-100' : 'text-gray-600 dark:text-gray-400'}`}>
                 {label}
               </span>
@@ -38,7 +38,7 @@ export function TeamCard(): JSX.Element {
       </div>
 
       <div className="mt-5 flex justify-end">
-        <button className="px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-colors">
+        <button className="w-full sm:w-auto px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-colors">
           Manage Team
         </button>
       </div>

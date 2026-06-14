@@ -1,31 +1,76 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, ChevronLeft, ChevronRight, MoreVertical, X, Eye, Pencil, Trash2, User, Mail, Phone, Briefcase, Building2, Calendar, DollarSign, Star } from 'lucide-react';
+import {
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  MoreVertical,
+  X,
+  Eye,
+  Pencil,
+  Trash2,
+  User,
+  Mail,
+  Phone,
+  Briefcase,
+  Building2,
+  Calendar,
+  DollarSign,
+  Star,
+  ChevronDown,
+  Filter,
+} from 'lucide-react';
 import { useStaffStore } from '../../store/staff.store';
 import type { StaffRole, StaffDepartment, StaffStatus, StaffMember } from '../../store/staff.store';
 
-// ── Constants for Edit Modal (Defined at top-level to be in scope) ────────
-const EDIT_ROLES: StaffRole[]        = ['Manager', 'Chef', 'Server', 'Bartender', 'Host', 'Cleaner'];
-const EDIT_DEPTS: StaffDepartment[] = ['Management', 'Kitchen', 'Service', 'Bar', 'Front Desk', 'Cleaning'];
-const EDIT_STATUSES: StaffStatus[]  = ['Active', 'On Leave', 'Inactive'];
+// ── Constants ──────────────────────────────────────────────────────────────
 
-const ROLES: Array<StaffRole | 'All Roles'>           = ['All Roles', 'Manager', 'Chef', 'Server', 'Bartender', 'Host', 'Cleaner'];
-const DEPTS: Array<StaffDepartment | 'All Departments'> = ['All Departments', 'Management', 'Kitchen', 'Service', 'Bar', 'Front Desk', 'Cleaning'];
-const STATUSES: Array<StaffStatus | 'All'>             = ['All', 'Active', 'On Leave', 'Inactive'];
+const EDIT_ROLES: StaffRole[] = ['Manager', 'Chef', 'Server', 'Bartender', 'Host', 'Cleaner'];
+const EDIT_DEPTS: StaffDepartment[] = [
+  'Management',
+  'Kitchen',
+  'Service',
+  'Bar',
+  'Front Desk',
+  'Cleaning',
+];
+const EDIT_STATUSES: StaffStatus[] = ['Active', 'On Leave', 'Inactive'];
+
+const ROLES: Array<StaffRole | 'All Roles'> = [
+  'All Roles',
+  'Manager',
+  'Chef',
+  'Server',
+  'Bartender',
+  'Host',
+  'Cleaner',
+];
+const DEPTS: Array<StaffDepartment | 'All Departments'> = [
+  'All Departments',
+  'Management',
+  'Kitchen',
+  'Service',
+  'Bar',
+  'Front Desk',
+  'Cleaning',
+];
+const STATUSES: Array<StaffStatus | 'All'> = ['All', 'Active', 'On Leave', 'Inactive'];
 
 const ROLE_COLORS: Record<StaffRole, string> = {
-  Manager:   'bg-orange-100 text-orange-700 dark:bg-orange-950/50 dark:text-orange-400',
-  Chef:      'bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400',
-  Server:    'bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400',
+  Manager: 'bg-orange-100 text-orange-700 dark:bg-orange-950/50 dark:text-orange-400',
+  Chef: 'bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400',
+  Server: 'bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400',
   Bartender: 'bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-400',
-  Host:      'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400',
-  Cleaner:   'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  Host: 'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400',
+  Cleaner: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
 };
 
 const STATUS_COLORS: Record<StaffStatus, string> = {
-  Active:    'bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400',
-  'On Leave':'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400',
-  Inactive:  'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500',
+  Active: 'bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400',
+  'On Leave': 'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400',
+  Inactive: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500',
 };
+
+// ── Avatar ─────────────────────────────────────────────────────────────────
 
 function Avatar({ initials }: { initials: string }) {
   return (
@@ -35,62 +80,116 @@ function Avatar({ initials }: { initials: string }) {
   );
 }
 
-// ── Modals ────────────────────────────────────────────────────────────────
+// ── View Staff Modal ───────────────────────────────────────────────────────
 
-function ViewStaffModal({ member, onClose, onEdit }: { member: StaffMember; onClose: () => void; onEdit: () => void }): JSX.Element {
+function ViewStaffModal({
+  member,
+  onClose,
+  onEdit,
+}: {
+  member: StaffMember;
+  onClose: () => void;
+  onEdit: () => void;
+}): JSX.Element {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button type="button" aria-label="Close modal" className="absolute inset-0 bg-black/50 backdrop-blur-sm w-full h-full cursor-default" onClick={onClose} />
-      <div className="relative z-10 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Staff Member Details</h2>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <button
+        type="button"
+        aria-label="Close modal"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm w-full h-full cursor-default"
+        onClick={onClose}
+      />
+      <div className="relative z-10 bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md">
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 rounded-full bg-gray-200 dark:bg-gray-700" />
+        </div>
+
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+          <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100">
+            Staff Member Details
+          </h2>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
             <X className="w-4 h-4 text-gray-400" />
           </button>
         </div>
+
         <div className="p-5">
           <div className="flex items-center gap-4 mb-5">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-400 to-amber-400 flex items-center justify-center text-white text-xl font-bold">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-orange-400 to-amber-400 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
               {member.avatar}
             </div>
-            <div>
-              <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{member.name}</h3>
-              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${ROLE_COLORS[member.role]}`}>{member.role}</span>
+            <div className="min-w-0">
+              <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 truncate">
+                {member.name}
+              </h3>
+              <span
+                className={`text-xs font-semibold px-2.5 py-1 rounded-full ${ROLE_COLORS[member.role]}`}
+              >
+                {member.role}
+              </span>
             </div>
-            <span className={`ml-auto text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_COLORS[member.status]}`}>{member.status}</span>
+            <span
+              className={`ml-auto text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${STATUS_COLORS[member.status]}`}
+            >
+              {member.status}
+            </span>
           </div>
 
           <div className="space-y-3">
             {[
-              { icon: Mail,     label: 'Email',      value: member.email      },
-              { icon: Phone,    label: 'Phone',      value: member.phone      },
-              { icon: Building2,  label: 'Department', value: member.department },
-              { icon: Calendar,   label: 'Hire Date',  value: member.hireDate   },
-              { icon: DollarSign, label: 'Salary',     value: `₹${member.salary.toLocaleString()}` },
-              { icon: Star,       label: 'Performance',value: `${member.performance} / 5.0` },
+              { icon: Mail, label: 'Email', value: member.email },
+              { icon: Phone, label: 'Phone', value: member.phone },
+              { icon: Building2, label: 'Department', value: member.department },
+              { icon: Calendar, label: 'Hire Date', value: member.hireDate },
+              { icon: DollarSign, label: 'Salary', value: `₹${member.salary.toLocaleString()}` },
+              { icon: Star, label: 'Performance', value: `${member.performance} / 5.0` },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
                   <Icon className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs text-gray-400 dark:text-gray-500 leading-tight">{label}</p>
-                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{value}</p>
+                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
+                    {value}
+                  </p>
                 </div>
               </div>
             ))}
           </div>
         </div>
+
         <div className="flex items-center justify-end gap-2 px-5 pb-5">
-          <button onClick={onClose} className="px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Close</button>
-          <button onClick={onEdit} className="px-4 py-2 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-colors shadow-sm">Edit Member</button>
+          <button
+            onClick={onClose}
+            className="px-4 py-2.5 sm:py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            Close
+          </button>
+          <button
+            onClick={onEdit}
+            className="px-4 py-2.5 sm:py-2 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-colors shadow-sm"
+          >
+            Edit Member
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-function EditStaffModal({ member, onClose }: { member: StaffMember; onClose: () => void }): JSX.Element {
+// ── Edit Staff Modal ───────────────────────────────────────────────────────
+
+function EditStaffModal({
+  member,
+  onClose,
+}: {
+  member: StaffMember;
+  onClose: () => void;
+}): JSX.Element {
   const { updateMember } = useStaffStore();
   const [form, setForm] = useState({
     name: member.name,
@@ -106,7 +205,7 @@ function EditStaffModal({ member, onClose }: { member: StaffMember; onClose: () 
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.name.trim())  e.name  = 'Name is required';
+    if (!form.name.trim()) e.name = 'Name is required';
     if (!form.email.trim()) e.email = 'Email is required';
     if (!form.salary || isNaN(Number(form.salary))) e.salary = 'Valid salary required';
     return e;
@@ -114,8 +213,16 @@ function EditStaffModal({ member, onClose }: { member: StaffMember; onClose: () 
 
   const handleSave = () => {
     const e = validate();
-    if (Object.keys(e).length) { setErrors(e); return; }
-    const initials = form.name.split(' ').slice(0, 2).map((w: string) => w[0]).join('').toUpperCase();
+    if (Object.keys(e).length) {
+      setErrors(e);
+      return;
+    }
+    const initials = form.name
+      .split(' ')
+      .slice(0, 2)
+      .map((w: string) => w[0])
+      .join('')
+      .toUpperCase();
     updateMember(member.id, {
       name: form.name.trim(),
       email: form.email.trim(),
@@ -131,129 +238,335 @@ function EditStaffModal({ member, onClose }: { member: StaffMember; onClose: () 
   };
 
   const field = (key: keyof typeof form, value: string | number) =>
-    setForm(prev => ({ ...prev, [key]: value }));
+    setForm((prev) => ({ ...prev, [key]: value }));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button type="button" aria-label="Close modal" className="absolute inset-0 bg-black/50 backdrop-blur-sm w-full h-full cursor-default" onClick={onClose} />
-      <div className="relative z-10 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <button
+        type="button"
+        aria-label="Close modal"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm w-full h-full cursor-default"
+        onClick={onClose}
+      />
+      <div className="relative z-10 bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto">
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 rounded-full bg-gray-200 dark:bg-gray-700" />
+        </div>
+
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
           <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Edit Staff Member</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Update details for {member.name}</p>
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100">
+              Edit Staff Member
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              Update details for {member.name}
+            </p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
             <X className="w-4 h-4 text-gray-400" />
           </button>
         </div>
+
         <div className="p-5 space-y-4">
           <div>
-            <label htmlFor="edit-name" className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"><User className="w-3.5 h-3.5" /> Full Name *</label>
-            <input id="edit-name" type="text" value={form.name} onChange={(e) => field('name', e.target.value)} className={`w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border rounded-xl outline-none focus:ring-2 focus:ring-orange-100 dark:focus:ring-orange-900 text-gray-900 dark:text-gray-100 ${errors.name ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`} />
+            <label
+              htmlFor="edit-name"
+              className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"
+            >
+              <User className="w-3.5 h-3.5" /> Full Name *
+            </label>
+            <input
+              id="edit-name"
+              type="text"
+              value={form.name}
+              onChange={(e) => field('name', e.target.value)}
+              className={`w-full px-3 py-2.5 sm:py-2 text-sm bg-gray-50 dark:bg-gray-800 border rounded-xl outline-none focus:ring-2 focus:ring-orange-100 dark:focus:ring-orange-900 text-gray-900 dark:text-gray-100 ${
+                errors.name ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'
+              }`}
+            />
             {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
           </div>
+
           <div>
-            <label htmlFor="edit-email" className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"><Mail className="w-3.5 h-3.5" /> Email *</label>
-            <input id="edit-email" type="email" value={form.email} onChange={(e) => field('email', e.target.value)} className={`w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border rounded-xl outline-none focus:ring-2 focus:ring-orange-100 dark:focus:ring-orange-900 text-gray-900 dark:text-gray-100 ${errors.email ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`} />
+            <label
+              htmlFor="edit-email"
+              className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"
+            >
+              <Mail className="w-3.5 h-3.5" /> Email *
+            </label>
+            <input
+              id="edit-email"
+              type="email"
+              value={form.email}
+              onChange={(e) => field('email', e.target.value)}
+              className={`w-full px-3 py-2.5 sm:py-2 text-sm bg-gray-50 dark:bg-gray-800 border rounded-xl outline-none focus:ring-2 focus:ring-orange-100 dark:focus:ring-orange-900 text-gray-900 dark:text-gray-100 ${
+                errors.email ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'
+              }`}
+            />
             {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
           </div>
+
           <div>
-            <label htmlFor="edit-phone" className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"><Phone className="w-3.5 h-3.5" /> Phone</label>
-            <input id="edit-phone" type="text" value={form.phone} onChange={(e) => field('phone', e.target.value)} className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-gray-100" />
+            <label
+              htmlFor="edit-phone"
+              className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"
+            >
+              <Phone className="w-3.5 h-3.5" /> Phone
+            </label>
+            <input
+              id="edit-phone"
+              type="text"
+              value={form.phone}
+              onChange={(e) => field('phone', e.target.value)}
+              className="w-full px-3 py-2.5 sm:py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-gray-100"
+            />
           </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="edit-role" className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"><Briefcase className="w-3.5 h-3.5" /> Role</label>
-              <select id="edit-role" value={form.role} onChange={(e) => field('role', e.target.value)} className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-gray-100">
-                {EDIT_ROLES.map((r: StaffRole) => <option key={r}>{r}</option>)}
-              </select>
+              <label
+                htmlFor="edit-role"
+                className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"
+              >
+                <Briefcase className="w-3.5 h-3.5" /> Role
+              </label>
+              <div className="relative">
+                <select
+                  id="edit-role"
+                  value={form.role}
+                  onChange={(e) => field('role', e.target.value)}
+                  className="w-full appearance-none px-3 py-2.5 sm:py-2 pr-8 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-gray-100"
+                >
+                  {EDIT_ROLES.map((r: StaffRole) => (
+                    <option key={r}>{r}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+              </div>
             </div>
             <div>
-              <label htmlFor="edit-dept" className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"><Building2 className="w-3.5 h-3.5" /> Department</label>
-              <select id="edit-dept" value={form.department} onChange={(e) => field('department', e.target.value)} className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-gray-100">
-                {EDIT_DEPTS.map((d: StaffDepartment) => <option key={d}>{d}</option>)}
-              </select>
+              <label
+                htmlFor="edit-dept"
+                className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"
+              >
+                <Building2 className="w-3.5 h-3.5" /> Department
+              </label>
+              <div className="relative">
+                <select
+                  id="edit-dept"
+                  value={form.department}
+                  onChange={(e) => field('department', e.target.value)}
+                  className="w-full appearance-none px-3 py-2.5 sm:py-2 pr-8 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-gray-100"
+                >
+                  {EDIT_DEPTS.map((d: StaffDepartment) => (
+                    <option key={d}>{d}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+              </div>
             </div>
           </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="edit-status" className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"><Calendar className="w-3.5 h-3.5" /> Status</label>
-              <select id="edit-status" value={form.status} onChange={(e) => field('status', e.target.value)} className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-gray-100">
-                {EDIT_STATUSES.map((s: StaffStatus) => <option key={s}>{s}</option>)}
-              </select>
+              <label
+                htmlFor="edit-status"
+                className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"
+              >
+                <Calendar className="w-3.5 h-3.5" /> Status
+              </label>
+              <div className="relative">
+                <select
+                  id="edit-status"
+                  value={form.status}
+                  onChange={(e) => field('status', e.target.value)}
+                  className="w-full appearance-none px-3 py-2.5 sm:py-2 pr-8 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-gray-100"
+                >
+                  {EDIT_STATUSES.map((s: StaffStatus) => (
+                    <option key={s}>{s}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+              </div>
             </div>
             <div>
-              <label htmlFor="edit-salary" className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"><DollarSign className="w-3.5 h-3.5" /> Salary (₹) *</label>
-              <input id="edit-salary" type="number" value={form.salary} onChange={(e) => field('salary', e.target.value)} className={`w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border rounded-xl outline-none text-gray-900 dark:text-gray-100 ${errors.salary ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`} />
+              <label
+                htmlFor="edit-salary"
+                className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"
+              >
+                <DollarSign className="w-3.5 h-3.5" /> Salary (₹) *
+              </label>
+              <input
+                id="edit-salary"
+                type="number"
+                value={form.salary}
+                onChange={(e) => field('salary', e.target.value)}
+                className={`w-full px-3 py-2.5 sm:py-2 text-sm bg-gray-50 dark:bg-gray-800 border rounded-xl outline-none text-gray-900 dark:text-gray-100 ${
+                  errors.salary ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'
+                }`}
+              />
               {errors.salary && <p className="text-xs text-red-500 mt-1">{errors.salary}</p>}
             </div>
           </div>
         </div>
-        <div className="flex items-center justify-end gap-2 px-5 pb-5">
-          <button onClick={onClose} className="px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
-          <button onClick={handleSave} className="px-4 py-2 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-colors shadow-sm">Save Changes</button>
+
+        <div className="flex items-center justify-end gap-2 px-5 pb-5 pt-1">
+          <button
+            onClick={onClose}
+            className="px-4 py-2.5 sm:py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            className="px-4 py-2.5 sm:py-2 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-colors shadow-sm"
+          >
+            Save Changes
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-function DeleteConfirmModal({ member, onClose }: { member: StaffMember; onClose: () => void }): JSX.Element {
+// ── Delete Confirm Modal ───────────────────────────────────────────────────
+
+function DeleteConfirmModal({
+  member,
+  onClose,
+}: {
+  member: StaffMember;
+  onClose: () => void;
+}): JSX.Element {
   const { deleteMember } = useStaffStore();
-  const handleDelete = () => { deleteMember(member.id); onClose(); };
+  const handleDelete = () => {
+    deleteMember(member.id);
+    onClose();
+  };
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button type="button" aria-label="Close modal" className="absolute inset-0 bg-black/50 backdrop-blur-sm w-full h-full cursor-default" onClick={onClose} />
-      <div className="relative z-10 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
-        <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-950/40 flex items-center justify-center mx-auto mb-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <button
+        type="button"
+        aria-label="Close modal"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm w-full h-full cursor-default"
+        onClick={onClose}
+      />
+      <div className="relative z-10 bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-sm p-6 text-center">
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-gray-200 dark:bg-gray-700 sm:hidden" />
+        <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-950/40 flex items-center justify-center mx-auto mb-4 mt-2 sm:mt-0">
           <Trash2 className="w-5 h-5 text-red-500" />
         </div>
-        <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-1">Remove Staff Member</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">Are you sure you want to remove <span className="font-semibold text-gray-800 dark:text-gray-200">{member.name}</span>? This action cannot be undone.</p>
+        <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-1">
+          Remove Staff Member
+        </h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
+          Are you sure you want to remove{' '}
+          <span className="font-semibold text-gray-800 dark:text-gray-200">{member.name}</span>?
+          This action cannot be undone.
+        </p>
         <div className="flex gap-2">
-          <button onClick={onClose} className="flex-1 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
-          <button onClick={handleDelete} className="flex-1 py-2 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors">Remove</button>
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 sm:py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleDelete}
+            className="flex-1 py-2.5 sm:py-2 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors"
+          >
+            Remove
+          </button>
         </div>
       </div>
     </div>
   );
 }
+
+// ── View All Modal ─────────────────────────────────────────────────────────
 
 function ViewAllModal({ onClose }: { onClose: () => void }): JSX.Element {
   const { members } = useStaffStore();
   const [search, setSearch] = useState('');
-  const filtered = members.filter(m => !search || m.name.toLowerCase().includes(search.toLowerCase()) || m.role.toLowerCase().includes(search.toLowerCase()));
+  const filtered = members.filter(
+    (m) =>
+      !search ||
+      m.name.toLowerCase().includes(search.toLowerCase()) ||
+      m.role.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button type="button" aria-label="Close modal" className="absolute inset-0 bg-black/50 backdrop-blur-sm w-full h-full cursor-default" onClick={onClose} />
-      <div className="relative z-10 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <button
+        type="button"
+        aria-label="Close modal"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm w-full h-full cursor-default"
+        onClick={onClose}
+      />
+      <div className="relative z-10 bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl max-h-[85vh] flex flex-col">
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 rounded-full bg-gray-200 dark:bg-gray-700" />
+        </div>
+
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
           <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">All Staff Members</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{members.length} total members</p>
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100">
+              All Staff Members
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              {members.length} total members
+            </p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
             <X className="w-4 h-4 text-gray-400" />
           </button>
         </div>
+
         <div className="p-4 border-b border-gray-100 dark:border-gray-800">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-            <input type="text" placeholder="Search by name or role..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-orange-100 text-gray-800 dark:text-gray-200 placeholder:text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by name or role..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-8 pr-3 py-2.5 sm:py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-orange-100 text-gray-800 dark:text-gray-200 placeholder:text-gray-400"
+            />
           </div>
         </div>
+
         <div className="overflow-y-auto flex-1">
           <div className="divide-y divide-gray-50 dark:divide-gray-800">
-            {filtered.map(m => (
-              <div key={m.id} className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-amber-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">{m.avatar}</div>
+            {filtered.map((m) => (
+              <div
+                key={m.id}
+                className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"
+              >
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-amber-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                  {m.avatar}
+                </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{m.name}</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                    {m.name}
+                  </p>
                   <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{m.email}</p>
                 </div>
-                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${ROLE_COLORS[m.role]}`}>{m.role}</span>
-                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${STATUS_COLORS[m.status]}`}>{m.status}</span>
+                <span
+                  className={`text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 hidden sm:inline-flex ${ROLE_COLORS[m.role]}`}
+                >
+                  {m.role}
+                </span>
+                <span
+                  className={`text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${STATUS_COLORS[m.status]}`}
+                >
+                  {m.status}
+                </span>
               </div>
             ))}
             {filtered.length === 0 && (
@@ -261,19 +574,30 @@ function ViewAllModal({ onClose }: { onClose: () => void }): JSX.Element {
             )}
           </div>
         </div>
+
         <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-end">
-          <button onClick={onClose} className="px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Close</button>
+          <button
+            onClick={onClose}
+            className="px-4 py-2.5 sm:py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-function ActionMenu({  onView, onEdit, onDelete }: {
-  member: StaffMember;
-  onView: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
+// ── Action Menu ────────────────────────────────────────────────────────────
+
+function ActionMenu({
+  viewAction,
+  editAction,
+  deleteAction,
+}: {
+  viewAction: () => void;
+  editAction: () => void;
+  deleteAction: () => void;
 }): JSX.Element {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -290,7 +614,7 @@ function ActionMenu({  onView, onEdit, onDelete }: {
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen((o) => !o)}
         className="w-7 h-7 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
       >
         <MoreVertical className="w-4 h-4 text-gray-400" />
@@ -299,21 +623,30 @@ function ActionMenu({  onView, onEdit, onDelete }: {
         <div className="absolute right-0 top-8 z-20 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg py-1 w-40">
           <button
             type="button"
-            onClick={() => { setOpen(false); onView(); }}
+            onClick={() => {
+              setOpen(false);
+              viewAction();
+            }}
             className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             <Eye className="w-3.5 h-3.5" /> View Details
           </button>
           <button
             type="button"
-            onClick={() => { setOpen(false); onEdit(); }}
+            onClick={() => {
+              setOpen(false);
+              editAction();
+            }}
             className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             <Pencil className="w-3.5 h-3.5" /> Edit Member
           </button>
           <button
             type="button"
-            onClick={() => { setOpen(false); onDelete(); }}
+            onClick={() => {
+              setOpen(false);
+              deleteAction();
+            }}
             className="flex items-center gap-2 w-full px-3 py-2 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" /> Remove
@@ -324,26 +657,181 @@ function ActionMenu({  onView, onEdit, onDelete }: {
   );
 }
 
+// ── Mobile Staff Card ──────────────────────────────────────────────────────
+
+function MobileStaffCard({
+  member,
+  onView,
+  onEdit,
+  onDelete,
+}: {
+  member: StaffMember;
+  onView: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}): JSX.Element {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
+      <Avatar initials={member.avatar} />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+          {member.name}
+        </p>
+        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+          <span
+            className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${ROLE_COLORS[member.role]}`}
+          >
+            {member.role}
+          </span>
+          <span
+            className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[member.status]}`}
+          >
+            {member.status}
+          </span>
+        </div>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">{member.department}</p>
+      </div>
+      <ActionMenu viewAction={onView} editAction={onEdit} deleteAction={onDelete} />
+    </div>
+  );
+}
+
+// ── Filter Sheet (mobile) ──────────────────────────────────────────────────
+
+function FilterSheet({
+  roleFilter,
+  departmentFilter,
+  statusFilter,
+  onRoleChange,
+  onDeptChange,
+  onStatusChange,
+  onClose,
+}: {
+  roleFilter: StaffRole | 'All Roles';
+  departmentFilter: StaffDepartment | 'All Departments';
+  statusFilter: StaffStatus | 'All';
+  onRoleChange: (v: StaffRole | 'All Roles') => void;
+  onDeptChange: (v: StaffDepartment | 'All Departments') => void;
+  onStatusChange: (v: StaffStatus | 'All') => void;
+  onClose: () => void;
+}): JSX.Element {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center">
+      <button
+        type="button"
+        aria-label="Close filters"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm cursor-default"
+        onClick={onClose}
+      />
+      <div className="relative bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl w-full p-5 space-y-4">
+        <div className="flex justify-center mb-1">
+          <div className="w-10 h-1 rounded-full bg-gray-200 dark:bg-gray-700" />
+        </div>
+        <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Filter Staff</h3>
+
+        <div className="space-y-3">
+          <div>
+            <label htmlFor="filter-role" className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 block">
+              Role
+            </label>
+            <div className="relative">
+              <select
+                id="filter-role"
+                value={roleFilter}
+                onChange={(e) => onRoleChange(e.target.value as StaffRole | 'All Roles')}
+                className="w-full appearance-none px-3 py-2.5 pr-8 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-700 dark:text-gray-300"
+              >
+                {ROLES.map((r) => (
+                  <option key={r}>{r}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="filter-dept" className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 block">
+              Department
+            </label>
+            <div className="relative">
+              <select
+                id="filter-dept"
+                value={departmentFilter}
+                onChange={(e) =>
+                  onDeptChange(e.target.value as StaffDepartment | 'All Departments')
+                }
+                className="w-full appearance-none px-3 py-2.5 pr-8 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-700 dark:text-gray-300"
+              >
+                {DEPTS.map((d) => (
+                  <option key={d}>{d}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="filter-status" className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 block">
+              Status
+            </label>
+            <div className="relative">
+              <select
+                id="filter-status"
+                value={statusFilter}
+                onChange={(e) => onStatusChange(e.target.value as StaffStatus | 'All')}
+                className="w-full appearance-none px-3 py-2.5 pr-8 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-700 dark:text-gray-300"
+              >
+                {STATUSES.map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={onClose}
+          className="w-full py-3 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-colors"
+        >
+          Apply Filters
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Table ─────────────────────────────────────────────────────────────
 
 export function StaffTable(): JSX.Element {
   const {
-    members, searchQuery, roleFilter, departmentFilter, statusFilter, currentPage, perPage, showAll,
-    setSearchQuery, setRoleFilter, setDepartmentFilter, setStatusFilter, setCurrentPage,
+    members,
+    searchQuery,
+    roleFilter,
+    departmentFilter,
+    statusFilter,
+    currentPage,
+    perPage,
+    showAll,
+    setSearchQuery,
+    setRoleFilter,
+    setDepartmentFilter,
+    setStatusFilter,
+    setCurrentPage,
   } = useStaffStore();
 
-  const [viewMember,   setViewMember]   = useState<StaffMember | null>(null);
-  const [editMember,   setEditMember]   = useState<StaffMember | null>(null);
+  const [viewMember, setViewMember] = useState<StaffMember | null>(null);
+  const [editMember, setEditMember] = useState<StaffMember | null>(null);
   const [deleteMember, setDeleteMember] = useState<StaffMember | null>(null);
-  const [showViewAll,  setShowViewAll]  = useState(false);
+  const [showViewAll, setShowViewAll] = useState(false);
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
 
-  // Renamed parameter to _member to satisfy linting rule
-  const filtered = members.filter((_member) => {
+  const filtered = members.filter((m) => {
     const q = searchQuery.toLowerCase();
-    const matchQ = !q || _member.name.toLowerCase().includes(q) || _member.email.toLowerCase().includes(q);
-    const matchR = roleFilter === 'All Roles' || _member.role === roleFilter;
-    const matchD = departmentFilter === 'All Departments' || _member.department === departmentFilter;
-    const matchS = statusFilter === 'All' || _member.status === statusFilter;
+    const matchQ = !q || m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q);
+    const matchR = roleFilter === 'All Roles' || m.role === roleFilter;
+    const matchD = departmentFilter === 'All Departments' || m.department === departmentFilter;
+    const matchS = statusFilter === 'All' || m.status === statusFilter;
     return matchQ && matchR && matchD && matchS;
   });
 
@@ -351,34 +839,74 @@ export function StaffTable(): JSX.Element {
   const page = Math.min(currentPage, totalPages);
   const paged = showAll ? filtered : filtered.slice((page - 1) * perPage, page * perPage);
 
+  const hasActiveFilters =
+    roleFilter !== 'All Roles' ||
+    departmentFilter !== 'All Departments' ||
+    statusFilter !== 'All';
+
   return (
     <>
       <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl">
         <div className="flex flex-wrap items-center gap-2 p-4 border-b border-gray-100 dark:border-gray-800">
-          <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mr-2">Staff Members</h3>
+          <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mr-1">
+            Staff Members
+          </h3>
 
-          <div className="relative">
+          <div className="relative flex-1 min-w-[140px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
             <input
               type="text"
               placeholder="Search staff..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 pr-3 py-1.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-orange-100 dark:focus:ring-orange-900 w-36 text-gray-800 dark:text-gray-200 placeholder:text-gray-400"
+              className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-orange-100 dark:focus:ring-orange-900 text-gray-800 dark:text-gray-200 placeholder:text-gray-400"
             />
           </div>
 
-          <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as StaffRole | 'All Roles')} className="text-xs py-1.5 px-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none text-gray-700 dark:text-gray-300">
-            {ROLES.map((r) => <option key={r}>{r}</option>)}
-          </select>
+          <div className="hidden sm:flex items-center gap-2">
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value as StaffRole | 'All Roles')}
+              className="text-xs py-1.5 px-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none text-gray-700 dark:text-gray-300"
+            >
+              {ROLES.map((r) => (
+                <option key={r}>{r}</option>
+              ))}
+            </select>
+            <select
+              value={departmentFilter}
+              onChange={(e) =>
+                setDepartmentFilter(e.target.value as StaffDepartment | 'All Departments')
+              }
+              className="text-xs py-1.5 px-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none text-gray-700 dark:text-gray-300"
+            >
+              {DEPTS.map((d) => (
+                <option key={d}>{d}</option>
+              ))}
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as StaffStatus | 'All')}
+              className="text-xs py-1.5 px-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none text-gray-700 dark:text-gray-300"
+            >
+              {STATUSES.map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
+          </div>
 
-          <select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value as StaffDepartment | 'All Departments')} className="text-xs py-1.5 px-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none text-gray-700 dark:text-gray-300">
-            {DEPTS.map((d) => <option key={d}>{d}</option>)}
-          </select>
-
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StaffStatus | 'All')} className="text-xs py-1.5 px-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none text-gray-700 dark:text-gray-300">
-            {STATUSES.map((s) => <option key={s}>{s}</option>)}
-          </select>
+          <button
+            type="button"
+            onClick={() => setShowFilterSheet(true)}
+            className={`sm:hidden flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
+              hasActiveFilters
+                ? 'bg-orange-50 border-orange-200 text-orange-600 dark:bg-orange-950/30 dark:border-orange-800 dark:text-orange-400'
+                : 'bg-gray-50 border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'
+            }`}
+          >
+            <Filter className="w-3.5 h-3.5" />
+            {hasActiveFilters ? 'Filtered' : 'Filter'}
+          </button>
 
           <button
             type="button"
@@ -389,68 +917,138 @@ export function StaffTable(): JSX.Element {
           </button>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800">
-                {['Staff Member', 'Role', 'Department', 'Phone', 'Status', 'Hire Date', 'Actions'].map((h) => (
-                  <th key={h} className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 px-4 py-3 whitespace-nowrap">{h}</th>
-                ))}
+                {['Staff Member', 'Role', 'Department', 'Phone', 'Status', 'Hire Date', 'Actions'].map(
+                  (h) => (
+                    <th
+                      key={h}
+                      className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 px-4 py-3 whitespace-nowrap"
+                    >
+                      {h}
+                    </th>
+                  )
+                )}
               </tr>
             </thead>
             <tbody>
               {paged.map((m) => (
-                <tr key={m.id} className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
+                <tr
+                  key={m.id}
+                  className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"
+                >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <Avatar initials={m.avatar} />
                       <div>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">{m.name}</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">
+                          {m.name}
+                        </p>
                         <p className="text-xs text-gray-400 dark:text-gray-500">{m.email}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${ROLE_COLORS[m.role]}`}>{m.role}</span>
+                    <span
+                      className={`text-xs font-semibold px-2.5 py-1 rounded-full ${ROLE_COLORS[m.role]}`}
+                    >
+                      {m.role}
+                    </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{m.department}</td>
+                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">
+                    {m.department}
+                  </td>
                   <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{m.phone}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_COLORS[m.status]}`}>{m.status}</span>
+                    <span
+                      className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_COLORS[m.status]}`}
+                    >
+                      {m.status}
+                    </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{m.hireDate}</td>
+                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">
+                    {m.hireDate}
+                  </td>
                   <td className="px-4 py-3">
                     <ActionMenu
-                      member={m}
-                      onView={() => setViewMember(m)}
-                      onEdit={() => setEditMember(m)}
-                      onDelete={() => setDeleteMember(m)}
+                      viewAction={() => setViewMember(m)}
+                      editAction={() => setEditMember(m)}
+                      deleteAction={() => setDeleteMember(m)}
                     />
                   </td>
                 </tr>
               ))}
               {paged.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-400 dark:text-gray-500">No staff members found</td>
+                  <td
+                    colSpan={7}
+                    className="px-4 py-10 text-center text-sm text-gray-400 dark:text-gray-500"
+                  >
+                    No staff members found
+                  </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
 
+        <div className="sm:hidden">
+          {paged.map((m) => (
+            <MobileStaffCard
+              key={m.id}
+              member={m}
+              onView={() => setViewMember(m)}
+              onEdit={() => setEditMember(m)}
+              onDelete={() => setDeleteMember(m)}
+            />
+          ))}
+          {paged.length === 0 && (
+            <div className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">
+              No staff members found
+            </div>
+          )}
+        </div>
+
         {!showAll && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-800">
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Showing {paged.length > 0 ? (page - 1) * perPage + 1 : 0} to {Math.min(page * perPage, filtered.length)} of {filtered.length} staff
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-800 gap-2">
+            <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
+              Showing {paged.length > 0 ? (page - 1) * perPage + 1 : 0} to{' '}
+              {Math.min(page * perPage, filtered.length)} of {filtered.length} staff
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 sm:hidden">
+              {filtered.length} staff
             </p>
             <div className="flex items-center gap-1">
-              <button type="button" onClick={() => setCurrentPage(page - 1)} disabled={page <= 1} className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 transition-colors">
+              <button
+                type="button"
+                onClick={() => setCurrentPage(page - 1)}
+                disabled={page <= 1}
+                className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 transition-colors"
+              >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
               {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((p) => (
-                <button type="button" key={p} onClick={() => setCurrentPage(p)} className={`w-7 h-7 rounded-lg text-xs font-semibold transition-colors ${p === page ? 'bg-orange-500 text-white' : 'border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>{p}</button>
+                <button
+                  type="button"
+                  key={p}
+                  onClick={() => setCurrentPage(p)}
+                  className={`w-7 h-7 rounded-lg text-xs font-semibold transition-colors ${
+                    p === page
+                      ? 'bg-orange-500 text-white'
+                      : 'border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  {p}
+                </button>
               ))}
-              <button type="button" onClick={() => setCurrentPage(page + 1)} disabled={page >= totalPages} className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 transition-colors">
+              <button
+                type="button"
+                onClick={() => setCurrentPage(page + 1)}
+                disabled={page >= totalPages}
+                className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 transition-colors"
+              >
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -458,10 +1056,34 @@ export function StaffTable(): JSX.Element {
         )}
       </div>
 
-      {showViewAll   && <ViewAllModal    onClose={() => setShowViewAll(false)} />}
-      {viewMember   && <ViewStaffModal  member={viewMember}  onClose={() => setViewMember(null)}  onEdit={() => { setEditMember(viewMember); setViewMember(null); }} />}
-      {editMember   && <EditStaffModal  member={editMember}  onClose={() => setEditMember(null)}  />}
-      {deleteMember && <DeleteConfirmModal member={deleteMember} onClose={() => setDeleteMember(null)} />}
+      {showFilterSheet && (
+        <FilterSheet
+          roleFilter={roleFilter}
+          departmentFilter={departmentFilter}
+          statusFilter={statusFilter}
+          onRoleChange={setRoleFilter}
+          onDeptChange={setDepartmentFilter}
+          onStatusChange={setStatusFilter}
+          onClose={() => setShowFilterSheet(false)}
+        />
+      )}
+      {showViewAll && <ViewAllModal onClose={() => setShowViewAll(false)} />}
+      {viewMember && (
+        <ViewStaffModal
+          member={viewMember}
+          onClose={() => setViewMember(null)}
+          onEdit={() => {
+            setEditMember(viewMember);
+            setViewMember(null);
+          }}
+        />
+      )}
+      {editMember && (
+        <EditStaffModal member={editMember} onClose={() => setEditMember(null)} />
+      )}
+      {deleteMember && (
+        <DeleteConfirmModal member={deleteMember} onClose={() => setDeleteMember(null)} />
+      )}
     </>
   );
 }

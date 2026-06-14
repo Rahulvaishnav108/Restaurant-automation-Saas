@@ -9,20 +9,15 @@ interface OrdersTableProps {
   orders: Order[];
 }
 
-const COLUMNS = [
-  'Order ID', 'Customer', 'Table', 'Amount',
-  'Payment', 'Status', 'Assigned Staff', 'Time', 'Actions',
-];
-
 function CustomerCell({ order }: { order: Order }) {
   const bg = AVATAR_COLORS[order.customerAvatar] ?? 'bg-gray-400';
   return (
-    <div className="flex items-center gap-2.5">
-      <div className={`w-8 h-8 rounded-full ${bg} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
+    <div className="flex items-center gap-2">
+      <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full ${bg} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
         {order.customerAvatar}
       </div>
-      <div>
-        <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 leading-tight whitespace-nowrap">{order.customer}</p>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 leading-tight truncate max-w-[90px] sm:max-w-[140px]">{order.customer}</p>
         <p className="text-xs text-gray-400 dark:text-gray-500">{order.items} Items</p>
       </div>
     </div>
@@ -55,17 +50,45 @@ function EmptyState() {
 export function OrdersTable({ orders }: OrdersTableProps) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full">
+      <table className="w-full min-w-[420px]">
         <thead>
           <tr className="border-b border-gray-50 dark:border-gray-800">
-            {COLUMNS.map((col) => (
-              <th
-                key={col}
-                className="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 px-4 py-3 uppercase tracking-wide whitespace-nowrap first:pl-5 last:pr-5"
-              >
-                {col}
-              </th>
-            ))}
+            {/* Order ID */}
+            <th className="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 px-2 sm:px-4 py-3 pl-3 sm:pl-5 uppercase tracking-wide whitespace-nowrap">
+              Order ID
+            </th>
+            {/* Customer */}
+            <th className="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 px-2 sm:px-4 py-3 uppercase tracking-wide whitespace-nowrap">
+              Customer
+            </th>
+            {/* Table */}
+            <th className="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 px-2 sm:px-4 py-3 uppercase tracking-wide whitespace-nowrap hidden sm:table-cell">
+              Table
+            </th>
+            {/* Amount */}
+            <th className="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 px-2 sm:px-4 py-3 uppercase tracking-wide whitespace-nowrap">
+              Amount
+            </th>
+            {/* Payment */}
+            <th className="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 px-2 sm:px-4 py-3 uppercase tracking-wide whitespace-nowrap hidden md:table-cell">
+              Payment
+            </th>
+            {/* Status */}
+            <th className="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 px-2 sm:px-4 py-3 uppercase tracking-wide whitespace-nowrap">
+              Status
+            </th>
+            {/* Staff */}
+            <th className="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 px-2 sm:px-4 py-3 uppercase tracking-wide whitespace-nowrap hidden lg:table-cell">
+              Assigned Staff
+            </th>
+            {/* Time */}
+            <th className="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 px-2 sm:px-4 py-3 uppercase tracking-wide whitespace-nowrap hidden md:table-cell">
+              Time
+            </th>
+            {/* Actions */}
+            <th className="text-left text-xs font-semibold text-gray-400 dark:text-gray-500 px-2 sm:px-4 py-3 pr-3 sm:pr-5 uppercase tracking-wide whitespace-nowrap">
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -75,50 +98,33 @@ export function OrdersTable({ orders }: OrdersTableProps) {
             orders.map((order) => (
               <tr
                 key={order.id}
-                className="border-b border-gray-50 dark:border-gray-800/60 hover:bg-gray-50/60 dark:hover:bg-gray-800/30 transition-colors"
+                className="border-b border-gray-50 dark:border-gray-800/60 hover:bg-gray-50/60 dark:hover:bg-gray-800/30 transition-colors last:border-b-0"
               >
-                {/* Order ID */}
-                <td className="px-4 py-3.5 pl-5">
-                  <span className="text-sm font-bold text-gray-800 dark:text-gray-100">{order.id}</span>
+                <td className="px-2 sm:px-4 py-3 pl-3 sm:pl-5">
+                  <span className="text-xs sm:text-sm font-bold text-gray-800 dark:text-gray-100 whitespace-nowrap">{order.id}</span>
                 </td>
-
-                {/* Customer */}
-                <td className="px-4 py-3.5">
+                <td className="px-2 sm:px-4 py-3">
                   <CustomerCell order={order} />
                 </td>
-
-                {/* Table */}
-                <td className="px-4 py-3.5">
+                <td className="px-2 sm:px-4 py-3 hidden sm:table-cell">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{order.table}</span>
                 </td>
-
-                {/* Amount */}
-                <td className="px-4 py-3.5">
-                  <span className="text-sm font-bold text-gray-800 dark:text-gray-100">{order.amount}</span>
+                <td className="px-2 sm:px-4 py-3">
+                  <span className="text-xs sm:text-sm font-bold text-gray-800 dark:text-gray-100 whitespace-nowrap">{order.amount}</span>
                 </td>
-
-                {/* Payment */}
-                <td className="px-4 py-3.5">
+                <td className="px-2 sm:px-4 py-3 hidden md:table-cell">
                   <PaymentBadge method={order.payment} />
                 </td>
-
-                {/* Status */}
-                <td className="px-4 py-3.5">
+                <td className="px-2 sm:px-4 py-3">
                   <OrderStatusBadge status={order.status} />
                 </td>
-
-                {/* Staff */}
-                <td className="px-4 py-3.5">
+                <td className="px-2 sm:px-4 py-3 hidden lg:table-cell">
                   <StaffCell order={order} />
                 </td>
-
-                {/* Time */}
-                <td className="px-4 py-3.5">
+                <td className="px-2 sm:px-4 py-3 hidden md:table-cell">
                   <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">{order.time}</span>
                 </td>
-
-                {/* Actions */}
-                <td className="px-4 py-3.5 pr-5">
+                <td className="px-2 sm:px-4 py-3 pr-3 sm:pr-5">
                   <OrderActionMenu order={order} />
                 </td>
               </tr>

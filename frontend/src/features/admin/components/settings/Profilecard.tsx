@@ -17,10 +17,10 @@ export function ProfileCard(): JSX.Element {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 sm:p-6">
       <h3 className="text-base font-bold text-gray-800 dark:text-gray-100 mb-5">Profile Settings</h3>
 
-      <div className="flex items-start gap-5">
+      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
         {/* Avatar */}
         <div className="relative flex-shrink-0">
           <img
@@ -34,7 +34,7 @@ export function ProfileCard(): JSX.Element {
         </div>
 
         {/* Fields */}
-        <div className="flex-1 grid grid-cols-2 gap-x-6 gap-y-4">
+        <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
           <Field label="Full Name">
             {editingProfile
               ? <input className={inputCls} value={draft.fullName} onChange={e => setDraft(d => ({ ...d, fullName: e.target.value }))} />
@@ -56,7 +56,7 @@ export function ProfileCard(): JSX.Element {
         </div>
       </div>
 
-      <div className="mt-5 flex justify-end gap-2">
+      <div className="mt-5 flex flex-col sm:flex-row justify-end gap-2">
         {editingProfile ? (
           <>
             <button onClick={handleCancel} className={secondaryBtn}>Cancel</button>

@@ -6,10 +6,10 @@ export function NotificationsCard(): JSX.Element {
   const { notifications, toggleNotification } = useSettingsStore();
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 sm:p-6">
       <div className="flex items-center gap-3 mb-5">
-        <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900 flex items-center justify-center">
-          <Bell className="w-4.5 h-4.5 text-blue-500 dark:text-blue-400 w-[18px] h-[18px]" />
+        <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900 flex items-center justify-center flex-shrink-0">
+          <Bell className="w-[18px] h-[18px] text-blue-500 dark:text-blue-400" />
         </div>
         <h3 className="text-base font-bold text-gray-800 dark:text-gray-100">Notification Preferences</h3>
       </div>
@@ -17,9 +17,9 @@ export function NotificationsCard(): JSX.Element {
       <div className="space-y-4">
         {notifications.map((n) => (
           <div key={n.id} className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{n.label}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{n.description}</p>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{n.label}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">{n.description}</p>
             </div>
             <Toggle enabled={n.enabled} onChange={() => toggleNotification(n.id)} />
           </div>
@@ -27,7 +27,7 @@ export function NotificationsCard(): JSX.Element {
       </div>
 
       <div className="mt-5 flex justify-end">
-        <button className="px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-colors">
+        <button className="w-full sm:w-auto px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-colors">
           Manage Notifications
         </button>
       </div>

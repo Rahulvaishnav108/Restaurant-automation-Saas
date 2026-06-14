@@ -3,13 +3,11 @@ import { Plus, ChevronDown, Filter, Calendar, X, Check } from 'lucide-react';
 import { useOrdersStore, type DateFilter, type PaymentMethod } from '../../store/orders.store';
 import { NewOrderModal } from './NewOrderModal';
 
-// ── Date Picker Dropdown ──────────────────────────────────────────────────────
-
 const DATE_OPTIONS: { label: string; value: DateFilter }[] = [
-  { label: 'Today',       value: 'today'     },
-  { label: 'Yesterday',   value: 'yesterday' },
-  { label: 'Last 7 days', value: 'last7'     },
-  { label: 'Last 30 days',value: 'last30'    },
+  { label: 'Today',        value: 'today'     },
+  { label: 'Yesterday',    value: 'yesterday' },
+  { label: 'Last 7 days',  value: 'last7'     },
+  { label: 'Last 30 days', value: 'last30'    },
 ];
 
 function DatePickerDropdown() {
@@ -37,13 +35,13 @@ function DatePickerDropdown() {
             : 'text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
         }`}
       >
-        <Calendar className="w-4 h-4 text-gray-400" />
-        {currentLabel}
-        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
+        <span className="hidden sm:inline">{currentLabel}</span>
+        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform flex-shrink-0 ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-10 z-50 w-44 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl shadow-lg py-1 overflow-hidden">
+        <div className="absolute left-0 top-10 z-50 w-44 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl shadow-lg py-1 overflow-hidden">
           {DATE_OPTIONS.map((opt) => (
             <button
               key={opt.value}
@@ -59,8 +57,6 @@ function DatePickerDropdown() {
     </div>
   );
 }
-
-// ── Filter Dropdown ───────────────────────────────────────────────────────────
 
 const PAYMENT_OPTIONS: (PaymentMethod | 'All')[] = ['All', 'Paid', 'Online', 'Card', 'Cash'];
 
@@ -91,20 +87,17 @@ function FilterDropdown() {
               : 'text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
         }`}
       >
-        <Filter className="w-4 h-4 text-gray-400" />
-        Filter
+        <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
+        <span className="hidden sm:inline">Filter</span>
         {hasActiveFilters && (
-          <span className="w-4 h-4 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center">
-            !
-          </span>
+          <span className="w-4 h-4 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">!</span>
         )}
-        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform flex-shrink-0 ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-10 z-50 w-64 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl shadow-lg p-4 space-y-4">
-
-          {/* Payment filter */}
+        /* On mobile: anchor to left to avoid clipping off-screen right edge */
+        <div className="absolute left-0 sm:right-0 sm:left-auto top-10 z-50 w-64 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl shadow-lg p-4 space-y-4">
           <div>
             <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">Payment Method</p>
             <div className="flex flex-wrap gap-1.5">
@@ -124,7 +117,6 @@ function FilterDropdown() {
             </div>
           </div>
 
-          {/* Amount range */}
           <div>
             <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">Amount Range (₹)</p>
             <div className="flex items-center gap-2">
@@ -135,7 +127,7 @@ function FilterDropdown() {
                 onChange={(e) => setMinAmount(e.target.value)}
                 className="w-full px-3 py-1.5 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:border-orange-300 dark:focus:border-orange-700 text-gray-800 dark:text-gray-100"
               />
-              <span className="text-gray-400 text-xs">–</span>
+              <span className="text-gray-400 text-xs flex-shrink-0">–</span>
               <input
                 type="number"
                 placeholder="Max"
@@ -146,7 +138,6 @@ function FilterDropdown() {
             </div>
           </div>
 
-          {/* Clear */}
           {hasActiveFilters && (
             <button
               onClick={() => { resetFilters(); setOpen(false); }}
@@ -161,16 +152,14 @@ function FilterDropdown() {
   );
 }
 
-// ── Main Header ───────────────────────────────────────────────────────────────
-
 export function OrdersHeader() {
   const [showNewOrder, setShowNewOrder] = useState(false);
 
   return (
     <>
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Orders Management</h1>
+          <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Orders Management</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             Track and manage all customer orders in real-time
           </p>
@@ -181,10 +170,10 @@ export function OrdersHeader() {
           <FilterDropdown />
           <button
             onClick={() => setShowNewOrder(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 active:bg-orange-700 rounded-xl transition-colors shadow-sm"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 active:bg-orange-700 rounded-xl transition-colors shadow-sm"
           >
-            <Plus className="w-4 h-4" />
-            New Order
+            <Plus className="w-4 h-4 flex-shrink-0" />
+            <span className="hidden xs:inline sm:inline">New Order</span>
           </button>
         </div>
       </div>
