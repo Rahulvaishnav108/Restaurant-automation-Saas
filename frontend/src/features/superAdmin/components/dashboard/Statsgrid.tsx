@@ -1,13 +1,12 @@
-import { TrendingUp } from "lucide-react";
-// 1. Fixed the path to go up two levels to find the store folder
-import { stats } from "../../store/Superadmindashboard"; 
+import { TrendingUp, TrendingDown } from "lucide-react";
+import { stats } from "../../store/Superadmindashboard";
 
-// 2. Defined explicit interfaces so TypeScript understands the stat object and its dynamic Lucide icon component
 interface StatItem {
   title: string;
   value: string | number;
   growth: string;
-  icon: React.ComponentType<{ size?: number }>;
+  subtitle?: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
   lightColor: string;
   darkColor: string;
 }
@@ -18,40 +17,52 @@ interface StatsGridProps {
 
 export default function StatsGrid({ darkMode }: StatsGridProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
-      {/* 3. Explicitly typed the loop target */}
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 mb-6">
       {(stats as StatItem[]).map((stat) => {
         const Icon = stat.icon;
+        const isPositive = !stat.growth.startsWith("-");
+
         return (
           <div
             key={stat.title}
-            className={`rounded-xl p-5 border transition-all duration-200 hover:shadow-md ${
+            className={`rounded-xl p-4 sm:p-5 border transition-all duration-200 hover:shadow-lg group ${
               darkMode
-                ? "bg-slate-900/30 border-slate-800/80 shadow-black/10"
-                : "bg-white border-slate-200/60 shadow-sm shadow-slate-100/40"
+                ? "bg-slate-900/40 border-slate-800/80 hover:border-slate-700/80 hover:bg-slate-900/60"
+                : "bg-white border-slate-200/60 shadow-sm hover:shadow-slate-200/60 hover:border-slate-300/60"
             }`}
           >
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
+            <div className="flex items-start justify-between gap-2">
+              <div className="space-y-1 min-w-0">
                 <p
-                  className={`text-[11px] font-semibold tracking-wider uppercase ${
-                    darkMode ? "text-slate-400" : "text-slate-500"
+                  className={`text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase truncate ${
+                    darkMode ? "text-slate-500" : "text-slate-400"
                   }`}
                 >
                   {stat.title}
                 </p>
-                <h3 className="text-2xl font-bold tracking-tight">{stat.value}</h3>
-                <div className="flex items-center gap-1 text-emerald-500 text-xs font-semibold pt-1">
-                  <TrendingUp size={12} />
-                  <span>{stat.growth}</span>
+                <h3 className="text-xl sm:text-2xl font-bold tracking-tight leading-none">
+                  {stat.value}
+                </h3>
+                <div
+                  className={`flex items-center gap-1 text-xs font-semibold pt-1 ${
+                    isPositive ? "text-emerald-500" : "text-red-400"
+                  }`}
+                >
+                  {isPositive ? (
+                    <TrendingUp size={11} />
+                  ) : (
+                    <TrendingDown size={11} />
+                  )}
+                  <span>{stat.growth} vs last month</span>
                 </div>
               </div>
+
               <div
-                className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+                className={`h-9 w-9 sm:h-10 sm:w-10 rounded-lg flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-110 ${
                   darkMode ? stat.darkColor : stat.lightColor
                 }`}
               >
-                <Icon size={18} />
+                <Icon size={17} />
               </div>
             </div>
           </div>

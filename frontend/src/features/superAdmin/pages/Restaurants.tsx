@@ -1,10 +1,17 @@
+// pages/Restaurants.tsx
+// Fully responsive restaurants management page
+
 import { useState, useEffect, useMemo } from "react";
 import { restaurantData } from "../store/Restaurants";
-import type { RestaurantsRow, StatusFilter, NewRestaurantForm } from "../components/Restaurants/Restauranttypes";
+import type {
+  RestaurantsRow,
+  StatusFilter,
+  NewRestaurantForm,
+} from "../components/Restaurants/Restauranttypes";
 
 import MetricCards from "../components/Restaurants/Metriccards";
 import FilterBar from "../components/Restaurants/Filterbar";
-import RestaurantTable from "../components/Restaurants/RestaurantTable"; 
+import RestaurantTable from "../components/Restaurants/RestaurantTable";
 import ViewModal from "../components/Restaurants/Viewmodal";
 import AddRestaurantModal from "../components/Restaurants/AddRestaurantModal";
 
@@ -37,7 +44,7 @@ export default function Restaurant() {
   const [viewingRestaurant, setViewingRestaurant] = useState<RestaurantsRow | null>(null);
   const [newRestaurant, setNewRestaurant] = useState<NewRestaurantForm>(DEFAULT_FORM);
 
-  // Sync dark mode from parent
+  // Sync dark mode from parent layout
   useEffect(() => {
     const handleThemeSync = (e: Event) => {
       const custom = e as CustomEvent<{ darkMode: boolean }>;
@@ -47,7 +54,7 @@ export default function Restaurant() {
     return () => window.removeEventListener("sync-app-theme", handleThemeSync);
   }, []);
 
-  // Escape key closes everything
+  // Handle escape key to close modals
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -59,6 +66,7 @@ export default function Restaurant() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  // Calculate metrics
   const metrics = useMemo(() => ({
     total: restaurants.length,
     active: restaurants.filter((r) => r.status === "Active").length,
@@ -66,6 +74,7 @@ export default function Restaurant() {
     branches: restaurants.reduce((acc, r) => acc + r.branches, 0),
   }), [restaurants]);
 
+  // Filter restaurants based on search and status
   const filteredRestaurants = useMemo(() => {
     return restaurants.filter((item) => {
       const matchesStatus = statusFilter === "All" || item.status === statusFilter;
@@ -79,15 +88,19 @@ export default function Restaurant() {
     });
   }, [restaurants, searchQuery, statusFilter]);
 
+  // Update restaurant status
   const updateStatus = (id: string, status: "Active" | "Trial" | "Inactive") =>
     setRestaurants((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
 
+  // Update restaurant plan
   const updatePlan = (id: string, plan: "Premium" | "Standard" | "Basic") =>
     setRestaurants((prev) => prev.map((r) => (r.id === id ? { ...r, plan } : r)));
 
+  // Delete restaurant
   const deleteRestaurant = (id: string) =>
     setRestaurants((prev) => prev.filter((r) => r.id !== id));
 
+  // Handle form submission for new restaurant
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRestaurant.name || !newRestaurant.owner) return;
@@ -113,10 +126,26 @@ export default function Restaurant() {
   };
 
   return (
-    <div className={`min-h-screen px-6 py-8 transition-colors duration-300 ${
-      darkMode ? "bg-[#020817] text-slate-100" : "bg-[#F8FAFC] text-slate-800"
-    }`}>
+    <div
+      className={`min-h-screen px-4 sm:px-6 py-6 sm:py-8 transition-colors duration-300 ${
+        darkMode ? "bg-[#020817] text-slate-100" : "bg-[#F8FAFC] text-slate-800"
+      }`}
+    >
+      {/* Page header */}
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+          Restaurant Management
+        </h1>
+        <p
+          className={`text-sm mt-1 ${
+            darkMode ? "text-slate-400" : "text-slate-600"
+          }`}
+        >
+          Monitor and manage all restaurant accounts
+        </p>
+      </div>
 
+      {/* Metric Cards */}
       <MetricCards
         metrics={metrics}
         statusFilter={statusFilter}
@@ -124,6 +153,7 @@ export default function Restaurant() {
         onFilterChange={setStatusFilter}
       />
 
+      {/* Filter Bar */}
       <FilterBar
         searchQuery={searchQuery}
         statusFilter={statusFilter}
@@ -133,6 +163,7 @@ export default function Restaurant() {
         onAddClick={() => setIsModalOpen(true)}
       />
 
+      {/* Restaurant Table/Cards */}
       <RestaurantTable
         restaurants={filteredRestaurants}
         darkMode={darkMode}
@@ -142,9 +173,13 @@ export default function Restaurant() {
         onUpdateStatus={updateStatus}
         onUpdatePlan={updatePlan}
         onDelete={deleteRestaurant}
-        onResetFilters={() => { setSearchQuery(""); setStatusFilter("All"); }}
+        onResetFilters={() => {
+          setSearchQuery("");
+          setStatusFilter("All");
+        }}
       />
 
+      {/* View Restaurant Modal */}
       {viewingRestaurant && (
         <ViewModal
           restaurant={viewingRestaurant}
@@ -153,6 +188,7 @@ export default function Restaurant() {
         />
       )}
 
+      {/* Add Restaurant Modal */}
       {isModalOpen && (
         <AddRestaurantModal
           darkMode={darkMode}
@@ -162,7 +198,6 @@ export default function Restaurant() {
           onClose={() => setIsModalOpen(false)}
         />
       )}
-
     </div>
   );
 }

@@ -31,33 +31,34 @@ export default function ViewModal({ restaurant, darkMode, onClose, onEditClick }
 
   const formatJoinedDate = (dateString: string): string => {
     const parsedDate = new Date(dateString);
-    return isNaN(parsedDate.getTime()) 
-      ? "N/A" 
+    return isNaN(parsedDate.getTime())
+      ? "N/A"
       : parsedDate.toLocaleDateString("en-US", { month: "short", year: "numeric" });
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-black/60 outline-none"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm bg-black/60 outline-none"
       onClick={onClose}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          onClose();
-        }
-      }}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClose(); }}
       role="button"
       tabIndex={0}
       aria-label="Close modal backdrop"
     >
       <div
-        className={`w-full max-w-lg rounded-2xl border shadow-2xl transition-all ${
+        className={`w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl border shadow-2xl transition-all ${
           darkMode ? "bg-slate-950 border-slate-800 text-slate-100" : "bg-white border-slate-200 text-slate-800"
         }`}
         onClick={(e) => e.stopPropagation()}
         role="presentation"
       >
+        {/* Drag handle on mobile */}
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className={`w-10 h-1 rounded-full ${darkMode ? "bg-slate-700" : "bg-slate-300"}`} />
+        </div>
+
         {/* Header */}
-        <div className={`flex items-start justify-between p-5 border-b ${darkMode ? "border-slate-800" : "border-slate-100"}`}>
+        <div className={`flex items-start justify-between px-5 sm:p-5 py-4 border-b ${darkMode ? "border-slate-800" : "border-slate-100"}`}>
           <div className="flex-1 min-w-0 pr-3">
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${darkMode ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500"}`}>
@@ -83,7 +84,7 @@ export default function ViewModal({ restaurant, darkMode, onClose, onEditClick }
         </div>
 
         {/* Body */}
-        <div className="p-5 space-y-4">
+        <div className="px-5 sm:p-5 py-4 space-y-4 max-h-[65vh] overflow-y-auto">
           {/* Owner + Status row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -112,10 +113,11 @@ export default function ViewModal({ restaurant, darkMode, onClose, onEditClick }
           <div className="space-y-2">
             <p className={`text-[10px] font-bold uppercase tracking-wider ${darkMode ? "text-slate-500" : "text-slate-400"}`}>Contact</p>
             <a href={`mailto:${restaurant.email}`} className={`flex items-center gap-2 text-xs font-medium hover:text-orange-500 transition-colors ${darkMode ? "text-slate-400" : "text-slate-600"}`}>
-              <Mail size={13} className="text-slate-400" />{restaurant.email}
+              <Mail size={13} className="text-slate-400 shrink-0" />
+              <span className="truncate">{restaurant.email}</span>
             </a>
             <a href={`tel:${restaurant.phone}`} className={`flex items-center gap-2 text-xs font-medium hover:text-orange-500 transition-colors ${darkMode ? "text-slate-400" : "text-slate-600"}`}>
-              <Phone size={13} className="text-slate-400" />{restaurant.phone}
+              <Phone size={13} className="text-slate-400 shrink-0" />{restaurant.phone}
             </a>
           </div>
 
@@ -131,25 +133,25 @@ export default function ViewModal({ restaurant, darkMode, onClose, onEditClick }
 
           <div className={`h-px ${darkMode ? "bg-slate-900" : "bg-slate-100"}`} />
 
-          {/* Stats grid */}
-          <div className={`grid grid-cols-4 gap-2 p-3 rounded-xl ${darkMode ? "bg-slate-900/60 border border-slate-800" : "bg-white border border-slate-100"}`}>
+          {/* Stats grid — 2×2 on mobile, 4-wide on sm+ */}
+          <div className={`grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 rounded-xl ${darkMode ? "bg-slate-900/60 border border-slate-800" : "bg-white border border-slate-100"}`}>
             <div className="text-center">
               <p className={`text-[9px] font-bold uppercase tracking-wider ${darkMode ? "text-slate-500" : "text-slate-400"}`}>Plan</p>
               <span className={`inline-flex items-center gap-1 mt-1 text-[11px] font-extrabold ${planColors.text}`}>
                 {PLAN_ICONS[restaurant.plan]}{restaurant.plan}
               </span>
             </div>
-            <div className={`text-center border-l ${darkMode ? "border-slate-800" : "border-slate-200"}`}>
+            <div className={`text-center sm:border-l ${darkMode ? "sm:border-slate-800" : "sm:border-slate-200"}`}>
               <p className={`text-[9px] font-bold uppercase tracking-wider ${darkMode ? "text-slate-500" : "text-slate-400"}`}>Revenue</p>
               <p className="text-[11px] font-extrabold text-blue-500 mt-1">{restaurant.revenue}</p>
             </div>
-            <div className={`text-center border-l ${darkMode ? "border-slate-800" : "border-slate-200"}`}>
+            <div className={`text-center border-t sm:border-t-0 sm:border-l pt-2 sm:pt-0 ${darkMode ? "border-slate-800" : "border-slate-100"}`}>
               <p className={`text-[9px] font-bold uppercase tracking-wider ${darkMode ? "text-slate-500" : "text-slate-400"}`}>Branches</p>
               <p className={`text-[11px] font-extrabold mt-1 flex items-center justify-center gap-0.5 ${darkMode ? "text-slate-200" : "text-slate-700"}`}>
                 <GitBranch size={10} className="text-slate-400" />{restaurant.branches}
               </p>
             </div>
-            <div className={`text-center border-l ${darkMode ? "border-slate-800" : "border-slate-200"}`}>
+            <div className={`text-center border-t sm:border-t-0 sm:border-l pt-2 sm:pt-0 ${darkMode ? "border-slate-800" : "border-slate-100"}`}>
               <p className={`text-[9px] font-bold uppercase tracking-wider ${darkMode ? "text-slate-500" : "text-slate-400"}`}>Joined</p>
               <p className={`text-[10px] font-semibold mt-1 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
                 {formatJoinedDate(restaurant.joinedDate)}
@@ -158,7 +160,7 @@ export default function ViewModal({ restaurant, darkMode, onClose, onEditClick }
           </div>
 
           {/* Dates */}
-          <div className="flex items-center gap-6 text-[11px]">
+          <div className="flex flex-wrap items-center gap-4 text-[11px]">
             <div className={`flex items-center gap-1.5 ${darkMode ? "text-slate-500" : "text-slate-400"}`}>
               <Calendar size={12} />
               <span>Joined: <span className={`font-semibold ${darkMode ? "text-slate-300" : "text-slate-600"}`}>{restaurant.joinedDate}</span></span>
@@ -171,21 +173,15 @@ export default function ViewModal({ restaurant, darkMode, onClose, onEditClick }
         </div>
 
         {/* Footer */}
-        <div className={`flex gap-3 p-5 border-t ${darkMode ? "border-slate-800" : "border-slate-100"}`}>
-          <button
-            type="button"
-            onClick={onClose}
+        <div className={`flex gap-3 px-5 sm:px-5 py-4 border-t ${darkMode ? "border-slate-800" : "border-slate-100"}`}>
+          <button type="button" onClick={onClose}
             className={`flex-1 h-10 text-xs font-bold rounded-xl border transition-colors ${
               darkMode ? "border-slate-800 hover:bg-slate-900 text-slate-300" : "border-slate-200 hover:bg-slate-50 text-slate-600"
-            }`}
-          >
+            }`}>
             Close
           </button>
-          <button
-            type="button"
-            onClick={() => { onClose(); onEditClick(); }}
-            className="flex-1 h-10 text-xs font-bold bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors"
-          >
+          <button type="button" onClick={() => { onClose(); onEditClick(); }}
+            className="flex-1 h-10 text-xs font-bold bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors">
             Edit Plan / Status
           </button>
         </div>

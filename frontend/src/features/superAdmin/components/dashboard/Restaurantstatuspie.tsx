@@ -1,8 +1,6 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
-// 1. Fixed the path to go up two levels to find the store folder
-import { pieData } from "../../store/Superadmindashboard"; 
+import { pieData } from "../../store/Superadmindashboard";
 
-// 2. Defined explicit types for the data structures inside your chart slice
 interface PieDataItem {
   name: string;
   value: number;
@@ -13,78 +11,129 @@ interface RestaurantStatusPieProps {
   darkMode: boolean;
 }
 
+const CustomTooltip = ({
+  active,
+  payload,
+  darkMode,
+}: {
+  active?: boolean;
+  payload?: { name: string; value: number; payload: PieDataItem }[];
+  darkMode: boolean;
+}) => {
+  if (!active || !payload?.length) return null;
+  const item = payload[0];
+  return (
+    <div
+      className={`rounded-xl border p-3 text-xs shadow-xl ${
+        darkMode
+          ? "bg-slate-900 border-slate-700 text-slate-200"
+          : "bg-white border-slate-200 text-slate-800"
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <span
+          className="w-2.5 h-2.5 rounded-full shrink-0"
+          style={{ backgroundColor: item.payload.color }}
+        />
+        <span className="font-bold">{item.name}</span>
+      </div>
+      <p className={`mt-1 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
+        Share:{" "}
+        <span className="font-semibold text-white">{item.value}%</span>
+      </p>
+    </div>
+  );
+};
+
 export default function RestaurantStatusPie({ darkMode }: RestaurantStatusPieProps) {
   return (
     <div
-      className={`rounded-xl p-5 border ${
+      className={`rounded-xl p-4 sm:p-5 border ${
         darkMode
-          ? "bg-slate-900/30 border-slate-800/80"
+          ? "bg-slate-900/40 border-slate-800/80"
           : "bg-white border-slate-200/60 shadow-sm shadow-slate-100/40"
       }`}
     >
-      <div className="mb-1">
-        <h3 className="text-base font-bold tracking-tight">Restaurant Status</h3>
-        <p className={`text-xs ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
-          Division allocations
+      {/* Header */}
+      <div className="mb-2">
+        <h3 className="text-sm sm:text-base font-bold tracking-tight">
+          Restaurant Status
+        </h3>
+        <p
+          className={`text-xs mt-0.5 ${
+            darkMode ? "text-slate-400" : "text-slate-500"
+          }`}
+        >
+          Live venue health distribution
         </p>
       </div>
 
-      <div className="h-[240px] flex items-center justify-center relative">
+      {/* Donut chart */}
+      <div className="h-[200px] sm:h-[230px] flex items-center justify-center relative">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={pieData as PieDataItem[]}
-              innerRadius={65}
-              outerRadius={90}
+              innerRadius="58%"
+              outerRadius="80%"
               paddingAngle={4}
               dataKey="value"
               nameKey="name"
+              startAngle={90}
+              endAngle={-270}
             >
-              {/* 3. Added types to the cell renderer loop mapping */}
               {(pieData as PieDataItem[]).map((entry, index) => (
                 <Cell
                   key={`cell-${index}`}
                   fill={entry.color}
-                  className="outline-none"
+                  className="outline-none focus:outline-none"
+                  stroke="transparent"
                 />
               ))}
             </Pie>
-            <Tooltip
-              contentStyle={{
-                backgroundColor: darkMode ? "#0f172a" : "#ffffff",
-                borderColor: darkMode ? "#334155" : "#e2e8f0",
-                borderRadius: "8px",
-                fontSize: "12px",
-              }}
-            />
+            <Tooltip content={<CustomTooltip darkMode={darkMode} />} />
           </PieChart>
         </ResponsiveContainer>
 
         {/* Center label */}
-        <div className="absolute flex flex-col items-center justify-center text-center">
-          <span className="text-2xl font-bold tracking-tight">216</span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-2xl sm:text-3xl font-bold tracking-tight">
+            216
+          </span>
           <span
-            className={`text-[9px] font-bold uppercase tracking-wider ${
+            className={`text-[9px] font-bold uppercase tracking-widest mt-0.5 ${
               darkMode ? "text-slate-500" : "text-slate-400"
             }`}
           >
-            Venues
+            Total Venues
           </span>
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="grid grid-cols-2 gap-2 text-xs font-medium mt-2">
-        {/* 4. Added types to the bottom legend list loops mapping */}
+      {/* Legend grid — 2-col on all sizes */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-3">
         {(pieData as PieDataItem[]).map((item) => (
-          <div key={item.name} className="flex items-center gap-2 py-0.5">
+          <div key={item.name} className="flex items-center gap-2">
             <span
               className="w-2 h-2 rounded-full shrink-0"
               style={{ backgroundColor: item.color }}
             />
-            <span className={darkMode ? "text-slate-400" : "text-slate-600"}>
-              {item.name} ({item.value}%)
-            </span>
+            <div className="min-w-0">
+              <span
+                className={`text-[11px] font-medium truncate block ${
+                  darkMode ? "text-slate-300" : "text-slate-600"
+                }`}
+              >
+                {item.name}
+              </span>
+              <span
+                className={`text-[10px] ${
+                  darkMode ? "text-slate-500" : "text-slate-400"
+                }`}
+              >
+                {item.value}%
+              </span>
+            </div>
           </div>
         ))}
       </div>

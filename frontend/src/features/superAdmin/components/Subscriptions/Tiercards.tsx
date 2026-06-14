@@ -1,5 +1,5 @@
-// components/TierCards.tsx
-
+// src/features/superAdmin/components/Analytics/Tiercards.tsx
+import React from "react";
 import { Package, Zap, Crown, Building2, ArrowUpRight } from "lucide-react";
 import type { TierFilter, TierMetrics } from "./Subcriptiontypes";
 import { PLAN_PRICES } from "../../store/Subscriptions";
@@ -41,8 +41,8 @@ function TierCard({
       onClick={onClick}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } }}
       className={`
-        cursor-pointer group relative rounded-2xl p-5 border transition-all duration-200 
-        hover:scale-[1.015] focus:outline-none focus:ring-2 focus:ring-orange-500/50
+        cursor-pointer group relative rounded-2xl p-3 sm:p-5 border transition-all duration-200 
+        hover:scale-[1.015] focus:outline-none focus:ring-2 focus:ring-orange-500/50 flex flex-col justify-between
         ${isActive ? `${accentRing} ring-2 ${accentBg}` : ""}
         ${darkMode
           ? "bg-slate-900/40 border-slate-800/80 hover:border-slate-700"
@@ -51,35 +51,35 @@ function TierCard({
       `}
     >
       {/* Header row */}
-      <div className="flex items-start justify-between mb-4">
-        <div className={`p-2.5 rounded-xl ${iconBg}`}>{icon}</div>
-        <span className={`text-[10px] font-bold flex items-center gap-0.5 transition-all duration-150 ${accentText}
+      <div className="flex items-start justify-between mb-3 sm:mb-4">
+        <div className={`p-2 rounded-xl sm:p-2.5 ${iconBg}`}>{icon}</div>
+        <span className={`text-[9px] sm:text-[10px] font-bold flex items-center gap-0.5 transition-all duration-150 ${accentText}
           ${isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
           {isActive ? "Filtering" : "Filter"} <ArrowUpRight size={12} />
         </span>
       </div>
 
       {/* Plan name + price */}
-      <p className={`text-xs font-bold uppercase tracking-wider ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
+      <p className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
         {label}
       </p>
-      <div className="flex items-baseline gap-1 mt-1 mb-4">
-        <span className={`text-2xl font-black ${darkMode ? "text-white" : "text-slate-900"}`}>{price}</span>
-        <span className={`text-xs ${darkMode ? "text-slate-500" : "text-slate-400"}`}>/mo</span>
+      <div className="flex items-baseline gap-1 mt-0.5 mb-3 sm:mt-1 sm:mb-4 flex-wrap">
+        <span className={`text-xl sm:text-2xl font-black ${darkMode ? "text-white" : "text-slate-900"}`}>{price}</span>
+        <span className={`text-[10px] sm:text-xs ${darkMode ? "text-slate-500" : "text-slate-400"}`}>/mo</span>
       </div>
 
       {/* Divider */}
-      <div className={`h-px mb-3.5 ${darkMode ? "bg-slate-800" : "bg-slate-100"}`} />
+      <div className={`h-px mb-2.5 sm:h-px sm:mb-3.5 ${darkMode ? "bg-slate-800" : "bg-slate-100"}`} />
 
       {/* Stats */}
-      <div className="space-y-1.5 text-[11px]">
+      <div className="space-y-1 text-[10px] sm:space-y-1.5 sm:text-[11px]">
         <div className="flex justify-between">
           <span className={darkMode ? "text-slate-500" : "text-slate-400"}>Subscribers</span>
           <span className={`font-bold ${darkMode ? "text-slate-300" : "text-slate-700"}`}>{count}</span>
         </div>
         <div className="flex justify-between">
           <span className={darkMode ? "text-slate-500" : "text-slate-400"}>Revenue</span>
-          <span className="font-bold text-emerald-500">{formattedRevenue}</span>
+          <span className="font-bold text-emerald-500 truncate pl-1">{formattedRevenue}</span>
         </div>
         <div className="flex justify-between">
           <span className={darkMode ? "text-slate-500" : "text-slate-400"}>Active / Trial</span>
@@ -143,7 +143,7 @@ export default function TierCards({ metrics, tierFilter, darkMode, onTierChange 
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
       {tiers.map((t) => (
         <TierCard
           key={t.tier}

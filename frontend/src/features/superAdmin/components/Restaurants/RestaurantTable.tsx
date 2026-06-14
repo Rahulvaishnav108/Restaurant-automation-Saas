@@ -1,11 +1,13 @@
-// components/RestaurantTable.tsx
+// components/Restaurants/RestaurantTable.tsx
+// Responsive table component that switches between table and card view
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Eye, Edit2, MoreVertical, Mail, Phone, MapPin,
   Search, CheckCircle2, AlertCircle, X, Trash2
 } from "lucide-react";
 import type { RestaurantsRow } from "./Restauranttypes";
+import RestaurantCard from "./RestaurantCard";
 
 interface RestaurantTableProps {
   restaurants: RestaurantsRow[];
@@ -17,6 +19,36 @@ interface RestaurantTableProps {
   onUpdatePlan: (id: string, plan: "Premium" | "Standard" | "Basic") => void;
   onDelete: (id: string) => void;
   onResetFilters: () => void;
+}
+
+// Extracted outside of render to prevent recreation on every state update
+interface EmptyStateProps {
+  darkMode: boolean;
+  searchQuery: string;
+  statusFilter: string;
+  onResetFilters: () => void;
+}
+
+function EmptyState({ darkMode, searchQuery, statusFilter, onResetFilters }: EmptyStateProps) {
+  return (
+    <div className="py-14 text-center px-4">
+      <div className={`h-10 w-10 rounded-xl flex items-center justify-center mx-auto mb-3 ${darkMode ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-400"}`}>
+        <Search size={18} />
+      </div>
+      <h4 className={`font-bold text-sm ${darkMode ? "text-slate-200" : "text-slate-800"}`}>
+        No matched operations found
+      </h4>
+      <p className={`text-xs mt-1 max-w-xs mx-auto ${darkMode ? "text-slate-500" : "text-slate-400"}`}>
+        No system accounts match the current query parameter: &quot;{searchQuery || statusFilter}&quot;.
+      </p>
+      <button
+        onClick={onResetFilters}
+        className="mt-4 px-3 py-1.5 text-xs font-bold bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors shadow-md shadow-orange-500/10"
+      >
+        Reset All Filters
+      </button>
+    </div>
+  );
 }
 
 export default function RestaurantTable({
@@ -32,6 +64,18 @@ export default function RestaurantTable({
 }: RestaurantTableProps) {
   const [activeActionRow, setActiveActionRow] = useState<string | null>(null);
   const [activeMoreRow, setActiveMoreRow] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect screen size changes
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   const handleUpdateStatus = (id: string, status: "Active" | "Trial" | "Inactive") => {
     onUpdateStatus(id, status);
@@ -51,16 +95,46 @@ export default function RestaurantTable({
     setActiveMoreRow(null);
   };
 
+  // Mobile Card View
+  if (isMobile) {
+    return (
+      <div className={`rounded-2xl border transition-all ${
+        darkMode ? "bg-[#090f1c]/40 border-slate-900" : "bg-white border-slate-200/70 shadow-sm"
+      }`}>
+        {restaurants.length > 0 ? (
+          <div className="p-3 space-y-3">
+            {restaurants.map((restaurant) => (
+              <RestaurantCard
+                key={restaurant.id}
+                restaurant={restaurant}
+                darkMode={darkMode}
+                onView={onView}
+                onUpdateStatus={handleUpdateStatus}
+                onUpdatePlan={handleUpdatePlan}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        ) : (
+          <EmptyState 
+            darkMode={darkMode} 
+            searchQuery={searchQuery} 
+            statusFilter={statusFilter} 
+            onResetFilters={onResetFilters} 
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Desktop Table View
   return (
     <div className={`rounded-2xl border transition-all ${
       darkMode ? "bg-[#090f1c]/40 border-slate-900" : "bg-white border-slate-200/70 shadow-sm"
     }`}>
-      {/* Note: To completely prevent dropdown cutting bugs when tables have 1-2 rows,
-        ensure the wrapping element below has adequate bottom padding or clean containment.
-      */}
       <div className="overflow-x-auto w-full rounded-2xl">
         {restaurants.length > 0 ? (
-          <table className="w-full text-left border-collapse min-w-[950px]">
+          <table className="w-full text-left border-collapse">
             <thead>
               <tr className={`border-b border-inherit text-xs font-semibold uppercase tracking-wider ${
                 darkMode
@@ -85,7 +159,9 @@ export default function RestaurantTable({
                 >
                   {/* Name & ID */}
                   <td className="py-4 px-6 whitespace-nowrap">
-                    <div className={`font-bold leading-tight ${darkMode ? "text-slate-100" : "text-slate-900"}`}>{row.name}</div>
+                    <div className={`font-bold leading-tight ${darkMode ? "text-slate-100" : "text-slate-900"}`}>
+                      {row.name}
+                    </div>
                     <div className={`text-[11px] mt-1 font-mono tracking-wider ${darkMode ? "text-slate-500" : "text-slate-400"}`}>
                       ID: {row.id}
                     </div>
@@ -146,14 +222,13 @@ export default function RestaurantTable({
                   </td>
 
                   {/* Revenue */}
-                  <td className={`py-4 px-6 font-extrabold whitespace-nowrap ${darkMode ? "text-slate-100" : "text-slate-900"}`}>
+                  <td className={`py-4 px-6 whitespace-nowrap font-bold ${darkMode ? "text-blue-400" : "text-blue-600"}`}>
                     {row.revenue}
                   </td>
 
                   {/* Actions */}
                   <td className="py-4 px-6 whitespace-nowrap text-center">
-                    <div className={`flex items-center justify-center gap-3 ${darkMode ? "text-slate-500 hover:text-slate-400" : "text-slate-400 hover:text-slate-500"}`}>
-
+                    <div className={`flex items-center justify-center gap-3 ${darkMode ? "text-slate-500 hover:text-slate-400" : "text-slate-400 hover:text-slate-505"}`}>
                       {/* View */}
                       <button
                         onClick={() => onView(row)}
@@ -190,23 +265,51 @@ export default function RestaurantTable({
                             <div className={`absolute right-0 mt-2 w-48 rounded-xl border p-2 shadow-xl z-40 text-left ${
                               darkMode ? "bg-[#0b1324] border-slate-800 shadow-black/40" : "bg-white border-slate-200 shadow-slate-200"
                             }`}>
-                              <p className={`text-[10px] font-bold uppercase px-2.5 py-1 ${darkMode ? "text-slate-500" : "text-slate-400"}`}>Set Status</p>
-                              <button onClick={() => handleUpdateStatus(row.id, "Active")} className="w-full text-left px-2.5 py-1.5 text-xs font-semibold rounded-lg hover:bg-slate-500/5 text-emerald-500 flex items-center gap-1.5">
+                              <p className={`text-[10px] font-bold uppercase px-2.5 py-1 ${darkMode ? "text-slate-500" : "text-slate-400"}`}>
+                                Set Status
+                              </p>
+                              <button 
+                                onClick={() => handleUpdateStatus(row.id, "Active")} 
+                                className="w-full text-left px-2.5 py-1.5 text-xs font-semibold rounded-lg hover:bg-slate-500/5 text-emerald-500 flex items-center gap-1.5"
+                              >
                                 <CheckCircle2 size={12} /> Active
                               </button>
-                              <button onClick={() => handleUpdateStatus(row.id, "Trial")} className="w-full text-left px-2.5 py-1.5 text-xs font-semibold rounded-lg hover:bg-slate-500/5 text-orange-400 flex items-center gap-1.5">
+                              <button 
+                                onClick={() => handleUpdateStatus(row.id, "Trial")} 
+                                className="w-full text-left px-2.5 py-1.5 text-xs font-semibold rounded-lg hover:bg-slate-500/5 text-orange-400 flex items-center gap-1.5"
+                              >
                                 <AlertCircle size={12} /> Trial
                               </button>
-                              <button onClick={() => handleUpdateStatus(row.id, "Inactive")} className="w-full text-left px-2.5 py-1.5 text-xs font-semibold rounded-lg hover:bg-slate-500/5 text-slate-400 flex items-center gap-1.5">
+                              <button 
+                                onClick={() => handleUpdateStatus(row.id, "Inactive")} 
+                                className="w-full text-left px-2.5 py-1.5 text-xs font-semibold rounded-lg hover:bg-slate-500/5 text-slate-400 flex items-center gap-1.5"
+                              >
                                 <X size={12} /> Inactive
                               </button>
 
                               <div className="h-px my-1.5 bg-slate-200 dark:bg-slate-800" />
 
-                              <p className={`text-[10px] font-bold uppercase px-2.5 py-1 ${darkMode ? "text-slate-500" : "text-slate-400"}`}>Change Tier Plan</p>
-                              <button onClick={() => handleUpdatePlan(row.id, "Premium")} className={`w-full text-left px-2.5 py-1.5 text-xs font-medium rounded-lg hover:bg-slate-500/5 ${darkMode ? "text-slate-300 hover:text-slate-100" : "text-slate-700 hover:text-slate-900"}`}>Premium Tier</button>
-                              <button onClick={() => handleUpdatePlan(row.id, "Standard")} className={`w-full text-left px-2.5 py-1.5 text-xs font-medium rounded-lg hover:bg-slate-500/5 ${darkMode ? "text-slate-300 hover:text-slate-100" : "text-slate-700 hover:text-slate-900"}`}>Standard Tier</button>
-                              <button onClick={() => handleUpdatePlan(row.id, "Basic")} className={`w-full text-left px-2.5 py-1.5 text-xs font-medium rounded-lg hover:bg-slate-500/5 ${darkMode ? "text-slate-300 hover:text-slate-100" : "text-slate-700 hover:text-slate-900"}`}>Basic Tier</button>
+                              <p className={`text-[10px] font-bold uppercase px-2.5 py-1 ${darkMode ? "text-slate-500" : "text-slate-400"}`}>
+                                Change Tier Plan
+                              </p>
+                              <button 
+                                onClick={() => handleUpdatePlan(row.id, "Premium")} 
+                                className={`w-full text-left px-2.5 py-1.5 text-xs font-medium rounded-lg hover:bg-slate-500/5 ${darkMode ? "text-slate-300 hover:text-slate-100" : "text-slate-700 hover:text-slate-900"}`}
+                              >
+                                Premium Tier
+                              </button>
+                              <button 
+                                onClick={() => handleUpdatePlan(row.id, "Standard")} 
+                                className={`w-full text-left px-2.5 py-1.5 text-xs font-medium rounded-lg hover:bg-slate-500/5 ${darkMode ? "text-slate-300 hover:text-slate-100" : "text-slate-700 hover:text-slate-900"}`}
+                              >
+                                Standard Tier
+                              </button>
+                              <button 
+                                onClick={() => handleUpdatePlan(row.id, "Basic")} 
+                                className={`w-full text-left px-2.5 py-1.5 text-xs font-medium rounded-lg hover:bg-slate-500/5 ${darkMode ? "text-slate-300 hover:text-slate-100" : "text-slate-700 hover:text-slate-900"}`}
+                              >
+                                Basic Tier
+                              </button>
                             </div>
                           </>
                         )}
@@ -264,7 +367,6 @@ export default function RestaurantTable({
                           </>
                         )}
                       </div>
-
                     </div>
                   </td>
                 </tr>
@@ -272,21 +374,12 @@ export default function RestaurantTable({
             </tbody>
           </table>
         ) : (
-          <div className="py-14 text-center px-4">
-            <div className={`h-10 w-10 rounded-xl flex items-center justify-center mx-auto mb-3 ${darkMode ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-400"}`}>
-              <Search size={18} />
-            </div>
-            <h4 className={`font-bold text-sm ${darkMode ? "text-slate-200" : "text-slate-800"}`}>No matched operations found</h4>
-            <p className={`text-xs mt-1 max-w-xs mx-auto ${darkMode ? "text-slate-500" : "text-slate-400"}`}>
-              No system accounts match the current query parameter: &quot;{searchQuery || statusFilter}&quot;.
-            </p>
-            <button
-              onClick={onResetFilters}
-              className="mt-4 px-3 py-1.5 text-xs font-bold bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors shadow-md shadow-orange-500/10"
-            >
-              Reset All Filters
-            </button>
-          </div>
+          <EmptyState 
+            darkMode={darkMode} 
+            searchQuery={searchQuery} 
+            statusFilter={statusFilter} 
+            onResetFilters={onResetFilters} 
+          />
         )}
       </div>
     </div>

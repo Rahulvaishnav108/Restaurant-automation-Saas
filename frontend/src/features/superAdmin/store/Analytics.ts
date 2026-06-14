@@ -1,3 +1,4 @@
+// src/features/superAdmin/store/Analytics.ts
 import {
   BarChart3,
   Utensils,
@@ -90,17 +91,17 @@ export const barSeries: BarSeriesItem[] = [
 
 export const distributionSeries: DistributionItem[] = [
   { division: "Delivery", allocation: 42, Hex: "#f97316" },
-  { division: "Dine-In", allocation: 28, Hex: "#3b82f6" },
-  { division: "Pickup", allocation: 18, Hex: "#8b5cf6" },
+  { division: "Dine-In",  allocation: 28, Hex: "#3b82f6" },
+  { division: "Pickup",   allocation: 18, Hex: "#8b5cf6" },
   { division: "Catering", allocation: 12, Hex: "#10b981" },
 ];
 
 export const mockPlatformOrders: PlatformOrder[] = [
-  { id: "#A1F2C", restaurant: "Taste of India", type: "Delivery", grossAmount: 4200, commission: 420, status: "Settled", timestamp: "Today, 10:30 AM" },
-  { id: "#B3D9E", restaurant: "Urban Bites", type: "Pickup", grossAmount: 2850, commission: 285, status: "Processing", timestamp: "Today, 09:45 AM" },
-  { id: "#C7H1K", restaurant: "Ocean Delights", type: "Dine-In", grossAmount: 6100, commission: 610, status: "Settled", timestamp: "Yesterday, 07:20 PM" },
-  { id: "#D4J8M", restaurant: "Green Garden", type: "Catering", grossAmount: 9500, commission: 950, status: "Disputed", timestamp: "Yesterday, 03:10 PM" },
-  { id: "#E2N5P", restaurant: "Burger Corner", type: "Delivery", grossAmount: 1980, commission: 198, status: "Settled", timestamp: "Jun 11, 12:55 PM" },
-  { id: "#F6Q3R", restaurant: "Spicy Wok", type: "Pickup", grossAmount: 3300, commission: 330, status: "Processing", timestamp: "Jun 11, 11:40 AM" },
-  { id: "#G8S7T", restaurant: "Pizza Palace", type: "Delivery", grossAmount: 5600, commission: 560, status: "Settled", timestamp: "Jun 10, 08:15 PM" },
+  { id: "#A1F2C", restaurant: "Taste of India",  type: "Delivery", grossAmount: 4200, commission: 420, status: "Settled",    timestamp: "Today, 10:30 AM" },
+  { id: "#B3D9E", restaurant: "Urban Bites",      type: "Pickup",   grossAmount: 2850, commission: 285, status: "Processing", timestamp: "Today, 09:45 AM" },
+  { id: "#C7H1K", restaurant: "Ocean Delights",   type: "Dine-In",  grossAmount: 6100, commission: 610, status: "Settled",    timestamp: "Yesterday, 07:20 PM" },
+  { id: "#D4J8M", restaurant: "Green Garden",     type: "Catering", grossAmount: 9500, commission: 950, status: "Disputed",   timestamp: "Yesterday, 03:10 PM" },
+  { id: "#E2N5P", restaurant: "Burger Corner",    type: "Delivery", grossAmount: 1980, commission: 198, status: "Settled",    timestamp: "Jun 11, 12:55 PM" },
+  { id: "#F6Q3R", restaurant: "Spicy Wok",        type: "Pickup",   grossAmount: 3300, commission: 330, status: "Processing", timestamp: "Jun 11, 11:40 AM" },
+  { id: "#G8S7T", restaurant: "Pizza Palace",     type: "Delivery", grossAmount: 5600, commission: 560, status: "Settled",    timestamp: "Jun 10, 08:15 PM" },
 ];
