@@ -9,7 +9,7 @@ import CartSidebar from '../features/customer/components/dashboard/CartSidebar';
 
 export default function CustomerLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [cartOpen, setCartOpen] = useState(true);
+  const [cartOpen, setCartOpen] = useState(false);
   const location = useLocation();
 
   const [prevPath, setPrevPath] = useState(location.pathname);

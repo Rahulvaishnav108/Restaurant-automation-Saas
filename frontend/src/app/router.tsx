@@ -34,6 +34,8 @@ function AppRouter(): JSX.Element {
         // ── Customer dashboard (public for now, wrap in guards later) ─
         ...customerRoutes,
         ...kitchenRoutes,
+        ...staffRoutes,
+        ...cleaningRoutes,
 
         // ── Protected: Role-gated app shells ─────────────────────
         {

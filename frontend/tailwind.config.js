@@ -86,6 +86,24 @@ export default {
         "sd-primary-fixed": "hsl(var(--sd-primary-fixed) / <alpha-value>)",
         "sd-primary-fixed-dim": "hsl(var(--sd-primary-fixed-dim) / <alpha-value>)",
         "sd-inverse-surface": "hsl(var(--sd-inverse-surface) / <alpha-value>)",
+        
+        /* ── DineEase Staff Panel Design Tokens ──────── */
+        "dine-orange": "#FF6B35",
+        "dine-light-orange": "#FFF1EB",
+        "dine-bg": "#F8FAFC",
+        "dine-text-gray": "#64748B",
+        "dine-green": "#22C55E",
+        "dine-blue": "#3B82F6",
+        "dine-purple": "#8B5CF6",
+
+        /* ── CleanServe Cleaning Panel Design Tokens ──────── */
+        "cleanserve-primary": "#004ac6",
+        "cleanserve-primary-container": "#2563eb",
+        "cleanserve-on-primary-container": "#eeefff",
+        "cleanserve-surface-container": "#e7eeff",
+        "cleanserve-surface-container-low": "#f0f3ff",
+        "cleanserve-tertiary": "#943700",
+        "cleanserve-tertiary-container": "#bc4800",
       },
 
       borderRadius: {
