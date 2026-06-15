@@ -1,150 +1,25 @@
 import request from 'supertest';
 import app from '../../app';
-import { signAccessToken } from '../../services/jwt.service';
-import { UserRole } from '../../constants/roles';
-import { RestaurantModel } from '../../modules/restaurants/restaurants.model';
-import { TableModel } from '../../modules/tables/tables.model';
+import { ErrorCode } from '../../constants/errors';
 import { TableStatus } from '../../constants/statuses';
-import { BillingModel } from '../../modules/billing/billing.model';
-import {
-  BillStatus,
-  PaymentMethod,
-  PaymentStatus,
-} from '../../modules/billing/billing.schema';
-import { CustomerProfileModel } from '../../modules/analytics/customerProfile.model';
-
-function createAdminToken(restaurantId: string): string {
-  return signAccessToken({
-    _id: '507f1f77bcf86cd799439099',
-    email: 'analytics.admin@example.com',
-    role: UserRole.RESTAURANT_ADMIN,
-    restaurantId,
-  });
-}
-
-async function seedAnalyticsContext() {
-  const restaurant = await RestaurantModel.create({
-    slug: 'analytics-hub',
-    name: 'Analytics Hub',
-    plan: 'PRO',
-    cuisine: 'Fusion',
-    city: 'Delhi',
-  });
-
-  await TableModel.create([
-    {
-      restaurantId: restaurant._id,
-      tableNumber: 'A1',
-      capacity: 4,
-      floor: 1,
-      section: 'Main',
-      status: TableStatus.AVAILABLE,
-      qrCode: 'analytics-qr-a1',
-    },
-    {
-      restaurantId: restaurant._id,
-      tableNumber: 'B2',
-      capacity: 6,
-      floor: 2,
-      section: 'VIP',
-      status: TableStatus.OCCUPIED,
-      qrCode: 'analytics-qr-b2',
-    },
-  ]);
-
-  await BillingModel.create([
-    {
-      restaurantId: restaurant._id,
-      orderIds: ['507f1f77bcf86cd799439021'],
-      subtotal: 90,
-      taxAmount: 10,
-      serviceCharge: 0,
-      discountAmount: 5,
-      finalAmount: 95,
-      paymentMethod: PaymentMethod.UPI,
-      paymentStatus: PaymentStatus.PAID,
-      status: BillStatus.PAID,
-      paidAt: new Date('2026-01-05T12:00:00.000Z'),
-    },
-    {
-      restaurantId: restaurant._id,
-      orderIds: ['507f1f77bcf86cd799439022'],
-      subtotal: 180,
-      taxAmount: 20,
-      serviceCharge: 0,
-      discountAmount: 0,
-      finalAmount: 200,
-      paymentMethod: PaymentMethod.CARD,
-      paymentStatus: PaymentStatus.PAID,
-      status: BillStatus.PAID,
-      paidAt: new Date('2026-01-12T14:30:00.000Z'),
-    },
-    {
-      restaurantId: restaurant._id,
-      orderIds: ['507f1f77bcf86cd799439023'],
-      subtotal: 140,
-      taxAmount: 10,
-      serviceCharge: 0,
-      discountAmount: 0,
-      finalAmount: 150,
-      paymentMethod: PaymentMethod.CASH,
-      paymentStatus: PaymentStatus.PAID,
-      status: BillStatus.PAID,
-      paidAt: new Date('2026-02-03T09:15:00.000Z'),
-    },
-  ]);
-
-  await CustomerProfileModel.create([
-    {
-      mobile: '9999900001',
-      name: 'Aarav',
-      totalVisits: 5,
-      totalSpent: 4200,
-      firstVisitAt: new Date('2025-12-20T10:00:00.000Z'),
-      lastVisitAt: new Date('2026-01-18T19:00:00.000Z'),
-      restaurantsVisited: [restaurant._id],
-    },
-    {
-      mobile: '9999900002',
-      name: 'Mira',
-      totalVisits: 1,
-      totalSpent: 850,
-      firstVisitAt: new Date('2026-01-10T09:00:00.000Z'),
-      lastVisitAt: new Date('2026-01-10T09:00:00.000Z'),
-      restaurantsVisited: [restaurant._id],
-    },
-    {
-      mobile: '9999900003',
-      name: 'Kabir',
-      totalVisits: 3,
-      totalSpent: 2750,
-      firstVisitAt: new Date('2025-11-02T18:00:00.000Z'),
-      lastVisitAt: new Date('2026-02-02T21:15:00.000Z'),
-      restaurantsVisited: [restaurant._id],
-    },
-  ]);
-
-  return {
-    token: createAdminToken(restaurant.id),
-  };
-}
+import { seedAnalyticsContext } from '../helpers/analytics.fixtures';
 
 describe('Admin analytics routes', () => {
-  it('returns PDF-aligned revenue analytics with date-only filters and day grouping', async () => {
-    const { token } = await seedAnalyticsContext();
+  it('returns revenue analytics with filters, grouped totals, and payment breakdown', async () => {
+    const { adminToken } = await seedAnalyticsContext();
 
     const response = await request(app)
       .get('/api/v1/admin/analytics/revenue?from=2026-01-01&to=2026-01-31&groupBy=day')
-      .set('Authorization', `Bearer ${token}`);
+      .set('Authorization', `Bearer ${adminToken}`);
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
-    expect(response.body.data.summary).toMatchObject({
-      totalRevenue: 295,
-      totalTax: 30,
-      totalDiscount: 5,
-      billCount: 2,
-      averageBillValue: 147.5,
+    expect(response.body.data.summary).toEqual({
+      totalRevenue: 445,
+      totalTax: 45,
+      totalDiscount: 15,
+      billCount: 3,
+      averageBillValue: 148.33,
     });
     expect(response.body.data.filters).toEqual({
       from: '2026-01-01',
@@ -161,24 +36,161 @@ describe('Admin analytics routes', () => {
       },
       {
         period: '2026-01-12',
-        totalRevenue: 200,
-        totalTax: 20,
-        totalDiscount: 0,
-        billCount: 1,
+        totalRevenue: 350,
+        totalTax: 35,
+        totalDiscount: 10,
+        billCount: 2,
+      },
+    ]);
+    expect(response.body.data.paymentReport).toEqual([
+      {
+        paymentMethod: 'CARD',
+        count: 1,
+        totalAmount: 200,
+      },
+      {
+        paymentMethod: 'CASH',
+        count: 1,
+        totalAmount: 150,
+      },
+      {
+        paymentMethod: 'UPI',
+        count: 1,
+        totalAmount: 95,
       },
     ]);
   });
 
-  it('returns PDF-aligned table utilization analytics', async () => {
-    const { token } = await seedAnalyticsContext();
+  it('returns peak hours analytics with busiest-hour summary', async () => {
+    const { adminToken } = await seedAnalyticsContext();
 
     const response = await request(app)
-      .get('/api/v1/admin/analytics/table-utilization')
-      .set('Authorization', `Bearer ${token}`);
+      .get('/api/v1/admin/analytics/peak-hours?from=2026-01-01&to=2026-01-31')
+      .set('Authorization', `Bearer ${adminToken}`);
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
-    expect(response.body.data.tableUtilization).toHaveLength(2);
+    expect(response.body.data.peakHours).toEqual([
+      {
+        hour: 12,
+        hourLabel: '12:00',
+        orderCount: 2,
+        totalSales: 225,
+      },
+      {
+        hour: 14,
+        hourLabel: '14:00',
+        orderCount: 1,
+        totalSales: 200,
+      },
+      {
+        hour: 18,
+        hourLabel: '18:00',
+        orderCount: 1,
+        totalSales: 180,
+      },
+    ]);
+    expect(response.body.data.summary).toEqual({
+      busiestHour: 12,
+      busiestHourLabel: '12:00',
+      busiestHourOrderCount: 2,
+      totalOrders: 4,
+      totalSales: 605,
+    });
+  });
+
+  it('returns repeat customer analytics with filtered repeat summary', async () => {
+    const { adminToken } = await seedAnalyticsContext();
+
+    const response = await request(app)
+      .get('/api/v1/admin/analytics/repeat-customers?from=2026-01-01&to=2026-01-31')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.summary).toEqual({
+      totalCustomers: 4,
+      repeatCustomersCount: 3,
+      repeatRatePercent: 75,
+      activeCustomers: 3,
+      activeRepeatCustomers: 2,
+    });
+    expect(response.body.data.repeatCustomers).toEqual([
+      expect.objectContaining({
+        name: 'Aarav',
+        totalVisits: 5,
+      }),
+      expect.objectContaining({
+        name: 'Sia',
+        totalVisits: 2,
+      }),
+    ]);
+  });
+
+  it('returns kitchen analytics with staff-level and overall performance summaries', async () => {
+    const { adminToken } = await seedAnalyticsContext();
+
+    const response = await request(app)
+      .get('/api/v1/admin/analytics/kitchen?from=2026-01-01&to=2026-01-31')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.summary).toEqual({
+      totalKitchenStaff: 3,
+      activeKitchenStaff: 2,
+      ordersHandled: 4,
+      avgPreparationTimeMinutes: 22.5,
+      readyOrders: 3,
+      rejectedOrders: 1,
+      delayedOrders: 0,
+    });
+    expect(response.body.data.kitchenPerformance).toEqual([
+      expect.objectContaining({
+        name: 'Kitchen One',
+        ordersHandled: 3,
+        avgPreparationTimeMinutes: 21.67,
+        readyOrders: 2,
+        rejectedOrders: 1,
+        totalSales: 405,
+      }),
+      expect.objectContaining({
+        name: 'Kitchen Two',
+        ordersHandled: 1,
+        avgPreparationTimeMinutes: 25,
+        readyOrders: 1,
+        rejectedOrders: 0,
+        totalSales: 200,
+      }),
+      expect.objectContaining({
+        name: 'Kitchen Three',
+        ordersHandled: 0,
+        avgPreparationTimeMinutes: 0,
+      }),
+    ]);
+  });
+
+  it('returns table utilization analytics with summary and section breakdown', async () => {
+    const { adminToken } = await seedAnalyticsContext();
+
+    const response = await request(app)
+      .get('/api/v1/admin/analytics/table-utilization')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.summary).toEqual({
+      totalTables: 6,
+      activeTables: 6,
+      availableTables: 1,
+      reservedTables: 1,
+      occupiedTables: 1,
+      paymentPendingTables: 1,
+      needsCleaningTables: 1,
+      cleaningInProgressTables: 1,
+      totalCapacity: 22,
+      occupancyRatePercent: 16.67,
+    });
     expect(response.body.data.tableUtilization).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -187,28 +199,62 @@ describe('Admin analytics routes', () => {
           section: 'Main',
         }),
         expect.objectContaining({
-          tableNumber: 'B2',
+          tableNumber: 'B1',
           status: TableStatus.OCCUPIED,
           section: 'VIP',
         }),
       ]),
     );
+    expect(response.body.data.sectionBreakdown).toEqual([
+      {
+        floor: 1,
+        section: 'Main',
+        totalTables: 2,
+        availableTables: 1,
+        occupiedTables: 0,
+        reservedTables: 1,
+      },
+      {
+        floor: 1,
+        section: 'VIP',
+        totalTables: 1,
+        availableTables: 0,
+        occupiedTables: 1,
+        reservedTables: 0,
+      },
+      {
+        floor: 2,
+        section: 'Patio',
+        totalTables: 2,
+        availableTables: 0,
+        occupiedTables: 0,
+        reservedTables: 0,
+      },
+      {
+        floor: 2,
+        section: 'VIP',
+        totalTables: 1,
+        availableTables: 0,
+        occupiedTables: 0,
+        reservedTables: 0,
+      },
+    ]);
   });
 
-  it('returns PDF-aligned customer retention analytics', async () => {
-    const { token } = await seedAnalyticsContext();
+  it('returns customer retention analytics with summary and top customer list', async () => {
+    const { adminToken } = await seedAnalyticsContext();
 
     const response = await request(app)
       .get('/api/v1/admin/analytics/customer-retention?from=2026-01-01&to=2026-01-31')
-      .set('Authorization', `Bearer ${token}`);
+      .set('Authorization', `Bearer ${adminToken}`);
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
     expect(response.body.data.customerRetention.summary).toEqual({
-      totalCustomers: 3,
-      repeatCustomers: 2,
-      activeCustomers: 2,
-      repeatRatePercent: 66.67,
+      totalCustomers: 4,
+      repeatCustomers: 3,
+      activeCustomers: 3,
+      repeatRatePercent: 75,
     });
     expect(response.body.data.customerRetention.filters).toEqual({
       from: '2026-01-01',
@@ -226,5 +272,91 @@ describe('Admin analytics routes', () => {
         }),
       ]),
     );
+  });
+
+  it('keeps legacy overview and tables aliases working', async () => {
+    const { adminToken } = await seedAnalyticsContext();
+
+    const [overviewResponse, tablesResponse] = await Promise.all([
+      request(app)
+        .get('/api/v1/admin/analytics/overview?from=2026-01-01&to=2026-01-31')
+        .set('Authorization', `Bearer ${adminToken}`),
+      request(app)
+        .get('/api/v1/admin/analytics/tables')
+        .set('Authorization', `Bearer ${adminToken}`),
+    ]);
+
+    expect(overviewResponse.status).toBe(200);
+    expect(overviewResponse.body.data.summary).toMatchObject({
+      totalRevenue: 445,
+      totalTax: 45,
+      totalDiscount: 15,
+      billCount: 3,
+    });
+    expect(overviewResponse.body.data.metrics).toEqual({
+      totalCustomers: 4,
+      repeatCustomersCount: 3,
+      activeCustomers: 3,
+      repeatRatePercent: 75,
+    });
+
+    expect(tablesResponse.status).toBe(200);
+    expect(tablesResponse.body.data.tableUtilization).toHaveLength(6);
+  });
+
+  it('allows super-admin analytics access when restaurantId is provided', async () => {
+    const { restaurantId, superAdminToken } = await seedAnalyticsContext();
+
+    const response = await request(app)
+      .get(`/api/v1/admin/analytics/revenue?restaurantId=${restaurantId}&groupBy=month`)
+      .set('Authorization', `Bearer ${superAdminToken}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.filters).toEqual({
+      from: null,
+      to: null,
+      groupBy: 'month',
+    });
+    expect(response.body.data.revenue).toEqual([
+      {
+        period: '2026-01',
+        totalRevenue: 445,
+        totalTax: 45,
+        totalDiscount: 15,
+        billCount: 3,
+      },
+      {
+        period: '2026-02',
+        totalRevenue: 150,
+        totalTax: 10,
+        totalDiscount: 0,
+        billCount: 1,
+      },
+    ]);
+  });
+
+  it('rejects invalid analytics filters and missing restaurant context', async () => {
+    const { superAdminToken } = await seedAnalyticsContext();
+
+    const [invalidRangeResponse, missingContextResponse, unauthorizedResponse] = await Promise.all([
+      request(app)
+        .get('/api/v1/admin/analytics/revenue?from=2026-02-01&to=2026-01-01')
+        .set('Authorization', `Bearer ${superAdminToken}`),
+      request(app)
+        .get('/api/v1/admin/analytics/revenue')
+        .set('Authorization', `Bearer ${superAdminToken}`),
+      request(app).get('/api/v1/admin/analytics/revenue'),
+    ]);
+
+    expect(invalidRangeResponse.status).toBe(400);
+    expect(invalidRangeResponse.body.error.code).toBe(ErrorCode.VALIDATION_ERROR);
+    expect(invalidRangeResponse.body.error.fields.from).toContain('From date must be before or equal to to date');
+
+    expect(missingContextResponse.status).toBe(403);
+    expect(missingContextResponse.body.error.code).toBe(ErrorCode.FORBIDDEN);
+    expect(missingContextResponse.body.error.message).toBe('Restaurant context required');
+
+    expect(unauthorizedResponse.status).toBe(401);
+    expect(unauthorizedResponse.body.error.code).toBe(ErrorCode.UNAUTHORIZED);
   });
 });
