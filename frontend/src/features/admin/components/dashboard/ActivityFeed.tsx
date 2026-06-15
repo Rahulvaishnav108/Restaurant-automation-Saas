@@ -11,7 +11,7 @@ const activities = [
 
 export function ActivityFeed(): JSX.Element {
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 transition-colors duration-200">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 sm:p-5 transition-colors duration-200">
       <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-4">Live Activity</h3>
       <div className="space-y-3">
         {activities.map((item, i) => (

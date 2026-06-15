@@ -13,7 +13,6 @@ export function OrdersPagination({ totalFiltered }: OrdersPaginationProps) {
   const start = totalFiltered === 0 ? 0 : (currentPage - 1) * perPage + 1;
   const end   = Math.min(currentPage * perPage, totalFiltered);
 
-  // Build page number list: always show up to 5 pages around current
   const pageNumbers = () => {
     if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
     const pages: (number | '...')[] = [];
@@ -28,14 +27,14 @@ export function OrdersPagination({ totalFiltered }: OrdersPaginationProps) {
   };
 
   return (
-    <div className="flex items-center justify-between px-5 py-3.5 border-t border-gray-50 dark:border-gray-800 flex-wrap gap-3">
+    <div className="flex flex-col sm:flex-row items-center justify-between px-4 sm:px-5 py-3.5 border-t border-gray-50 dark:border-gray-800 gap-3">
       {/* Count */}
-      <p className="text-xs text-gray-500 dark:text-gray-400">
+      <p className="text-xs text-gray-500 dark:text-gray-400 order-2 sm:order-1">
         Showing <span className="font-semibold text-gray-700 dark:text-gray-300">{start}–{end}</span> of{' '}
         <span className="font-semibold text-gray-700 dark:text-gray-300">{totalFiltered}</span> orders
       </p>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2 order-1 sm:order-2 flex-wrap justify-center">
         {/* Per page */}
         <select
           value={perPage}
@@ -56,12 +55,10 @@ export function OrdersPagination({ totalFiltered }: OrdersPaginationProps) {
           <ChevronLeft className="w-3.5 h-3.5" />
         </button>
 
-        {/* Pages */}
+        {/* Page numbers — hide some on mobile */}
         {pageNumbers().map((p, i) =>
           p === '...' ? (
-            <span key={`ellipsis-${i}`} className="text-xs text-gray-400 dark:text-gray-600 px-0.5">
-              ...
-            </span>
+            <span key={`ellipsis-${i}`} className="text-xs text-gray-400 dark:text-gray-600 px-0.5 hidden sm:inline">...</span>
           ) : (
             <button
               key={p}
@@ -70,6 +67,11 @@ export function OrdersPagination({ totalFiltered }: OrdersPaginationProps) {
                 currentPage === p
                   ? 'bg-orange-500 text-white shadow-sm'
                   : 'border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+              } ${
+                /* On mobile only show current page ±1 and first/last */
+                typeof p === 'number' && Math.abs(p - currentPage) > 1 && p !== 1 && p !== totalPages
+                  ? 'hidden sm:flex items-center justify-center'
+                  : 'flex items-center justify-center'
               }`}
             >
               {p}

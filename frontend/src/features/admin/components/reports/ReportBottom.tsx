@@ -9,13 +9,13 @@ export function DailySummary(): JSX.Element {
   const dailySummary = getDailySummary();
 
   const periodLabel =
-    globalRange === 'Daily'   ? 'Daily Summary'   :
-    globalRange === 'Weekly'  ? 'Weekly Summary'  :
+    globalRange === 'Daily'  ? 'Daily Summary'   :
+    globalRange === 'Weekly' ? 'Weekly Summary'  :
     'Monthly Summary';
 
   const cols = [
-    globalRange === 'Daily'   ? 'Date'   :
-    globalRange === 'Weekly'  ? 'Week'   : 'Month',
+    globalRange === 'Daily'  ? 'Date'  :
+    globalRange === 'Weekly' ? 'Week'  : 'Month',
     'Revenue', 'Orders', 'Customers', 'Avg. Order Value', 'Repeat Customers', 'Net Profit',
   ];
 
@@ -32,20 +32,28 @@ export function DailySummary(): JSX.Element {
           <thead>
             <tr className="border-b border-gray-100 dark:border-gray-800">
               {cols.map((c) => (
-                <th key={c} className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 px-4 py-2.5 whitespace-nowrap">{c}</th>
+                <th
+                  key={c}
+                  className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 px-3 sm:px-4 py-2.5 whitespace-nowrap"
+                >
+                  {c}
+                </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {dailySummary.map((row, i) => (
-              <tr key={i} className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
-                <td className="px-4 py-3 text-xs text-gray-700 dark:text-gray-300 font-medium whitespace-nowrap">{row.date}</td>
-                <td className="px-4 py-3 text-xs font-bold text-gray-900 dark:text-gray-100">{row.revenue}</td>
-                <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{row.orders.toLocaleString()}</td>
-                <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{row.customers.toLocaleString()}</td>
-                <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{row.avgOrderValue}</td>
-                <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{row.repeatCustomers.toLocaleString()}</td>
-                <td className="px-4 py-3 text-xs font-semibold text-green-600 dark:text-green-400">{row.netProfit}</td>
+              <tr
+                key={i}
+                className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"
+              >
+                <td className="px-3 sm:px-4 py-3 text-xs text-gray-700 dark:text-gray-300 font-medium whitespace-nowrap">{row.date}</td>
+                <td className="px-3 sm:px-4 py-3 text-xs font-bold text-gray-900 dark:text-gray-100">{row.revenue}</td>
+                <td className="px-3 sm:px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{row.orders.toLocaleString()}</td>
+                <td className="px-3 sm:px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{row.customers.toLocaleString()}</td>
+                <td className="px-3 sm:px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{row.avgOrderValue}</td>
+                <td className="px-3 sm:px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{row.repeatCustomers.toLocaleString()}</td>
+                <td className="px-3 sm:px-4 py-3 text-xs font-semibold text-green-600 dark:text-green-400">{row.netProfit}</td>
               </tr>
             ))}
           </tbody>
@@ -70,7 +78,7 @@ export function InsightsPanel(): JSX.Element {
         {insights.map((ins) => (
           <div key={ins.id} className={`flex items-start gap-3 p-3 rounded-xl border ${ins.color}`}>
             <span className="text-xl flex-shrink-0 mt-0.5">{ins.emoji}</span>
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-semibold text-gray-800 dark:text-gray-100 leading-snug">{ins.title}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{ins.body}</p>
             </div>
@@ -84,14 +92,14 @@ export function InsightsPanel(): JSX.Element {
 // ── Report Shortcuts (sidebar) ────────────────────────────────────────────
 
 const ALL_REPORTS = [
-  { id: 'r1', label: 'Sales Summary',       icon: '📊', desc: 'Revenue, orders & profit overview' },
-  { id: 'r2', label: 'Orders Report',        icon: '📦', desc: 'Order volume, status & trends' },
-  { id: 'r3', label: 'Menu Performance',     icon: '🍽️',  desc: 'Best & worst performing items' },
-  { id: 'r4', label: 'Inventory Report',     icon: '🗄️',  desc: 'Stock levels & reorder alerts' },
-  { id: 'r5', label: 'Staff Performance',    icon: '👥', desc: 'Hours, efficiency & tips' },
-  { id: 'r6', label: 'Customer Analytics',   icon: '🧑‍🤝‍🧑', desc: 'Loyalty, retention & demographics' },
-  { id: 'r7', label: 'Revenue by Table',     icon: '🪑', desc: 'Per-table revenue & turnover' },
-  { id: 'r8', label: 'Channel Performance',  icon: '📡', desc: 'Dine-in, delivery & online breakdown' },
+  { id: 'r1', label: 'Sales Summary',      icon: '📊', desc: 'Revenue, orders & profit overview' },
+  { id: 'r2', label: 'Orders Report',       icon: '📦', desc: 'Order volume, status & trends' },
+  { id: 'r3', label: 'Menu Performance',    icon: '🍽️',  desc: 'Best & worst performing items' },
+  { id: 'r4', label: 'Inventory Report',    icon: '🗄️',  desc: 'Stock levels & reorder alerts' },
+  { id: 'r5', label: 'Staff Performance',   icon: '👥', desc: 'Hours, efficiency & tips' },
+  { id: 'r6', label: 'Customer Analytics',  icon: '🧑‍🤝‍🧑', desc: 'Loyalty, retention & demographics' },
+  { id: 'r7', label: 'Revenue by Table',    icon: '🪑', desc: 'Per-table revenue & turnover' },
+  { id: 'r8', label: 'Channel Performance', icon: '📡', desc: 'Dine-in, delivery & online breakdown' },
 ];
 
 export function ReportShortcuts(): JSX.Element {
@@ -121,7 +129,7 @@ export function ReportShortcuts(): JSX.Element {
             onClick={() => setShowAll(true)}
             className="w-full flex items-center gap-1 text-xs text-orange-500 font-semibold mt-2 px-2 py-1.5 hover:text-orange-600 transition-colors"
           >
-            <ExternalLink className="w-3 h-3" />
+            <ExternalLink className="w-3 h-3 flex-shrink-0" />
             View All Reports
           </button>
         </>
@@ -137,15 +145,15 @@ export function ReportShortcuts(): JSX.Element {
 function AllReportsModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button 
-        type="button" 
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm w-full h-full cursor-default" 
-        onClick={onClose} 
-        aria-label="Close modal" 
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm w-full h-full cursor-default"
+        onClick={onClose}
+        aria-label="Close modal"
       />
       <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg border border-gray-200 dark:border-gray-700 overflow-hidden z-10">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-2">
             <span>📋</span>
             <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">All Reports</h2>
@@ -159,7 +167,7 @@ function AllReportsModal({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* List */}
-        <div className="p-3 grid grid-cols-1 gap-1 max-h-96 overflow-y-auto">
+        <div className="p-3 grid grid-cols-1 gap-1 max-h-80 sm:max-h-96 overflow-y-auto">
           {ALL_REPORTS.map((rep) => (
             <button
               key={rep.id}
@@ -178,7 +186,7 @@ function AllReportsModal({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-800 flex justify-end">
+        <div className="px-4 sm:px-5 py-3 border-t border-gray-100 dark:border-gray-800 flex justify-end">
           <button
             onClick={onClose}
             className="px-4 py-1.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-colors"

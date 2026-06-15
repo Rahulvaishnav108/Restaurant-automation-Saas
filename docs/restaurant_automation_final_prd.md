@@ -229,32 +229,13 @@ backend/
 
 ---
 
-# 6. Authentication Rules (v2.1)
+# 6. Authentication Rules
 
-## Customer Authentication (OTP-first)
+## Allowed
 
-* Remove password-based authentication for customers.
-* Customer signup/login flow:
-  * Name (for signup)
-  * Mobile Number
-  * OTP Verification
-* Email is optional. No email verification required.
-* OTP acts as both login and recovery mechanism.
-
-## Staff/Admin Authentication
-
-* Applicable Roles: Service Staff, Kitchen Staff, Cleaning Staff, Restaurant Admin, Super Admin
-* Flow: Email + Password + JWT.
-* Password Recovery Flow:
-  * Forgot Password → Request OTP (via Email/Mobile) → Verify OTP → Reset Password → Revoke Existing Sessions → Login Again
-
-## Security Rules
-
-* OTP expires in 5 minutes.
-* OTP is single-use.
-* Maximum 5 attempts.
-* All password reset actions must be audit logged.
-* Existing refresh tokens must be invalidated after password reset.
+- Email + Password
+- Mobile + Password
+- OTP Authentication
 
 ## Not Allowed
 

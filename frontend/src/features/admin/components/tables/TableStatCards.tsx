@@ -1,7 +1,5 @@
 import React from 'react';
-import {
-  LayoutGrid, Users, TrendingUp, IndianRupee,
-} from 'lucide-react';
+import { LayoutGrid, Users, TrendingUp, IndianRupee } from 'lucide-react';
 import { useTablesStore } from '../../store/tables.store';
 
 interface StatCardProps {
@@ -15,18 +13,41 @@ interface StatCardProps {
   trendUp?: boolean;
 }
 
-function StatCard({ label, value, sub, icon: Icon, iconBg, iconColor, trend, trendUp }: StatCardProps) {
+function StatCard({
+  label,
+  value,
+  sub,
+  icon: Icon,
+  iconBg,
+  iconColor,
+  trend,
+  trendUp,
+}: StatCardProps) {
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 flex items-start gap-4">
-      <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 sm:p-5 flex items-start gap-3 sm:gap-4">
+      <div
+        className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}
+      >
         <Icon className={`w-5 h-5 ${iconColor}`} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">{label}</p>
-        <p className="text-2xl font-bold text-gray-900 dark:text-white leading-tight">{value}</p>
-        {sub && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{sub}</p>}
+        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5 truncate">
+          {label}
+        </p>
+        <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white leading-tight truncate">
+          {value}
+        </p>
+        {sub && (
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">{sub}</p>
+        )}
         {trend && (
-          <span className={`inline-flex items-center gap-1 text-xs font-semibold mt-1 ${trendUp ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+          <span
+            className={`inline-flex items-center gap-1 text-xs font-semibold mt-1 ${
+              trendUp
+                ? 'text-green-600 dark:text-green-400'
+                : 'text-red-500 dark:text-red-400'
+            }`}
+          >
             {trend}
           </span>
         )}
@@ -39,7 +60,7 @@ export function TableStatCards(): JSX.Element {
   const { stats } = useTablesStore();
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       <StatCard
         label="Total Tables"
         value={stats.total}

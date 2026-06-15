@@ -32,16 +32,20 @@ export function RevenueOverview(): JSX.Element {
   );
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 flex-1 min-w-0">
-      <div className="flex items-start justify-between mb-1">
-        <div>
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 min-w-0 w-full">
+      <div className="flex items-start justify-between gap-2 mb-1 flex-wrap">
+        <div className="min-w-0">
           <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Revenue Overview</h3>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xl font-black text-gray-900 dark:text-gray-100">{stats.totalRevenue}</span>
-            <span className="text-xs text-green-500 font-semibold">{stats.totalRevenueChange}</span>
+            <span className="text-lg sm:text-xl font-black text-gray-900 dark:text-gray-100 truncate">
+              {stats.totalRevenue}
+            </span>
+            <span className="text-xs text-green-500 font-semibold flex-shrink-0">
+              {stats.totalRevenueChange}
+            </span>
           </div>
         </div>
-        <div className="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+        <div className="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden flex-shrink-0">
           {RANGES.map((r) => (
             <button
               key={r}
@@ -69,7 +73,10 @@ export function RevenueOverview(): JSX.Element {
           const y = PAD.t + (i / (yLabels.length - 1)) * chartH;
           return (
             <g key={i}>
-              <line x1={PAD.l} y1={y} x2={PAD.l + chartW} y2={y} stroke="#f3f4f6" strokeWidth="1" className="dark:stroke-gray-800" />
+              <line
+                x1={PAD.l} y1={y} x2={PAD.l + chartW} y2={y}
+                stroke="#f3f4f6" strokeWidth="1" className="dark:stroke-gray-800"
+              />
               <text x={PAD.l - 6} y={y + 4} textAnchor="end" fontSize="9" fill="#9ca3af">{label}</text>
             </g>
           );

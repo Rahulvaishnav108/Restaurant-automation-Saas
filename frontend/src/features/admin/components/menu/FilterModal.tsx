@@ -1,26 +1,23 @@
 import React, { useState } from 'react';
 import { X, SlidersHorizontal } from 'lucide-react';
-import type { MenuItemStatus } from '../../store/menu.store';
+import type { MenuItemStatus, AdvancedFilter } from '../../store/menu.store';
 
-export interface FilterOptions {
-  minPrice: string;
-  maxPrice: string;
-  statuses: MenuItemStatus[];
-}
+// Re-export for any consumers that still import FilterOptions from here
+export type { AdvancedFilter as FilterOptions };
 
 interface Props {
-  initial: FilterOptions;
-  onApply: (opts: FilterOptions) => void;
+  initial: AdvancedFilter;
+  onApply: (opts: AdvancedFilter) => void;
   onClose: () => void;
 }
 
 const ALL_STATUSES: MenuItemStatus[] = ['Available', 'Unavailable', 'Low Stock', 'Out of Stock'];
 
 const STATUS_COLORS: Record<MenuItemStatus, string> = {
-  'Available':     'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400',
-  'Unavailable':   'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
-  'Low Stock':     'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400',
-  'Out of Stock':  'bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400',
+  'Available':    'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400',
+  'Unavailable':  'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  'Low Stock':    'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400',
+  'Out of Stock': 'bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400',
 };
 
 export function FilterModal({ initial, onApply, onClose }: Props): JSX.Element {
@@ -35,7 +32,7 @@ export function FilterModal({ initial, onApply, onClose }: Props): JSX.Element {
   };
 
   const handleApply = () => {
-    onApply({ minPrice, maxPrice, statuses });
+    onApply({ minPrice: minPrice.trim(), maxPrice: maxPrice.trim(), statuses });
     onClose();
   };
 
@@ -49,7 +46,7 @@ export function FilterModal({ initial, onApply, onClose }: Props): JSX.Element {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <button 
+      <button
         type="button"
         className="absolute inset-0 bg-black/50 backdrop-blur-sm w-full h-full cursor-default"
         onClick={onClose}
@@ -73,18 +70,20 @@ export function FilterModal({ initial, onApply, onClose }: Props): JSX.Element {
         <div className="px-6 py-5 space-y-5">
           {/* Price Range */}
           <div>
-            <label htmlFor="min-price" className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Price Range (₹)</label>
+            <label htmlFor="filter-min-price" className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">
+              Price Range (₹)
+            </label>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-semibold">₹</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-semibold pointer-events-none">₹</span>
                   <input
-                    id="min-price"
+                    id="filter-min-price"
                     type="number"
                     min="0"
                     value={minPrice}
                     onChange={(e) => setMinPrice(e.target.value)}
-                    placeholder="Min"
+                    placeholder="0"
                     className={`${inputClass} pl-7`}
                   />
                 </div>
@@ -92,20 +91,26 @@ export function FilterModal({ initial, onApply, onClose }: Props): JSX.Element {
               </div>
               <div>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-semibold">₹</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-semibold pointer-events-none">₹</span>
                   <input
                     type="number"
                     min="0"
                     value={maxPrice}
                     onChange={(e) => setMaxPrice(e.target.value)}
-                    placeholder="Max"
+                    placeholder="∞"
                     className={`${inputClass} pl-7`}
-                    aria-label="Maximum price"
                   />
                 </div>
                 <p className="text-[10px] text-gray-400 mt-1 ml-1">Maximum</p>
               </div>
             </div>
+
+            {/* Live price range preview */}
+            {(minPrice !== '' || maxPrice !== '') && (
+              <p className="text-xs text-orange-500 font-semibold mt-2">
+                Filtering: ₹{minPrice || '0'} — ₹{maxPrice || '∞'}
+              </p>
+            )}
           </div>
 
           {/* Status Filter */}

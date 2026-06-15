@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryProvider }  from "./providers/QueryProvider";
 import { ThemeProvider }  from "./providers/ThemeProvider";
 import { AuthProvider }   from "./providers/AuthProvider";
@@ -6,14 +6,31 @@ import { SocketProvider } from "./providers/SocketProvider";
 
 import LandingPage        from "../features/customer/pages/LandingPage";
 import LoginPage          from "../auth/pages/LoginPage";
-import CustomerDashboard  from "../features/customer/pages/CustomerDashboard";
-import RestaurantsPage    from "../features/customer/pages/RestaurantsPage";
-import OffersPage         from "../features/customer/pages/OffersPage";
-import ReservationsPage   from "../features/customer/pages/ReservationsPage";
-import PaymentPage        from "../features/customer/pages/PaymentPage";
-import FeedbackPage       from "../features/customer/pages/FeedbackPage";
+
 import KitchenLayout      from "../layouts/KitchenLayout";
-import KitchenDashboard   from "../features/kitchen/pages/KitchenDashboard";
+import KitchenOverviewPage   from "../features/kitchen/pages/KitchenOverviewPage";
+
+import StaffLayout from "../layouts/StaffLayout";
+import StaffDashboard from "../features/staff/pages/StaffDashboard";
+import StaffOrdersPage from "../features/staff/pages/StaffOrdersPage";
+import StaffTablesPage from "../features/staff/pages/StaffTablesPage";
+import StaffFoodReadyPage from "../features/staff/pages/StaffFoodReadyPage";
+import StaffRequestsPage from "../features/staff/pages/StaffRequestsPage";
+import StaffReservationsPage from "../features/staff/pages/StaffReservationsPage";
+import StaffTableTurnoverPage from "../features/staff/pages/StaffTableTurnoverPage";
+import StaffMenuPage from "../features/staff/pages/StaffMenuPage";
+import StaffReportsPage from "../features/staff/pages/StaffReportsPage";
+import StaffAlertsPage from "../features/staff/pages/StaffAlertsPage";
+import StaffProfilePage from "../features/staff/pages/StaffProfilePage";
+import StaffSettingsPage from "../features/staff/pages/StaffSettingsPage";
+
+import CleaningLayout from "../layouts/CleaningLayout";
+import CleaningDashboard from "../features/cleaning/pages/CleaningDashboard";
+import CleaningTablesPage from "../features/cleaning/pages/CleaningTablesPage";
+import CleaningRequestsPage from "../features/cleaning/pages/CleaningRequestsPage";
+import CleaningTasksPage from "../features/cleaning/pages/CleaningTasksPage";
+import CleaningProfilePage from "../features/cleaning/pages/CleaningProfilePage";
+import CleaningSettingsPage from "../features/cleaning/pages/CleaningSettingsPage";
 
 import SuperAdminLayout    from "../layouts/SuperAdminLayout";
 import SuperAdminDashboard from "../features/superAdmin/pages/SuperadminDashboard";
@@ -37,21 +54,38 @@ import { TableManagementPage }  from "../features/admin/pages/TableManagementPag
 import SettingsPage             from "../features/admin/pages/SettingsPage";
 
 const AppRoutes = () => {
-  const navigate = useNavigate();
   return (
     <main className="min-h-screen bg-[rgb(var(--page-bg))] text-[rgb(var(--text))]">
       <Routes>
         <Route path="/"            element={<LandingPage />} />
         <Route path="/login"       element={<LoginPage />} />
-        <Route path="/restaurants" element={<RestaurantsPage onEnterApp={() => navigate('/dashboard')} />} />
-        <Route path="/offers"      element={<OffersPage />} />
-        <Route path="/reservations"element={<ReservationsPage />} />
-        <Route path="/payment"     element={<PaymentPage />} />
-        <Route path="/feedback"    element={<FeedbackPage />} />
-        <Route path="/dashboard"   element={<CustomerDashboard onBack={() => navigate('/')} />} />
 
         <Route path="/kitchen" element={<KitchenLayout />}>
-          <Route index element={<KitchenDashboard />} />
+          <Route index element={<KitchenOverviewPage />} />
+        </Route>
+
+        <Route path="/staff" element={<StaffLayout />}>
+          <Route index element={<StaffDashboard />} />
+          <Route path="orders" element={<StaffOrdersPage />} />
+          <Route path="tables" element={<StaffTablesPage />} />
+          <Route path="food-ready" element={<StaffFoodReadyPage />} />
+          <Route path="requests" element={<StaffRequestsPage />} />
+          <Route path="reservations" element={<StaffReservationsPage />} />
+          <Route path="table-turnover" element={<StaffTableTurnoverPage />} />
+          <Route path="menu" element={<StaffMenuPage />} />
+          <Route path="reports" element={<StaffReportsPage />} />
+          <Route path="alerts" element={<StaffAlertsPage />} />
+          <Route path="profile" element={<StaffProfilePage />} />
+          <Route path="settings" element={<StaffSettingsPage />} />
+        </Route>
+
+        <Route path="/cleaning" element={<CleaningLayout />}>
+          <Route index element={<CleaningDashboard />} />
+          <Route path="tables" element={<CleaningTablesPage />} />
+          <Route path="requests" element={<CleaningRequestsPage />} />
+          <Route path="tasks" element={<CleaningTasksPage />} />
+          <Route path="profile" element={<CleaningProfilePage />} />
+          <Route path="settings" element={<CleaningSettingsPage />} />
         </Route>
 
         <Route path="/admin" element={<AdminLayout />}>

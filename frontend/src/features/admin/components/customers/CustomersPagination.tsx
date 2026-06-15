@@ -20,18 +20,24 @@ export function CustomersPagination({ totalFiltered }: CustomersPaginationProps)
   } else {
     pages.push(1);
     if (currentPage > 3) pages.push('...');
-    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) pages.push(i);
+    for (
+      let i = Math.max(2, currentPage - 1);
+      i <= Math.min(totalPages - 1, currentPage + 1);
+      i++
+    ) {
+      pages.push(i);
+    }
     if (currentPage < totalPages - 2) pages.push('...');
     pages.push(totalPages);
   }
 
   return (
-    <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100 dark:border-gray-800">
-      <p className="text-xs text-gray-500 dark:text-gray-400">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 sm:px-5 py-3 border-t border-gray-100 dark:border-gray-800">
+      <p className="text-xs text-gray-500 dark:text-gray-400 order-2 sm:order-1">
         Showing {from}–{to} of {totalFiltered.toLocaleString('en-IN')} customers
       </p>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 order-1 sm:order-2">
         <button
           onClick={() => setCurrentPage(currentPage - 1)}
           disabled={currentPage === 1}
@@ -42,7 +48,12 @@ export function CustomersPagination({ totalFiltered }: CustomersPaginationProps)
 
         {pages.map((p, i) =>
           p === '...' ? (
-            <span key={`ellipsis-${i}`} className="w-8 h-8 flex items-center justify-center text-xs text-gray-400">…</span>
+            <span
+              key={`ellipsis-${i}`}
+              className="w-8 h-8 flex items-center justify-center text-xs text-gray-400"
+            >
+              …
+            </span>
           ) : (
             <button
               key={p}

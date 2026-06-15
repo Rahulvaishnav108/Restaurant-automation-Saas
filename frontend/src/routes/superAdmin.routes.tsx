@@ -22,4 +22,4 @@ export const superAdminRoutes: RouteObject[] = [
       { path: "audit-logs", element: <AuditLogs /> },
     ],
   },
-];
+]; 

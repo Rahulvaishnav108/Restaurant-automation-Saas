@@ -16,14 +16,14 @@ export function TopMenuItems(): JSX.Element {
   const { setSortOption, setActiveCategory, setActiveFilter } = useMenuStore();
 
   function handleViewAll() {
-    setActiveCategory('all');          // show all categories
-    setActiveFilter('Available');      // only available items (top performers are active)
-    setSortOption('Price High-Low');   // surface high-value items at top
+    setActiveCategory('all');
+    setActiveFilter('Available');
+    setSortOption('Price High-Low');
     navigate('/admin/menu');
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 transition-colors duration-200">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 sm:p-5 transition-colors duration-200">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-gray-800 dark:text-gray-100">Top Menu Items</h3>
         <button
@@ -33,7 +33,7 @@ export function TopMenuItems(): JSX.Element {
           View all <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-2.5 sm:space-y-3">
         {items.map((item, i) => (
           <button
             key={item.name}

@@ -1,269 +1,126 @@
-import React, { useState, useEffect } from "react";
+// src/features/superAdmin/pages/Analytics.tsx
+import React, { useState } from "react";
+import { useOutletContext } from "react-router-dom";
 
 import {
-  Sun,
-  Moon,
-  LayoutDashboard,
-  Bell,
-  TrendingUp,
-  BarChart3,
-  PieChart as PieIcon,
-  Layers
-} from "lucide-react";
+  metricsData,
+  barSeries,
+  distributionSeries,
+  mockPlatformOrders,
+} from "../store/Analytics";
+import { exportOrdersAsCSV } from "../utils/Analyticsutils";
 
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  PieChart as RechartsPieChart,
-  Pie,
-  Cell
-} from "recharts";
+import AnalyticsHeader     from "../components/Analytics/Analyticsheader";
+import AnalyticsKPICards   from "../components/Analytics/Analyticskpicards";
+import AnalyticsBarChart   from "../components/Analytics/Analyticsbarchart";
+import AnalyticsPieChart   from "../components/Analytics/Analyticspiechart";
+import AnalyticsOrdersTable from "../components/Analytics/Analyticsorderstable";
 
-const metricsData = [
-  { label: "Active Subscriptions", current: "1,240", shift: "+12.3%", darkBg: "bg-orange-500/10 text-orange-500", lightBg: "bg-orange-50 text-orange-600", icon: Layers },
-  { label: "Platform Compute", current: "94.2%", shift: "+0.8%", darkBg: "bg-blue-500/10 text-blue-500", lightBg: "bg-blue-50 text-blue-600", icon: LayoutDashboard },
-];
+interface LayoutContextType {
+  darkMode: boolean;
+}
 
-const barSeries = [
-  { period: "Q1", load: 400, capacity: 240 },
-  { period: "Q2", load: 300, capacity: 139 },
-  { period: "Q3", load: 200, capacity: 980 },
-  { period: "Q4", load: 278, capacity: 390 },
-];
+export default function Analytics() {
+  const { darkMode } = useOutletContext<LayoutContextType>();
 
-const distributionSeries = [
-  { division: "Enterprise", allocation: 60, Hex: "#f97316" },
-  { division: "SME Node", allocation: 40, Hex: "#3b82f6" },
-];
+  // Filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusTab, setStatusTab]     = useState("All");
 
-export default function PlatformInfrastructureMatrix() {
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      const cached = localStorage.getItem("theme");
-      return cached ? cached === "dark" : true;
-    }
-    return true;
+  // Refresh state
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // ── Derived values ──────────────────────────────────────────────────────────
+  const totalVolume = mockPlatformOrders.reduce(
+    (acc, o) => acc + o.grossAmount,
+    0,
+  );
+  const totalCommission = mockPlatformOrders.reduce(
+    (acc, o) => acc + o.commission,
+    0,
+  );
+  const averageOrderValue = Math.round(
+    totalVolume / mockPlatformOrders.length,
+  );
+
+  const filteredOrders = mockPlatformOrders.filter((order) => {
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      order.restaurant.toLowerCase().includes(q) ||
+      order.id.toLowerCase().includes(q);
+    const matchesTab =
+      statusTab === "All" || order.status === statusTab;
+    return matchesSearch && matchesTab;
   });
 
-  useEffect(() => {
-    const synchronizeTheme = (event: Event) => {
-      const payload = (event as CustomEvent).detail;
-      if (payload?.darkMode !== undefined) setDarkMode(payload.darkMode);
-    };
-    window.addEventListener("sync-app-theme", synchronizeTheme);
-    return () => window.removeEventListener("sync-app-theme", synchronizeTheme);
-  }, []);
-
-  const toggleApplicationTheme = () => {
-    const state = !darkMode;
-    setDarkMode(state);
-
-    const rootElement = document.documentElement;
-    if (state) {
-      rootElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      rootElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-
-    window.dispatchEvent(new CustomEvent("sync-app-theme", { detail: { darkMode: state } }));
+  // ── Handlers ────────────────────────────────────────────────────────────────
+  const handleSync = () => {
+    setIsRefreshing(true);
+    setTimeout(() => setIsRefreshing(false), 1200);
   };
 
+  const handleExport  = () => exportOrdersAsCSV(filteredOrders);
+  const handleOnboard = () =>
+    alert("System Diagnostics: All Server Clusters Operational.");
+
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div className={`min-h-screen font-sans antialiased transition-colors duration-300 ${
-      darkMode ? "bg-[#020817] text-slate-100" : "bg-[#F8FAFC] text-slate-900"
-    }`}>
+    <div
+      className={`min-h-screen font-sans antialiased transition-colors duration-300 ${
+        darkMode
+          ? "bg-[#020817] text-slate-100"
+          : "bg-[#F8FAFC] text-slate-900"
+      }`}
+    >
+      <main className="w-full px-4 sm:px-6 xl:px-8 py-6 sm:py-8 max-w-[1600px] mx-auto space-y-6">
 
-      {/* NAVIGATION MANIFEST */}
-      <header className={`sticky top-0 z-50 h-16 w-full border-b backdrop-blur-md transition-all duration-300 ${
-        darkMode ? "bg-slate-950/80 border-slate-800 shadow-md shadow-black/10" : "bg-white/80 border-slate-200/80 shadow-sm shadow-slate-100/40"
-      }`}>
-        <div className="w-full h-full px-4 sm:px-8 flex items-center justify-between">
+        {/* 1 ── Page header */}
+        <AnalyticsHeader
+          darkMode={darkMode}
+          isRefreshing={isRefreshing}
+          onSync={handleSync}
+          onExport={handleExport}
+          onOnboard={handleOnboard}
+        />
 
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center font-black text-white text-base shadow-md">
-              M
-            </div>
-            <div className="leading-tight">
-              <h1 className="font-bold text-sm tracking-tight uppercase bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-amber-500">
-                Analytics
-              </h1>
-              <p className={`text-[10px] font-semibold tracking-wider uppercase ${
-                darkMode ? "text-slate-500" : "text-slate-400"
-              }`}>
-                Infrastructure Core
-              </p>
-            </div>
+        {/* 2 ── KPI summary cards */}
+        <AnalyticsKPICards
+          darkMode={darkMode}
+          metrics={metricsData}
+          totalVolume={totalVolume}
+          totalCommission={totalCommission}
+          averageOrderValue={averageOrderValue}
+        />
+
+        {/* 3 ── Charts row
+              Mobile  : stacked (1 col)
+              Tablet  : 2 cols (bar takes more space)
+              Desktop : bar = 2/3 | pie = 1/3
+        */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {/* Bar chart spans 2 cols on md+ */}
+          <div className="md:col-span-2">
+            <AnalyticsBarChart darkMode={darkMode} data={barSeries} />
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1">
-              <button
-                onClick={toggleApplicationTheme}
-                type="button"
-                className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
-                  darkMode ? "text-slate-400 hover:text-slate-100 hover:bg-slate-900" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-                }`}
-              >
-                {darkMode ? <Sun size={16} /> : <Moon size={16} />}
-              </button>
-
-              <button 
-                type="button"
-                className={`w-9 h-9 rounded-lg flex items-center justify-center relative ${
-                  darkMode ? "text-slate-400 hover:text-slate-100" : "text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                <Bell size={16} />
-                <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 rounded-full bg-orange-500" />
-              </button>
-            </div>
-
-            <div className="h-5 w-px bg-slate-200 dark:bg-slate-800" />
+          {/* Pie chart */}
+          <div className="md:col-span-1">
+            <AnalyticsPieChart
+              darkMode={darkMode}
+              data={distributionSeries}
+            />
           </div>
-
-        </div>
-      </header>
-
-      {/* VIEWPORT CONTROLLER CONTENT */}
-      <main className="w-full px-4 sm:px-8 py-8 max-w-[1600px] mx-auto space-y-6">
-
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">System Core Matrix</h2>
-          <p className={`text-xs mt-0.5 ${
-            darkMode ? "text-slate-400" : "text-slate-500"
-          }`}>
-            Telemetry routing, resource allocation matrices, and cluster state logs.
-          </p>
         </div>
 
-        {/* COMPACT METRIC CARDS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {metricsData.map((item, index) => {
-            const IconComponent = item.icon;
-            return (
-              <div
-                key={index}
-                className={`rounded-xl p-5 border transition-all duration-200 hover:shadow-md ${
-                  darkMode ? "bg-slate-900/30 border-slate-800/80 shadow-black/10" : "bg-white border-slate-200/60 shadow-sm shadow-slate-100/40"
-                }`}
-              >
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <p className={`text-[10px] font-bold tracking-wider uppercase ${
-                      darkMode ? "text-slate-400" : "text-slate-500"
-                    }`}>
-                      {item.label}
-                    </p>
-                    <h3 className="text-2xl font-bold tracking-tight">{item.current}</h3>
-                    <div className="flex items-center gap-1 text-emerald-500 text-xs font-bold pt-1">
-                      <TrendingUp size={12} />
-                      <span>{item.shift}</span>
-                    </div>
-                  </div>
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                    darkMode ? item.darkBg : item.lightBg
-                  }`}>
-                    <IconComponent size={18} />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* VISUALIZATION CONTAINER ALIGNMENT */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-          <div className={`lg:col-span-2 rounded-xl p-5 border ${
-            darkMode ? "bg-slate-900/30 border-slate-800/80" : "bg-white border-slate-200/60 shadow-sm shadow-slate-100/40"
-          }`}>
-            <div className="mb-4">
-              <h3 className="text-sm font-bold flex items-center gap-2">
-                <BarChart3 size={16} /> Cluster Operations Load
-              </h3>
-              <p className={`text-[13px] ${
-                darkMode ? "text-slate-400" : "text-slate-500"
-              }`}>
-                Throughput balance configurations
-              </p>
-            </div>
-
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={barSeries} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? "#1e293b" : "#e2e8f0"} vertical={false} />
-                  <XAxis dataKey="period" tickLine={false} axisLine={false} style={{ fontSize: "11px" }} stroke={darkMode ? "#64748b" : "#94a3b8"} />
-                  <YAxis tickLine={false} axisLine={false} style={{ fontSize: "11px" }} stroke={darkMode ? "#64748b" : "#94a3b8"} />
-                  <Tooltip contentStyle={darkMode ? { backgroundColor: "#0f172a", color: "#f8fafc" } : { backgroundColor: "#ffffff", color: "#0f172a" }} />
-                  <Legend />
-                  <Bar key="load-bars" name="Active Clusters" dataKey="load" fill="#f97316" />
-                  <Bar key="capacity-bars" name="Staging Subnets" dataKey="capacity" fill="#3b82f6" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className={`rounded-xl p-5 border ${
-            darkMode ? "bg-slate-900/30 border-slate-800/80" : "bg-white border-slate-200/60 shadow-sm shadow-slate-100/40"
-          }`}>
-            <div className="mb-2">
-              <h3 className="text-sm font-bold flex items-center gap-2">
-                <PieIcon size={16} /> Deployment Architecture
-              </h3>
-              <p className={`text-[13px] ${
-                darkMode ? "text-slate-400" : "text-slate-500"
-              }`}>
-                Core allocation mapping
-              </p>
-            </div>
-
-            <div className="h-[220px] w-full flex items-center justify-center relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <RechartsPieChart>
-                  <Pie data={distributionSeries} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="allocation" nameKey="division">
-                    {distributionSeries.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.Hex} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={darkMode ? { backgroundColor: "#0f172a", color: "#f8fafc" } : { backgroundColor: "#ffffff", color: "#0f172a" }} />
-                </RechartsPieChart>
-              </ResponsiveContainer>
-
-              <div className="absolute flex flex-col items-center justify-center text-center">
-                <span className="text-xl font-bold tracking-tight">100%</span>
-                <span className={`text-[9px] font-bold uppercase tracking-wider ${
-                  darkMode ? "text-slate-500" : "text-slate-400"
-                }`}>
-                  Configured
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-1.5 mt-2">
-              {distributionSeries.map((item, index) => (
-                <div key={index} className="flex items-center justify-between text-xs font-medium">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.Hex }} />
-                    <span className={darkMode ? "text-slate-400" : "text-slate-600"}>
-                      {item.division}
-                    </span>
-                  </div>
-                  <span className="font-bold">{item.allocation}%</span>
-                </div>
-              ))}
-            </div>
-
-          </div>
-
-        </div>
+        {/* 4 ── Orders table */}
+        <AnalyticsOrdersTable
+          darkMode={darkMode}
+          orders={filteredOrders}
+          searchQuery={searchQuery}
+          statusTab={statusTab}
+          onSearchChange={setSearchQuery}
+          onTabChange={setStatusTab}
+        />
 
       </main>
     </div>

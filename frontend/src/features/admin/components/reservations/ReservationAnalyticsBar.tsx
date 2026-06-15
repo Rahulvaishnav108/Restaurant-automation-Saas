@@ -7,7 +7,7 @@ export function ReservationAnalyticsBar(): JSX.Element {
 
   const items = [
     {
-      icon: <UserX className="w-5 h-5 text-red-500" />,
+      icon: <UserX className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
       iconBg: 'bg-red-50 dark:bg-red-950/40',
       label: 'No Show Rate',
       value: analytics.noShowRate,
@@ -15,15 +15,15 @@ export function ReservationAnalyticsBar(): JSX.Element {
       changeColor: 'text-green-600 dark:text-green-400',
     },
     {
-      icon: <Users className="w-5 h-5 text-blue-500" />,
+      icon: <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
       iconBg: 'bg-blue-50 dark:bg-blue-950/40',
-      label: 'Average Party Size',
+      label: 'Avg. Party Size',
       value: analytics.avgPartySize,
       change: analytics.avgPartySizeChange,
       changeColor: 'text-green-600 dark:text-green-400',
     },
     {
-      icon: <RefreshCw className="w-5 h-5 text-orange-500" />,
+      icon: <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />,
       iconBg: 'bg-orange-50 dark:bg-orange-950/40',
       label: 'Table Turnover',
       value: analytics.tableTurnover,
@@ -31,7 +31,7 @@ export function ReservationAnalyticsBar(): JSX.Element {
       changeColor: 'text-red-500',
     },
     {
-      icon: <Clock className="w-5 h-5 text-purple-500" />,
+      icon: <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
       iconBg: 'bg-purple-50 dark:bg-purple-950/40',
       label: 'Peak Time',
       value: analytics.peakTime,
@@ -39,7 +39,7 @@ export function ReservationAnalyticsBar(): JSX.Element {
       changeColor: 'text-gray-400 dark:text-gray-500',
     },
     {
-      icon: <Percent className="w-5 h-5 text-green-500" />,
+      icon: <Percent className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />,
       iconBg: 'bg-green-50 dark:bg-green-950/40',
       label: 'Occupancy Rate',
       value: analytics.occupancyRate,
@@ -49,18 +49,23 @@ export function ReservationAnalyticsBar(): JSX.Element {
   ];
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
-      <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-4">Reservation Analytics</h3>
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 sm:p-5">
+      <h3 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-100 mb-3 sm:mb-4">
+        Reservation Analytics
+      </h3>
+      {/* 2 cols on mobile, 3 on sm, 5 on lg */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         {items.map(({ icon, iconBg, label, value, change, changeColor }) => (
-          <div key={label} className="flex items-start gap-3">
-            <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center flex-shrink-0`}>
+          <div key={label} className="flex items-start gap-2.5 sm:gap-3">
+            <div
+              className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl ${iconBg} flex items-center justify-center flex-shrink-0`}
+            >
               {icon}
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">{label}</p>
-              <p className="text-lg font-bold text-gray-900 dark:text-white truncate">{value}</p>
-              <p className={`text-xs ${changeColor} mt-0.5`}>{change}</p>
+              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mb-0.5">{label}</p>
+              <p className="text-base sm:text-lg font-bold text-gray-900 dark:text-white truncate">{value}</p>
+              <p className={`text-[10px] sm:text-xs ${changeColor} mt-0.5`}>{change}</p>
             </div>
           </div>
         ))}

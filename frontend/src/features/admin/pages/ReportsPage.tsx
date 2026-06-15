@@ -23,17 +23,19 @@ export default function ReportsPage(): JSX.Element {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5">
       {/* Page header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-extrabold text-gray-900 dark:text-gray-100">Reports & Analytics</h1>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-gray-100">
+            Reports &amp; Analytics
+          </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             Track performance, analyze trends, and make data-driven decisions
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Global range toggle */}
           <div className="flex bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
             {GLOBAL_RANGES.map((r) => (
@@ -57,9 +59,11 @@ export default function ReportsPage(): JSX.Element {
               onClick={() => setIsCalendarOpen(!isCalendarOpen)}
               className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
-              <CalendarDays className="w-3.5 h-3.5 text-gray-400" />
-              <span className="max-w-[160px] truncate">{getDateLabel()}</span>
-              <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isCalendarOpen ? 'rotate-180' : ''}`} />
+              <CalendarDays className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+              <span className="max-w-[120px] sm:max-w-[160px] truncate">{getDateLabel()}</span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-gray-400 transition-transform flex-shrink-0 ${isCalendarOpen ? 'rotate-180' : ''}`}
+              />
             </button>
             {isCalendarOpen && <CalendarPanel />}
           </div>
@@ -67,10 +71,11 @@ export default function ReportsPage(): JSX.Element {
           {/* Export */}
           <button
             onClick={handleExport}
-            className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-colors shadow-sm active:scale-95"
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-colors shadow-sm active:scale-95"
           >
-            <Download className="w-3.5 h-3.5" />
-            Export Report
+            <Download className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="hidden xs:inline">Export Report</span>
+            <span className="xs:hidden">Export</span>
           </button>
         </div>
       </div>
@@ -79,14 +84,14 @@ export default function ReportsPage(): JSX.Element {
       <ReportStatCards />
 
       {/* Row 1: Revenue + Orders + Channel */}
-      <div className="flex flex-wrap gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_auto] gap-4">
         <RevenueOverview />
         <OrdersTrend />
         <SalesByChannel />
       </div>
 
       {/* Row 2: Peak hours + Top items + Revenue by category */}
-      <div className="flex flex-wrap gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <PeakHours />
         <TopSellingItems />
         <RevenueByCategory />
