@@ -216,11 +216,18 @@ export class BillingService {
     // v2.1 Requirement: Write transaction details to PaymentModel
     await PaymentModel.create({
       restaurantId: bill.restaurantId,
+      billId: bill._id,
       orderId: bill.orderIds[0],
       sessionId: bill.sessionId,
       amount: bill.finalAmount,
+      currency: 'INR',
       method: paymentMethod,
+      provider: 'mock',
+      providerPaymentId: intentId,
       status: PaymentStatus.PENDING as any,
+      metadata: {
+        source: 'billing_create_payment',
+      },
     });
 
     return {
