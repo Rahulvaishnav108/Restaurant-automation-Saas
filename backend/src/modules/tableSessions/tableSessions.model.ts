@@ -19,8 +19,9 @@ export interface ITableSession extends Document {
   userAgent?: string;
   lastActivityAt: Date;
 
-  // Reservation linking
+  // Reservation and Queue linking
   reservationId?: Types.ObjectId;
+  queueId?: Types.ObjectId;
 
   // Customer analytics
   customerProfileId?: Types.ObjectId;
@@ -88,10 +89,15 @@ const tableSessionSchema = new Schema<ITableSession>(
       default: Date.now,
     },
 
-    // Reservation linking
+    // Reservation and Queue linking
     reservationId: {
       type: Schema.Types.ObjectId,
       ref: 'Reservation',
+      default: null,
+    },
+    queueId: {
+      type: Schema.Types.ObjectId,
+      ref: 'QueueEntry',
       default: null,
     },
 

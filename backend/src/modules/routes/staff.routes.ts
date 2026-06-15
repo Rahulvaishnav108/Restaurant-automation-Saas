@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { TableModel } from '../tables/tables.model';
 import { QueueEntryModel } from '../queue/queue.model';
+import queueRouter from '../queue/queue.routes';
 import { ReservationModel } from '../reservations/reservations.model';
+import reservationsRouter from '../reservations/reservations.routes';
 import { StaffRequestModel } from '../staff/staffRequest.model';
 import { AuditLogModel } from '../auditLogs/auditLogs.schema';
 import { AuditAction, AuditEntity } from '../auditLogs/auditLogs.types';
@@ -157,121 +159,9 @@ staffRouter.patch(
   }
 });
 
-staffRouter.get('/queue', async (req, res, next) => {
-  try {
-    const entries = await QueueEntryModel.find({
-      restaurantId: req.user?.restaurantId,
-    }).sort({ createdAt: 1 });
+staffRouter.use('/queue', queueRouter);
 
-    ok(res, {
-      entries,
-      meta: {
-        count: entries.length,
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-staffRouter.get('/queue/:id', validate({ params: entityIdParamsSchema }), async (req, res, next) => {
-  try {
-    const entry = ensureFound(
-      await QueueEntryModel.findOne({
-        _id: req.params.id,
-        restaurantId: req.user?.restaurantId,
-      }),
-      'Queue entry not found',
-    );
-
-    ok(res, { entry });
-  } catch (error) {
-    next(error);
-  }
-});
-
-staffRouter.patch(
-  '/queue/:id/priority',
-  validate({ params: entityIdParamsSchema, body: queuePriorityBodySchema }),
-  async (req, res, next) => {
-  try {
-    const entry = ensureFound(
-      await QueueEntryModel.findOneAndUpdate(
-        {
-          _id: req.params.id,
-          restaurantId: req.user?.restaurantId,
-        },
-        {
-          priority: req.body?.priority,
-        },
-        { new: true },
-      ),
-      'Queue entry not found',
-    );
-
-    ok(res, { entry });
-  } catch (error) {
-    next(error);
-  }
-});
-
-staffRouter.get('/reservations', async (req, res, next) => {
-  try {
-    const reservations = await ReservationModel.find({
-      restaurantId: req.user?.restaurantId,
-    }).sort({ date: 1, slot: 1 });
-
-    ok(res, {
-      reservations,
-      meta: {
-        count: reservations.length,
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-staffRouter.get('/reservations/:id', validate({ params: entityIdParamsSchema }), async (req, res, next) => {
-  try {
-    const reservation = ensureFound(
-      await ReservationModel.findOne({
-        _id: req.params.id,
-        restaurantId: req.user?.restaurantId,
-      }),
-      'Reservation not found',
-    );
-
-    ok(res, { reservation });
-  } catch (error) {
-    next(error);
-  }
-});
-
-staffRouter.patch(
-  '/reservations/:id/check-in',
-  validate({ params: entityIdParamsSchema, body: reservationCheckInBodySchema }),
-  async (req, res, next) => {
-  try {
-    const reservation = ensureFound(
-      await ReservationModel.findOneAndUpdate(
-        {
-          _id: req.params.id,
-          restaurantId: req.user?.restaurantId,
-        },
-        {
-          status: 'CHECKED_IN',
-        },
-        { new: true },
-      ),
-      'Reservation not found',
-    ) as any;
-
-    ok(res, { reservation, checkedInBy: req.body?.staffId ?? req.user?.id ?? null });
-  } catch (error) {
-    next(error);
-  }
-});
+staffRouter.use('/reservations', reservationsRouter);
 
 staffRouter.get('/requests', async (req, res, next) => {
   try {
