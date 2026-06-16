@@ -5,6 +5,7 @@ export interface IOffer extends Document {
   name: string;
   code: string;
   discountPercent: number;
+  requiredPoints: number;
   active: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -16,6 +17,7 @@ const offerSchema = new Schema<IOffer>(
     name: { type: String, required: true, trim: true },
     code: { type: String, required: true, trim: true, uppercase: true },
     discountPercent: { type: Number, required: true, min: 0, max: 100 },
+    requiredPoints: { type: Number, default: 0, min: 0,},
     active: { type: Boolean, default: true },
   },
   {
@@ -23,6 +25,7 @@ const offerSchema = new Schema<IOffer>(
     versionKey: false,
     collection: 'offers',
   },
+  
 );
 
 offerSchema.index({ restaurantId: 1, active: 1 });

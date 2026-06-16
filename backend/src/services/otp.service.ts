@@ -62,7 +62,9 @@ export async function createOTP(identifier: string, type: 'email' | 'mobile'): P
   });
 
   logger.info(`OTP generated for ${type}: ${identifier}`);
-
+  if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'production') {
+  logger.warn(`[DEV ONLY] OTP for ${identifier}: ${plainOtp}`);
+  }
   return plainOtp;
 }
 

@@ -17,10 +17,11 @@ import { QueueEntryModel } from '../queue/queue.model';
 import { Priority, QueueStatus, ReservationStatus } from '../../constants/statuses';
 import { reservationAvailabilityQuerySchema } from '../reservations/reservations.schema';
 import { publicQueueJoinBodySchema } from '../queue/queue.schema';
+import { restaurantSlugParamSchema } from '../restaurants/restaurants.schema';
 
 export const publicRouter = Router();
 
-publicRouter.get('/restaurants/:slug', getPublicRestaurantController);
+publicRouter.get('/restaurants/:slug', validate({ params: restaurantSlugParamSchema }), getPublicRestaurantController);
 
 publicRouter.post(
   '/table-session/validate',

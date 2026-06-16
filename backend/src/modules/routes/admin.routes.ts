@@ -5,7 +5,7 @@ import {
   getRestaurantSettingsController,
   updateRestaurantSettingsController,
 } from '../restaurants/restaurants.controller';
-import { updateRestaurantSettingsBodySchema } from '../restaurants/restaurants.schema';
+
 import {
   bulkCreateTablesController,
   createTableController,
@@ -24,6 +24,7 @@ import {
 } from '../tables/tables.schema';
 import analyticsRouter from '../analytics/analytics.routes';
 import auditLogsRouter from '../auditLogs/auditLogs.routes';
+import { updateRestaurantSettingsSchema } from '../restaurants/restaurants.schema';
 import inventoryRouter from '../inventory/inventory.routes';
 import loyaltyRouter from '../loyalty/loyalty.routes';
 import offersRouter from '../offers/offers.routes';
@@ -33,11 +34,8 @@ export const adminRouter = Router();
 
 adminRouter.get('/restaurant/overview', getRestaurantOverviewController);
 adminRouter.get('/restaurant/settings', getRestaurantSettingsController);
-adminRouter.patch(
-  '/restaurant/settings',
-  validate({ body: updateRestaurantSettingsBodySchema }),
-  updateRestaurantSettingsController,
-);
+adminRouter.patch('/restaurant/settings', validate({ body: updateRestaurantSettingsSchema }), updateRestaurantSettingsController);
+
 
 adminRouter.post('/tables', validate(createTableRequestSchema), createTableController);
 adminRouter.get('/tables', listTablesController);

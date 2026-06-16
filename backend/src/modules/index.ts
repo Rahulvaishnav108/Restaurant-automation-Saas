@@ -17,6 +17,8 @@ import menuRouter from './menu/menu.routes';
 import ordersRouter from './orders/orders.routes';
 import cartRouter from './cart/cart.routes';
 import auditLogRoutes from '../modules/auditLogs/auditLogs.routes';
+import feedbackRouter from './feedback/feedback.routes';
+import loyaltyRouter from './loyalty/loyalty.routes';
 import paymentsRouter from './payments/payments.routes';
 
 export const apiRouter = Router();
@@ -27,8 +29,10 @@ apiRouter.use('/audit-logs', requireAuth, roleGuard(roles.restaurantAdmin, roles
 apiRouter.use('/public', publicRouter);
 apiRouter.use(menuRouter);
 apiRouter.use(ordersRouter);
+apiRouter.use(loyaltyRouter);
 apiRouter.use('/payments', paymentsRouter);
 apiRouter.use('/customer/cart', cartRouter);
+apiRouter.use('/customer/feedback', feedbackRouter);
 apiRouter.use('/customer', customerRouter);
 apiRouter.use('/staff', requireAuth, roleGuard(roles.serviceStaff, roles.restaurantAdmin), tenantGuard, staffRouter);
 apiRouter.use('/kitchen', requireAuth, roleGuard(roles.kitchenStaff, roles.restaurantAdmin), tenantGuard, kitchenRouter);

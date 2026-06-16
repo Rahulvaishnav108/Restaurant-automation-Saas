@@ -1,11 +1,10 @@
 import {
-  restaurantSettingsSchema,
-  updateRestaurantSettingsBodySchema,
+  updateRestaurantSettingsSchema,
 } from '../../modules/restaurants/restaurants.schema';
 
 describe('Restaurant Settings Schema', () => {
   it('parses a full settings payload and normalizes currency', () => {
-    const result = restaurantSettingsSchema.parse({
+    const result = updateRestaurantSettingsSchema.parse({
       currency: 'inr',
       taxRate: '0.18',
       serviceChargeEnabled: true,
@@ -21,7 +20,7 @@ describe('Restaurant Settings Schema', () => {
   });
 
   it('allows partial updates for restaurant settings', () => {
-    const result = updateRestaurantSettingsBodySchema.parse({
+    const result = updateRestaurantSettingsSchema.parse({
       currency: 'usd',
       sessionDurationMinutes: '45',
     });
@@ -33,7 +32,7 @@ describe('Restaurant Settings Schema', () => {
   });
 
   it('rejects an empty update payload', () => {
-    const result = updateRestaurantSettingsBodySchema.safeParse({});
+    const result = updateRestaurantSettingsSchema.safeParse({});
 
     expect(result.success).toBe(false);
     if (result.success) {
@@ -49,7 +48,7 @@ describe('Restaurant Settings Schema', () => {
     [{ taxRate: 1.25 }, 'Number must be less than or equal to 1'],
     [{ sessionDurationMinutes: 10 }, 'Number must be greater than or equal to 15'],
   ])('rejects invalid payload %j', (payload, expectedMessage) => {
-    const result = updateRestaurantSettingsBodySchema.safeParse(payload);
+    const result = updateRestaurantSettingsSchema.safeParse(payload);
 
     expect(result.success).toBe(false);
     if (result.success) {

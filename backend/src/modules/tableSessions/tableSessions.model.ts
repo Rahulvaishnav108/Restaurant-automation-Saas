@@ -30,6 +30,7 @@ export interface ITableSession extends Document {
   isOrdering: boolean;
   lastOrderAttemptAt?: Date | null;
   status: SessionStatus;
+  feedbackExpiresAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -127,6 +128,9 @@ const tableSessionSchema = new Schema<ITableSession>(
       enum: Object.values(SessionStatus),
       default: SessionStatus.ACTIVE,
       index: true,
+    },
+    feedbackExpiresAt: {
+    type: Date,
     },
   },
   {

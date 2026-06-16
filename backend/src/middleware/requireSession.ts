@@ -27,7 +27,7 @@ export async function requireSession(req: Request, _res: Response, next: NextFun
         ErrorCode.SESSION_INVALID
       );
     }
-
+    
     // Validate session (checks ACTIVE, hard expiry, idle timeout)
     const session = await sessionService.validateSession(token);
 
