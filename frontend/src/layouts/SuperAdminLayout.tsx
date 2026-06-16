@@ -5,7 +5,8 @@ import Navbar from "../features/superAdmin/components/dashboard/Navbar";
 import Sidebar from "../features/superAdmin/components/Sidebar";
 
 export default function SuperAdminLayout() {
-  const { signOut } = useAuth();
+  // Removed unused signOut variable
+  useAuth();
 
   // ── Theme state (persisted) ──────────────────────────────────────────────
   const [darkMode, setDarkMode] = useState(() => {
@@ -75,24 +76,14 @@ export default function SuperAdminLayout() {
       }`}
     >
       {/* ── SIDEBAR ─────────────────────────────────────────────────────── */}
-      {/*
-        Desktop: renders as a fixed left panel (lg:w-[260px]).
-        Mobile:  renders as a slide-in drawer controlled by mobileSidebarOpen.
-      */}
       <Sidebar
         darkMode={darkMode}
         toggleTheme={toggleTheme}
-        
         mobileOpen={mobileSidebarOpen}
         onMobileClose={() => setMobileSidebarOpen(false)}
       />
 
       {/* ── MAIN CONTENT AREA ───────────────────────────────────────────── */}
-      {/*
-        lg:ml-[260px]  → offset for fixed desktop sidebar.
-        pt-16          → offset for fixed navbar height.
-        On mobile, no left margin (sidebar is an overlay drawer).
-      */}
       <main className="flex-1 min-w-0 flex flex-col overflow-y-auto lg:ml-[260px] pt-16 h-screen">
         {/* ── NAVBAR ────────────────────────────────────────────────────── */}
         <Navbar
