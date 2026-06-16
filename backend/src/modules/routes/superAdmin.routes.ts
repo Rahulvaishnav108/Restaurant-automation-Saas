@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import { Router } from 'express';
 import { ok } from '../../utils/responses';
 import { RestaurantModel } from '../restaurants/restaurants.model';
-import { AuditLogModel } from '../auditLogs/auditLogs.model';
+import { AuditLogModel } from '../auditLogs/auditLogs.schema';
 import { FeatureFlagModel, PlatformPlanModel } from '../superAdmin/superAdmin.model';
 import { RestaurantStatus } from '../../constants/statuses';
 

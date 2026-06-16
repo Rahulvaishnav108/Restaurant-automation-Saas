@@ -26,12 +26,13 @@ import offersRouter from '../offers/offers.routes';
 import inventoryRouter from '../inventory/inventory.routes';
 import analyticsRouter from '../analytics/analytics.routes';
 import auditLogsRouter from '../auditLogs/auditLogs.routes';
+import { updateRestaurantSettingsSchema } from '../restaurants/restaurants.schema';
 
 export const adminRouter = Router();
 
 adminRouter.get('/restaurant/overview', getRestaurantOverviewController);
 adminRouter.get('/restaurant/settings', getRestaurantSettingsController);
-adminRouter.patch('/restaurant/settings', updateRestaurantSettingsController);
+adminRouter.patch('/restaurant/settings', validate({ body: updateRestaurantSettingsSchema }), updateRestaurantSettingsController);
 
 adminRouter.post('/tables', validate(createTableRequestSchema), createTableController);
 adminRouter.get('/tables', listTablesController);
