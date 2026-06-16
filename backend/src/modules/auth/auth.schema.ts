@@ -5,6 +5,7 @@ export {
   resetPasswordSchema,
   requestOtpSchema,
   verifyOtpSchema,
+  verifyResetOtpSchema,
 } from '../users/users.schema';
 
 export type {
@@ -14,4 +15,5 @@ export type {
   ResetPasswordInput,
   RequestOtpInput,
   VerifyOtpInput,
+  VerifyResetOtpInput,
 } from '../users/users.schema';

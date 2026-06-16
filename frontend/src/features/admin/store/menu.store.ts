@@ -6,6 +6,12 @@ export type MenuItemStatus = 'Available' | 'Unavailable' | 'Low Stock' | 'Out of
 export type SortOption = 'Name A-Z' | 'Name Z-A' | 'Price Low-High' | 'Price High-Low' | 'Stock Low-High';
 export type FilterTab = 'All Items' | 'Available' | 'Unavailable' | 'Low Stock';
 
+export interface AdvancedFilter {
+  minPrice: string;
+  maxPrice: string;
+  statuses: MenuItemStatus[];
+}
+
 export interface MenuItem {
   id: string;
   name: string;
@@ -32,35 +38,41 @@ export interface MenuStore {
   // Filters / UI state
   activeCategory: string;
   activeFilter: FilterTab;
+  advancedFilter: AdvancedFilter;
   searchQuery: string;
   sortOption: SortOption;
   currentPage: number;
   perPage: number;
 
-  // Actions
+  // Actions – items
   setActiveCategory: (id: string) => void;
   setActiveFilter: (f: FilterTab) => void;
+  setAdvancedFilter: (f: AdvancedFilter) => void;
   setSearchQuery: (q: string) => void;
   setSortOption: (s: SortOption) => void;
   setCurrentPage: (p: number) => void;
   toggleItemEnabled: (id: string) => void;
   updateItemStatus: (id: string, status: MenuItemStatus) => void;
   addItem: (item: Omit<MenuItem, 'id'>) => void;
+  updateItem: (id: string, data: Partial<Omit<MenuItem, 'id'>>) => void;
   deleteItem: (id: string) => void;
+
+  // Actions – categories
+  addCategory: (name: string) => void;
+  updateCategory: (id: string, name: string) => void;
+  deleteCategory: (id: string) => void;
 }
 
 // ── Seed Data ─────────────────────────────────────────────────────────────────
 
 const seedCategories: Category[] = [
-  { id: 'all',         name: 'All Categories', count: 120 },
-  { id: 'appetizers',  name: 'Appetizers',     count: 12  },
-  { id: 'main-course', name: 'Main Course',    count: 38  },
-  { id: 'beverages',   name: 'Beverages',      count: 18  },
-  { id: 'desserts',    name: 'Desserts',       count: 16  },
-  { id: 'salads',      name: 'Salads',         count: 10  },
-  { id: 'sides',       name: 'Sides',          count: 8   },
-  { id: 'combo-meals', name: 'Combo Meals',    count: 10  },
-  { id: 'breakfast',   name: 'Breakfast',      count: 8   },
+  { id: 'all',         name: 'All Categories', count: 12 },
+  { id: 'appetizers',  name: 'Appetizers',     count: 1  },
+  { id: 'main-course', name: 'Main Course',    count: 5  },
+  { id: 'beverages',   name: 'Beverages',      count: 2  },
+  { id: 'desserts',    name: 'Desserts',       count: 1  },
+  { id: 'salads',      name: 'Salads',         count: 1  },
+  { id: 'sides',       name: 'Sides',          count: 2  },
 ];
 
 const seedItems: MenuItem[] = [
@@ -130,40 +142,54 @@ const seedItems: MenuItem[] = [
     image: 'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=120&h=120&fit=crop',
     enabled: true,
   },
-  {
-    id: 'm12', name: 'Garlic Bread', description: 'Toasted bread with garlic butter',
-    price: 295, category: 'sides', status: 'Out of Stock', stock: 0,
-    image: 'https://images.unsplash.com/photo-1619535860434-cf9b902a9969?w=120&h=120&fit=crop',
-    enabled: false,
-  },
 ];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function slugify(name: string): string {
+  return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+}
+
+function rebuildCounts(items: MenuItem[], categories: Category[]): Category[] {
+  return categories.map((cat) => ({
+    ...cat,
+    count: cat.id === 'all' ? items.length : items.filter((i) => i.category === cat.id).length,
+  }));
+}
+
+const DEFAULT_ADVANCED_FILTER: AdvancedFilter = { minPrice: '', maxPrice: '', statuses: [] };
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 
-let nextId = 100;
+let nextItemId = 100;
+let nextCatId  = 200;
 
-export const useMenuStore = create<MenuStore>((set, _get) => ({
-  items: seedItems,
-  categories: seedCategories,
-  activeCategory: 'all',
-  activeFilter: 'All Items',
-  searchQuery: '',
-  sortOption: 'Name A-Z',
-  currentPage: 1,
-  perPage: 12,
+export const useMenuStore = create<MenuStore>((set) => ({
+  items:      seedItems,
+  categories: rebuildCounts(seedItems, seedCategories),
 
-  setActiveCategory: (id) => set({ activeCategory: id, currentPage: 1 }),
-  setActiveFilter:   (f)  => set({ activeFilter: f,   currentPage: 1 }),
-  setSearchQuery:    (q)  => set({ searchQuery: q,    currentPage: 1 }),
-  setSortOption:     (s)  => set({ sortOption: s }),
-  setCurrentPage:    (p)  => set({ currentPage: p }),
+  activeCategory:  'all',
+  activeFilter:    'All Items',
+  advancedFilter:  DEFAULT_ADVANCED_FILTER,
+  searchQuery:     '',
+  sortOption:      'Name A-Z',
+  currentPage:     1,
+  perPage:         12,
+
+  setActiveCategory:  (id) => set({ activeCategory: id,  currentPage: 1 }),
+  setActiveFilter:    (f)  => set({ activeFilter: f,     currentPage: 1 }),
+  setAdvancedFilter:  (f)  => set({ advancedFilter: f,   currentPage: 1 }),
+  setSearchQuery:     (q)  => set({ searchQuery: q,      currentPage: 1 }),
+  setSortOption:      (s)  => set({ sortOption: s }),
+  setCurrentPage:     (p)  => set({ currentPage: p }),
 
   toggleItemEnabled: (id) =>
-    set((state) => ({
-      items: state.items.map((item) =>
+    set((state) => {
+      const items = state.items.map((item) =>
         item.id === id ? { ...item, enabled: !item.enabled } : item
-      ),
-    })),
+      );
+      return { items, categories: rebuildCounts(items, state.categories) };
+    }),
 
   updateItemStatus: (id, status) =>
     set((state) => ({
@@ -173,20 +199,61 @@ export const useMenuStore = create<MenuStore>((set, _get) => ({
     })),
 
   addItem: (item) =>
-    set((state) => ({
-      items: [
-        ...state.items,
-        { ...item, id: `m${++nextId}` },
-      ],
-    })),
+    set((state) => {
+      const newItem: MenuItem = { ...item, id: `m${++nextItemId}` };
+      const items = [...state.items, newItem];
+      return { items, categories: rebuildCounts(items, state.categories), currentPage: 1 };
+    }),
+
+  updateItem: (id, data) =>
+    set((state) => {
+      const items = state.items.map((item) =>
+        item.id === id ? { ...item, ...data } : item
+      );
+      return { items, categories: rebuildCounts(items, state.categories) };
+    }),
 
   deleteItem: (id) =>
+    set((state) => {
+      const items = state.items.filter((item) => item.id !== id);
+      return { items, categories: rebuildCounts(items, state.categories) };
+    }),
+
+  addCategory: (name) =>
+    set((state) => {
+      const newCat: Category = {
+        id:    `cat${++nextCatId}-${slugify(name)}`,
+        name,
+        count: 0,
+      };
+      const withoutAll = state.categories.filter((c) => c.id !== 'all');
+      const allCat     = state.categories.find((c)  => c.id === 'all')!;
+      return { categories: [allCat, ...withoutAll, newCat] };
+    }),
+
+  updateCategory: (id, name) =>
     set((state) => ({
-      items: state.items.filter((item) => item.id !== id),
+      categories: state.categories.map((c) =>
+        c.id === id ? { ...c, name } : c
+      ),
     })),
+
+  deleteCategory: (id) =>
+    set((state) => {
+      const items = state.items.map((item) =>
+        item.category === id ? { ...item, category: 'uncategorised' } : item
+      );
+      const categories = state.categories.filter((c) => c.id !== id && c.id !== 'all');
+      const allCat     = { ...state.categories.find((c) => c.id === 'all')!, count: items.length };
+      return {
+        items,
+        categories: [allCat, ...categories],
+        activeCategory: state.activeCategory === id ? 'all' : state.activeCategory,
+      };
+    }),
 }));
 
-// ── Selectors (pure functions, no hooks) ──────────────────────────────────────
+// ── Selector (pure, no hooks) ─────────────────────────────────────────────────
 
 export function getFilteredItems(store: MenuStore): MenuItem[] {
   let result = [...store.items];
@@ -201,6 +268,18 @@ export function getFilteredItems(store: MenuStore): MenuItem[] {
   if (store.activeFilter === 'Unavailable') result = result.filter((i) => i.status === 'Unavailable' || i.status === 'Out of Stock');
   if (store.activeFilter === 'Low Stock')   result = result.filter((i) => i.status === 'Low Stock');
 
+  // Advanced filter — price range
+  const { minPrice, maxPrice, statuses } = store.advancedFilter;
+  const min = minPrice !== '' ? parseFloat(minPrice) : null;
+  const max = maxPrice !== '' ? parseFloat(maxPrice) : null;
+  if (min !== null && !isNaN(min)) result = result.filter((i) => i.price >= min);
+  if (max !== null && !isNaN(max)) result = result.filter((i) => i.price <= max);
+
+  // Advanced filter — statuses (additive: show any of the selected)
+  if (statuses.length > 0) {
+    result = result.filter((i) => statuses.includes(i.status));
+  }
+
   // Search
   if (store.searchQuery.trim()) {
     const q = store.searchQuery.toLowerCase();
@@ -211,11 +290,11 @@ export function getFilteredItems(store: MenuStore): MenuItem[] {
 
   // Sort
   switch (store.sortOption) {
-    case 'Name A-Z':         result.sort((a, b) => a.name.localeCompare(b.name)); break;
-    case 'Name Z-A':         result.sort((a, b) => b.name.localeCompare(a.name)); break;
-    case 'Price Low-High':   result.sort((a, b) => a.price - b.price); break;
-    case 'Price High-Low':   result.sort((a, b) => b.price - a.price); break;
-    case 'Stock Low-High':   result.sort((a, b) => a.stock - b.stock); break;
+    case 'Name A-Z':       result.sort((a, b) => a.name.localeCompare(b.name)); break;
+    case 'Name Z-A':       result.sort((a, b) => b.name.localeCompare(a.name)); break;
+    case 'Price Low-High': result.sort((a, b) => a.price - b.price);            break;
+    case 'Price High-Low': result.sort((a, b) => b.price - a.price);            break;
+    case 'Stock Low-High': result.sort((a, b) => a.stock - b.stock);            break;
   }
 
   return result;

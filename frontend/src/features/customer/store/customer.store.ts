@@ -1,6 +1,39 @@
 import { create } from 'zustand';
-import type { CustomerCartItem, CustomerMenuItem, ServiceRequestItem, TrackedOrder } from '../components';
 import { generateTableCode, getRecommendedItems } from '../utils/customer.utils';
+
+export type CustomerMenuItem = {
+  id: number;
+  name: string;
+  desc: string;
+  price: number;
+  rating: number;
+  reviews: number;
+  cat: string;
+  veg: boolean;
+  img: string;
+  badge: string;
+};
+
+export type CustomerCartItem = {
+  id: number;
+  qty: number;
+};
+
+export type ServiceRequestItem = {
+  id: string;
+  label: string;
+  description: string;
+  type: 'waiter' | 'water' | 'cleaning' | 'other';
+  status?: string;
+};
+
+export type TrackedOrder = {
+  id: string;
+  items: string;
+  total: number;
+  status: 'Placed' | 'Preparing' | 'Ready' | 'Served' | 'Completed';
+  eta: string;
+};
 
 export const MENU_ITEMS: CustomerMenuItem[] = [
   { id: 1, name: 'Hyderabadi Biryani', desc: 'Aromatic basmati rice cooked with spices', price: 249, rating: 4.6, reviews: 230, cat: 'Biryani', veg: false, img: 'https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=400&q=80', badge: 'Bestseller' },

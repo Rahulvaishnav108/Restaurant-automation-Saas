@@ -1,667 +1,522 @@
-import React, { useState, useEffect } from 'react';
-import {
-  LayoutDashboard,
-  ShoppingBag,
-  UtensilsCrossed,
-  CalendarDays,
-  Users,
-  Package,
-  UserCog,
-  BarChart3,
-  Megaphone,
-  Settings,
-  ChefHat,
-  User,
-  Sun,
-  Moon,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  Sparkles,
-  Search,
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { useCleaningSearch } from '../components/dashboard/CleaningSearchContext';
 
-// ─── Types ───────────────────────────────────────────────────
+interface TableItem {
+  id: string;
+  seats: number;
+  timeAgo: string;
+  priority: 'High' | 'Medium' | 'Low';
+  priorityClass: string;
+  priorityTextClass: string;
+  iconColor: string;
+}
 
-type CleaningStatus = 'pending' | 'in_progress' | 'completed';
-type Priority = 'high' | 'normal' | 'low';
+interface InProgressItem {
+  id: string;
+  progress: number;
+  timeAgo: string;
+}
 
-type CleaningTask = {
-  id: number;
-  tableNumber: number;
-  status: CleaningStatus;
-  priority: Priority;
-  timeSinceVacant: number;
-  requestedBy: 'customer' | 'system';
-};
+interface CompletedItem {
+  id: string;
+  time: string;
+  seats: number;
+}
 
-// ─── Theme ───────────────────────────────────────────────────
+interface HygieneTask {
+  id: string;
+  name: string;
+  lastDone: string;
+  icon: string;
+  colorClass: string;
+  textColor: string;
+  completed: boolean;
+}
 
-const darkTheme = {
-  pageBg:        '#111111',
-  sidebarBg:     '#1a1a1a',
-  cardBg:        '#1e1e1e',
-  cardBorder:    '#2a2a2a',
-  inputBg:       '#1e1e1e',
-  miniCardBg:    '#222222',
-  textPrimary:   '#ffffff',
-  textSecondary: '#888888',
-  textMuted:     '#666666',
-  sidebarBorder: '#2a2a2a',
-  navInactive:   '#888888',
-};
+export default function CleaningDashboard() {
+  const { searchQuery } = useCleaningSearch();
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [newRequestTable, setNewRequestTable] = useState('');
+  const [newRequestPriority, setNewRequestPriority] = useState('Medium');
+  
+  // State for Tables to Clean
+  const [tablesToClean, setTablesToClean] = useState<TableItem[]>([
+    { id: 'T07', seats: 4, timeAgo: 'Just Now', priority: 'High', priorityClass: 'bg-red-50 text-red-600 dark:bg-red-950/20 dark:text-red-400', priorityTextClass: 'text-red-600 dark:text-red-400', iconColor: 'text-red-500 dark:text-red-400' },
+    { id: 'T12', seats: 2, timeAgo: '2 min ago', priority: 'Medium', priorityClass: 'bg-orange-50 text-orange-600 dark:bg-orange-950/20 dark:text-orange-400', priorityTextClass: 'text-orange-600 dark:text-orange-400', iconColor: 'text-orange-500 dark:text-orange-400' },
+    { id: 'T03', seats: 6, timeAgo: '4 min ago', priority: 'Medium', priorityClass: 'bg-orange-50 text-orange-600 dark:bg-orange-950/20 dark:text-orange-400', priorityTextClass: 'text-orange-600 dark:text-orange-400', iconColor: 'text-orange-500 dark:text-orange-400' },
+    { id: 'T15', seats: 3, timeAgo: '5 min ago', priority: 'Low', priorityClass: 'bg-green-50 text-green-600 dark:bg-green-950/20 dark:text-green-400', priorityTextClass: 'text-green-650 dark:text-green-400', iconColor: 'text-green-500 dark:text-green-400' },
+    { id: 'T09', seats: 2, timeAgo: '6 min ago', priority: 'Low', priorityClass: 'bg-green-50 text-green-600 dark:bg-green-950/20 dark:text-green-400', priorityTextClass: 'text-green-650 dark:text-green-400', iconColor: 'text-green-500 dark:text-green-400' },
+    { id: 'T21', seats: 4, timeAgo: '7 min ago', priority: 'Low', priorityClass: 'bg-green-50 text-green-600 dark:bg-green-950/20 dark:text-green-400', priorityTextClass: 'text-green-650 dark:text-green-400', iconColor: 'text-green-500 dark:text-green-400' },
+  ]);
 
-const lightTheme = {
-  pageBg:        '#f5f5f5',
-  sidebarBg:     '#ffffff',
-  cardBg:        '#ffffff',
-  cardBorder:    '#e8e8e8',
-  inputBg:       '#f0f0f0',
-  miniCardBg:    '#f8f8f8',
-  textPrimary:   '#1a1a1a',
-  textSecondary: '#555555',
-  textMuted:     '#999999',
-  sidebarBorder: '#eeeeee',
-  navInactive:   '#555555',
-};
+  // State for In Progress
+  const [inProgress, setInProgress] = useState<InProgressItem[]>([
+    { id: 'T05', progress: 45, timeAgo: 'Started 3 min ago' },
+    { id: 'T11', progress: 60, timeAgo: 'Started 5 min ago' },
+  ]);
 
-// ─── Placeholder Data ─────────────────────────────────────────
+  // State for Completed Today
+  const [completedToday, setCompletedToday] = useState<CompletedItem[]>([
+    { id: 'T01', time: '10:30 AM', seats: 4 },
+    { id: 'T02', time: '10:18 AM', seats: 2 },
+    { id: 'T04', time: '10:05 AM', seats: 6 },
+  ]);
 
-const placeholderTasks: CleaningTask[] = [
-  { id: 1, tableNumber: 4,  status: 'pending',     priority: 'high',   timeSinceVacant: 15, requestedBy: 'customer' },
-  { id: 2, tableNumber: 7,  status: 'in_progress', priority: 'normal', timeSinceVacant: 8,  requestedBy: 'system'   },
-  { id: 3, tableNumber: 2,  status: 'pending',     priority: 'low',    timeSinceVacant: 3,  requestedBy: 'system'   },
-  { id: 4, tableNumber: 9,  status: 'pending',     priority: 'high',   timeSinceVacant: 20, requestedBy: 'customer' },
-  { id: 5, tableNumber: 11, status: 'completed',   priority: 'normal', timeSinceVacant: 30, requestedBy: 'system'   },
-];
+  // State for Hygiene Tasks
+  const [hygieneTasks, setHygieneTasks] = useState<HygieneTask[]>([
+    { id: '1', name: 'Restroom Sanitization', lastDone: '09:15 AM', icon: 'sanitizer', colorClass: 'bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400', textColor: 'text-purple-600', completed: false },
+    { id: '2', name: 'Waste Bin Check', lastDone: '09:20 AM', icon: 'delete', colorClass: 'bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400', textColor: 'text-blue-600', completed: false },
+    { id: '3', name: 'Floor Sanitization', lastDone: '09:25 AM', icon: 'mop', colorClass: 'bg-orange-50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400', textColor: 'text-orange-600', completed: false },
+  ]);
 
-// ─── Config ───────────────────────────────────────────────────
+  // Stats Counters
+  const totalTablesToClean = tablesToClean.length;
+  const totalInProgress = inProgress.length;
+  const totalCleanedToday = completedToday.length;
+  const hygieneScore = '98%';
 
-const priorityConfig: Record<Priority, { color: string; bg: string; label: string }> = {
-  high:   { color: '#ef4444', bg: 'rgba(239,68,68,0.15)',  label: 'High Priority' },
-  normal: { color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', label: 'Normal'        },
-  low:    { color: '#22c55e', bg: 'rgba(34,197,94,0.15)',  label: 'Low Priority'  },
-};
+  // Action: Start Cleaning (Move from Pending to In Progress)
+  const handleStartCleaning = (table: TableItem) => {
+    setTablesToClean(prev => prev.filter(t => t.id !== table.id));
+    setInProgress(prev => [
+      ...prev,
+      { id: table.id, progress: 10, timeAgo: 'Started Just Now' }
+    ]);
+  };
 
-const statusConfig: Record<CleaningStatus, { color: string; label: string }> = {
-  pending:     { color: '#f59e0b', label: 'Pending'     },
-  in_progress: { color: '#3b82f6', label: 'In Progress' },
-  completed:   { color: '#22c55e', label: 'Completed'   },
-};
+  // Action: Increment progress or complete cleaning
+  const handleContinue = (item: InProgressItem) => {
+    if (item.progress >= 90) {
+      // Complete item
+      setInProgress(prev => prev.filter(i => i.id !== item.id));
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      setCompletedToday(prev => [
+        { id: item.id, time: timeStr, seats: 4 },
+        ...prev
+      ]);
+    } else {
+      // Increment progress
+      setInProgress(prev => prev.map(i => i.id === item.id ? { ...i, progress: i.progress + 20, timeAgo: 'Updated Just Now' } : i));
+    }
+  };
 
-const navItems = [
-  { label: 'Dashboard',           Icon: LayoutDashboard },
-  { label: 'Orders',              Icon: ShoppingBag     },
-  { label: 'Menu Management',     Icon: UtensilsCrossed },
-  { label: 'Reservations',        Icon: CalendarDays    },
-  { label: 'Customers',           Icon: Users           },
-  { label: 'Inventory',           Icon: Package         },
-  { label: 'Staff Management',    Icon: UserCog         },
-  { label: 'Reports & Analytics', Icon: BarChart3       },
-  { label: 'Marketing',           Icon: Megaphone       },
-  { label: 'Settings',            Icon: Settings        },
-];
+  // Action: Complete Hygiene Task
+  const handleToggleHygieneTask = (id: string) => {
+    setHygieneTasks(prev => prev.map(t => {
+      if (t.id === id) {
+        const completed = !t.completed;
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        return {
+          ...t,
+          completed,
+          lastDone: completed ? `Completed at ${timeStr}` : '09:15 AM'
+        };
+      }
+      return t;
+    }));
+  };
 
-// ─── CleaningTaskCard ─────────────────────────────────────────
+  // Action: Raise New Request
+  const handleCreateRequest = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRequestTable.trim()) return;
+    const tableId = newRequestTable.toUpperCase().startsWith('T') ? newRequestTable.toUpperCase() : `T${newRequestTable}`;
+    
+    // Add to Tables to Clean
+    setTablesToClean(prev => [
+      {
+        id: tableId,
+        seats: 4,
+        timeAgo: 'Just Now',
+        priority: newRequestPriority as 'High' | 'Medium' | 'Low',
+        priorityClass: newRequestPriority === 'High' 
+          ? 'bg-red-50 text-red-600 dark:bg-red-950/20 dark:text-red-400' 
+          : newRequestPriority === 'Medium' 
+            ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20 dark:text-orange-400' 
+            : 'bg-green-50 text-green-600 dark:bg-green-950/20 dark:text-green-400',
+        priorityTextClass: newRequestPriority === 'High' ? 'text-red-650 dark:text-red-400' : newRequestPriority === 'Medium' ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400',
+        iconColor: newRequestPriority === 'High' ? 'text-red-500 dark:text-red-400' : newRequestPriority === 'Medium' ? 'text-orange-500 dark:text-orange-400' : 'text-green-500 dark:text-green-400'
+      },
+      ...prev
+    ]);
+    
+    setNewRequestTable('');
+    setShowRequestModal(false);
+  };
 
-const CleaningTaskCard = ({
-  task,
-  theme,
-  onAction,
-}: {
-  task: CleaningTask;
-  theme: typeof darkTheme;
-  onAction: (id: number, status: CleaningStatus) => void;
-}) => {
-  const priority = priorityConfig[task.priority];
-  const status   = statusConfig[task.status];
+  // Filter lists based on Search Query
+  const filteredTablesToClean = tablesToClean.filter(t => 
+    t.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    t.priority.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredInProgress = inProgress.filter(i => 
+    i.id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredCompleted = completedToday.filter(c => 
+    c.id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredHygiene = hygieneTasks.filter(h => 
+    h.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div style={{
-      background: theme.cardBg,
-      border: `1px solid ${theme.cardBorder}`,
-      borderLeft: `4px solid ${priority.color}`,
-      borderRadius: '16px',
-      padding: '16px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '12px',
-    }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <p style={{ fontSize: '18px', fontWeight: 700, color: theme.textPrimary, margin: 0 }}>
-            Table {task.tableNumber}
-          </p>
-          <p style={{ fontSize: '12px', color: theme.textMuted, marginTop: '4px', marginBottom: 0 }}>
-            Vacant for {task.timeSinceVacant} mins
-            · {task.requestedBy === 'customer' ? '👤 Customer request' : '🤖 System alert'}
-          </p>
+    <div className="space-y-6 lg:space-y-8 animate-fadeIn cleaning-panel">
+      {/* Top Stats Grid */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="bg-white dark:bg-sd-surface-container p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4 transition-transform hover:-translate-y-1">
+          <div className="w-12 h-12 rounded-full bg-cleanserve-primary/10 flex items-center justify-center text-cleanserve-primary shrink-0">
+            <span className="material-symbols-outlined text-[24px]">table_restaurant</span>
+          </div>
+          <div>
+            <h3 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 leading-none">{totalTablesToClean}</h3>
+            <p className="text-xs text-slate-450 dark:text-slate-400 mt-1 font-sans">Tables to Clean</p>
+            <span className="text-[10px] font-bold text-cleanserve-primary uppercase tracking-wider mt-0.5 inline-block">Pending</span>
+          </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
-          <span style={{
-            background: priority.bg,
-            color: priority.color,
-            padding: '4px 10px',
-            borderRadius: '999px',
-            fontSize: '11px',
-            fontWeight: 600,
-          }}>
-            {priority.label}
-          </span>
-          <span style={{
-            color: status.color,
-            fontSize: '11px',
-            fontWeight: 600,
-          }}>
-            {status.label}
-          </span>
+
+        <div className="bg-white dark:bg-sd-surface-container p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4 transition-transform hover:-translate-y-1">
+          <div className="w-12 h-12 rounded-full bg-cleanserve-tertiary-container/10 flex items-center justify-center text-cleanserve-tertiary shrink-0">
+            <span className="material-symbols-outlined text-[24px]">restaurant_menu</span>
+          </div>
+          <div>
+            <h3 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 leading-none">{totalInProgress}</h3>
+            <p className="text-xs text-slate-450 dark:text-slate-400 mt-1 font-sans">In Progress</p>
+            <span className="text-[10px] font-bold text-cleanserve-tertiary uppercase tracking-wider mt-0.5 inline-block">Cleaning</span>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-sd-surface-container p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4 transition-transform hover:-translate-y-1">
+          <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-950/40 flex items-center justify-center text-green-600 dark:text-green-455 shrink-0">
+            <span className="material-symbols-outlined text-[24px]">check_circle</span>
+          </div>
+          <div>
+            <h3 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 leading-none">{totalCleanedToday}</h3>
+            <p className="text-xs text-slate-450 dark:text-slate-400 mt-1 font-sans">Cleaned Today</p>
+            <span className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider mt-0.5 inline-block font-sans">Completed</span>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-sd-surface-container p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4 transition-transform hover:-translate-y-1">
+          <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-950/40 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
+            <span className="material-symbols-outlined text-[24px]">verified_user</span>
+          </div>
+          <div>
+            <h3 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 leading-none">{hygieneScore}</h3>
+            <p className="text-xs text-slate-450 dark:text-slate-400 mt-1 font-sans">Hygiene Score</p>
+            <span className="text-[10px] font-bold text-purple-600 dark:text-purple-455 uppercase tracking-wider mt-0.5 inline-block font-sans">Excellent</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-12 gap-6 lg:gap-8">
+        {/* Left Column: Tables to Clean */}
+        <div className="col-span-12 lg:col-span-7 space-y-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-extrabold text-slate-800 dark:text-slate-150 font-sans tracking-tight">Tables to Clean</h2>
+                <span className="bg-cleanserve-primary text-white text-[10px] px-2 py-0.5 rounded-full font-bold">{tablesToClean.length}</span>
+              </div>
+            </div>
+
+            {filteredTablesToClean.length === 0 ? (
+              <div className="bg-white dark:bg-sd-surface-container border border-slate-100 dark:border-slate-800 rounded-2xl p-8 text-center text-slate-400">
+                <span className="material-symbols-outlined text-4xl mb-2 text-slate-300 dark:text-slate-700">playlist_add_check</span>
+                <p className="text-xs font-semibold">No pending tables to clean matching search.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {filteredTablesToClean.map(table => (
+                  <div
+                    key={table.id}
+                    className="bg-white dark:bg-sd-surface-container p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:border-cleanserve-primary/40 transition-all flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center gap-2">
+                          <span className={`material-symbols-outlined ${table.iconColor}`}>table_restaurant</span>
+                          <span className="font-extrabold text-base text-slate-800 dark:text-slate-200">{table.id}</span>
+                        </div>
+                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${table.priorityClass}`}>
+                          {table.priority} Priority
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-450 dark:text-slate-400 text-[10px] mb-4 font-sans font-semibold">
+                        <div className="flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px]">groups</span>
+                          {table.seats} Seats
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px]">schedule</span>
+                          {table.timeAgo}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleStartCleaning(table)}
+                      className="w-full py-2 bg-white dark:bg-slate-800 border border-cleanserve-primary text-cleanserve-primary dark:text-white dark:border-slate-700 rounded-xl text-xs font-bold hover:bg-cleanserve-primary hover:text-white dark:hover:bg-cleanserve-primary transition-all active:scale-95"
+                    >
+                      Start Cleaning
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Completed Today List */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-extrabold text-slate-800 dark:text-slate-150 font-sans tracking-tight">Completed Today</h2>
+                <span className="bg-green-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">{completedToday.length}</span>
+              </div>
+            </div>
+
+            {filteredCompleted.length === 0 ? (
+              <div className="bg-white dark:bg-sd-surface-container border border-slate-100 dark:border-slate-800 rounded-2xl p-6 text-center text-slate-400">
+                <p className="text-xs">No completed tables to show.</p>
+              </div>
+            ) : (
+              <div className="bg-white dark:bg-sd-surface-container rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
+                {filteredCompleted.map(item => (
+                  <div key={item.id} className="flex items-center justify-between p-4 font-sans text-xs">
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-green-500" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">{item.id}</span>
+                    </div>
+                    <span className="text-slate-400 dark:text-slate-500 font-semibold">{item.seats} Seats</span>
+                    <span className="text-slate-450 dark:text-slate-400 font-bold">{item.time}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: In Progress & Features */}
+        <div className="col-span-12 lg:col-span-5 space-y-6 md:space-y-8">
+          {/* In Progress */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-extrabold text-slate-800 dark:text-slate-150 font-sans tracking-tight">In Progress</h2>
+                <span className="bg-cleanserve-tertiary text-white text-[10px] px-2 py-0.5 rounded-full font-bold">{inProgress.length}</span>
+              </div>
+            </div>
+
+            {filteredInProgress.length === 0 ? (
+              <div className="bg-white dark:bg-sd-surface-container border border-slate-100 dark:border-slate-800 rounded-2xl p-6 text-center text-slate-400">
+                <p className="text-xs">No active cleaning tasks in progress.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                {filteredInProgress.map(item => (
+                  <div
+                    key={item.id}
+                    className="bg-white dark:bg-sd-surface-container p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center text-center"
+                  >
+                    {/* circular progress svg */}
+                    <div className="relative w-16 h-16 mb-3">
+                      <svg className="w-full h-full transform -rotate-90">
+                        <circle
+                          className="text-slate-100 dark:text-slate-800"
+                          cx="32"
+                          cy="32"
+                          fill="transparent"
+                          r="26"
+                          stroke="currentColor"
+                          strokeWidth="3.5"
+                        />
+                        <circle
+                          className="text-cleanserve-primary"
+                          cx="32"
+                          cy="32"
+                          fill="transparent"
+                          r="26"
+                          stroke="currentColor"
+                          strokeDasharray="163.3"
+                          strokeDashoffset={163.3 - (163.3 * item.progress) / 100}
+                          strokeWidth="3.5"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center font-bold text-xs font-sans text-slate-850 dark:text-slate-200">
+                        {item.progress}%
+                      </div>
+                    </div>
+
+                    <div className="font-extrabold text-sm text-slate-800 dark:text-slate-200 mb-0.5">{item.id}</div>
+                    <p className="text-[10px] text-slate-400 mb-3 font-sans font-semibold">{item.timeAgo}</p>
+                    <button
+                      onClick={() => handleContinue(item)}
+                      className="w-full py-1.5 border border-cleanserve-primary text-cleanserve-primary dark:text-white dark:border-slate-700 rounded-xl text-[11px] font-bold hover:bg-cleanserve-primary hover:text-white transition-all active:scale-95"
+                    >
+                      {item.progress >= 90 ? 'Complete' : 'Continue'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Action Grid */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-extrabold text-slate-800 dark:text-slate-150 font-sans tracking-tight">Cleaning Request Features</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => setShowRequestModal(true)}
+                className="bg-white dark:bg-sd-surface-container p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm text-center hover:scale-[1.02] transition-transform flex flex-col items-center group cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center text-cleanserve-primary mb-3 group-hover:bg-cleanserve-primary group-hover:text-white transition-colors">
+                  <span className="material-symbols-outlined text-[20px]">add_task</span>
+                </div>
+                <span className="font-bold text-xs text-slate-800 dark:text-slate-200 mb-1">New Request</span>
+                <span className="text-[9px] text-slate-400 leading-tight">Request cleaning for any table.</span>
+              </button>
+
+              <button
+                className="bg-white dark:bg-sd-surface-container p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm text-center hover:scale-[1.02] transition-transform flex flex-col items-center group cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/30 flex items-center justify-center text-purple-600 mb-3 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                  <span className="material-symbols-outlined text-[20px]">history</span>
+                </div>
+                <span className="font-bold text-xs text-slate-800 dark:text-slate-200 mb-1">Request History</span>
+                <span className="text-[9px] text-slate-400 leading-tight">View all your past requests.</span>
+              </button>
+
+              <button
+                className="bg-white dark:bg-sd-surface-container p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm text-center hover:scale-[1.02] transition-transform flex flex-col items-center group cursor-pointer col-span-2"
+              >
+                <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/30 flex items-center justify-center text-orange-600 mb-3 group-hover:bg-orange-600 group-hover:text-white transition-colors">
+                  <span className="material-symbols-outlined text-[20px]">stars</span>
+                </div>
+                <span className="font-bold text-xs text-slate-800 dark:text-slate-200 mb-1">Special Request</span>
+                <span className="text-[9px] text-slate-400 leading-tight">Add notes for special cleaning.</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Branding Card */}
+          <div className="bg-gradient-to-br from-cleanserve-primary to-blue-700 p-6 rounded-2xl relative overflow-hidden text-white shadow-md">
+            <div className="absolute -right-4 -bottom-4 opacity-15 transform rotate-12 shrink-0">
+              <span className="material-symbols-outlined text-[100px]">cleaning_services</span>
+            </div>
+            <h3 className="text-sm font-extrabold mb-1 font-sans">Keep It Clean, Keep It Safe</h3>
+            <p className="text-[11px] opacity-90 mb-4 relative z-10 font-sans leading-relaxed">
+              Your efforts make our space better for everyone. Thank you for your dedication!
+            </p>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full border border-white/30 flex items-center justify-center">
+                <span className="material-symbols-outlined text-[16px] text-white">verified</span>
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider font-sans">Daily Hygiene Champion</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Action buttons */}
-      {task.status === 'pending' && (
-        <button
-          onClick={() => onAction(task.id, 'in_progress')}
-          style={{
-            background: '#f97316',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '10px',
-            padding: '10px',
-            fontSize: '13px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            width: '100%',
-          }}
-        >
-          Accept Task →
-        </button>
-      )}
-      {task.status === 'in_progress' && (
-        <button
-          onClick={() => onAction(task.id, 'completed')}
-          style={{
-            background: 'rgba(34,197,94,0.15)',
-            color: '#22c55e',
-            border: '1px solid rgba(34,197,94,0.3)',
-            borderRadius: '10px',
-            padding: '10px',
-            fontSize: '13px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            width: '100%',
-          }}
-        >
-          Mark Completed ✓
-        </button>
-      )}
-      {task.status === 'completed' && (
-        <div style={{
-          background: 'rgba(34,197,94,0.1)',
-          color: '#22c55e',
-          borderRadius: '10px',
-          padding: '10px',
-          fontSize: '13px',
-          fontWeight: 600,
-          textAlign: 'center',
-        }}>
-          ✓ Table Now Available
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ─── Main Dashboard ───────────────────────────────────────────
-
-const CleaningDashboard = () => {
-  const [isDark, setIsDark] = useState(false);
-  const [tasks, setTasks] = useState<CleaningTask[]>(placeholderTasks);
-  const [activeNav, setActiveNav] = useState('Dashboard');
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const theme = isDark ? darkTheme : lightTheme;
-
-  // ── Reset body/html styles to remove white borders ──
-  useEffect(() => {
-    const html = document.documentElement;
-    const body = document.body;
-
-    html.style.margin = '0';
-    html.style.padding = '0';
-    html.style.height = '100%';
-    html.style.overflow = 'hidden';
-
-    body.style.margin = '0';
-    body.style.padding = '0';
-    body.style.height = '100%';
-    body.style.overflow = 'hidden';
-    body.style.background = isDark ? '#111111' : '#f5f5f5';
-
-    return () => {
-      html.style.cssText = '';
-      body.style.cssText = '';
-    };
-  }, [isDark]);
-
-  const handleAction = (id: number, newStatus: CleaningStatus) => {
-    setTasks(tasks.map(t =>
-      t.id === id ? { ...t, status: newStatus } : t
-    ));
-  };
-
-  const pending    = tasks.filter(t => t.status === 'pending');
-  const inProgress = tasks.filter(t => t.status === 'in_progress');
-  const completed  = tasks.filter(t => t.status === 'completed');
-
-  const highPriority   = pending.filter(t => t.priority === 'high');
-  const otherPending   = pending.filter(t => t.priority !== 'high');
-
-  const _filteredTasks = tasks.filter(t =>
-  String(t.tableNumber).includes(searchQuery) ||
-  t.priority.includes(searchQuery.toLowerCase()) ||
-  t.status.includes(searchQuery.toLowerCase())
-  );
-
-  const filteredTasks = searchQuery ? _filteredTasks : [];
-
-  const stats = [
-    { label: 'Pending',      value: pending.length,    color: '#f59e0b', Icon: Clock         },
-    { label: 'In Progress',  value: inProgress.length, color: '#3b82f6', Icon: Sparkles      },
-    { label: 'Completed',    value: completed.length,  color: '#22c55e', Icon: CheckCircle2  },
-    { label: 'High Priority',value: highPriority.length,color: '#ef4444',Icon: AlertTriangle },
-  ];
-
-  return (
-    <div style={{
-      display: 'flex',
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      margin: 0,
-      padding: 0,
-      background: theme.pageBg,
-      color: theme.textPrimary,
-      fontFamily: 'Inter, sans-serif',
-      transition: 'background 0.3s, color 0.3s',
-      overflow: 'hidden',
-    }}>
-
-      {/* ── Left Sidebar ── */}
-      <aside style={{
-        width: '220px',
-        flexShrink: 0,
-        background: theme.sidebarBg,
-        borderRight: `1px solid ${theme.sidebarBorder}`,
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '24px 16px',
-        gap: '4px',
-        overflowY: 'auto',
-        transition: 'background 0.3s',
-      }}>
-        {/* Brand */}
-        <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: '36px', height: '36px', background: '#f97316',
-            borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <ChefHat size={20} color="#fff" />
-          </div>
-          <div>
-            <p style={{ fontSize: '15px', fontWeight: 600, color: theme.textPrimary, margin: 0 }}>Smart Dining</p>
-            <p style={{ fontSize: '11px', color: theme.textMuted, margin: 0 }}>Cleaning Staff</p>
-          </div>
-        </div>
-
-        {/* Nav Items */}
-        {navItems.map(({ label, Icon }) => (
-          <button
-            key={label}
-            onClick={() => setActiveNav(label)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '10px',
-              padding: '10px 14px', borderRadius: '12px', border: 'none',
-              cursor: 'pointer', fontSize: '13.5px',
-              fontWeight: activeNav === label ? 600 : 400,
-              background: activeNav === label ? '#f97316' : 'transparent',
-              color: activeNav === label ? '#fff' : theme.navInactive,
-              width: '100%', textAlign: 'left', transition: 'all 0.2s',
-            }}
-          >
-            <Icon size={17} />
-            {label}
-          </button>
-        ))}
-
-        <div style={{ flex: 1 }} />
-
-        {/* Staff info */}
-        <div style={{
-          background: theme.miniCardBg,
-          border: `1px solid ${theme.cardBorder}`,
-          borderRadius: '12px', padding: '12px',
-          display: 'flex', alignItems: 'center', gap: '10px',
-        }}>
-          <div style={{
-            width: '34px', height: '34px', background: '#f97316',
-            borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <User size={16} color="#fff" />
-          </div>
-          <div>
-            <p style={{ fontSize: '13px', fontWeight: 500, color: theme.textPrimary, margin: 0 }}>Cleaning Lead</p>
-            <p style={{ fontSize: '11px', color: theme.textMuted, margin: 0 }}>Housekeeping</p>
-          </div>
-        </div>
-      </aside>
-
-      {/* ── Main Content ── */}
-      <main style={{
-        flex: 1,
-        minWidth: 0,
-        padding: '24px',
-        overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '24px',
-      }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <h1 style={{ fontSize: '26px', fontWeight: 600, color: theme.textPrimary, margin: 0 }}>
-              Cleaning Tasks 🧹
-            </h1>
-            <p style={{ fontSize: '14px', color: theme.textMuted, marginTop: '4px', marginBottom: 0 }}>
-              Manage table cleanup and track progress in real time.
-            </p>
-          </div>
-
-          {/* Theme toggle */}
-          <button
-            onClick={() => setIsDark(!isDark)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '8px',
-              padding: '8px 14px', borderRadius: '20px', cursor: 'pointer',
-              border: `1px solid ${theme.cardBorder}`,
-              background: theme.cardBg,
-              color: theme.textSecondary,
-              fontSize: '12px', fontWeight: 500,
-              transition: 'all 0.2s', flexShrink: 0,
-            }}
-          >
-            {isDark ? <Sun size={15} /> : <Moon size={15} />}
-            {isDark ? 'Light Mode' : 'Dark Mode'}
-          </button>
-        </div>
-
-        {/* Search */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '10px',
-          background: theme.inputBg, border: `1px solid ${theme.cardBorder}`,
-          borderRadius: '12px', padding: '12px 16px',
-        }}>
-          <Search size={18} color={theme.textMuted} />
-          <input
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search by table, priority, status..."
-            style={{
-              background: 'transparent', border: 'none', outline: 'none',
-              color: theme.textPrimary, fontSize: '14px', width: '100%',
-            }}
-          />
-        </div>
-
-        {/* Stats row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
-          {stats.map(({ label, value, color, Icon }) => (
-            <div key={label} style={{
-              background: theme.cardBg, border: `1px solid ${theme.cardBorder}`,
-              borderRadius: '16px', padding: '16px',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <p style={{ fontSize: '13px', color: theme.textMuted, margin: 0 }}>{label}</p>
-                <div style={{ background: `${color}20`, padding: '6px', borderRadius: '8px' }}>
-                  <Icon size={16} color={color} />
+      {/* Hygiene Tasks Footer */}
+      <section className="space-y-4 pb-8">
+        <h2 className="text-lg font-extrabold text-slate-800 dark:text-slate-150 font-sans tracking-tight">Hygiene Tasks</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
+          {filteredHygiene.map(task => (
+            <div
+              key={task.id}
+              className="bg-white dark:bg-sd-surface-container p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between gap-4"
+            >
+              <div className="flex items-center gap-3 font-sans">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${task.colorClass}`}>
+                  <span className="material-symbols-outlined text-[20px]">{task.icon}</span>
+                </div>
+                <div>
+                  <p className={`font-bold text-sm ${task.completed ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-200'}`}>
+                    {task.name}
+                  </p>
+                  <p className="text-[10px] text-slate-400 font-semibold">{task.lastDone}</p>
                 </div>
               </div>
-              <p style={{ fontSize: '28px', fontWeight: 600, color, marginTop: '8px', marginBottom: 0 }}>{value}</p>
+              <button
+                onClick={() => handleToggleHygieneTask(task.id)}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border font-sans transition-all active:scale-95 shrink-0 ${
+                  task.completed
+                    ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500'
+                    : 'bg-cleanserve-primary-container text-white border-transparent hover:opacity-90'
+                }`}
+              >
+                {task.completed ? 'Completed' : 'Mark Done'}
+              </button>
             </div>
           ))}
         </div>
+      </section>
 
-        {/* Search Results Section */}
-        {searchQuery && (
-          <section>
-            <h2 style={{
-              fontSize: '16px', fontWeight: 600, color: theme.textPrimary,
-              marginBottom: '12px', marginTop: 0,
-              display: 'flex', alignItems: 'center', gap: '8px',
-            }}>
-              <span style={{
-                background: 'rgba(139,92,246,0.12)', padding: '4px 8px',
-                borderRadius: '6px', color: '#8b5cf6', fontSize: '12px', fontWeight: 600,
-              }}>
-                SEARCH RESULTS
-              </span>
-              Found {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}
-            </h2>
-            {filteredTasks.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {filteredTasks.map(task => (
-                  <CleaningTaskCard key={task.id} task={task} theme={theme} onAction={handleAction} />
-                ))}
-              </div>
-            ) : (
-              <div style={{
-                background: theme.cardBg,
-                border: `1px solid ${theme.cardBorder}`,
-                borderRadius: '12px',
-                padding: '24px',
-                textAlign: 'center',
-              }}>
-                <Search size={32} color={theme.textMuted} style={{ margin: '0 auto 12px', display: 'block' }} />
-                <p style={{ fontSize: '14px', color: theme.textMuted, margin: 0 }}>
-                  No tasks match &quot;{searchQuery}&quot;
-                </p>
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* Show default sections only when not searching */}
-        {!searchQuery && (
-          <>
-            {/* High Priority Section */}
-            {highPriority.length > 0 && (
-          <section>
-            <h2 style={{
-              fontSize: '16px', fontWeight: 600, color: theme.textPrimary,
-              marginBottom: '12px', marginTop: 0,
-              display: 'flex', alignItems: 'center', gap: '8px',
-            }}>
-              <span style={{
-                background: 'rgba(239,68,68,0.12)', padding: '4px 8px',
-                borderRadius: '6px', color: '#ef4444', fontSize: '12px', fontWeight: 600,
-              }}>
-                URGENT
-              </span>
-              High Priority Tasks
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {highPriority.map(task => (
-                <CleaningTaskCard key={task.id} task={task} theme={theme} onAction={handleAction} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* In Progress Section */}
-        {inProgress.length > 0 && (
-          <section>
-            <h2 style={{
-              fontSize: '16px', fontWeight: 600, color: theme.textPrimary,
-              marginBottom: '12px', marginTop: 0,
-              display: 'flex', alignItems: 'center', gap: '8px',
-            }}>
-              <span style={{
-                background: 'rgba(59,130,246,0.12)', padding: '4px 8px',
-                borderRadius: '6px', color: '#3b82f6', fontSize: '12px', fontWeight: 600,
-              }}>
-                IN PROGRESS
-              </span>
-              Being Cleaned
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {inProgress.map(task => (
-                <CleaningTaskCard key={task.id} task={task} theme={theme} onAction={handleAction} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Other Pending */}
-        {otherPending.length > 0 && (
-          <section>
-            <h2 style={{
-              fontSize: '16px', fontWeight: 600, color: theme.textPrimary,
-              marginBottom: '12px', marginTop: 0,
-            }}>
-              Other Tasks
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {otherPending.map(task => (
-                <CleaningTaskCard key={task.id} task={task} theme={theme} onAction={handleAction} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Completed */}
-        {completed.length > 0 && (
-          <section>
-            <h2 style={{
-              fontSize: '16px', fontWeight: 600, color: theme.textPrimary,
-              marginBottom: '12px', marginTop: 0,
-              display: 'flex', alignItems: 'center', gap: '8px',
-            }}>
-              <span style={{
-                background: 'rgba(34,197,94,0.12)', padding: '4px 8px',
-                borderRadius: '6px', color: '#22c55e', fontSize: '12px', fontWeight: 600,
-              }}>
-                DONE
-              </span>
-              Completed
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {completed.map(task => (
-                <CleaningTaskCard key={task.id} task={task} theme={theme} onAction={handleAction} />
-              ))}
-            </div>
-          </section>
-        )}
-          </>
-        )}
-      </main>
-
-      {/* ── Right Panel ── */}
-      <aside style={{
-        width: '280px',
-        flexShrink: 0,
-        background: theme.sidebarBg,
-        borderLeft: `1px solid ${theme.sidebarBorder}`,
-        padding: '24px 16px',
-        display: 'flex', flexDirection: 'column', gap: '20px',
-        overflowY: 'auto',
-        transition: 'background 0.3s',
-      }}>
-
-        {/* Quick stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-          {[
-            { label: 'Fast Cleanup',  sub: 'Quick turnaround', color: '#f97316', Icon: Clock        },
-            { label: 'All Tracked',   sub: 'Real-time updates', color: '#22c55e', Icon: CheckCircle2 },
-          ].map(({ label, sub, color, Icon }) => (
-            <div key={label} style={{
-              background: theme.miniCardBg, border: `1px solid ${theme.cardBorder}`,
-              borderRadius: '12px', padding: '12px',
-            }}>
-              <Icon size={18} color={color} />
-              <p style={{ fontSize: '12px', fontWeight: 500, color: theme.textPrimary, marginTop: '6px', marginBottom: 0 }}>{label}</p>
-              <p style={{ fontSize: '11px', color: theme.textMuted, marginTop: '2px', marginBottom: 0 }}>{sub}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Task Summary */}
-        <div>
-          <h3 style={{ fontSize: '15px', fontWeight: 600, color: theme.textPrimary, marginBottom: '12px', marginTop: 0 }}>
-            Task Summary
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {[
-              { label: 'Pending',      count: pending.length,    color: '#f59e0b' },
-              { label: 'In Progress',  count: inProgress.length, color: '#3b82f6' },
-              { label: 'Completed',    count: completed.length,  color: '#22c55e' },
-              { label: 'High Priority',count: highPriority.length,color: '#ef4444'},
-            ].map(({ label, count, color }) => (
-              <div key={label} style={{
-                background: theme.miniCardBg, border: `1px solid ${theme.cardBorder}`,
-                borderRadius: '10px', padding: '12px',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              }}>
-                <span style={{ fontSize: '13px', color: theme.textSecondary }}>{label}</span>
-                <span style={{
-                  background: `${color}20`, color,
-                  fontSize: '13px', fontWeight: 700,
-                  padding: '2px 10px', borderRadius: '999px',
-                }}>
-                  {count}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Priority Legend */}
-        <div>
-          <h3 style={{ fontSize: '15px', fontWeight: 600, color: theme.textPrimary, marginBottom: '12px', marginTop: 0 }}>
-            Priority Legend
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {Object.entries(priorityConfig).map(([key, config]) => (
-              <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{
-                  width: '8px', height: '8px', borderRadius: '50%',
-                  background: config.color, display: 'inline-block', flexShrink: 0,
-                }} />
-                <span style={{ fontSize: '12px', color: theme.textSecondary }}>{config.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* All clear state */}
-        {pending.length === 0 && inProgress.length === 0 && (
-          <div style={{
-            background: 'rgba(34,197,94,0.1)',
-            border: '1px solid rgba(34,197,94,0.2)',
-            borderRadius: '12px', padding: '20px', textAlign: 'center',
-          }}>
-            <CheckCircle2 size={28} color="#22c55e" style={{ margin: '0 auto 8px' }} />
-            <p style={{ fontSize: '14px', fontWeight: 600, color: '#22c55e', margin: 0 }}>All Clean!</p>
-            <p style={{ fontSize: '12px', color: theme.textMuted, marginTop: '4px', marginBottom: 0 }}>
-              No pending tasks right now.
+      {/* New Request Modal */}
+      {showRequestModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-sd-surface-container rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-xl w-full max-w-sm">
+            <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-100 mb-1 font-sans">Create Cleaning Request</h3>
+            <p className="text-[11px] text-slate-400 dark:text-slate-400 mb-4 font-sans leading-relaxed">
+              Raise a manual cleaning request for any table station.
             </p>
+            <form onSubmit={handleCreateRequest} className="space-y-4 font-sans text-xs">
+              <div>
+                <label htmlFor="new-request-table" className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">Table Number</label>
+                <input
+                  id="new-request-table"
+                  type="text"
+                  placeholder="e.g. T08, T14"
+                  value={newRequestTable}
+                  onChange={(e) => setNewRequestTable(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                  required
+                />
+              </div>
+
+              <div>
+                <span className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">Priority</span>
+                <div className="grid grid-cols-3 gap-2">
+                  {['High', 'Medium', 'Low'].map(p => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setNewRequestPriority(p)}
+                      className={`py-2 rounded-lg font-bold border transition-all ${
+                        newRequestPriority === p
+                          ? 'border-cleanserve-primary bg-cleanserve-surface-container-low text-cleanserve-primary dark:bg-slate-800'
+                          : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-850'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowRequestModal(false)}
+                  className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-200 transition-all active:scale-95"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 bg-cleanserve-primary text-white rounded-xl font-bold hover:opacity-90 transition-all active:scale-95"
+                >
+                  Request
+                </button>
+              </div>
+            </form>
           </div>
-        )}
-      </aside>
+        </div>
+      )}
     </div>
   );
-};
-
-export default CleaningDashboard;
+}

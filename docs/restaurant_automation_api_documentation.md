@@ -8,8 +8,8 @@ Source of truth:
 - restaurant_automation_final_prd.md
 - restaurant_automation_rolewise_postman_and_prd.md
 
-The platform uses a QR-session-first customer flow and JWT-based staff/admin flow:
-- Customers use temporary table sessions via `x-session-token`
+The platform uses mobile-OTP customer authentication for account access and JWT-based staff/admin flow:
+- Customers can authenticate with mobile number + OTP for account access, while dine-in ordering still uses temporary table sessions via `x-session-token`
 - Staff, restaurant admins, and super admin use JWT auth via `Authorization: Bearer <token>`
 
 ---
@@ -103,8 +103,15 @@ Use JWT auth:
 Use QR/table sessions:
 - `x-session-token: <sessionToken>`
 
-### 4.3 Optional customer account flow
-Customer auth can exist for future loyalty, reservation history, and saved preferences, but dine-in ordering is session-first.
+### 4.3 Customer authentication and onboarding
+Customer login is mobile-OTP based.
+
+Rules:
+- Customers do not have passwords.
+- Customers do not register using email.
+- Customer login is performed only through mobile number + OTP.
+- Customer onboarding requires only the customer's name and mobile number.
+- OTP verification creates/authenticates the customer account.
 
 ---
 
@@ -112,18 +119,183 @@ Customer auth can exist for future loyalty, reservation history, and saved prefe
 
 | Method | Path | Purpose |
 |---|---|---|
-| POST | `/auth/register` | Create a user account (Customer: Name+Mobile; Staff: Name+Email+Mobile+Password) |
-| POST | `/auth/login` | Login (Customer: Mobile+OTP; Staff: Email/Mobile+Password) |
-| POST | `/auth/request-otp` | Request OTP (Customer login / Staff reset) |
-| POST | `/auth/verify-otp` | Verify OTP for Customer login |
+| POST | `/auth/register` | Create a staff user account |
+| POST | `/auth/login` | Login with password or supported credentials |
+| POST | `/auth/request-otp` | Request customer OTP |
+| POST | `/auth/verify-otp` | Verify customer OTP |
 | POST | `/auth/refresh` | Refresh access token |
 | POST | `/auth/logout` | Logout and clear session state |
-| POST | `/auth/forgot-password` | Request password recovery OTP (Staff) |
-| POST | `/auth/verify-reset-otp` | Verify password recovery OTP and get verification token (Staff) |
-| POST | `/auth/reset-password` | Reset password using verification token (Staff) |
+| POST | `/auth/forgot-password` | Start staff password recovery |
+| POST | `/auth/verify-reset-otp` | Verify staff password reset OTP |
+| POST | `/auth/reset-password` | Complete staff password reset |
 | GET | `/auth/me` | Get current authenticated user |
 | GET | `/auth/sessions` | List active sessions |
 | DELETE | `/auth/sessions/:sessionId` | Revoke one session |
+
+### 5.1 Customer Authentication
+
+#### Request OTP
+
+**POST /auth/request-otp**
+
+Request:
+
+```json
+{
+  "mobile": "9999999999"
+}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "otpSent": true
+  }
+}
+```
+
+#### Verify OTP
+
+**POST /auth/verify-otp**
+
+Request:
+
+```json
+{
+  "mobile": "9999999999",
+  "otp": "123456"
+}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "customerId": "...",
+    "accessToken": "...",
+    "refreshToken": "..."
+  }
+}
+```
+
+### 5.2 Staff Authentication
+
+Staff authentication stays password-based and applies to staff roles only.
+
+#### Register
+**POST /auth/register**
+
+#### Login
+**POST /auth/login**
+
+#### Refresh
+**POST /auth/refresh**
+
+#### Logout
+**POST /auth/logout**
+
+#### Me
+**GET /auth/me**
+
+### 5.3 Password Recovery
+
+Password recovery applies only to:
+
+- Staff
+- Kitchen Staff
+- Cleaning Staff
+- Restaurant Admin
+- Super Admin
+
+Customers should **not** have a password reset flow.
+
+#### Forgot Password
+
+**POST /auth/forgot-password**
+
+Request:
+
+```json
+{
+  "email": "staff@restaurant.com"
+}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "otpSent": true
+  }
+}
+```
+
+An OTP must be sent to the registered email address of the user.
+
+#### Verify Reset OTP
+
+**POST /auth/verify-reset-otp**
+
+Request:
+
+```json
+{
+  "email": "staff@restaurant.com",
+  "otp": "123456"
+}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "resetToken": "..."
+  }
+}
+```
+
+#### Reset Password
+
+**POST /auth/reset-password**
+
+Request:
+
+```json
+{
+  "resetToken": "...",
+  "newPassword": "StrongPassword123"
+}
+```
+
+Response:
+
+```json
+{
+  "success": true
+}
+```
+
+### Password Reset Flow
+
+1. User enters registered email address.
+2. System sends OTP to that email address.
+3. User verifies the OTP.
+4. System issues a temporary reset token.
+5. User submits a new password using the reset token.
+6. Password is securely updated.
+
+### Security Exceptions:
+* **`429 RATE_LIMIT_EXCEEDED`**: Thrown on OTP cooldown violation, daily/hourly request cap limit violation, or failure attempts limit violation.
+* **`403 FORBIDDEN`**: Thrown if trying to request or verify an OTP when a mobile number is in a 15-minute lockout block.
 
 ### Typical register body
 ```json
@@ -136,7 +308,6 @@ Customer auth can exist for future loyalty, reservation history, and saved prefe
 ```
 
 ---
-
 ## 6. Public APIs
 
 | Method | Path | Purpose |

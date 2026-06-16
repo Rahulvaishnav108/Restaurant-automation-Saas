@@ -6,7 +6,7 @@ import { UserRole } from '../../constants/roles';
 
 export const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100).trim(),
-  email: z.string().email('Invalid email address').toLowerCase().trim().optional(),
+  email: z.string().email('Invalid email address').toLowerCase().trim(),
   mobile: z.string().min(10, 'Mobile must be at least 10 digits').max(15).trim(),
   password: z
     .string()
@@ -16,26 +16,8 @@ export const registerSchema = z.object({
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
       'Password must contain at least one uppercase letter, one lowercase letter, and one number'
     )
-    .optional(),
+    ,
   role: z.nativeEnum(UserRole).optional(),
-}).superRefine((data, ctx) => {
-  const role = data.role ?? UserRole.CUSTOMER;
-  if (role !== UserRole.CUSTOMER) {
-    if (!data.email) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Email is required for staff/admin roles',
-        path: ['email'],
-      });
-    }
-    if (!data.password) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Password is required for staff/admin roles',
-        path: ['password'],
-      });
-    }
-  }
 });
 
 export const loginSchema = z.object({
@@ -48,16 +30,12 @@ export const loginSchema = z.object({
 );
 
 export const forgotPasswordSchema = z.object({
-  email: z.string().email('Invalid email address').toLowerCase().trim().optional(),
-  mobile: z.string().min(10).max(15).trim().optional(),
-}).refine(
-  (data) => data.email || data.mobile,
-  { message: 'Either email or mobile is required', path: ['email'] }
-);
+  email: z.string().email('Invalid email address').toLowerCase().trim(),
+});
 
 export const resetPasswordSchema = z.object({
-  token: z.string().min(1, 'Reset token is required'),
-  password: z
+  resetToken: z.string().min(1, 'Reset token is required'),
+  newPassword: z
     .string()
     .min(8, 'Password must be at least 8 characters')
     .max(128)
@@ -68,22 +46,19 @@ export const resetPasswordSchema = z.object({
 });
 
 export const requestOtpSchema = z.object({
-  email: z.string().email().toLowerCase().trim().optional(),
-  mobile: z.string().min(10).max(15).trim().optional(),
-}).refine(
-  (data) => data.email || data.mobile,
-  { message: 'Either email or mobile is required', path: ['email'] }
-);
+  mobile: z.string().min(10).max(15).trim(),
+});
 
 export const verifyOtpSchema = z.object({
-  email: z.string().email().toLowerCase().trim().optional(),
-  mobile: z.string().min(10).max(15).trim().optional(),
+  mobile: z.string().min(10).max(15).trim(),
   otp: z.string().length(6, 'OTP must be 6 digits'),
-  name: z.string().optional(),
-}).refine(
-  (data) => data.email || data.mobile,
-  { message: 'Either email or mobile is required', path: ['email'] }
-);
+  name: z.string().trim().min(2).max(100).optional(),
+});
+
+export const verifyResetOtpSchema = z.object({
+  email: z.string().email('Invalid email address').toLowerCase().trim(),
+  otp: z.string().length(6, 'OTP must be 6 digits'),
+});
 
 export const updateProfileSchema = z.object({
   name: z.string().min(2).max(100).trim().optional(),
@@ -115,5 +90,6 @@ export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type RequestOtpInput = z.infer<typeof requestOtpSchema>;
 export type VerifyOtpInput = z.infer<typeof verifyOtpSchema>;
+export type VerifyResetOtpInput = z.infer<typeof verifyResetOtpSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

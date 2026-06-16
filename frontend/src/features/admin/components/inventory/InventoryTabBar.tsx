@@ -1,81 +1,134 @@
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Search, X, ChevronDown, Filter } from 'lucide-react';
 import { useInventoryStore, type ItemTab, type ItemCategory } from '../../store/inventory.store';
 
 const TABS: ItemTab[] = ['All Items', 'Ingredients', 'Beverages', 'Packaging', 'Cleaning Supplies', 'Other'];
-const CATEGORIES: Array<ItemCategory | 'All Categories'> = ['All Categories', 'Ingredients', 'Beverages', 'Packaging', 'Cleaning Supplies', 'Other'];
+const CATEGORIES: Array<ItemCategory | 'All Categories'> = [
+  'All Categories', 'Ingredients', 'Beverages', 'Packaging', 'Cleaning Supplies', 'Other',
+];
 
 export function InventoryTabBar() {
   const {
     activeTab, setActiveTab,
     activeCategory, setActiveCategory,
     searchQuery, setSearchQuery,
+    items,
   } = useInventoryStore();
+
+  const [catOpen, setCatOpen] = useState(false);
+  const dropRef = useRef<HTMLDivElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!catOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setCatOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [catOpen]);
+
+  const tabCount = (tab: ItemTab) => {
+    if (tab === 'All Items') return items.length;
+    return items.filter((i) => i.category === tab).length;
+  };
 
   return (
     <div className="border-b border-gray-100 dark:border-gray-800">
-      {/* Tabs row */}
-      <div className="flex items-center justify-between gap-2 px-5 pt-3 flex-wrap">
-        <div className="flex items-center gap-0 overflow-x-auto">
-          {TABS.map((tab) => {
-            const isActive = activeTab === tab;
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-all -mb-px ${
+      {/* ── Tabs row: horizontally scrollable, no clipping ── */}
+      <div
+        ref={tabsRef}
+        className="flex items-end overflow-x-auto pb-0"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab;
+          return (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={`
+                flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium
+                whitespace-nowrap border-b-2 transition-all flex-shrink-0
+                first:pl-4 last:pr-4
+                ${isActive
+                  ? 'border-orange-500 text-orange-500 dark:text-orange-400'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}
+              `}
+            >
+              {tab}
+              <span
+                className={`text-[11px] px-1.5 py-0.5 rounded-full font-semibold leading-none ${
                   isActive
-                    ? 'border-orange-500 text-orange-500 dark:text-orange-400'
-                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-200 dark:hover:border-gray-700'
+                    ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500'
                 }`}
               >
-                {tab}
-              </button>
-            );
-          })}
+                {tabCount(tab)}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Search + filter row ── */}
+      <div className="flex items-center gap-2 px-4 py-3">
+        {/* Search — takes all remaining space */}
+        <div className="relative flex-1 min-w-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search items..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-300 transition-all"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
+            >
+              <X className="w-3.5 h-3.5 text-gray-400" />
+            </button>
+          )}
         </div>
 
-        {/* Right controls */}
-        <div className="flex items-center gap-2 pb-2">
-          {/* Category dropdown */}
-          <div className="relative">
-            <select
-              value={activeCategory}
-              onChange={(e) => setActiveCategory(e.target.value as ItemCategory | 'All Categories')}
-              className="appearance-none pl-3 pr-8 py-1.5 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-100 dark:focus:ring-orange-900 cursor-pointer"
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-          </div>
-
-          {/* Filter */}
-          <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-            <Filter className="w-3.5 h-3.5" />
-            Filter
+        {/* Filter button — fixed width, never shrinks */}
+        <div className="relative flex-shrink-0" ref={dropRef}>
+          <button
+            type="button"
+            onClick={() => setCatOpen((v) => !v)}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100 transition-colors whitespace-nowrap"
+          >
+            <Filter className="w-4 h-4 text-gray-400" />
+            <span>Filter</span>
+            <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${catOpen ? 'rotate-180' : ''}`} />
           </button>
 
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search items..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 pr-8 py-1.5 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-orange-100 dark:focus:ring-orange-900 focus:border-orange-300 dark:focus:border-orange-700 w-40 text-gray-800 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-600 transition-all"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+          {catOpen && (
+            <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl shadow-xl z-30 py-1 w-52">
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide px-4 pt-2 pb-1">
+                Category
+              </p>
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => { setActiveCategory(cat); setCatOpen(false); }}
+                  className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                    activeCategory === cat
+                      ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-500 font-semibold'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -14,13 +14,13 @@ interface StatCardProps {
 
 function StatCard({ icon: Icon, iconBg, iconColor, label, value, sub, subColor }: StatCardProps) {
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 px-5 py-4 flex items-center gap-4">
-      <div className={`w-12 h-12 rounded-2xl ${iconBg} flex items-center justify-center flex-shrink-0`}>
-        <Icon className={`w-6 h-6 ${iconColor}`} />
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 px-4 sm:px-5 py-4 flex items-center gap-3 sm:gap-4">
+      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl ${iconBg} flex items-center justify-center flex-shrink-0`}>
+        <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${iconColor}`} />
       </div>
       <div className="min-w-0">
         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{label}</p>
-        <p className="text-xl font-bold text-gray-900 dark:text-white leading-tight">{value}</p>
+        <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white leading-tight">{value}</p>
         <p className={`text-xs mt-0.5 truncate ${subColor ?? 'text-gray-400 dark:text-gray-500'}`}>{sub}</p>
       </div>
     </div>
@@ -59,7 +59,7 @@ export function OrdersStatCards() {
       subColor: 'text-green-600 dark:text-green-400 text-xs font-medium',
     },
     {
-      icon: IndianRupee ,
+      icon: IndianRupee,
       iconBg: 'bg-purple-50 dark:bg-purple-950/40',
       iconColor: 'text-purple-500',
       label: 'Total Revenue',
@@ -79,9 +79,13 @@ export function OrdersStatCards() {
   ];
 
   return (
-    <div className="grid grid-cols-2 xl:grid-cols-5 gap-3">
-      {cards.map((card) => (
-        <StatCard key={card.label} {...card} />
+    /* 2 cols on mobile → 3 on md → 5 on xl */
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+      {/* Last card spans 2 cols on mobile so it doesn't sit alone */}
+      {cards.map((card, i) => (
+        <div key={card.label} className={i === 4 ? 'col-span-2 md:col-span-1' : ''}>
+          <StatCard {...card} />
+        </div>
       ))}
     </div>
   );

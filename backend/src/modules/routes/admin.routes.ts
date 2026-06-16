@@ -5,6 +5,7 @@ import {
   getRestaurantSettingsController,
   updateRestaurantSettingsController,
 } from '../restaurants/restaurants.controller';
+
 import {
   bulkCreateTablesController,
   createTableController,
@@ -21,18 +22,20 @@ import {
   tableIdParamsSchema,
   updateTableRequestSchema,
 } from '../tables/tables.schema';
-import staffManagementRouter from '../staff/staff.routes';
-import offersRouter from '../offers/offers.routes';
-import inventoryRouter from '../inventory/inventory.routes';
 import analyticsRouter from '../analytics/analytics.routes';
 import auditLogsRouter from '../auditLogs/auditLogs.routes';
 import { updateRestaurantSettingsSchema } from '../restaurants/restaurants.schema';
+import inventoryRouter from '../inventory/inventory.routes';
+import loyaltyRouter from '../loyalty/loyalty.routes';
+import offersRouter from '../offers/offers.routes';
+import staffManagementRouter from '../staff/staff.routes';
 
 export const adminRouter = Router();
 
 adminRouter.get('/restaurant/overview', getRestaurantOverviewController);
 adminRouter.get('/restaurant/settings', getRestaurantSettingsController);
 adminRouter.patch('/restaurant/settings', validate({ body: updateRestaurantSettingsSchema }), updateRestaurantSettingsController);
+
 
 adminRouter.post('/tables', validate(createTableRequestSchema), createTableController);
 adminRouter.get('/tables', listTablesController);
@@ -44,7 +47,7 @@ adminRouter.post('/tables/:id/qr', validate({ params: tableIdParamsSchema }), ge
 adminRouter.get('/tables/:id/qr', validate({ params: tableIdParamsSchema }), getTableQrController);
 adminRouter.use('/staff', staffManagementRouter);
 adminRouter.use('/offers', offersRouter);
+adminRouter.use('/loyalty', loyaltyRouter);
 adminRouter.use('/inventory', inventoryRouter);
 adminRouter.use('/analytics', analyticsRouter);
 adminRouter.use('/audit-logs', auditLogsRouter);
-

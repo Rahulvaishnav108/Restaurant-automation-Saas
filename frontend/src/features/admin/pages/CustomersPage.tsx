@@ -40,29 +40,27 @@ export function CustomersPage() {
   );
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5">
       {/* 1. Page header */}
       <CustomersHeader />
 
       {/* 2. Stat cards */}
       <CustomersStatCards />
 
-      {/* 3. Main content: table + right sidebar */}
-      <div className="flex gap-5 items-start">
+      {/* 3. Main content
+            Mobile / tablet : stack vertically (sidebar below table)
+            lg+             : side-by-side (sidebar fixed width on right)
+      */}
+      <div className="flex flex-col lg:flex-row gap-4 sm:gap-5 items-start">
         {/* Left: Table card */}
-        <div className="flex-1 min-w-0 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
-          {/* Filter bar */}
+        <div className="w-full min-w-0 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
           <CustomersFilterBar />
-
-          {/* Table */}
           <CustomersTable customers={paginated} />
-
-          {/* Pagination */}
           <CustomersPagination totalFiltered={filtered.length} />
         </div>
 
-        {/* Right sidebar */}
-        <div className="w-64 xl:w-72 flex-shrink-0 space-y-4">
+        {/* Right sidebar — full width on mobile, fixed on lg */}
+        <div className="w-full lg:w-64 xl:w-72 lg:flex-shrink-0 space-y-4">
           <TopCustomersPanel />
           <CustomerOverviewChart />
           <LoyaltyTierChart />

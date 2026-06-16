@@ -1,22 +1,25 @@
-import type { RouteObject } from 'react-router-dom';
-import SuperAdminLayout from '../layouts/SuperAdminLayout';
-import { RoleDashboard } from './shared';
+import type { RouteObject } from "react-router-dom";
+import SuperAdminLayout from "../layouts/SuperAdminLayout";
+import SuperAdminDashboard from "../features/superAdmin/pages/SuperadminDashboard";
+import Restaurants from "../features/superAdmin/pages/Restaurants";
+import Analytics from "../features/superAdmin/pages/Analytics";
+import Subscriptions from "../features/superAdmin/pages/Subscriptions";
+import Transactions from "../features/superAdmin/pages/Transactions";
+import Alerts from "../features/superAdmin/pages/Alerts";
+import AuditLogs from "../features/superAdmin/pages/AuditLogs";
 
 export const superAdminRoutes: RouteObject[] = [
   {
-    path: '/super-admin',
+    path: "/superadmin",
     element: <SuperAdminLayout />,
     children: [
-      {
-        index: true,
-        element: (
-          <RoleDashboard
-            title="Multi-Tenant SaaS Command"
-            description="Platform operators need tenant health, subscription visibility, and incident posture in one place."
-            highlights={['Tenant lifecycle', 'Subscription intelligence', 'Platform risk controls']}
-          />
-        ),
-      },
+      { index: true, element: <SuperAdminDashboard /> },
+      { path: "restaurants", element: <Restaurants /> },
+      { path: "analytics", element: <Analytics /> },
+      { path: "subscriptions", element: <Subscriptions /> },
+      { path: "transactions", element: <Transactions /> },
+      { path: "alerts", element: <Alerts /> },
+      { path: "audit-logs", element: <AuditLogs /> },
     ],
   },
-];
+]; 

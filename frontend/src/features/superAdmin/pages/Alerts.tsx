@@ -1,28 +1,95 @@
-export default function UnderMaintenance() {
+// AlertsDashboard.tsx  ← main page component
+import React from 'react';
+import { useTheme } from '../hooks/usetheme';
+import { useAlerts } from '../hooks/usealerts';
+import Header from '../components/Alerts/Header';
+import StatsGrid from '../components/Alerts/Statsgrid';
+import Toolbar from '../components/Alerts/Toolbar';
+import AlertCard from '../components/Alerts/Alertcard';
+import EmptyState from '../components/Alerts/Emptystate';
+import { cx } from '../utils/Alertutils';
+export default function AlertsDashboard() {
+  const { darkMode, toggleTheme } = useTheme();
+
+  const {
+    alerts,
+    filteredAlerts,
+    stats,
+    activeFilter,
+    setActiveFilter,
+    sortOrder,
+    setSortOrder,
+    searchQuery,
+    setSearchQuery,
+    dismissAlert,
+    acknowledgeAlert,
+    resolveAlert,
+    markAllRead,
+    dismissAll,
+  } = useAlerts();
+
+  // Determine empty state type
+  const emptyType = alerts.length === 0
+    ? 'all-clear'
+    : searchQuery.trim()
+      ? 'no-results'
+      : 'filtered-empty';
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#020817] text-white px-6">
-      <div className="text-center">
-        
-        {/* Icon */}
-        <div className="text-7xl mb-6">
-          🚧
+    <div className={cx(
+      'min-h-screen font-sans antialiased transition-colors duration-300 py-6',
+      darkMode ? 'bg-[#020817] text-slate-50' : 'bg-[#F8FAFC] text-slate-900'
+    )}>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <Header darkMode={darkMode} toggleTheme={toggleTheme} newCount={stats.new} />
+        <StatsGrid stats={stats} darkMode={darkMode} />
+        <Toolbar
+          activeFilter={activeFilter}
+          setActiveFilter={setActiveFilter}
+          sortOrder={sortOrder}
+          setSortOrder={setSortOrder}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          onMarkAllRead={markAllRead}
+          onDismissAll={dismissAll}
+          newCount={stats.new}
+          darkMode={darkMode}
+        />
+
+        {/* Alert list */}
+        <div className="space-y-3">
+          {filteredAlerts.length > 0 ? (
+            filteredAlerts.map(alert => (
+              <AlertCard
+                key={alert.id}
+                alert={alert}
+                darkMode={darkMode}
+                onDismiss={dismissAlert}
+                onAcknowledge={acknowledgeAlert}
+                onResolve={resolveAlert}
+              />
+            ))
+          ) : (
+            <EmptyState
+              type={emptyType}
+              darkMode={darkMode}
+              onReset={() => {
+                setActiveFilter('all');
+                setSearchQuery('');
+              }}
+            />
+          )}
         </div>
 
-        {/* Heading */}
-        <h1 className="text-5xl font-bold mb-4">
-          Page Under Maintenance
-        </h1>
-
-        {/* Subtitle */}
-        <p className="text-slate-400 text-lg max-w-xl mx-auto leading-relaxed">
-          We&apos;re currently working on this page to improve your experience.
-          Please check back later.
-        </p>
-
-        {/* Coming Soon Badge */}
-        <div className="mt-8 inline-flex items-center px-6 py-3 rounded-full bg-orange-500/20 border border-orange-500/30 text-orange-400 font-semibold tracking-wide">
-          Coming Soon
-        </div>
+        {/* Result count */}
+        {filteredAlerts.length > 0 && (
+          <p className={cx(
+            'text-center text-xs font-medium mt-8',
+            darkMode ? 'text-slate-600' : 'text-gray-400'
+          )}>
+            Showing {filteredAlerts.length} of {alerts.length} alert{alerts.length !== 1 ? 's' : ''}
+          </p>
+        )}
       </div>
     </div>
   );

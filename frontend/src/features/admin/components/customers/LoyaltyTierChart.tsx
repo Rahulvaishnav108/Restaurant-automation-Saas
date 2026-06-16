@@ -22,17 +22,21 @@ export function LoyaltyTierChart() {
   });
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
-      <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4">Loyalty Tier Distribution</h3>
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 sm:p-5">
+      <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
+        Loyalty Tier Distribution
+      </h3>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
         {/* Donut */}
         <div className="relative flex-shrink-0">
-          <svg width="120" height="120" viewBox="0 0 120 120">
+          <svg width="100" height="100" viewBox="0 0 120 120" className="sm:w-[120px] sm:h-[120px]">
             {arcs.map((arc) => (
               <circle
                 key={arc.label}
-                cx={cx} cy={cy} r={r}
+                cx={cx}
+                cy={cy}
+                r={r}
                 fill="none"
                 stroke={arc.color}
                 strokeWidth={strokeW}
@@ -46,16 +50,23 @@ export function LoyaltyTierChart() {
         </div>
 
         {/* Legend */}
-        <div className="space-y-2 flex-1">
+        <div className="space-y-1.5 sm:space-y-2 flex-1">
           {segments.map((seg) => (
             <div key={seg.label} className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: seg.color }} />
-                <span className="text-xs text-gray-500 dark:text-gray-400">{seg.label}</span>
+                <span
+                  className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full flex-shrink-0"
+                  style={{ background: seg.color }}
+                />
+                <span className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400">{seg.label}</span>
               </div>
               <div className="text-right">
-                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">{seg.value}%</span>
-                <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">({seg.count})</span>
+                <span className="text-[11px] sm:text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  {seg.value}%
+                </span>
+                <span className="text-[11px] sm:text-xs text-gray-400 dark:text-gray-500 ml-1">
+                  ({seg.count})
+                </span>
               </div>
             </div>
           ))}
