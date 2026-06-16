@@ -12,6 +12,7 @@ import { UserRole } from '../../constants/roles';
 import { NotificationCategory, NotificationPriority } from '../notifications/notifications.schema';
 import { TableSessionModel } from '../tableSessions/tableSessions.model';
 import { socketService } from '../../sockets/socket.service';
+import { creditPoints } from '../loyalty/loyalty.service';
 
 const ORDER_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus[]>> = {
   [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED, OrderStatus.REJECTED],
@@ -468,6 +469,7 @@ export class OrdersService {
     order.completedAt = new Date();
     order.serviceStaffId = toNullableObjectId(actorId);
     await order.save();
+    await creditPoints(order);
     return order;
   }
 }

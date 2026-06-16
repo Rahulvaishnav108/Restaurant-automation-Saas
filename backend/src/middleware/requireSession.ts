@@ -28,10 +28,8 @@ export async function requireSession(req: Request, _res: Response, next: NextFun
       );
     }
     
-    console.log('TOKEN:', token);
     // Validate session (checks ACTIVE, hard expiry, idle timeout)
     const session = await sessionService.validateSession(token);
-    console.log('SESSION:', session);  
 
     // Touch activity timestamp
     await sessionService.touchActivity(session._id.toString());
