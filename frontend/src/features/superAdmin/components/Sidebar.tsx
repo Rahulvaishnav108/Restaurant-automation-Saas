@@ -9,15 +9,14 @@ import {
   FileText,
   Sun,
   Moon,
+  Settings,
   ChevronDown,
-  LogOut,
   X,
 } from "lucide-react";
 
 interface SidebarProps {
   darkMode: boolean;
   toggleTheme: () => void;
-  signOut: () => void;
   /** Mobile drawer open state – controlled by the layout */
   mobileOpen?: boolean;
   /** Close the mobile drawer */
@@ -27,7 +26,6 @@ interface SidebarProps {
 export default function Sidebar({
   darkMode,
   toggleTheme,
-  signOut,
   mobileOpen = false,
   onMobileClose,
 }: SidebarProps) {
@@ -39,6 +37,7 @@ export default function Sidebar({
     { path: "/superadmin/transactions", label: "Transactions", icon: DollarSign },
     { path: "/superadmin/alerts", label: "Alerts", icon: Bell },
     { path: "/superadmin/audit-logs", label: "Audit Logs", icon: FileText },
+    { path: "/superadmin/settings", label: "Settings", icon: Settings },
   ];
 
   const sidebarContent = (
@@ -60,22 +59,13 @@ export default function Sidebar({
             ⬢
           </div>
           <div className="leading-tight flex-1">
-            <h1
-              className={`font-bold text-base tracking-tight ${
-                darkMode ? "text-slate-100" : "text-slate-900"
-              }`}
-            >
+            <h1 className={`font-bold text-base tracking-tight ${darkMode ? "text-slate-100" : "text-slate-900"}`}>
               Super Admin
             </h1>
-            <p
-              className={`text-xs font-medium mt-0.5 ${
-                darkMode ? "text-slate-500" : "text-slate-400"
-              }`}
-            >
+            <p className={`text-xs font-medium mt-0.5 ${darkMode ? "text-slate-500" : "text-slate-400"}`}>
               Restaurant Platform
             </p>
           </div>
-          {/* Close button – only visible on mobile */}
           <button
             onClick={onMobileClose}
             className={`lg:hidden ml-auto w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
@@ -115,21 +105,6 @@ export default function Sidebar({
             </NavLink>
           );
         })}
-
-        <button
-          onClick={() => {
-            onMobileClose?.();
-            signOut();
-          }}
-          className={`flex items-center gap-3.5 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 w-full text-left mt-4 ${
-            darkMode
-              ? "text-red-400 hover:text-red-300 hover:bg-red-950/20"
-              : "text-red-600 hover:text-red-700 hover:bg-red-50"
-          }`}
-        >
-          <LogOut size={18} />
-          <span>Sign Out</span>
-        </button>
       </nav>
 
       {/* FOOTER SYSTEM CONTROLS */}
@@ -142,9 +117,7 @@ export default function Sidebar({
           <button
             onClick={toggleTheme}
             className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
-              darkMode
-                ? "text-orange-400 hover:bg-slate-900"
-                : "text-amber-500 hover:bg-slate-100"
+              darkMode ? "text-orange-400 hover:bg-slate-900" : "text-amber-500 hover:bg-slate-100"
             }`}
           >
             {darkMode ? <Moon size={15} /> : <Sun size={15} />}
@@ -168,10 +141,7 @@ export default function Sidebar({
             alt="profile"
             className="w-6 h-6 rounded-md object-cover"
           />
-          <ChevronDown
-            size={12}
-            className={darkMode ? "text-slate-500" : "text-slate-400"}
-          />
+          <ChevronDown size={12} className={darkMode ? "text-slate-500" : "text-slate-400"} />
         </button>
       </div>
     </aside>
@@ -179,13 +149,9 @@ export default function Sidebar({
 
   return (
     <>
-      {/* ── DESKTOP: fixed sidebar, always visible on lg+ ── */}
       <div className="hidden lg:block fixed top-0 left-0 z-50 h-screen border-r transition-colors duration-300 border-r-slate-800/60">
         {sidebarContent}
       </div>
-
-      {/* ── MOBILE: slide-in drawer with backdrop ── */}
-      {/* Backdrop */}
       <div
         className={`lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
           mobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
@@ -193,8 +159,6 @@ export default function Sidebar({
         onClick={onMobileClose}
         aria-hidden="true"
       />
-
-      {/* Drawer panel */}
       <div
         className={`lg:hidden fixed top-0 left-0 z-50 h-screen border-r transition-transform duration-300 ease-in-out ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"

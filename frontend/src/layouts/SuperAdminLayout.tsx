@@ -82,7 +82,7 @@ export default function SuperAdminLayout() {
       <Sidebar
         darkMode={darkMode}
         toggleTheme={toggleTheme}
-        signOut={signOut}
+        
         mobileOpen={mobileSidebarOpen}
         onMobileClose={() => setMobileSidebarOpen(false)}
       />

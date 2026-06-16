@@ -40,6 +40,8 @@ import Subscriptions       from "../features/superAdmin/pages/Subscriptions";
 import Transactions        from "../features/superAdmin/pages/Transactions";
 import Alerts              from "../features/superAdmin/pages/Alerts";
 import AuditLogs           from "../features/superAdmin/pages/AuditLogs";
+import EditProfile         from "../features/superAdmin/pages/EditProfile";
+import Settings            from "../features/superAdmin/pages/Settings";
 
 import AdminLayout              from "../layouts/AdminLayout";
 import AdminDashboard           from "../features/admin/pages/AdminDashboard";
@@ -109,6 +111,8 @@ const AppRoutes = () => {
           <Route path="transactions"        element={<Transactions />} />
           <Route path="alerts"              element={<Alerts />} />
           <Route path="audit-logs"          element={<AuditLogs />} />
+          <Route path="edit-profile"        element={<EditProfile />} />
+          <Route path="settings"            element={<Settings />} />
         </Route>
       </Routes>
     </main>
