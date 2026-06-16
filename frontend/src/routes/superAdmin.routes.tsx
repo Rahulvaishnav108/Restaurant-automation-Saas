@@ -7,6 +7,8 @@ import Subscriptions from "../features/superAdmin/pages/Subscriptions";
 import Transactions from "../features/superAdmin/pages/Transactions";
 import Alerts from "../features/superAdmin/pages/Alerts";
 import AuditLogs from "../features/superAdmin/pages/AuditLogs";
+import EditProfile from "../features/superAdmin/pages/EditProfile";
+import Settings from "../features/superAdmin/pages/Settings";
 
 export const superAdminRoutes: RouteObject[] = [
   {
@@ -20,6 +22,8 @@ export const superAdminRoutes: RouteObject[] = [
       { path: "transactions", element: <Transactions /> },
       { path: "alerts", element: <Alerts /> },
       { path: "audit-logs", element: <AuditLogs /> },
+      {path: 'edit-profile',element: <EditProfile />,},
+      {path: 'settings',element:     <  Settings />,},
     ],
   },
 ]; 

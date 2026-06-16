@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Bell,
   Moon,
@@ -11,6 +12,13 @@ import {
   VolumeX,
   Menu,
   X,
+  Shield,
+  Activity,
+  Clock,
+  Mail,
+  Phone,
+  MapPin,
+  ChevronRight,
 } from "lucide-react";
 
 interface NavbarProps {
@@ -22,12 +30,157 @@ interface NavbarProps {
   mobileMenuOpen?: boolean;
 }
 
+// ─── Profile Card ────────────────────────────────────────────────────────────
+interface ProfileCardProps {
+  darkMode: boolean;
+  onClose: () => void;
+}
+
+function ProfileCard({ darkMode, onClose }: ProfileCardProps) {
+  const navigate = useNavigate();
+
+  const stats = [
+    { label: "Orders", value: "1.4K" },
+    { label: "Revenue", value: "$92K" },
+    { label: "Partners", value: "38" },
+  ];
+
+  const details = [
+    { icon: Mail, label: "souvik@hq.io" },
+    { icon: Phone, label: "+91 98765 43210" },
+    { icon: MapPin, label: "Kolkata, WB" },
+  ];
+
+  const handleEditProfile = () => {
+    onClose();
+    navigate("/superadmin/edit-profile");
+  };
+
+  return (
+    <div
+      className={`absolute right-0 mt-2 w-72 sm:w-80 rounded-2xl border shadow-2xl overflow-hidden z-50 ${
+        darkMode
+          ? "bg-slate-950 border-slate-800 text-slate-200"
+          : "bg-white border-slate-200 text-slate-800"
+      }`}
+    >
+      {/* ── Hero banner ── */}
+      <div className="relative h-20 bg-gradient-to-br from-orange-600 via-amber-500 to-yellow-400">
+        {/* Decorative circles */}
+        <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/10" />
+        <div className="absolute top-2 right-10 w-10 h-10 rounded-full bg-white/10" />
+
+        {/* Status badge */}
+        <span className="absolute top-3 left-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/20 text-white text-[10px] font-semibold backdrop-blur-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          Online
+        </span>
+
+        {/* Role chip */}
+        <span className="absolute top-3 right-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/20 text-white text-[10px] font-semibold backdrop-blur-sm">
+          <Shield size={10} />
+          Global Admin
+        </span>
+      </div>
+
+      {/* ── Avatar overlapping banner ── */}
+      <div className="relative px-4 pb-3">
+        <div className="flex items-end justify-between -mt-8 mb-3">
+          <div className="relative">
+            <img
+              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100&q=80"
+              alt="Mr. Souvik"
+              className="w-16 h-16 rounded-2xl object-cover border-4 border-white dark:border-slate-950 shadow-md"
+            />
+            <span className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-white dark:border-slate-950" />
+          </div>
+
+          {/* ── Edit Profile button — navigates to /superadmin/edit-profile ── */}
+          <button
+            onClick={handleEditProfile}
+            className={`mb-0.5 text-[11px] font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors ${
+              darkMode
+                ? "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            Edit Profile
+            <ChevronRight size={11} />
+          </button>
+        </div>
+
+        {/* Name & role */}
+        <div className="mb-3">
+          <h3 className="font-bold text-sm leading-tight">Mr. Souvik Dey</h3>
+          <p className="text-[11px] text-slate-400 mt-0.5 font-medium">
+            Super Administrator · HQ Terminal
+          </p>
+        </div>
+
+        {/* Stats row */}
+        <div
+          className={`grid grid-cols-3 divide-x rounded-xl overflow-hidden mb-3 ${
+            darkMode ? "divide-slate-800 bg-slate-900" : "divide-slate-100 bg-slate-50"
+          }`}
+        >
+          {stats.map(({ label, value }) => (
+            <div key={label} className="py-2.5 text-center">
+              <p className="text-sm font-bold text-orange-500 leading-none">{value}</p>
+              <p className="text-[10px] text-slate-400 mt-0.5 font-medium">{label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Contact details */}
+        <div className="space-y-1.5 mb-3">
+          {details.map(({ icon: Icon, label }) => (
+            <div
+              key={label}
+              className="flex items-center gap-2.5 text-[11px] text-slate-400 font-medium"
+            >
+              <Icon size={11} className="text-orange-400 shrink-0" />
+              <span className="truncate">{label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Last active */}
+        <div
+          className={`flex items-center gap-2 text-[10px] rounded-lg px-2.5 py-2 mb-3 font-medium ${
+            darkMode ? "bg-slate-900 text-slate-500" : "bg-slate-50 text-slate-400"
+          }`}
+        >
+          <Clock size={10} className="text-orange-400" />
+          Last active: Today, 09:42 AM IST
+          <Activity size={10} className="ml-auto text-emerald-400" />
+        </div>
+
+        {/* Divider */}
+        <div
+          className={`h-px w-full mb-2 ${darkMode ? "bg-slate-800" : "bg-slate-100"}`}
+        />
+
+        {/* Sign Out */}
+        <button
+          onClick={() => console.log("Logging out...")}
+          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-500/10 transition-colors"
+        >
+          <LogOut size={14} />
+          Sign Out
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Navbar ──────────────────────────────────────────────────────────────────
 export default function Navbar({
   darkMode,
   onThemeToggle,
   onMobileMenuToggle,
   mobileMenuOpen = false,
 }: NavbarProps) {
+  const navigate = useNavigate();
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -57,10 +210,6 @@ export default function Navbar({
     window.dispatchEvent(
       new CustomEvent("sync-app-theme", { detail: { darkMode: nextMode } })
     );
-  };
-
-  const handleLogout = () => {
-    console.log("Logging out...");
   };
 
   const notifications = [
@@ -121,7 +270,7 @@ export default function Navbar({
               {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
 
-            {/* Brand – hidden on desktop (sidebar shows it there) */}
+            {/* Brand – mobile */}
             <div className="flex items-center gap-2.5 lg:hidden">
               <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center font-black text-white text-sm">
                 ⬢
@@ -140,7 +289,7 @@ export default function Navbar({
               </div>
             </div>
 
-            {/* Brand – desktop only (keeps navbar feeling complete without sidebar duplication) */}
+            {/* Brand – desktop */}
             <div className="hidden lg:flex items-center gap-2.5">
               <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center font-black text-white text-base">
                 ⬢
@@ -160,7 +309,7 @@ export default function Navbar({
             </div>
           </div>
 
-          {/* CENTER: Search bar – expands on md+, hidden on mobile unless toggled */}
+          {/* CENTER: Search bar */}
           <div
             className={`flex-1 max-w-xl transition-all duration-200 ${
               searchOpen ? "block" : "hidden md:block"
@@ -280,17 +429,13 @@ export default function Navbar({
               {/* Settings */}
               <div className="relative">
                 <button
-                  onClick={() => {
-                    setSettingsOpen((v) => !v);
-                    setNotificationsOpen(false);
-                    setProfileDropdownOpen(false);
-                  }}
+                 onClick={() => navigate("/superadmin/settings")}
                   className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                    darkMode
-                      ? "text-slate-400 hover:bg-slate-900"
-                      : "text-slate-500 hover:bg-slate-100"
-                  }`}
-                >
+                      darkMode
+                  ? "text-slate-400 hover:bg-slate-900"
+                       : "text-slate-500 hover:bg-slate-100"
+               }`}
+                    >
                   <Settings size={16} />
                 </button>
 
@@ -336,7 +481,7 @@ export default function Navbar({
 
             <div className="h-5 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" />
 
-            {/* User profile */}
+            {/* ── User profile ── */}
             <div className="relative">
               <button
                 onClick={() => {
@@ -345,6 +490,8 @@ export default function Navbar({
                   setSettingsOpen(false);
                 }}
                 className="flex items-center gap-2 p-1 rounded-xl"
+                aria-expanded={profileDropdownOpen}
+                aria-label="Open profile menu"
               >
                 <img
                   src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100&q=80"
@@ -363,28 +510,19 @@ export default function Navbar({
                 />
               </button>
 
+              {/* ── Profile dropdown card ── */}
               {profileDropdownOpen && (
-                <div
-                  className={`absolute right-0 mt-2 w-48 rounded-xl border p-1 shadow-lg z-50 ${
-                    darkMode
-                      ? "bg-slate-950 border-slate-800"
-                      : "bg-white border-slate-200"
-                  }`}
-                >
-                  <button
-                    onClick={handleLogout}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-red-500 hover:bg-red-500/10"
-                  >
-                    <LogOut size={14} /> Logout
-                  </button>
-                </div>
+                <ProfileCard
+                  darkMode={darkMode}
+                  onClose={() => setProfileDropdownOpen(false)}
+                />
               )}
             </div>
           </div>
         </div>
       </header>
 
-      {/* Mobile full-width search bar (drops below navbar when open) */}
+      {/* Mobile full-width search bar */}
       {searchOpen && (
         <div
           className={`md:hidden fixed top-16 left-0 right-0 z-30 px-4 py-3 border-b transition-colors duration-300 ${
