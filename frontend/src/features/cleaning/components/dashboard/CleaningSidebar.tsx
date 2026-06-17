@@ -26,12 +26,12 @@ export default function CleaningSidebar({ collapsed, onToggle, onItemClick }: Pr
       {/* Header */}
       <div className={`flex ${collapsed ? 'flex-col items-center gap-3 px-2' : 'items-center justify-between px-5'} py-5 border-b border-slate-100 dark:border-slate-800 shrink-0`}>
         <div className="flex items-center gap-3">
-          <div className="bg-cleanserve-primary p-2 rounded-xl shrink-0 text-white shadow-sm shadow-cleanserve-primary/20">
+          <div className="bg-orange-500 p-2 rounded-xl shrink-0 text-white shadow-sm shadow-orange-500/20">
             <span className="material-symbols-outlined text-white text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>cleaning_services</span>
           </div>
           {!collapsed && (
             <div className="overflow-hidden">
-              <h1 className="font-bold text-base text-cleanserve-primary dark:text-white leading-tight font-sans">CleanServe</h1>
+              <h1 className="font-bold text-base text-orange-500 dark:text-white leading-tight font-sans">CleanServe</h1>
               <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase font-sans">Staff Panel</p>
             </div>
           )}
@@ -56,7 +56,7 @@ export default function CleaningSidebar({ collapsed, onToggle, onItemClick }: Pr
             className={({ isActive }) =>
               `flex items-center transition-all duration-200 font-sans text-sm font-semibold group ${
                 isActive
-                  ? 'bg-cleanserve-primary-container text-cleanserve-on-primary-container dark:bg-cleanserve-primary/20 dark:text-white'
+                  ? 'bg-orange-500/10 text-orange-500 dark:bg-orange-500/20 dark:text-white'
                   : 'text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'
               } ${
                 collapsed
@@ -70,17 +70,17 @@ export default function CleaningSidebar({ collapsed, onToggle, onItemClick }: Pr
               <>
                 <div className={collapsed ? 'flex items-center justify-center' : 'flex items-center gap-3'}>
                   <span
-                    className="material-symbols-outlined text-[20px]"
+                    className={`material-symbols-outlined text-[20px] ${isActive ? 'text-orange-500 dark:text-white' : ''}`}
                     style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
                   >
                     {icon}
                   </span>
-                  {!collapsed && <span>{label}</span>}
+                  <span className={isActive ? 'text-orange-500 dark:text-white' : ''}>{!collapsed && label}</span>
                 </div>
                 {!collapsed && badge && (
                   <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold transition-all ${
                     isActive
-                      ? 'bg-white text-cleanserve-primary'
+                      ? 'bg-orange-500 text-white'
                       : 'bg-error text-on-error'
                   }`}>{badge}</span>
                 )}
@@ -92,15 +92,15 @@ export default function CleaningSidebar({ collapsed, onToggle, onItemClick }: Pr
 
       {/* Need Help Card (Hidden when collapsed) */}
       {!collapsed && (
-        <div className="p-4 bg-cleanserve-surface-container/30 dark:bg-slate-800/40 rounded-xl mx-3 mb-4 border border-cleanserve-surface-container/50 dark:border-slate-800">
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl mx-3 mb-4 border border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2 mb-2">
-            <span className="material-symbols-outlined text-cleanserve-primary dark:text-white">support_agent</span>
+            <span className="material-symbols-outlined text-orange-500 dark:text-white">support_agent</span>
             <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Need Help?</span>
           </div>
           <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-3 leading-tight">
             Contact support for assistance.
           </p>
-          <button className="w-full py-1.5 bg-white border border-slate-200 dark:border-slate-700 text-cleanserve-primary font-bold rounded-lg text-xs hover:bg-cleanserve-surface-container-low transition-all active:scale-95">
+          <button className="w-full py-1.5 bg-white border border-slate-200 dark:border-slate-700 text-orange-500 font-bold rounded-lg text-xs hover:bg-orange-500/10 transition-all active:scale-95 cursor-pointer">
             Contact Support
           </button>
         </div>

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { useCleaning } from '../hooks/usecleaning';
 import { useCleaningSearch } from '../components/dashboard/CleaningSearchContext';
 
 interface CleaningRequest {
@@ -13,6 +14,7 @@ interface CleaningRequest {
   requestedOn: string;
   requestedTime: string;
   assignedTo: { name: string; avatar: string } | null;
+  rawId: string;
 }
 
 export default function CleaningRequestsPage() {
@@ -27,138 +29,150 @@ export default function CleaningRequestsPage() {
   const [newRequestLocation, setNewRequestLocation] = useState('Dining Area A');
   const [newRequestPriority, setNewRequestPriority] = useState('Medium');
 
-  const [requests, setRequests] = useState<CleaningRequest[]>([
-    {
-      id: 'CR-2024-036',
-      type: 'Spill Cleanup',
-      icon: 'water_drop',
-      iconColor: 'text-blue-500',
-      location: 'Dining Area A',
+  // 💥 Premium Custom Top Filter Dropdowns Tracking States
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [isPriorityOpen, setIsPriorityOpen] = useState(false);
+  const [isTypeOpen, setIsTypeOpen] = useState(false);
+  const [isRowsOpen, setIsRowsOpen] = useState(false);
+
+  const statusRef = useRef<HTMLDivElement>(null);
+  const priorityRef = useRef<HTMLDivElement>(null);
+  const typeRef = useRef<HTMLDivElement>(null);
+  const rowsRef = useRef<HTMLDivElement>(null);
+
+  // Pagination page engine states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  // 🔌 Connecting directly to central simulation hook layer
+  const { urgentTasks, startTask, completeTask, verifyTask, reportIssue } = useCleaning();
+  const safeTasks = (urgentTasks || []) as any[];
+
+  // Close custom drop components sheets cleanly when clicking outside boundaries
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      if (statusRef.current && !statusRef.current.contains(target)) setIsStatusOpen(false);
+      if (priorityRef.current && !priorityRef.current.contains(target)) setIsPriorityOpen(false);
+      if (typeRef.current && !typeRef.current.contains(target)) setIsTypeOpen(false);
+      if (rowsRef.current && !rowsRef.current.contains(target)) setIsRowsOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Map hook tasks cleanly into CleaningRequest blueprint structural parameters
+  const requests: CleaningRequest[] = safeTasks.map((t, index) => {
+    let reqStatus: 'In Progress' | 'Scheduled' | 'Completed' | 'Cancelled' = 'Scheduled';
+    if (t.rawStatus === 'IN_PROGRESS') reqStatus = 'In Progress';
+    if (t.rawStatus === 'COMPLETED' || t.rawStatus === 'VERIFIED') reqStatus = 'Completed';
+
+    let icon = 'water_drop';
+    let iconColor = 'text-blue-500';
+    let type = 'Spill Cleanup';
+
+    if (t.id === 'T03') {
+      type = 'Restroom Cleaning';
+      icon = 'wc';
+      iconColor = 'text-orange-500';
+    } else if (t.id === 'T15') {
+      type = 'Waste Overflow';
+      icon = 'delete_sweep';
+      iconColor = 'text-green-500';
+    } else if (t.id === 'T01') {
+      type = 'Dusting';
+      icon = 'air';
+      iconColor = 'text-blue-400';
+    }
+
+    let assignedStaff = null;
+    if (reqStatus === 'In Progress' || reqStatus === 'Completed') {
+      assignedStaff = {
+        name: t.id === 'T12' ? 'Vikram P.' : 'Anita S.',
+        avatar: t.id === 'T12' 
+          ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuA--L3CSbZtR0isayAQeKWVqEYUnJm50z5jjO9pkKQN7ksNy8Vgt62aZwgUrLRnYBtnpNDDk4IRK7ognEaSVtSVSsdI0zIDiq4N90jHPW5P1ONLpdO51I3sP-vvCRQnQTsfxs1Via1HEmQcJeHVGQ6-nNWKCActOegeFVwkpjBzRiXJlzDX15TkbA-90HDUzdz54FoQmsFcObFCGuXAmvK2KTyMt9nyMhl5nHPEV0d4sIjpe9An60OytiSZxSfYVdBG1nSHlTyW1aA'
+          : 'https://lh3.googleusercontent.com/aida-public/AB6AXuANsaeL1qIrdjS8VjlskxOHt17ofWL0mQA8HTEyUyGUmb0WZEoFeVIhAYDxByw8LuxWxFKIdV270hwAPBmZFNJdIOoLB7X4CRStTLzQ66uJ709k9Kvpbt3yDChYZmi0IOgzaKGIARmUFWTp8fiuOG-poilaUus94iK5MEMaPofwxQGipJFvuis9fWEp53IS84fln5N1GSiP7xWII9WnJi1qTw5gFY4eKQQgrXVlslMwV6TbZi4nnm2vGRG3hjoOoFQyNc23SGR4j9U'
+      };
+    }
+
+    return {
+      id: `CR-2026-0${30 + index}`,
+      type: type,
+      icon: icon,
+      iconColor: iconColor,
+      location: t.id === 'T15' ? 'Terrace Area' : `Table ${t.id} - Dining Zone`,
       requestedBy: {
-        name: 'Ramesh K.',
+        name: t.id === 'T07' ? 'Ramesh K.' : (t.id === 'T03' ? 'Neha P.' : 'Rahul S.'),
         avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCZ1EeclPIzb65zLML4Z-Ep8QnCj_Ey68uOYKOfFtZuK_k5ILmHPwi-DSDwYreE9ju4D4Z79Hp6UeAKZXSwBOURkmGSQ7hNQ8-lDeQGBfmjcHltnwofvxh67WrZSDukcUkwZiuZjqYa74AhkTFTcLWqysc21n_T9l3J9vkmkj_lFhXuaPU189ige8Tlb5foWMvGnW27LhowBJk4dHeUfzWcmeRluinE4acRYrVtfGNEr0sYCTnJ1sdGsg1NYN3HFCrqzkH0-TJrClE',
       },
-      priority: 'High',
-      status: 'In Progress',
-      requestedOn: 'May 15, 2024',
-      requestedTime: '10:32 AM',
-      assignedTo: {
-        name: 'Anita S.',
-        avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuANsaeL1qIrdjS8VjlskxOHt17ofWL0mQA8HTEyUyGUmb0WZEoFeVIhAYDxByw8LuxWxFKIdV270hwAPBmZFNJdIOoLB7X4CRStTLzQ66uJ709k9Kvpbt3yDChYZmi0IOgzaKGIARmUFWTp8fiuOG-poilaUus94iK5MEMaPofwxQGipJFvuis9fWEp53IS84fln5N1GSiP7xWII9WnJi1qTw5gFY4eKQQgrXVlslMwV6TbZi4nnm2vGRG3hjoOoFQyNc23SGR4j9U',
-      },
-    },
-    {
-      id: 'CR-2024-035',
-      type: 'Restroom Cleaning',
-      icon: 'wc',
-      iconColor: 'text-orange-500',
-      location: 'Restroom - 2F',
-      requestedBy: {
-        name: 'Neha P.',
-        avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCCqr4e8byTqYVEco_pDW4qhZEqlgAUl1EJtja5E7M0DsWBRQksSrV2cNSmUST_fov_CV2hnYcM50GF3AkdkQA9DyJZde8ZspYRdgShSSD26dFTuWIwAbzdIvstrRk30fD9pPGgoU4JRWaj2g0d1aG1CmfFRSuMEMHwaoYzmGlVXVxFevi1v5yCQ_IVcPyjTPBGHOwAap0atLBs5Dqs-X7eruzqijqYj8_pwZ-YMwRFz1A3UCbOAr_6HFTQ-k2FKDAEh88YYdGpaFU',
-      },
-      priority: 'Medium',
-      status: 'In Progress',
-      requestedOn: 'May 15, 2024',
-      requestedTime: '09:15 AM',
-      assignedTo: {
-        name: 'Vikram P.',
-        avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA--L3CSbZtR0isayAQeKWVqEYUnJm50z5jjO9pkKQN7ksNy8Vgt62aZwgUrLRnYBtnpNDDk4IRK7ognEaSVtSVSsdI0zIDiq4N90jHPW5P1ONLpdO51I3sP-vvCRQnQTsfxs1Via1HEmQcJeHVGQ6-nNWKCActOegeFVwkpjBzRiXJlzDX15TkbA-90HDUzdz54FoQmsFcObFCGuXAmvK2KTyMt9nyMhl5nHPEV0d4sIjpe9An60OytiSZxSfYVdBG1nSHlTyW1aA',
-      },
-    },
-    {
-      id: 'CR-2024-034',
-      type: 'Waste Overflow',
-      icon: 'delete_sweep',
-      iconColor: 'text-green-500',
-      location: 'Floor 1 - Bin Area',
-      requestedBy: {
-        name: 'Arjun M.',
-        avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCMuJxZQR_YtZH7wBUBKMUok7Wqz36--2sIHsFaSXIr96537_DvQx3o7K7noxmPz5xGq5BKdGskM1xMAEMA5fAFZvo7YQerQKZl1ptgjWLXygk3u1kckS0uZqVG2oSizoXvAP2XTG2syLKMghp7Cwa8MxWxmGXEbwA1Nv90r7JibUa7elmbR2v2G-hLyb7YDTt_fgweiz47UTQa305KOfr0LyTFYJR53gHjbuq3fNefA03IZ3zlj8Ock9tFEPdU2gumaXaciMmA9-g',
-      },
-      priority: 'High',
-      status: 'Scheduled',
-      requestedOn: 'May 14, 2024',
-      requestedTime: '04:45 PM',
-      assignedTo: null,
-    },
-    {
-      id: 'CR-2024-033',
-      type: 'Dusting',
-      icon: 'air',
-      iconColor: 'text-blue-400',
-      location: 'Conference Room A',
-      requestedBy: {
-        name: 'Sneha R.',
-        avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBP6Q2ZvHO-8-Qu3fQhaQ9IZAD5384hixJrDFP4t0KFhm8LSfGDsLVrNyiSW5AXV-FK6dQH0_lDIupeCHDOyg-ngHB_dMbHbo_SdTmelG7A_qCY6RMGlLPb0L5O-pWYsNvhkRjTlLKS28nfM7PE-YX8CC1F5syeyibFT2uAhfYy72JkBYJEE4PcdEVYBqpaD6Z-Qk8SpFCOGN1GCjt28SguaD2fynbRfXTEZAw87Ag3zEcBYnPcf5HXcys5hf_MfyQb2IA-lIvhL3E',
-      },
-      priority: 'Low',
-      status: 'Completed',
-      requestedOn: 'May 14, 2024',
-      requestedTime: '02:30 PM',
-      assignedTo: {
-        name: 'Priya L.',
-        avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDdT1n0R45uOQ3hXhiXrM9w8xL_f1QV7Lsltp_ein_3-YqL7Udyk_usGM5O_ToyTRYoDlmAqo3Q3L4-nBTZppG9l-vTkcD8tZRIt-TkCMnosTBpob-6YIBYgAW6Ug8RdR_xCWZtR9i1zTOKBX4Feyq0Q2hqD6GQCpKJapZCial9y6oQTDVBGg9GewddRvhUtxGlPdBgsQeGjGCoZyPUTneDRFo6uVUSVvujkBNn_RRcnSc61V_M-JjOMp_7gHanKkAMYJOnlZX_CSI',
-      },
-    },
-  ]);
+      priority: (t.rawPriority === 'High' || t.rawStatus === 'REQUESTED' ? 'High' : t.rawPriority === 'Low' ? 'Low' : 'Medium') as 'High' | 'Medium' | 'Low',
+      status: reqStatus,
+      requestedOn: 'Jun 16, 2026',
+      requestedTime: t.rawStatus === 'REQUESTED' ? 'Just Now' : '10:32 AM',
+      assignedTo: assignedStaff,
+      rawId: t.id
+    };
+  });
 
-  // Dynamic Bento stats calculation
-  const totalCount = requests.length + 32; // padded to match mockup stats 36
+  // Dynamic Bento stats calculation driven by store data states lengths
+  const totalCount = requests.length + 32; 
   const inProgressCount = requests.filter(r => r.status === 'In Progress').length + 10;
   const completedCount = requests.filter(r => r.status === 'Completed').length + 17;
   const scheduledCount = requests.filter(r => r.status === 'Scheduled').length + 5;
-  const cancelledCount = requests.filter(r => r.status === 'Cancelled').length + 2;
+  const cancelledCount = 2;
 
-  // Add request
+  // Add request via central system trigger
   const handleAddRequest = (e: React.FormEvent) => {
     e.preventDefault();
-    const newId = `CR-2024-0${requests.length + 37}`;
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
-    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
-    const newRequest: CleaningRequest = {
-      id: newId,
-      type: newRequestType,
-      icon: newRequestType === 'Spill Cleanup' ? 'water_drop' : newRequestType === 'Restroom Cleaning' ? 'wc' : newRequestType === 'Waste Overflow' ? 'delete_sweep' : 'air',
-      iconColor: newRequestType === 'Spill Cleanup' ? 'text-blue-500' : newRequestType === 'Restroom Cleaning' ? 'text-orange-500' : newRequestType === 'Waste Overflow' ? 'text-green-500' : 'text-blue-400',
-      location: newRequestLocation,
-      requestedBy: {
-        name: 'Rahul S.',
-        avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDa2YAJKAFQ_1YcbCXr9gWlXaoH1A_IQEjTEvJow9XOiXzf7N3kKDctQGwB_KXYqfHi5PGPLS2I4O9fkKOEGiWdsildQg5Vfmz05wcp_WiN4rZKyxzhEspK03vL9BZsmY_SdVZj9jBt5lCmAfSkMUlzuHsIslYMMEX5Q0WjP3tzo_dJkKtNCBmGtgdDixcta81A9KxtOnzWftBuUDgJv8HOjUm_KQMlyHP7JMggbPxQp6Ewa-AVQYMO3uYRKs2vlrtM8QQdTQx4QhY',
-      },
-      priority: newRequestPriority as 'High' | 'Medium' | 'Low',
-      status: 'Scheduled',
-      requestedOn: dateStr,
-      requestedTime: timeStr,
-      assignedTo: null,
-    };
-
-    setRequests(prev => [newRequest, ...prev]);
+    if (!newRequestLocation.trim()) return;
+    reportIssue(newRequestLocation.toUpperCase(), `Ticket raised: ${newRequestType}`);
     setShowAddModal(false);
   };
 
-  // Toggle status
-  const handleToggleRequestStatus = (id: string) => {
-    setRequests(prev =>
-      prev.map(r => {
-        if (r.id === id) {
-          const nextStatus = r.status === 'Scheduled' ? 'In Progress' : r.status === 'In Progress' ? 'Completed' : 'Scheduled';
-          return {
-            ...r,
-            status: nextStatus,
-            assignedTo: nextStatus === 'In Progress' 
-              ? { name: 'Priya Sharma', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDa2YAJKAFQ_1YcbCXr9gWlXaoH1A_IQEjTEvJow9XOiXzf7N3kKDctQGwB_KXYqfHi5PGPLS2I4O9fkKOEGiWdsildQg5Vfmz05wcp_WiN4rZKyxzhEspK03vL9BZsmY_SdVZj9jBt5lCmAfSkMUlzuHsIslYMMEX5Q0WjP3tzo_dJkKtNCBmGtgdDixcta81A9KxtOnzWftBuUDgJv8HOjUm_KQMlyHP7JMggbPxQp6Ewa-AVQYMO3uYRKs2vlrtM8QQdTQx4QhY' }
-              : r.assignedTo
-          };
-        }
-        return r;
-      })
-    );
+  // Toggle status linked directly with state update hooks pipelines
+  const handleToggleRequestStatus = (rawId: string, currentStatus: string) => {
+    if (currentStatus === 'Scheduled') {
+      startTask(rawId);
+    } else if (currentStatus === 'In Progress') {
+      completeTask(rawId);
+    } else if (currentStatus === 'Completed') {
+      verifyTask(rawId);
+    }
   };
 
-  // Filter requests
+  // Action Column Interactions Mapped for Requests
+  const handleViewRequestDetails = (row: CleaningRequest) => {
+    alert(`[CleanServe Ticket Inspection Log]\n-----------------------\nTicket ID: ${row.id}\nRequest Type: ${row.type}\nTarget Location: ${row.location}\nRaised By: ${row.requestedBy.name}\nUrgency Level: ${row.priority}\nPipeline Status: ${row.status}\nTimestamp: ${row.requestedOn} at ${row.requestedTime}\nAssigned Hand: ${row.assignedTo ? row.assignedTo.name : 'Awaiting Service Staff'}`);
+  };
+
+  const handleOpenRequestActionMenu = (row: CleaningRequest) => {
+    const confirmation = window.confirm(`[Request ${row.id} Housekeeping Core Settings]\n\nClick OK to flag a high priority alert system report for this ticket,\nor Cancel to exit.`);
+    if (confirmation) {
+      alert(`Emergency monitoring dispatched to zone location: ${row.location}`);
+    }
+  };
+
+  // Fully Functional CSV Export Logic
+  const handleExportCSV = () => {
+    if (filteredRequests.length === 0) {
+      alert("Export karne ke liye koi data nahi hai!");
+      return;
+    }
+    const headers = ["Request ID", "Type", "Location", "Requested By", "Priority", "Status", "Requested On", "Requested Time", "Assigned To"];
+    const rows = filteredRequests.map(r => [
+      r.id, r.type, `"${r.location.replace(/"/g, '""')}"`, r.requestedBy.name, r.priority, r.status, r.requestedOn, r.requestedTime, r.assignedTo ? r.assignedTo.name : "Unassigned"
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `cleaning_requests_export.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Filter requests matching parameters
   const filteredRequests = requests.filter(r => {
     const matchesSearch = r.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           r.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -166,9 +180,13 @@ export default function CleaningRequestsPage() {
     const matchesStatus = statusFilter === 'All Status' || r.status === statusFilter;
     const matchesPriority = priorityFilter === 'All Priority' || r.priority === priorityFilter;
     const matchesType = typeFilter === 'All Type' || r.type === typeFilter;
-    
     return matchesSearch && matchesStatus && matchesPriority && matchesType;
   });
+
+  // Calculate pages indexing slices dynamically
+  const indexOfLastRow = currentPage * rowsPerPage;
+  const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+  const currentPaginatedRequests = filteredRequests.slice(indexOfFirstRow, indexOfLastRow);
 
   return (
     <div className="space-y-6 lg:space-y-8 animate-fadeIn cleaning-panel">
@@ -177,19 +195,22 @@ export default function CleaningRequestsPage() {
         <div>
           <h1 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-2 font-sans tracking-tight">
             Cleaning Requests
-            <span className="bg-cleanserve-primary-container text-cleanserve-on-primary-container dark:bg-cleanserve-primary dark:text-white text-[10px] px-2 py-0.5 rounded-full font-bold">New</span>
+            <span className="bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">New</span>
           </h1>
-          <p className="text-xs text-slate-450 dark:text-slate-400 mt-0.5">Manage and track all cleaning requests raised by users.</p>
+          <p className="text-xs text-slate-455 dark:text-slate-400 mt-0.5">Manage and track all cleaning requests raised by users.</p>
         </div>
         <div className="flex gap-3">
           <button
             onClick={() => setShowAddModal(true)}
-            className="bg-cleanserve-primary hover:bg-cleanserve-primary-container text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 shadow-md shadow-cleanserve-primary/10 cursor-pointer text-xs"
+            className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 shadow-md shadow-orange-500/10 cursor-pointer text-xs"
           >
             <span className="material-symbols-outlined text-[18px]">add</span>
             New Request
           </button>
-          <button className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all active:scale-95 text-xs">
+          <button 
+            onClick={handleExportCSV}
+            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-orange-500 dark:hover:border-orange-500 transition-all active:scale-95 text-xs cursor-pointer"
+          >
             <span className="material-symbols-outlined text-[18px]">download</span>
             Export
           </button>
@@ -199,7 +220,7 @@ export default function CleaningRequestsPage() {
       {/* Summary Cards Bento Grid */}
       <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         <div className="bg-white dark:bg-sd-surface-container p-5 rounded-2xl border border-slate-150 dark:border-slate-800/60 shadow-sm flex items-center gap-4">
-          <div className="w-10 h-10 bg-blue-50 dark:bg-blue-950/20 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+          <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center text-orange-500 shrink-0">
             <span className="material-symbols-outlined text-[20px]">assignment</span>
           </div>
           <div>
@@ -250,46 +271,97 @@ export default function CleaningRequestsPage() {
       </section>
 
       {/* Toolbar / Filters */}
-      <section className="bg-white dark:bg-sd-surface-container p-4 rounded-2xl border border-slate-150 dark:border-slate-800/60 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <section className="bg-white dark:bg-sd-surface-container p-4 rounded-2xl border border-slate-150 dark:border-slate-800/60 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-40">
         <div className="flex flex-wrap items-center gap-3 flex-grow max-w-3xl">
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-sans py-2 px-3 focus:ring-2 focus:ring-cleanserve-primary font-bold text-slate-700 dark:text-slate-200"
-          >
-            <option>All Status</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Completed">Completed</option>
-            <option value="Scheduled">Scheduled</option>
-            <option value="Cancelled">Cancelled</option>
-          </select>
           
-          <select
-            value={priorityFilter}
-            onChange={e => setPriorityFilter(e.target.value)}
-            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-sans py-2 px-3 focus:ring-2 focus:ring-cleanserve-primary font-bold text-slate-700 dark:text-slate-200"
-          >
-            <option>All Priority</option>
-            <option value="High">High</option>
-            <option value="Medium">Medium</option>
-            <option value="Low">Low</option>
-          </select>
+          {/* 💥 Custom HTML All Status Dropdown Menu (Orange Hover Highlights) */}
+          <div className="relative" ref={statusRef}>
+            <button
+              type="button"
+              onClick={() => { setIsStatusOpen(!isStatusOpen); setIsPriorityOpen(false); setIsTypeOpen(false); }}
+              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-sans py-2 px-3 font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 outline-none hover:border-orange-500 cursor-pointer"
+            >
+              <span>{statusFilter}</span>
+              <span className="material-symbols-outlined text-sm text-slate-400">keyboard_arrow_down</span>
+            </button>
+            {isStatusOpen && (
+              <div className="absolute left-0 mt-1.5 w-40 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden flex flex-col font-sans text-xs z-50">
+                {['All Status', 'In Progress', 'Completed', 'Scheduled', 'Cancelled'].map(st => (
+                  <button
+                    key={st}
+                    type="button"
+                    onClick={() => { setStatusFilter(st); setIsStatusOpen(false); setCurrentPage(1); }}
+                    className={`w-full text-left px-3 py-2 font-bold transition-colors cursor-pointer ${
+                      statusFilter === st ? 'bg-orange-500 text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-orange-500/10 hover:text-orange-500'
+                    }`}
+                  >
+                    {st}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
-          <select
-            value={typeFilter}
-            onChange={e => setTypeFilter(e.target.value)}
-            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-sans py-2 px-3 focus:ring-2 focus:ring-cleanserve-primary font-bold text-slate-700 dark:text-slate-200"
-          >
-            <option>All Type</option>
-            <option value="Spill Cleanup">Spill Cleanup</option>
-            <option value="Restroom Cleaning">Restroom Cleaning</option>
-            <option value="Waste Overflow">Waste Overflow</option>
-            <option value="Dusting">Dusting</option>
-          </select>
+          {/* 💥 Custom HTML All Priority Dropdown Menu (Orange Hover Highlights) */}
+          <div className="relative" ref={priorityRef}>
+            <button
+              type="button"
+              onClick={() => { setIsPriorityOpen(!isPriorityOpen); setIsStatusOpen(false); setIsTypeOpen(false); }}
+              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-sans py-2 px-3 font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 outline-none hover:border-orange-500 cursor-pointer"
+            >
+              <span>{priorityFilter}</span>
+              <span className="material-symbols-outlined text-sm text-slate-400">keyboard_arrow_down</span>
+            </button>
+            {isPriorityOpen && (
+              <div className="absolute left-0 mt-1.5 w-40 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden flex flex-col font-sans text-xs z-50">
+                {['All Priority', 'High', 'Medium', 'Low'].map(pr => (
+                  <button
+                    key={pr}
+                    type="button"
+                    onClick={() => { setPriorityFilter(pr); setIsPriorityOpen(false); setCurrentPage(1); }}
+                    className={`w-full text-left px-3 py-2 font-bold transition-colors cursor-pointer ${
+                      priorityFilter === pr ? 'bg-orange-500 text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-orange-500/10 hover:text-orange-500'
+                    }`}
+                  >
+                    {pr}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 💥 Custom HTML All Type Dropdown Menu (Orange Hover Highlights - Fixed `8cfcadc1`) */}
+          <div className="relative" ref={typeRef}>
+            <button
+              type="button"
+              onClick={() => { setIsTypeOpen(!isTypeOpen); setIsStatusOpen(false); setIsPriorityOpen(false); }}
+              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-sans py-2 px-3 font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 outline-none hover:border-orange-500 transition-colors cursor-pointer"
+            >
+              <span>{typeFilter}</span>
+              <span className="material-symbols-outlined text-sm text-slate-400">keyboard_arrow_down</span>
+            </button>
+            {isTypeOpen && (
+              <div className="absolute left-0 mt-1.5 w-44 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden flex flex-col font-sans text-xs z-50">
+                {['All Type', 'Spill Cleanup', 'Restroom Cleaning', 'Waste Overflow', 'Dusting'].map(tp => (
+                  <button
+                    key={tp}
+                    type="button"
+                    onClick={() => { setTypeFilter(tp); setIsTypeOpen(false); setCurrentPage(1); }}
+                    className={`w-full text-left px-3 py-2 font-bold transition-colors cursor-pointer ${
+                      typeFilter === tp ? 'bg-orange-500 text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-orange-500/10 hover:text-orange-500'
+                    }`}
+                  >
+                    {tp}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
         </div>
 
         <div className="flex items-center gap-4 text-slate-450 dark:text-slate-400 text-[10px] font-sans font-bold">
-          <button className="flex items-center gap-1.5 hover:text-cleanserve-primary transition-colors">
+          <button className="flex items-center gap-1.5 hover:text-orange-500 transition-colors cursor-pointer">
             <span className="material-symbols-outlined text-sm">filter_list</span>
             Filter
           </button>
@@ -302,7 +374,7 @@ export default function CleaningRequestsPage() {
       </section>
 
       {/* Data Table */}
-      <section className="bg-white dark:bg-sd-surface-container rounded-2xl border border-slate-150 dark:border-slate-800/60 shadow-sm overflow-hidden">
+      <section className="bg-white dark:bg-sd-surface-container rounded-2xl border border-slate-150 dark:border-slate-800/60 shadow-sm overflow-hidden relative z-10">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse font-sans text-xs">
             <thead>
@@ -319,27 +391,27 @@ export default function CleaningRequestsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filteredRequests.length === 0 ? (
+              {currentPaginatedRequests.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="px-6 py-8 text-center text-slate-400">
                     No cleaning requests matched search criteria.
                   </td>
                 </tr>
               ) : (
-                filteredRequests.map(row => (
+                currentPaginatedRequests.map(row => (
                   <tr key={row.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
-                    <td className="px-6 py-4 whitespace-nowrap font-extrabold text-cleanserve-primary">{row.id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap font-extrabold text-orange-500">{row.id}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200">
                         <span className={`material-symbols-outlined text-[18px] ${row.iconColor}`}>{row.icon}</span>
                         {row.type}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-slate-500 dark:text-slate-450 font-semibold">{row.location}</td>
+                    <td className="px-6 py-4 text-slate-500 dark:text-slate-455 font-semibold">{row.location}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <img alt={row.requestedBy.name} className="w-5 h-5 rounded-full object-cover border border-slate-200 dark:border-slate-700" src={row.requestedBy.avatar} />
-                        <span className="font-semibold text-slate-700 dark:text-slate-350">{row.requestedBy.name}</span>
+                        <span className="font-semibold text-slate-700 dark:text-slate-355">{row.requestedBy.name}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -355,21 +427,21 @@ export default function CleaningRequestsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <button
-                        onClick={() => handleToggleRequestStatus(row.id)}
-                        className={`px-3 py-0.5 rounded-full text-[10px] font-bold border cursor-pointer ${
+                        onClick={() => handleToggleRequestStatus(row.rawId, row.status)}
+                        className={`px-3 py-0.5 rounded-full text-[10px] font-bold border cursor-pointer transition-colors ${
                           row.status === 'Completed'
-                            ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-950/20 dark:text-green-400 dark:border-green-900/30'
+                            ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/20 dark:text-green-400 dark:border-green-900/30'
                             : row.status === 'In Progress'
                               ? 'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-950/20 dark:text-orange-400 dark:border-orange-900/30'
                               : row.status === 'Scheduled'
-                                ? 'bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-950/20 dark:text-purple-400 dark:border-purple-900/30'
+                                ? 'bg-orange-500/10 text-orange-500 border-orange-200 dark:bg-slate-800 dark:text-orange-400'
                                 : 'bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
                         }`}
                       >
                         {row.status}
                       </button>
                     </td>
-                    <td className="px-6 py-4 text-slate-500 dark:text-slate-450 font-semibold leading-relaxed">
+                    <td className="px-6 py-4 text-slate-500 dark:text-slate-455 font-semibold leading-relaxed">
                       {row.requestedOn}
                       <br />
                       <span className="text-[10px] text-slate-400 font-bold">{row.requestedTime}</span>
@@ -378,7 +450,7 @@ export default function CleaningRequestsPage() {
                       {row.assignedTo ? (
                         <div className="flex items-center gap-2">
                           <img alt={row.assignedTo.name} className="w-5 h-5 rounded-full object-cover border border-slate-200 dark:border-slate-700" src={row.assignedTo.avatar} />
-                          <span className="font-semibold text-slate-700 dark:text-slate-350">{row.assignedTo.name}</span>
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">{row.assignedTo.name}</span>
                         </div>
                       ) : (
                         <span className="text-slate-400 font-bold">—</span>
@@ -386,10 +458,18 @@ export default function CleaningRequestsPage() {
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-1 text-slate-450 hover:text-cleanserve-primary rounded transition-colors">
+                        <button 
+                          onClick={() => handleViewRequestDetails(row)}
+                          className="p-1 text-slate-450 hover:text-orange-500 rounded transition-colors cursor-pointer"
+                          title="View Log Details"
+                        >
                           <span className="material-symbols-outlined text-[18px]">visibility</span>
                         </button>
-                        <button className="p-1 text-slate-400 hover:text-slate-600 rounded transition-colors">
+                        <button 
+                          onClick={() => handleOpenRequestActionMenu(row)}
+                          className="p-1 text-slate-400 hover:text-orange-500 rounded transition-colors cursor-pointer"
+                          title="More Target Actions"
+                        >
                           <span className="material-symbols-outlined text-[18px]">more_vert</span>
                         </button>
                       </div>
@@ -401,26 +481,72 @@ export default function CleaningRequestsPage() {
           </table>
         </div>
 
-        {/* Pagination */}
-        <div className="px-6 py-4 bg-slate-50/50 dark:bg-slate-850/10 flex flex-col md:flex-row md:items-center justify-between gap-4 border-t border-slate-100 dark:border-slate-800">
-          <p className="text-slate-400 dark:text-slate-450 font-bold">Showing 1 to {filteredRequests.length} of {totalCount} requests</p>
+        {/* Pagination Panel Footer */}
+        <div className="px-6 py-4 bg-white dark:bg-sd-surface-container flex flex-col md:flex-row md:items-center justify-between gap-4 border-t border-slate-100 dark:border-slate-800 relative z-30">
+          <p className="text-slate-400 dark:text-slate-455 font-bold">Showing {indexOfFirstRow + 1} to {Math.min(indexOfLastRow, filteredRequests.length)} of {totalCount} requests</p>
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <span className="text-slate-400 dark:text-slate-450 font-bold">Rows per page</span>
-              <select className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs py-1 px-2 focus:ring-1 focus:ring-cleanserve-primary outline-none">
-                <option>10</option>
-                <option>20</option>
-                <option>50</option>
-              </select>
+            
+            {/* Custom HTML Rows Per Page Menu Block */}
+            <div className="flex items-center gap-2" ref={rowsRef}>
+              <span className="text-slate-400 dark:text-slate-455 font-bold">Rows per page</span>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => { setIsRowsOpen(!isRowsOpen); setIsStatusOpen(false); setIsPriorityOpen(false); setIsTypeOpen(false); }}
+                  className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg py-1 px-2.5 font-bold text-slate-700 dark:text-slate-355 flex items-center gap-1 outline-none hover:border-orange-500 cursor-pointer"
+                >
+                  <span>{rowsPerPage}</span>
+                  <span className="material-symbols-outlined text-xs text-slate-400">keyboard_arrow_down</span>
+                </button>
+                {isRowsOpen && (
+                  <div className="absolute right-0 bottom-full mb-1.5 w-16 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg overflow-hidden flex flex-col font-sans text-xs z-50">
+                    {[10, 20, 50].map(size => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => { setRowsPerPage(size); setCurrentPage(1); setIsRowsOpen(false); }}
+                        className={`w-full text-center py-1.5 font-bold transition-colors cursor-pointer ${
+                          rowsPerPage === size ? 'bg-orange-500 text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-orange-500/10 hover:text-orange-500'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             
+            {/* Custom HTML Pagination Active Page Layout Controls */}
             <div className="flex items-center gap-1">
-              <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800" disabled>
+              <button 
+                type="button"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 <span className="material-symbols-outlined text-sm">chevron_left</span>
               </button>
-              <button className="w-8 h-8 bg-cleanserve-primary text-white font-bold rounded-lg">1</button>
-              <button className="w-8 h-8 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-650 dark:text-slate-350 font-bold rounded-lg">2</button>
-              <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+              {[1, 2].map(page => (
+                <button 
+                  key={page}
+                  type="button"
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-8 h-8 font-bold rounded-lg transition-all cursor-pointer ${
+                    currentPage === page 
+                      ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' 
+                      : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-650 dark:text-slate-350'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+              <button 
+                type="button"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, 2))}
+                disabled={currentPage === 2}
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 <span className="material-symbols-outlined text-sm">chevron_right</span>
               </button>
             </div>
@@ -433,7 +559,7 @@ export default function CleaningRequestsPage() {
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fadeIn">
           <div className="bg-white dark:bg-sd-surface-container rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-xl w-full max-w-sm">
             <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-100 mb-1 font-sans">Submit Manual Cleaning Request</h3>
-            <p className="text-[11px] text-slate-400 dark:text-slate-450 mb-4 font-sans leading-relaxed">
+            <p className="text-[11px] text-slate-400 dark:text-slate-455 mb-4 font-sans leading-relaxed">
               Log a user request or housekeeping ticket in the queue.
             </p>
             <form onSubmit={handleAddRequest} className="space-y-4 font-sans text-xs">
@@ -443,7 +569,7 @@ export default function CleaningRequestsPage() {
                   id="new-request-type"
                   value={newRequestType}
                   onChange={(e) => setNewRequestType(e.target.value)}
-                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 >
                   <option value="Spill Cleanup">Spill Cleanup 💧</option>
                   <option value="Restroom Cleaning">Restroom Cleaning 🚾</option>
@@ -460,7 +586,7 @@ export default function CleaningRequestsPage() {
                   placeholder="e.g. Dining Area B, Table T09, Lobby"
                   value={newRequestLocation}
                   onChange={(e) => setNewRequestLocation(e.target.value)}
-                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:border-orange-500"
                   required
                 />
               </div>
@@ -471,7 +597,7 @@ export default function CleaningRequestsPage() {
                   id="new-request-priority"
                   value={newRequestPriority}
                   onChange={(e) => setNewRequestPriority(e.target.value)}
-                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 >
                   <option value="High">High Urgency (Red Alert)</option>
                   <option value="Medium">Medium Urgency (Normal Flow)</option>
@@ -483,13 +609,13 @@ export default function CleaningRequestsPage() {
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-200 transition-all active:scale-95"
+                  className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-400 rounded-xl font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-200 transition-all active:scale-95"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 bg-cleanserve-primary text-white rounded-xl font-bold hover:opacity-90 transition-all active:scale-95"
+                  className="flex-1 py-2 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 transition-all active:scale-95"
                 >
                   Raise Ticket
                 </button>
