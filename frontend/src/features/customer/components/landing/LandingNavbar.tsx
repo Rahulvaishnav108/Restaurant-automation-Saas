@@ -48,17 +48,18 @@ export default function LandingNavbar({ onLoginClick }: LandingNavbarProps) {
           {/* Desktop nav links */}
           <div className="hidden md:flex items-center gap-6 lg:gap-8 ml-auto mr-6">
             {navLinks.map((link) => (
-              <a
+              <button
                 key={link}
-                href="#"
-                className={`text-sm font-medium transition-colors whitespace-nowrap ${
+                type="button"
+                onClick={() => {}}
+                className={`text-sm font-medium transition-colors whitespace-nowrap bg-transparent border-none p-0 cursor-pointer ${
                   link === 'Home'
                     ? 'text-amber-400 border-b border-amber-400 pb-0.5'
                     : 'text-stone-300 hover:text-white'
                 }`}
               >
                 {link}
-              </a>
+              </button>
             ))}
           </div>
 
@@ -92,16 +93,16 @@ export default function LandingNavbar({ onLoginClick }: LandingNavbarProps) {
             <span>Mulund, Mumbai</span>
           </div>
           {navLinks.map((link) => (
-            <a
+            <button
               key={link}
-              href="#"
+              type="button"
               onClick={() => setMobileOpen(false)}
-              className={`block text-sm font-medium py-2.5 px-2 rounded-lg transition-colors ${
+              className={`block w-full text-left text-sm font-medium py-2.5 px-2 rounded-lg transition-colors bg-transparent border-none cursor-pointer ${
                 link === 'Home' ? 'text-amber-400' : 'text-stone-300 hover:text-white'
               }`}
             >
               {link}
-            </a>
+            </button>
           ))}
         </div>
       )}

@@ -63,7 +63,7 @@ export default function TestimonialsSection() {
             </div>
 
             <p className="text-stone-400 text-xs sm:text-sm leading-relaxed mb-4">
-              "{t.text}"
+              &ldquo;{t.text}&rdquo;
             </p>
             <p className="text-amber-400 font-semibold text-sm">{t.name}</p>
             <p className="text-stone-600 text-[10px] uppercase tracking-widest mt-0.5">{t.role}</p>

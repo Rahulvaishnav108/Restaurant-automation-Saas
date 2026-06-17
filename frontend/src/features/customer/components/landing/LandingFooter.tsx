@@ -34,9 +34,13 @@ export default function LandingFooter() {
             <ul className="space-y-2">
               {quickLinks.map((l) => (
                 <li key={l}>
-                  <a href="#" className="text-stone-500 hover:text-amber-400 text-xs transition-colors">
+                  <button
+                    type="button"
+                    onClick={() => {}}
+                    className="text-stone-500 hover:text-amber-400 text-xs transition-colors text-left bg-transparent border-none p-0 cursor-pointer"
+                  >
                     {l}
-                  </a>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -48,9 +52,13 @@ export default function LandingFooter() {
             <ul className="space-y-2">
               {supportLinks.map((l) => (
                 <li key={l}>
-                  <a href="#" className="text-stone-500 hover:text-amber-400 text-xs transition-colors">
+                  <button
+                    type="button"
+                    onClick={() => {}}
+                    className="text-stone-500 hover:text-amber-400 text-xs transition-colors text-left bg-transparent border-none p-0 cursor-pointer"
+                  >
                     {l}
-                  </a>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -62,9 +70,13 @@ export default function LandingFooter() {
             <ul className="space-y-2">
               {restaurantLinks.map((l) => (
                 <li key={l}>
-                  <a href="#" className="text-stone-500 hover:text-amber-400 text-xs transition-colors">
+                  <button
+                    type="button"
+                    onClick={() => {}}
+                    className="text-stone-500 hover:text-amber-400 text-xs transition-colors text-left bg-transparent border-none p-0 cursor-pointer"
+                  >
                     {l}
-                  </a>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -77,10 +89,17 @@ export default function LandingFooter() {
             © 2025 ServeSphere. All rights reserved.
           </p>
           <div className="flex items-center gap-2.5">
-            {[Facebook, Instagram, Twitter, Linkedin].map((Icon, i) => (
+            {[
+              { Icon: Facebook, url: 'https://facebook.com' },
+              { Icon: Instagram, url: 'https://instagram.com' },
+              { Icon: Twitter, url: 'https://twitter.com' },
+              { Icon: Linkedin, url: 'https://linkedin.com' },
+            ].map(({ Icon, url }, i) => (
               <a
                 key={i}
-                href="#"
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#2a1800] hover:bg-amber-500 flex items-center justify-center text-stone-400 hover:text-stone-900 transition-all border border-amber-900/30 hover:border-amber-500"
               >
                 <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />

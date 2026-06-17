@@ -13,13 +13,21 @@ const TIME_SLOTS = [
   { time: '09:30 PM', status: 'available' },
 ];
 
+const getTodayStr = () => new Date().toISOString().split('T')[0];
+const getTomorrowStr = () => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return tomorrow.toISOString().split('T')[0];
+};
+const getRandomTableId = () => Math.floor(Math.random() * 12) + 1;
+
 export default function CustomerReservationPage() {
   const { profile, addNotification } = useCustomerStore();
   const { allReservations, addReservation, updateReservation, updateReservationStatus } = useReservationsStore();
   const formRef = useRef<HTMLFormElement>(null);
 
-  const todayStr = new Date().toISOString().split('T')[0];
-  const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+  const [todayStr] = useState(getTodayStr);
+  const [tomorrowStr] = useState(getTomorrowStr);
 
   const [guests, setGuests] = useState('2 Guests');
   const [date, setDate] = useState(todayStr);
@@ -92,7 +100,7 @@ export default function CustomerReservationPage() {
         phone: profile.phone,
         time,
         guests: guestCount,
-        tableId: Math.floor(Math.random() * 12) + 1,
+        tableId: getRandomTableId(),
         status: 'Confirmed' as const,
         date,
         specialRequest,

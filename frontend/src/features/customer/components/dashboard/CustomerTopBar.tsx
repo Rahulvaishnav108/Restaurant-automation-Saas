@@ -149,6 +149,7 @@ export default function CustomerTopBar({ onToggleCart }: Props) {
           {/* Notifications Dropdown */}
           {notificationsOpen && (
             <>
+              {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
               <div className="fixed inset-0 z-40" onClick={() => setNotificationsOpen(false)} />
               <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-sd-surface-variant rounded-2xl shadow-xl z-50 overflow-hidden animate-fadeIn max-h-[500px] flex flex-col">
                 {/* Header */}
@@ -227,61 +228,60 @@ export default function CustomerTopBar({ onToggleCart }: Props) {
                           }
                         };
 
-                        return (
-                          <div
-                            key={n.id}
-                            onClick={handleNotificationClick}
-                            className={`p-3.5 flex gap-3 hover:bg-sd-surface-container-low/50 transition-colors relative group cursor-pointer ${
-                              !n.read ? 'bg-sd-primary-container/[0.03]' : ''
-                            }`}
-                          >
-                            <div className={`w-8.5 h-8.5 rounded-full ${iconColor} flex items-center justify-center shrink-0`}>
-                              <span className="material-symbols-outlined text-[18px]">{iconName}</span>
-                            </div>
-                            <div className="flex-1 min-w-0 pr-16">
-                              <div className="flex items-center gap-1.5">
-                                <p className={`text-xs font-sans truncate ${!n.read ? 'font-bold text-sd-on-surface' : 'text-sd-on-surface-variant'}`}>
-                                  {n.title}
-                                </p>
-                                {!n.read && (
-                                  <span className="w-1.5 h-1.5 rounded-full bg-sd-primary shrink-0 animate-ping" />
-                                )}
-                              </div>
-                              <p className="text-[11px] text-sd-on-surface-variant font-sans mt-0.5 break-words">
-                                {n.message}
+                        // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
+                        return <div
+                          key={n.id}
+                          onClick={handleNotificationClick}
+                          className={`p-3.5 flex gap-3 hover:bg-sd-surface-container-low/50 transition-colors relative group cursor-pointer ${
+                            !n.read ? 'bg-sd-primary-container/[0.03]' : ''
+                          }`}
+                        >
+                          <div className={`w-8.5 h-8.5 rounded-full ${iconColor} flex items-center justify-center shrink-0`}>
+                            <span className="material-symbols-outlined text-[18px]">{iconName}</span>
+                          </div>
+                          <div className="flex-1 min-w-0 pr-16">
+                            <div className="flex items-center gap-1.5">
+                              <p className={`text-xs font-sans truncate ${!n.read ? 'font-bold text-sd-on-surface' : 'text-sd-on-surface-variant'}`}>
+                                {n.title}
                               </p>
-                              <p className="text-[9px] text-sd-on-surface-variant/60 font-sans mt-1">
-                                {n.timestamp}
-                              </p>
-                            </div>
-
-                            {/* Action buttons on hover (and readable on mobile layout) */}
-                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10">
                               {!n.read && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    markNotificationRead(n.id);
-                                  }}
-                                  className="w-7 h-7 bg-white dark:bg-sd-surface border border-sd-surface-variant hover:border-sd-primary text-sd-on-surface-variant hover:text-sd-primary rounded-full flex items-center justify-center shadow-md transition-all hover:scale-105"
-                                  title="Mark as read"
-                                >
-                                  <span className="material-symbols-outlined text-[14px]">done</span>
-                                </button>
+                                <span className="w-1.5 h-1.5 rounded-full bg-sd-primary shrink-0 animate-ping" />
                               )}
+                            </div>
+                            <p className="text-[11px] text-sd-on-surface-variant font-sans mt-0.5 break-words">
+                              {n.message}
+                            </p>
+                            <p className="text-[9px] text-sd-on-surface-variant/60 font-sans mt-1">
+                              {n.timestamp}
+                            </p>
+                          </div>
+
+                          {/* Action buttons on hover (and readable on mobile layout) */}
+                          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10">
+                            {!n.read && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  markNotificationRead(n.id);
+                                }}
+                                className="w-7 h-7 bg-white dark:bg-sd-surface border border-sd-surface-variant hover:border-sd-primary text-sd-on-surface-variant hover:text-sd-primary rounded-full flex items-center justify-center shadow-md transition-all hover:scale-105"
+                                title="Mark as read"
+                              >
+                                <span className="material-symbols-outlined text-[14px]">done</span>
+                              </button>
+                            )}
+                            <button
+                              onClick={(e) => {
+                                  e.stopPropagation();
                                   deleteNotification(n.id);
                                 }}
-                                className="w-7 h-7 bg-white dark:bg-sd-surface border border-sd-surface-variant hover:border-red-500 text-sd-on-surface-variant hover:text-red-500 rounded-full flex items-center justify-center shadow-md transition-all hover:scale-105"
-                                title="Delete"
-                              >
-                                <span className="material-symbols-outlined text-[14px]">delete</span>
-                              </button>
-                            </div>
+                              className="w-7 h-7 bg-white dark:bg-sd-surface border border-sd-surface-variant hover:border-red-500 text-sd-on-surface-variant hover:text-red-500 rounded-full flex items-center justify-center shadow-md transition-all hover:scale-105"
+                              title="Delete"
+                            >
+                              <span className="material-symbols-outlined text-[14px]">delete</span>
+                            </button>
                           </div>
-                        );
+                        </div>;
                       })}
                     </div>
                   )}

@@ -204,6 +204,7 @@ export default function CustomerProfilePage() {
               {/* Avatar Selector Dropdown */}
               {avatarMenuOpen && (
                 <>
+                  {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
                   <div className="fixed inset-0 z-40" onClick={() => setAvatarMenuOpen(false)} />
                   <div className="absolute left-0 mt-2 p-2 bg-white dark:bg-sd-surface-container border border-sd-surface-variant rounded-xl shadow-lg z-50 flex gap-2 items-center">
                     {AVATAR_OPTIONS.map((opt) => {
@@ -513,8 +514,9 @@ export default function CustomerProfilePage() {
               {activeModal === 'profile' && (
                 <form onSubmit={handleSaveProfile} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-sd-on-surface-variant uppercase tracking-wider mb-1 font-sans">Full Name</label>
+                    <label htmlFor="editName" className="block text-xs font-bold text-sd-on-surface-variant uppercase tracking-wider mb-1 font-sans">Full Name</label>
                     <input 
+                      id="editName"
                       type="text" 
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
@@ -524,8 +526,9 @@ export default function CustomerProfilePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-sd-on-surface-variant uppercase tracking-wider mb-1 font-sans">Mobile Phone</label>
+                    <label htmlFor="editPhone" className="block text-xs font-bold text-sd-on-surface-variant uppercase tracking-wider mb-1 font-sans">Mobile Phone</label>
                     <input 
+                      id="editPhone"
                       type="tel" 
                       value={editPhone}
                       onChange={(e) => setEditPhone(e.target.value)}
@@ -535,8 +538,9 @@ export default function CustomerProfilePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-sd-on-surface-variant uppercase tracking-wider mb-1 font-sans">Email Address</label>
+                    <label htmlFor="editEmail" className="block text-xs font-bold text-sd-on-surface-variant uppercase tracking-wider mb-1 font-sans">Email Address</label>
                     <input 
+                      id="editEmail"
                       type="email" 
                       value={editEmail}
                       onChange={(e) => setEditEmail(e.target.value)}
