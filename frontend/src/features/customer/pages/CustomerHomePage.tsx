@@ -4,16 +4,18 @@ import { useSearch } from '../components/dashboard/SearchContext';
 import FoodCard from '../components/dashboard/FoodCard';
 import CategoryFilter from '../components/dashboard/CategoryFilter';
 import QuickActions from '../components/dashboard/QuickActions';
+import { useCustomerStore } from '../store/customer.store';
 
 export default function CustomerHomePage() {
   const { filteredItems } = useSearch();
-  const recommended = filteredItems.slice(0, 6);
+  const { profile } = useCustomerStore();
+  const recommended = filteredItems.slice(0, 8);
 
   return (
     <div className="p-4 md:p-8 pb-24 md:pb-8 overflow-y-auto h-full sd-custom-scrollbar">
       {/* Greeting */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-sd-on-surface font-sans">Good Evening! 👋</h2>
+        <h2 className="text-2xl font-bold text-sd-on-surface font-sans">Good Evening, {profile.name.split(' ')[0]}! 👋</h2>
         <p className="text-sm text-sd-on-surface-variant font-sans">What would you like to order today?</p>
       </div>
 
@@ -88,24 +90,26 @@ export default function CustomerHomePage() {
       </section>
 
       {/* Recommended */}
-      <section className="mb-8">
+      <section className="mb-8 food-grid-container">
         <div className="flex justify-between items-end mb-5">
           <div>
             <h3 className="text-base font-bold text-sd-on-surface font-sans">Recommended for you</h3>
             <p className="text-xs text-sd-on-surface-variant font-sans">Handpicked dishes based on your taste</p>
           </div>
-          <Link
-            to="/customer/menu"
-            className="text-sd-primary font-bold text-sm flex items-center gap-1 hover:gap-2 transition-all font-sans"
-          >
-            View all
-            <span className="material-symbols-outlined text-[14px]">arrow_forward_ios</span>
-          </Link>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="cq-food-grid-5">
           {recommended.map((item) => (
             <FoodCard key={item.id} item={item} />
           ))}
+        </div>
+        <div className="flex justify-center mt-8">
+          <Link
+            to="/customer/menu"
+            className="px-6 py-2.5 border-2 border-sd-primary text-sd-primary hover:bg-sd-primary hover:text-white rounded-xl text-sm font-bold transition-all active:scale-95 flex items-center gap-2 font-sans"
+          >
+            View All Menu
+            <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+          </Link>
         </div>
       </section>
     </div>

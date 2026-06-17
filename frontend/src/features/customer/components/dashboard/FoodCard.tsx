@@ -11,7 +11,7 @@ export default function FoodCard({ item }: Props) {
   const [isFav, setIsFav] = useState(false);
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden border border-sd-outline-variant hover:shadow-xl transition-all group flex flex-col sd-food-card-shadow">
+    <div className="bg-white rounded-[10px] overflow-hidden border border-sd-outline-variant hover:shadow-xl transition-all group flex flex-col sd-food-card-shadow">
       {/* Image */}
       <div className="relative h-48 overflow-hidden bg-sd-surface-container">
         {item.image ? (
@@ -80,7 +80,7 @@ export default function FoodCard({ item }: Props) {
                 description: item.description,
               })
             }
-            className="bg-white border-2 border-sd-primary-container text-sd-primary-container hover:bg-sd-primary-container hover:text-white px-6 py-2 rounded-xl text-sm font-bold transition-all active:scale-95 font-sans"
+            className="bg-white border-2 border-sd-primary-container text-sd-primary-container hover:bg-sd-primary-container hover:text-white px-6 py-2 rounded-[5px] text-sm font-bold transition-all active:scale-95 font-sans"
           >
             ADD
           </button>

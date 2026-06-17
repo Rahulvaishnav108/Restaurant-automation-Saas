@@ -94,10 +94,12 @@ export default function CustomerMenuPage() {
 
         {/* Food Grid */}
         {filteredItems.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-5">
-            {filteredItems.map((item) => (
-              <FoodCard key={item.id} item={item} />
-            ))}
+          <div className="food-grid-container">
+            <div className="cq-food-grid-6">
+              {filteredItems.map((item) => (
+                <FoodCard key={item.id} item={item} />
+              ))}
+            </div>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-sd-on-surface-variant">

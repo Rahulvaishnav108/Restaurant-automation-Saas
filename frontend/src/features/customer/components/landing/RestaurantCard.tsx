@@ -22,7 +22,7 @@ interface RestaurantCardProps {
 
 export default function RestaurantCard({ restaurant, onViewMenu }: RestaurantCardProps) {
   return (
-    <div className="rounded-2xl overflow-hidden bg-[#2a1800]/60 border border-[#FF9F00]/30 hover:border-[#FF9F00]/40 transition-all group hover:-translate-y-1 duration-200">
+    <div className="rounded-2xl overflow-hidden bg-[#2a1800]/60 border border-amber-900/30 hover:border-amber-500/40 transition-all group hover:-translate-y-1 duration-200">
       {/* Image */}
       <div className="relative h-40 sm:h-44 overflow-hidden">
         <img
@@ -39,8 +39,8 @@ export default function RestaurantCard({ restaurant, onViewMenu }: RestaurantCar
       <div className="p-3 sm:p-4">
         <div className="flex items-start justify-between gap-2 mb-1">
           <h3 className="font-bold text-white text-sm sm:text-base leading-tight">{restaurant.name}</h3>
-          <div className="flex items-center gap-1 text-[#FF9F00] flex-shrink-0">
-            <Star className="w-3 h-3 fill-[#FF9F00]" />
+          <div className="flex items-center gap-1 text-amber-400 flex-shrink-0">
+            <Star className="w-3 h-3 fill-amber-400" />
             <span className="text-xs sm:text-sm font-semibold">{restaurant.rating}</span>
             <span className="text-stone-500 text-[10px] sm:text-xs">({restaurant.reviews})</span>
           </div>
@@ -60,13 +60,13 @@ export default function RestaurantCard({ restaurant, onViewMenu }: RestaurantCar
 
         <div className="flex items-center gap-2">
           {restaurant.discount && (
-            <span className="flex items-center gap-1 text-[#FF9F00] text-[10px] sm:text-xs font-bold bg-[#FF9F00]/10 border border-[#FF9F00]/20 px-2 py-1 rounded-full whitespace-nowrap">
+            <span className="flex items-center gap-1 text-amber-400 text-[10px] sm:text-xs font-bold bg-amber-400/10 border border-amber-400/20 px-2 py-1 rounded-full whitespace-nowrap">
               <Tag className="w-2.5 h-2.5" /> {restaurant.discount}
             </span>
           )}
           <button
             onClick={() => onViewMenu?.(restaurant.id)}
-            className="ml-auto bg-[#3a2200] hover:bg-[#FF9F00] hover:text-stone-900 text-[#FF9F00] text-[10px] sm:text-xs font-semibold px-3 sm:px-4 py-1.5 rounded-full border border-[#FF9F00]/40 hover:border-[#FF9F00] transition-all whitespace-nowrap"
+            className="ml-auto bg-[#3a2200] hover:bg-amber-500 hover:text-stone-900 text-amber-400 text-[10px] sm:text-xs font-semibold px-3 sm:px-4 py-1.5 rounded-full border border-amber-800/40 hover:border-amber-500 transition-all whitespace-nowrap"
           >
             View Menu
           </button>

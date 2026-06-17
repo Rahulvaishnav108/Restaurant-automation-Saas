@@ -9,7 +9,8 @@ export default defineConfig({
     strictPort: true,
     host: true, // Needed for Docker
     watch: {
-      usePolling: true, // Sometimes needed for hot reloading in Docker on Windows
+      usePolling: true,
+      ignored: ['**/node_modules/**', '**/.git/**'],
     },
   },
 });

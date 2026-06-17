@@ -5,9 +5,16 @@ export default function KitchenTopBar() {
   const { query, setQuery } = useKitchenSearch();
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
+  const formatDate = (date: Date): string => {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
   const now = new Date();
   const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-  const dateStr = now.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+  const dateStr = formatDate(now);
 
   if (mobileSearchOpen) {
     return (

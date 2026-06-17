@@ -60,11 +60,9 @@ const topRestaurants: Restaurant[] = [
   },
 ];
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
-type LandingPageProps = {
+interface LandingPageProps {
   initialLoginOpen?: boolean;
-};
+}
 
 export default function LandingPage({ initialLoginOpen = false }: LandingPageProps) {
   const [loginOpen, setLoginOpen] = useState(initialLoginOpen);

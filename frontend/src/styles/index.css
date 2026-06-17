@@ -610,4 +610,60 @@
   border-color: rgba(148, 163, 184, 0.2) !important;
 }
 
+/* Container Query Grid for Food Cards */
+.food-grid-container {
+  container-type: inline-size;
+  container-name: foodgrid;
+  width: 100%;
+}
+
+.cq-food-grid-5 {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@container foodgrid (min-width: 480px) {
+  .cq-food-grid-5 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container foodgrid (min-width: 640px) {
+  .cq-food-grid-5 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@container foodgrid (min-width: 860px) {
+  .cq-food-grid-5 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.cq-food-grid-6 {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@container foodgrid (min-width: 480px) {
+  .cq-food-grid-6 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container foodgrid (min-width: 640px) {
+  .cq-food-grid-6 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@container foodgrid (min-width: 860px) {
+  .cq-food-grid-6 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+
 

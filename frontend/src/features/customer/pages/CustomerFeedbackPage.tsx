@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { useCustomerStore } from '../store/customer.store';
 
 const EMOJIS = [
   { id: 'bad', emoji: '😠', label: 'Very Bad' },
@@ -15,6 +16,8 @@ const CATEGORIES = [
 ];
 
 export default function CustomerFeedbackPage() {
+  const { requestService, addNotification } = useCustomerStore();
+
   const [selected, setSelected] = useState('excellent');
   const [ratings, setRatings] = useState<Record<string, number>>({
     'Food Quality': 5,
@@ -23,9 +26,104 @@ export default function CustomerFeedbackPage() {
     Ambience: 5,
   });
   const [feedback, setFeedback] = useState('');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [supportModalOpen, setSupportModalOpen] = useState(false);
+  const [supportMsg, setSupportMsg] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleAddPhotosClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const selectedFiles = Array.from(e.target.files);
+      selectedFiles.forEach((file) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPhotos((prev) => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+      showToast(`${selectedFiles.length} photo(s) selected!`);
+    }
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSendSupport = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supportMsg.trim()) {
+      showToast('Please type a message first.', 'error');
+      return;
+    }
+
+    requestService({
+      id: `req-${Date.now()}`,
+      label: 'Support Request',
+      description: supportMsg,
+      type: 'other',
+      status: 'Pending',
+    });
+
+    addNotification(
+      'Support Ticket Created ✉️',
+      `Your support ticket has been submitted. Message: "${supportMsg.slice(0, 30)}..."`,
+      'info',
+      '/customer/feedback'
+    );
+
+    showToast('Support ticket submitted successfully!');
+    setSupportMsg('');
+    setSupportModalOpen(false);
+  };
+
+  const handleSubmitFeedback = () => {
+    addNotification(
+      'Feedback Received! 🌟',
+      `Thank you for your rating: "${EMOJIS.find((e) => e.id === selected)?.label || selected}". We appreciate your feedback!`,
+      'info',
+      '/customer/feedback'
+    );
+
+    showToast('Feedback submitted! Thank you.');
+    
+    // Clear/Reset fields after submission
+    setFeedback('');
+    setPhotos([]);
+    setSelected('excellent');
+    setRatings({
+      'Food Quality': 5,
+      Taste: 5,
+      'Service Speed': 5,
+      Ambience: 5,
+    });
+  };
 
   return (
     <div className="p-4 md:p-8 pb-24 md:pb-8 overflow-y-auto h-full sd-custom-scrollbar">
+      {/* Toast Alert */}
+      {toast && (
+        <div className={`fixed top-4 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl shadow-xl z-[150] flex items-center gap-2 border text-sm font-semibold font-sans animate-fadeIn ${
+          toast.type === 'success'
+            ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-950 dark:border-green-900 dark:text-green-300'
+            : 'bg-red-50 border-red-200 text-red-700 dark:bg-red-950 dark:border-red-900 dark:text-red-300'
+        }`}>
+          <span className="material-symbols-outlined text-lg">
+            {toast.type === 'success' ? 'check_circle' : 'error'}
+          </span>
+          {toast.message}
+        </div>
+      )}
+
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-sd-on-surface font-sans">Rate Your Experience</h2>
         <div className="flex items-center gap-2 mt-1">
@@ -114,38 +212,118 @@ export default function CustomerFeedbackPage() {
         {/* Feedback Text */}
         <div className="flex flex-col gap-4">
           <h3 className="text-base font-bold text-sd-on-surface font-sans">Tell us more</h3>
-          <div className="flex-1 bg-white rounded-xl border border-sd-surface-variant p-4 sd-food-card-shadow">
+          <div className="flex-grow flex flex-col bg-white rounded-xl border border-sd-surface-variant p-4 sd-food-card-shadow">
             <textarea
-              className="w-full bg-transparent border-none focus:ring-0 text-sm font-sans text-sd-on-surface resize-none p-0 focus:outline-none"
+              className="w-full flex-1 bg-transparent border-none focus:ring-0 text-sm font-sans text-sd-on-surface resize-none p-0 focus:outline-none"
               placeholder="Share your thoughts about your experience..."
-              rows={5}
+              rows={4}
               maxLength={300}
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
             />
             <p className="text-right text-[11px] text-sd-on-surface-variant mt-2 font-sans">{feedback.length}/300</p>
           </div>
+          
           <div className="grid grid-cols-2 gap-3">
-            <button className="flex items-center justify-center gap-2 py-3 bg-white border border-sd-surface-variant rounded-xl text-sm font-bold hover:bg-sd-surface-container-low transition-colors font-sans">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/*"
+              multiple
+              className="hidden"
+            />
+            <button 
+              onClick={handleAddPhotosClick}
+              className="flex items-center justify-center gap-2 py-3 bg-white border border-sd-surface-variant rounded-xl text-sm font-bold hover:bg-sd-surface-container-low transition-colors font-sans"
+            >
               <span className="material-symbols-outlined text-sd-primary text-[18px]">add_a_photo</span>
-              Add Photos
+              {photos.length > 0 ? `Add Photos (${photos.length})` : 'Add Photos'}
             </button>
-            <button className="flex items-center justify-center gap-2 py-3 bg-white border border-sd-surface-variant rounded-xl text-sm font-bold hover:bg-sd-surface-container-low transition-colors font-sans">
+            <button 
+              onClick={() => setSupportModalOpen(true)}
+              className="flex items-center justify-center gap-2 py-3 bg-white border border-sd-surface-variant rounded-xl text-sm font-bold hover:bg-sd-surface-container-low transition-colors font-sans"
+            >
               <span className="material-symbols-outlined text-sd-tertiary text-[18px]">support_agent</span>
               Write to Support
             </button>
           </div>
+
+          {/* Photo Previews */}
+          {photos.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto py-1 sd-custom-scrollbar">
+              {photos.map((src, idx) => (
+                <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-sd-surface-variant shrink-0 group">
+                  <img src={src} alt="preview" className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => handleRemovePhoto(idx)}
+                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">delete</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Submit */}
         <div className="lg:col-span-3 mt-2">
-          <button className="w-full max-w-md mx-auto block py-4 bg-sd-primary-container text-white rounded-2xl font-bold text-base shadow-xl hover:scale-[1.02] active:scale-95 transition-all font-sans flex items-center justify-center gap-3">
+          <button 
+            onClick={handleSubmitFeedback}
+            className="w-full max-w-md mx-auto block py-4 bg-sd-primary-container text-white rounded-2xl font-bold text-base shadow-xl hover:scale-[1.02] active:scale-95 transition-all font-sans flex items-center justify-center gap-3"
+          >
             <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
             Submit Feedback
           </button>
           <p className="text-center text-xs text-sd-on-surface-variant mt-3 font-sans">Thank you! Your feedback helps us improve.</p>
         </div>
       </div>
+
+      {/* Support Modal */}
+      {supportModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-sd-surface-container rounded-3xl border border-sd-surface-variant w-full max-w-md overflow-hidden shadow-2xl flex flex-col">
+            <div className="px-6 py-4 bg-sd-surface-container-low border-b border-sd-surface-variant flex justify-between items-center shrink-0">
+              <h3 className="font-bold text-lg font-sans text-sd-on-surface">Contact Support</h3>
+              <button
+                onClick={() => setSupportModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-white dark:bg-sd-surface hover:bg-sd-surface-container text-sd-on-surface-variant hover:text-sd-on-surface flex items-center justify-center transition-colors border border-sd-surface-variant"
+              >
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+            <form onSubmit={handleSendSupport} className="p-6 space-y-4">
+              <p className="text-xs text-sd-on-surface-variant font-sans">
+                Need help with your order or have a specific inquiry? Write your message below, and our staff will respond right away.
+              </p>
+              <textarea
+                className="w-full p-3 bg-white dark:bg-sd-surface border border-sd-surface-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-sd-primary text-sm font-sans resize-none"
+                placeholder="Type your message to support..."
+                rows={4}
+                value={supportMsg}
+                onChange={(e) => setSupportMsg(e.target.value)}
+                required
+              />
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSupportModalOpen(false)}
+                  className="px-4 py-2 bg-white border border-sd-surface-variant hover:bg-sd-surface-container-low rounded-xl text-xs font-bold font-sans transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-sd-primary text-white rounded-xl text-xs font-bold hover:shadow-lg transition-colors font-sans"
+                >
+                  Send Message
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -38,7 +38,7 @@ export default function BlogSection() {
         {blogPosts.map((post) => (
           <div
             key={post.id}
-            className="rounded-2xl overflow-hidden bg-[#2a1800]/60 border border-[#FF9F00]/30 hover:border-[#FF9F00]/40 transition-all group cursor-pointer"
+            className="rounded-2xl overflow-hidden bg-[#2a1800]/60 border border-amber-900/30 hover:border-amber-500/40 transition-all group cursor-pointer"
           >
             <div className="h-40 sm:h-44 overflow-hidden">
               <img
@@ -51,7 +51,7 @@ export default function BlogSection() {
               <p className="text-stone-500 text-xs mb-2">{post.date}</p>
               <h3 className="text-white font-semibold text-sm mb-3 leading-snug">{post.title}</h3>
               <div className="flex items-center justify-between">
-                <button className="text-[#FF9F00] text-xs font-semibold hover:text-[#FF9F00]/80 transition-colors">
+                <button className="text-amber-400 text-xs font-semibold hover:text-amber-300 transition-colors">
                   Read more
                 </button>
                 <div className="flex items-center gap-1 text-stone-500 text-xs">

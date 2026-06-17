@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { generateTableCode, getRecommendedItems } from '../utils/customer.utils';
 
 export type CustomerMenuItem = {
@@ -35,6 +36,52 @@ export type TrackedOrder = {
   eta: string;
 };
 
+export type CustomerNotification = {
+  id: string;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  type: 'info' | 'order' | 'offer';
+  redirectTo?: string;
+};
+
+export type LoyaltyHistory = {
+  id: string;
+  points: number;
+  type: 'earn' | 'redeem';
+  description: string;
+  date: string;
+};
+
+export type OfferCoupon = {
+  id: string;
+  code: string;
+  title: string;
+  desc: string;
+  requiredPoints: number;
+  discountType: 'percentage' | 'fixed' | 'free_item';
+  discountValue: number;
+  minOrderAmount?: number;
+  expiryDate: string;
+  claimed: boolean;
+};
+
+export type CustomerProfile = {
+  name: string;
+  phone: string;
+  email: string;
+  isSmartMember: boolean;
+  avatar?: string;
+};
+
+export type NotificationPreferences = {
+  email: boolean;
+  sms: boolean;
+  whatsapp: boolean;
+  push: boolean;
+};
+
 export const MENU_ITEMS: CustomerMenuItem[] = [
   { id: 1, name: 'Hyderabadi Biryani', desc: 'Aromatic basmati rice cooked with spices', price: 249, rating: 4.6, reviews: 230, cat: 'Biryani', veg: false, img: 'https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=400&q=80', badge: 'Bestseller' },
   { id: 2, name: 'Butter Chicken', desc: 'Creamy tomato gravy with tender chicken', price: 229, rating: 4.5, reviews: 186, cat: 'Biryani', veg: false, img: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=400&q=80', badge: '' },
@@ -55,6 +102,26 @@ export const MENU_CATEGORIES = [
   { label: 'Drinks', icon: '🥤' },
 ];
 
+const DEFAULT_OFFERS: OfferCoupon[] = [
+  { id: '1', code: 'WELCOME50', title: '₹50 Off Welcome Deal', desc: 'Get flat ₹50 off on orders above ₹200.', requiredPoints: 0, discountType: 'fixed', discountValue: 50, minOrderAmount: 200, expiryDate: '30 Jun 2026', claimed: true },
+  { id: '2', code: 'FREEBEV', title: 'Free Mango Lassi', desc: 'Redeem 100 reward points for a free chilled Mango Lassi.', requiredPoints: 100, discountType: 'free_item', discountValue: 89, expiryDate: '15 Jul 2026', claimed: false },
+  { id: '3', code: 'BURGERBOGO', title: 'Buy 1 Get 1 Burger', desc: 'Buy any Smash Burger and get another free.', requiredPoints: 150, discountType: 'percentage', discountValue: 100, expiryDate: '10 Jul 2026', claimed: false },
+  { id: '4', code: 'CHEF15', title: 'Chef Special 15% OFF', desc: 'Enjoy 15% off on Chef Special dishes.', requiredPoints: 200, discountType: 'percentage', discountValue: 15, expiryDate: '25 Jun 2026', claimed: false },
+  { id: '5', code: 'DESSERT80', title: 'Free Gulab Jamun', desc: 'Redeem 80 points to get a free sweet Gulab Jamun dessert.', requiredPoints: 80, discountType: 'free_item', discountValue: 99, expiryDate: '05 Jul 2026', claimed: false },
+];
+
+const DEFAULT_NOTIFICATIONS: CustomerNotification[] = [
+  { id: 'n1', title: 'Welcome to Smart Dining! 👋', message: 'Scan table QR code to start ordering and earn reward points.', timestamp: '30 mins ago', read: false, type: 'info' },
+  { id: 'n2', title: 'Smart Member Activated! ✨', message: 'Congratulations! You are now a Smart Member. Enjoy priority service and exclusive perks.', timestamp: '25 mins ago', read: false, type: 'info' },
+  { id: 'n3', title: 'Special Dessert Discount 🧁', message: 'Craving sweets? Get a free Gulab Jamun using 80 points in your Offers tab!', timestamp: 'Yesterday', read: true, type: 'offer' },
+];
+
+const DEFAULT_LOYALTY_HISTORY: LoyaltyHistory[] = [
+  { id: 'h1', points: 100, type: 'earn', description: 'Welcome bonus points', date: 'Yesterday' },
+  { id: 'h2', points: -50, type: 'redeem', description: 'Redeemed for Free Beverage coupon', date: '2 days ago' },
+  { id: 'h3', points: 400, type: 'earn', description: 'Earned from Order #ORD-2840', date: '3 days ago' }
+];
+
 type CustomerStore = {
   tableCode: string;
   category: string;
@@ -64,6 +131,15 @@ type CustomerStore = {
   favourites: number[];
   orders: TrackedOrder[];
   serviceRequests: ServiceRequestItem[];
+
+  // Profile Features State
+  profile: CustomerProfile;
+  loyaltyPoints: number;
+  loyaltyHistory: LoyaltyHistory[];
+  offers: OfferCoupon[];
+  notificationPreferences: NotificationPreferences;
+  notifications: CustomerNotification[];
+
   setCategory: (category: string) => void;
   setSearch: (search: string) => void;
   toggleVegOnly: () => void;
@@ -80,79 +156,287 @@ type CustomerStore = {
   getFilteredItems: () => CustomerMenuItem[];
   getRecommendedItems: () => CustomerMenuItem[];
   assignRandomTable: () => void;
+
+  // Profile Features Actions
+  updateProfile: (profile: Partial<CustomerProfile>) => void;
+  addLoyaltyPoints: (points: number, description: string) => void;
+  claimOffer: (offerId: string) => boolean;
+  updateNotificationPreferences: (prefs: Partial<NotificationPreferences>) => void;
+
+  // Notification Actions
+  markNotificationRead: (id: string) => void;
+  markAllNotificationsRead: () => void;
+  deleteNotification: (id: string) => void;
+  clearAllNotifications: () => void;
+  addNotification: (title: string, message: string, type: 'info' | 'order' | 'offer', redirectTo?: string) => void;
 };
 
-export const useCustomerStore = create<CustomerStore>((set, get) => ({
-  tableCode: generateTableCode(),
-  category: 'All',
-  search: '',
-  vegOnly: false,
-  cart: [],
-  favourites: [],
-  orders: [
-    { id: '#ORD-2841', items: 'Hyderabadi Biryani x1, Mango Lassi x1', total: 338, status: 'Preparing', eta: '12 min' },
-    { id: '#ORD-2840', items: 'Smash Burger x2', total: 518, status: 'Served', eta: '-' },
-  ],
-  serviceRequests: [],
-  setCategory: (category) => set({ category }),
-  setSearch: (search) => set({ search }),
-  toggleVegOnly: () => set((state) => ({ vegOnly: !state.vegOnly })),
-  addToCart: (id) => set((state) => {
-    const existing = state.cart.find((item) => item.id === id);
-    return {
-      cart: existing
-        ? state.cart.map((item) => item.id === id ? { ...item, qty: item.qty + 1 } : item)
-        : [...state.cart, { id, qty: 1 }],
-    };
-  }),
-  removeFromCart: (id) => set((state) => ({
-    cart: state.cart.map((item) => item.id === id ? { ...item, qty: Math.max(0, item.qty - 1) } : item).filter((item) => item.qty > 0),
-  })),
-  clearCart: () => set({ cart: [] }),
-  toggleFavourite: (id) => set((state) => ({
-    favourites: state.favourites.includes(id)
-      ? state.favourites.filter((favouriteId) => favouriteId !== id)
-      : [...state.favourites, id],
-  })),
-  placeOrder: () => {
-    const { cart } = get();
-    if (cart.length === 0) return null;
+export const useCustomerStore = create<CustomerStore>()(
+  persist(
+    (set, get) => ({
+      tableCode: generateTableCode(),
+      category: 'All',
+      search: '',
+      vegOnly: false,
+      cart: [],
+      favourites: [],
+      orders: [
+        { id: '#ORD-2841', items: 'Hyderabadi Biryani x1, Mango Lassi x1', total: 338, status: 'Preparing', eta: '12 min' },
+        { id: '#ORD-2840', items: 'Smash Burger x2', total: 518, status: 'Served', eta: '-' },
+      ],
+      serviceRequests: [],
 
-    const items = cart.map((cartItem) => {
-      const item = MENU_ITEMS.find((menuItem) => menuItem.id === cartItem.id);
-      return `${item?.name ?? 'Item'} x${cartItem.qty}`;
-    }).join(', ');
+      // Initializing Profile Features State
+      profile: {
+        name: 'Rahul Sharma',
+        phone: '+91 98765 43210',
+        email: 'rahul.sharma@example.com',
+        isSmartMember: true,
+      },
+      loyaltyPoints: 450,
+      loyaltyHistory: DEFAULT_LOYALTY_HISTORY,
+      offers: DEFAULT_OFFERS,
+      notificationPreferences: {
+        email: true,
+        sms: true,
+        whatsapp: false,
+        push: true,
+      },
+      notifications: DEFAULT_NOTIFICATIONS,
 
-    const order: TrackedOrder = {
-      id: `#ORD-${Math.floor(3000 + Math.random() * 6000)}`,
-      items,
-      total: get().getTotalPrice(),
-      status: 'Placed',
-      eta: '18 min',
-    };
+      setCategory: (category) => set({ category }),
+      setSearch: (search) => set({ search }),
+      toggleVegOnly: () => set((state) => ({ vegOnly: !state.vegOnly })),
+      addToCart: (id) => set((state) => {
+        const existing = state.cart.find((item) => item.id === id);
+        return {
+          cart: existing
+            ? state.cart.map((item) => item.id === id ? { ...item, qty: item.qty + 1 } : item)
+            : [...state.cart, { id, qty: 1 }],
+        };
+      }),
+      removeFromCart: (id) => set((state) => ({
+        cart: state.cart.map((item) => item.id === id ? { ...item, qty: Math.max(0, item.qty - 1) } : item).filter((item) => item.qty > 0),
+      })),
+      clearCart: () => set({ cart: [] }),
+      toggleFavourite: (id) => set((state) => ({
+        favourites: state.favourites.includes(id)
+          ? state.favourites.filter((favouriteId) => favouriteId !== id)
+          : [...state.favourites, id],
+      })),
+      placeOrder: () => {
+        const { cart } = get();
+        if (cart.length === 0) return null;
 
-    set((state) => ({ orders: [order, ...state.orders], cart: [] }));
-    return order;
-  },
-  reorder: (order) => set((state) => ({
-    orders: [{ ...order, id: `#ORD-${Math.floor(3000 + Math.random() * 6000)}`, status: 'Placed', eta: '18 min' }, ...state.orders],
-  })),
-  requestService: (request) => set((state) => ({ serviceRequests: [{ ...request, id: `${request.id}-${Date.now()}` }, ...state.serviceRequests] })),
-  getCartQuantity: (id) => get().cart.find((item) => item.id === id)?.qty ?? 0,
-  getTotalItems: () => get().cart.reduce((total, item) => total + item.qty, 0),
-  getTotalPrice: () => get().cart.reduce((total, cartItem) => {
-    const item = MENU_ITEMS.find((menuItem) => menuItem.id === cartItem.id);
-    return total + (item?.price ?? 0) * cartItem.qty;
-  }, 0),
-  getFilteredItems: () => {
-    const { category, search, vegOnly } = get();
-    return MENU_ITEMS.filter((item) => {
-      const matchesCategory = category === 'All' || item.cat === category;
-      const matchesSearch = !search.trim() || `${item.name} ${item.desc} ${item.cat}`.toLowerCase().includes(search.toLowerCase());
-      const matchesVeg = !vegOnly || item.veg;
-      return matchesCategory && matchesSearch && matchesVeg;
-    });
-  },
-  getRecommendedItems: () => getRecommendedItems(MENU_ITEMS, get().favourites, get().cart),
-  assignRandomTable: () => set({ tableCode: generateTableCode() }),
-}));
+        const items = cart.map((cartItem) => {
+          const item = MENU_ITEMS.find((menuItem) => menuItem.id === cartItem.id);
+          return `${item?.name ?? 'Item'} x${cartItem.qty}`;
+        }).join(', ');
+
+        const total = get().getTotalPrice();
+        const orderId = `#ORD-${Math.floor(3000 + Math.random() * 6000)}`;
+        const order: TrackedOrder = {
+          id: orderId,
+          items,
+          total,
+          status: 'Placed',
+          eta: '18 min',
+        };
+
+        // Calculate reward points earned: 1 point per 10 Rupees
+        const pointsEarned = Math.floor(total / 10);
+
+        set((state) => {
+          const updatedHistory = pointsEarned > 0 ? [
+            {
+              id: `h-${Date.now()}`,
+              points: pointsEarned,
+              type: 'earn' as const,
+              description: `Points earned from Order ${orderId}`,
+              date: 'Just now',
+            },
+            ...state.loyaltyHistory
+          ] : state.loyaltyHistory;
+
+          const updatedNotifications = [
+            {
+              id: `n-${Date.now()}`,
+              title: 'Order Placed! 🍽️',
+              message: `Your order ${orderId} (Total: ₹${total}) was placed. You earned ${pointsEarned} reward points!`,
+              timestamp: 'Just now',
+              read: false,
+              type: 'order' as const,
+            },
+            ...state.notifications
+          ];
+
+          return {
+            orders: [order, ...state.orders],
+            cart: [],
+            loyaltyPoints: state.loyaltyPoints + pointsEarned,
+            loyaltyHistory: updatedHistory,
+            notifications: updatedNotifications,
+          };
+        });
+
+        return order;
+      },
+      reorder: (order) => {
+        const orderId = `#ORD-${Math.floor(3000 + Math.random() * 6000)}`;
+        const newOrder: TrackedOrder = {
+          ...order,
+          id: orderId,
+          status: 'Placed',
+          eta: '18 min',
+        };
+
+        const pointsEarned = Math.floor(newOrder.total / 10);
+
+        set((state) => {
+          const updatedHistory = pointsEarned > 0 ? [
+            {
+              id: `h-${Date.now()}`,
+              points: pointsEarned,
+              type: 'earn' as const,
+              description: `Points earned from Reorder ${orderId}`,
+              date: 'Just now',
+            },
+            ...state.loyaltyHistory
+          ] : state.loyaltyHistory;
+
+          const updatedNotifications = [
+            {
+              id: `n-${Date.now()}`,
+              title: 'Reordered items! 🍽️',
+              message: `Your reorder ${orderId} was placed. You earned ${pointsEarned} reward points!`,
+              timestamp: 'Just now',
+              read: false,
+              type: 'order' as const,
+            },
+            ...state.notifications
+          ];
+
+          return {
+            orders: [newOrder, ...state.orders],
+            loyaltyPoints: state.loyaltyPoints + pointsEarned,
+            loyaltyHistory: updatedHistory,
+            notifications: updatedNotifications,
+          };
+        });
+      },
+      requestService: (request) => set((state) => ({ serviceRequests: [{ ...request, id: `${request.id}-${Date.now()}` }, ...state.serviceRequests] })),
+      getCartQuantity: (id) => get().cart.find((item) => item.id === id)?.qty ?? 0,
+      getTotalItems: () => get().cart.reduce((total, item) => total + item.qty, 0),
+      getTotalPrice: () => get().cart.reduce((total, cartItem) => {
+        const item = MENU_ITEMS.find((menuItem) => menuItem.id === cartItem.id);
+        return total + (item?.price ?? 0) * cartItem.qty;
+      }, 0),
+      getFilteredItems: () => {
+        const { category, search, vegOnly } = get();
+        return MENU_ITEMS.filter((item) => {
+          const matchesCategory = category === 'All' || item.cat === category;
+          const matchesSearch = !search.trim() || `${item.name} ${item.desc} ${item.cat}`.toLowerCase().includes(search.toLowerCase());
+          const matchesVeg = !vegOnly || item.veg;
+          return matchesCategory && matchesSearch && matchesVeg;
+        });
+      },
+      getRecommendedItems: () => getRecommendedItems(MENU_ITEMS, get().favourites, get().cart),
+      assignRandomTable: () => set({ tableCode: generateTableCode() }),
+
+      // Profile features action implementations
+      updateProfile: (profileUpdates) => set((state) => ({
+        profile: { ...state.profile, ...profileUpdates }
+      })),
+      addLoyaltyPoints: (points, description) => set((state) => ({
+        loyaltyPoints: state.loyaltyPoints + points,
+        loyaltyHistory: [
+          {
+            id: `h-${Date.now()}`,
+            points,
+            type: points > 0 ? 'earn' : 'redeem',
+            description,
+            date: 'Just now'
+          },
+          ...state.loyaltyHistory
+        ]
+      })),
+      claimOffer: (offerId) => {
+        let success = false;
+        set((state) => {
+          const offer = state.offers.find((o) => o.id === offerId);
+          if (!offer || offer.claimed || state.loyaltyPoints < offer.requiredPoints) {
+            return {};
+          }
+
+          success = true;
+          const updatedOffers = state.offers.map((o) =>
+            o.id === offerId ? { ...o, claimed: true } : o
+          );
+          
+          const updatedHistory: LoyaltyHistory[] = offer.requiredPoints > 0 ? [
+            {
+              id: `h-${Date.now()}`,
+              points: -offer.requiredPoints,
+              type: 'redeem' as const,
+              description: `Redeemed for ${offer.title}`,
+              date: 'Just now'
+            },
+            ...state.loyaltyHistory
+          ] : state.loyaltyHistory;
+
+          const updatedNotifications = [
+            {
+              id: `n-${Date.now()}`,
+              title: 'Offer Unlocked! 🎉',
+              message: `You successfully unlocked "${offer.title}". Use coupon code "${offer.code}" during checkout.`,
+              timestamp: 'Just now',
+              read: false,
+              type: 'offer' as const,
+            },
+            ...state.notifications
+          ];
+
+          return {
+            loyaltyPoints: state.loyaltyPoints - offer.requiredPoints,
+            offers: updatedOffers,
+            loyaltyHistory: updatedHistory,
+            notifications: updatedNotifications,
+          };
+        });
+        return success;
+      },
+      updateNotificationPreferences: (prefs) => set((state) => ({
+        notificationPreferences: { ...state.notificationPreferences, ...prefs }
+      })),
+
+      // Notification action implementations
+      markNotificationRead: (id) => set((state) => ({
+        notifications: state.notifications.map((n) => n.id === id ? { ...n, read: true } : n)
+      })),
+      markAllNotificationsRead: () => set((state) => ({
+        notifications: state.notifications.map((n) => ({ ...n, read: true }))
+      })),
+      deleteNotification: (id) => set((state) => ({
+        notifications: state.notifications.filter((n) => n.id !== id)
+      })),
+      clearAllNotifications: () => set({ notifications: [] }),
+      addNotification: (title, message, type, redirectTo) => set((state) => ({
+        notifications: [
+          {
+            id: `n-${Date.now()}`,
+            title,
+            message,
+            timestamp: 'Just now',
+            read: false,
+            type,
+            redirectTo,
+          },
+          ...state.notifications
+        ]
+      })),
+    }),
+    {
+      name: 'restohub-customer-store',
+    }
+  )
+);

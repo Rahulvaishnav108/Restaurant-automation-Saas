@@ -22,10 +22,10 @@ export default function ExploreCategoriesGrid() {
         {categories.map(({ label, emoji }) => (
           <button
             key={label}
-            className="flex flex-col items-center gap-2 sm:gap-3 p-3 sm:p-5 rounded-2xl bg-[#2a1800]/60 border border-[#FF9F00]/30 hover:border-[#FF9F00]/50 hover:bg-[#3a2200]/70 transition-all group"
+            className="flex flex-col items-center gap-2 sm:gap-3 p-3 sm:p-5 rounded-2xl bg-[#2a1800]/60 border border-amber-900/30 hover:border-amber-500/50 hover:bg-[#3a2200]/70 transition-all group"
           >
             <span className="text-2xl sm:text-3xl">{emoji}</span>
-            <span className="text-stone-300 group-hover:text-[#FF9F00] text-xs sm:text-sm font-medium transition-colors text-center leading-tight">
+            <span className="text-stone-300 group-hover:text-amber-300 text-xs sm:text-sm font-medium transition-colors text-center leading-tight">
               {label}
             </span>
           </button>

@@ -90,7 +90,7 @@ export default function OffersDeals() {
         {offers.map((offer) => (
           <div
             key={offer.id}
-            className="relative rounded-2xl overflow-hidden flex items-center justify-between p-4 sm:p-5 gap-3 sm:gap-4 border border-white/10 hover:border-[#FF9F00]/30 transition-all cursor-pointer group"
+            className="relative rounded-2xl overflow-hidden flex items-center justify-between p-4 sm:p-5 gap-3 sm:gap-4 border border-white/10 hover:border-amber-500/30 transition-all cursor-pointer group"
             style={{
               background: `linear-gradient(135deg, ${offer.gradientFrom}, ${offer.gradientTo})`,
             }}
