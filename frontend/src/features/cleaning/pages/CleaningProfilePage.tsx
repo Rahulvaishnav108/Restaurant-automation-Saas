@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useCleaning } from '../hooks/usecleaning';
 
 interface ActivityItem {
   icon: string;
@@ -24,15 +25,31 @@ interface BadgeItem {
   bgClass: string;
   shadowClass: string;
 }
+interface TableTask {
+  id: string;
+  rawId?: string; // Yeh '?' add kar
+  rawStatus?: 'PENDING' | 'REQUESTED' | 'IN_PROGRESS' | 'COMPLETED' | 'VERIFIED';
+  rawPriority?: 'High' | 'Medium' | 'Low';
+  progress?: number;
+  waiting?: string;
+}
 
 export default function CleaningProfilePage() {
   const navigate = useNavigate();
 
+  // 🔌 Connect with dynamic system telemetry layer
+  const { urgentTasks } = useCleaning();
+ const safeTasks: TableTask[] = (urgentTasks || []) as TableTask[];
+
+  // Dynamic values tracking calculation directly bound to real-time arrays
+  const liveCleanedCount = safeTasks.filter(t => t.rawStatus === 'COMPLETED' || t.rawStatus === 'VERIFIED').length;
+  const liveInProgressCount = safeTasks.filter((t: TableTask) => t.rawStatus === 'IN_PROGRESS').length;
+
   const activities: ActivityItem[] = [
-    { icon: 'check_circle', iconBg: 'bg-green-100 dark:bg-green-950/30', iconColor: 'text-green-600 dark:text-green-400', title: 'Completed table T01', timestamp: 'May 15, 2024', subtitle: 'Dining Area A • 10:30 AM' },
-    { icon: 'timer', iconBg: 'bg-orange-100 dark:bg-orange-950/30', iconColor: 'text-orange-600 dark:text-orange-400', title: 'Started cleaning table T12', timestamp: 'May 15, 2024', subtitle: 'Dining Area A • 10:18 AM' },
-    { icon: 'assignment', iconBg: 'bg-blue-100 dark:bg-blue-950/30', iconColor: 'text-blue-600 dark:text-blue-400', title: 'Completed task', timestamp: 'May 15, 2024', subtitle: 'Restroom Sanitization • 09:15 AM' },
-    { icon: 'verified', iconBg: 'bg-purple-100 dark:bg-purple-950/30', iconColor: 'text-purple-600 dark:text-purple-400', title: 'Hygiene score updated', timestamp: 'May 14, 2024', subtitle: 'Score: 98% (Excellent)' },
+    { icon: 'check_circle', iconBg: 'bg-green-100 dark:bg-green-950/30', iconColor: 'text-green-600 dark:text-green-400', title: 'Completed table T01', timestamp: 'Jun 16, 2026', subtitle: 'Dining Area A • 10:30 AM' },
+    { icon: 'timer', iconBg: 'bg-orange-100 dark:bg-orange-950/30', iconColor: 'text-orange-600 dark:text-orange-400', title: 'Started cleaning table T12', timestamp: 'Jun 16, 2026', subtitle: 'Dining Area A • 10:18 AM' },
+    { icon: 'assignment', iconBg: 'bg-orange-100 dark:bg-orange-950/30', iconColor: 'text-orange-500 dark:text-orange-400', title: 'Completed task', timestamp: 'Jun 16, 2026', subtitle: 'Restroom Sanitization • 09:15 AM' },
+    { icon: 'verified', iconBg: 'bg-purple-100 dark:bg-purple-950/30', iconColor: 'text-purple-600 dark:text-purple-400', title: 'Hygiene score updated', timestamp: 'Jun 15, 2026', subtitle: 'Score: 98% (Excellent)' },
   ];
 
   const preferences: PreferenceItem[] = [
@@ -44,11 +61,11 @@ export default function CleaningProfilePage() {
   ];
 
   const badges: BadgeItem[] = [
-    { title: 'Consistency Star', desc: 'Completed 20 tasks in a row', earned: 'Earned on May 10, 2024', icon: 'star', bgClass: 'bg-green-500', shadowClass: 'shadow-green-250 dark:shadow-none' },
-    { title: 'Hygiene Hero', desc: 'Maintained 95%+ hygiene score for a week', earned: 'Earned on May 5, 2024', icon: 'shield', bgClass: 'bg-blue-500', shadowClass: 'shadow-blue-250 dark:shadow-none' },
-    { title: 'Time Keeper', desc: 'Completed tasks on time for 10 days', earned: 'Earned on Apr 28, 2024', icon: 'schedule', bgClass: 'bg-purple-500', shadowClass: 'shadow-purple-250 dark:shadow-none' },
-    { title: 'Clean Sweep', desc: 'No pending tasks for a full day', earned: 'Earned on Apr 20, 2024', icon: 'cleaning_services', bgClass: 'bg-orange-500', shadowClass: 'shadow-orange-250 dark:shadow-none' },
-    { title: 'Rising Star', desc: 'Top performer of the month', earned: 'Earned on Apr 1, 2024', icon: 'workspace_premium', bgClass: 'bg-teal-500', shadowClass: 'shadow-teal-250 dark:shadow-none' },
+    { title: 'Consistency Star', desc: 'Completed 20 tasks in a row', earned: 'Earned on Jun 10, 2026', icon: 'star', bgClass: 'bg-green-500', shadowClass: 'shadow-green-250 dark:shadow-none' },
+    { title: 'Hygiene Hero', desc: 'Maintained 95%+ hygiene score for a week', earned: 'Earned on Jun 5, 2026', icon: 'shield', bgClass: 'bg-blue-500', shadowClass: 'shadow-blue-250 dark:shadow-none' },
+    { title: 'Time Keeper', desc: 'Completed tasks on time for 10 days', earned: 'Earned on May 28, 2026', icon: 'schedule', bgClass: 'bg-purple-500', shadowClass: 'shadow-purple-250 dark:shadow-none' },
+    { title: 'Clean Sweep', desc: 'No pending tasks for a full day', earned: 'Earned on May 20, 2026', icon: 'cleaning_services', bgClass: 'bg-orange-500', shadowClass: 'shadow-orange-250 dark:shadow-none' },
+    { title: 'Rising Star', desc: 'Top performer of the month', earned: 'Earned on May 1, 2026', icon: 'workspace_premium', bgClass: 'bg-teal-500', shadowClass: 'shadow-teal-250 dark:shadow-none' },
   ];
 
   return (
@@ -68,7 +85,7 @@ export default function CleaningProfilePage() {
                 />
                 <span className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-sd-surface-container rounded-full" />
               </div>
-              <button className="flex items-center gap-1.5 px-3 py-1.5 border border-cleanserve-primary text-cleanserve-primary dark:text-white dark:border-slate-700 rounded-lg text-[10px] font-bold hover:bg-cleanserve-surface-container-low transition-all active:scale-95 font-sans">
+              <button className="flex items-center gap-1.5 px-3 py-1.5 border border-orange-500 text-orange-500 dark:text-white dark:border-slate-700 rounded-lg text-[10px] font-bold hover:bg-orange-500/10 transition-all active:scale-95 font-sans cursor-pointer">
                 <span className="material-symbols-outlined text-[16px]">photo_camera</span>
                 Change Photo
               </button>
@@ -115,7 +132,8 @@ export default function CleaningProfilePage() {
         <section className="col-span-12 lg:col-span-5 space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100 font-sans">Performance Summary</h3>
-            <select className="bg-slate-50 dark:bg-slate-800 border-none rounded-lg text-[10px] font-bold font-sans focus:ring-1 focus:ring-cleanserve-primary px-2.5 py-1 text-slate-700 dark:text-slate-350">
+            {/* Added accent-orange-500 */}
+            <select className="bg-slate-50 dark:bg-slate-800 border-none rounded-lg text-[10px] font-bold font-sans focus:ring-1 focus:ring-orange-500 px-2.5 py-1 text-slate-700 dark:text-slate-350 outline-none accent-orange-500 cursor-pointer">
               <option>This Month</option>
               <option>Last Month</option>
             </select>
@@ -126,7 +144,7 @@ export default function CleaningProfilePage() {
               <div className="w-8 h-8 bg-green-50 dark:bg-green-950/30 rounded-full flex items-center justify-center mb-2 text-green-600">
                 <span className="material-symbols-outlined text-[20px]">done_all</span>
               </div>
-              <h4 className="text-xl font-extrabold text-slate-850 dark:text-slate-100 leading-none">18</h4>
+              <h4 className="text-xl font-extrabold text-slate-855 dark:text-slate-100 leading-none">{12 + liveCleanedCount}</h4>
               <p className="text-[10px] text-slate-400 font-bold font-sans mt-0.5">Tables Cleaned</p>
               <div className="flex items-center gap-0.5 text-green-600 text-[9px] font-bold font-sans mt-2">
                 <span className="material-symbols-outlined text-[12px]">trending_up</span>
@@ -135,10 +153,10 @@ export default function CleaningProfilePage() {
             </div>
 
             <div className="bg-white dark:bg-sd-surface-container p-4 rounded-2xl border border-slate-150 dark:border-slate-800 shadow-sm">
-              <div className="w-8 h-8 bg-purple-50 dark:bg-purple-950/30 rounded-full flex items-center justify-center mb-2 text-purple-600">
+              <div className="w-8 h-8 bg-orange-500/10 dark:bg-orange-950/30 rounded-full flex items-center justify-center mb-2 text-orange-500">
                 <span className="material-symbols-outlined text-[20px]">verified_user</span>
               </div>
-              <h4 className="text-xl font-extrabold text-slate-850 dark:text-slate-100 leading-none">98%</h4>
+              <h4 className="text-xl font-extrabold text-slate-855 dark:text-slate-100 leading-none">98%</h4>
               <p className="text-[10px] text-slate-400 font-bold font-sans mt-0.5">Hygiene Score</p>
               <div className="flex items-center gap-0.5 text-green-600 text-[9px] font-bold font-sans mt-2">
                 <span className="material-symbols-outlined text-[12px]">trending_up</span>
@@ -162,10 +180,10 @@ export default function CleaningProfilePage() {
             </div>
 
             <div className="bg-white dark:bg-sd-surface-container p-4 rounded-2xl border border-slate-150 dark:border-slate-800 shadow-sm">
-              <div className="w-8 h-8 bg-blue-50 dark:bg-blue-950/30 rounded-full flex items-center justify-center mb-2 text-blue-600">
+              <div className="w-8 h-8 bg-orange-500/10 dark:bg-orange-950/30 rounded-full flex items-center justify-center mb-2 text-orange-500">
                 <span className="material-symbols-outlined text-[20px]">assignment_turned_in</span>
               </div>
-              <h4 className="text-xl font-extrabold text-slate-855 dark:text-slate-100 leading-none">24</h4>
+              <h4 className="text-xl font-extrabold text-slate-855 dark:text-slate-100 leading-none">{22 + liveCleanedCount + liveInProgressCount}</h4>
               <p className="text-[10px] text-slate-400 font-bold font-sans mt-0.5">Tasks Completed</p>
               <div className="flex items-center gap-0.5 text-green-600 text-[9px] font-bold font-sans mt-2">
                 <span className="material-symbols-outlined text-[12px]">trending_up</span>
@@ -178,7 +196,6 @@ export default function CleaningProfilePage() {
 
       {/* Account Settings, Activity, Work Preferences */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-        {/* Settings Links */}
         <section className="bg-white dark:bg-sd-surface-container rounded-2xl border border-slate-150 dark:border-slate-800 p-5 shadow-sm">
           <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 mb-4 font-sans">Account Settings</h3>
           <div className="space-y-1.5">
@@ -190,10 +207,10 @@ export default function CleaningProfilePage() {
               <button
                 key={idx}
                 onClick={() => navigate('/cleaning/settings')}
-                className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group font-sans text-xs text-left"
+                className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group font-sans text-xs text-left cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-slate-400 group-hover:text-cleanserve-primary transition-colors text-[18px]">{item.icon}</span>
+                  <span className="material-symbols-outlined text-slate-400 group-hover:text-orange-500 transition-colors text-[18px]">{item.icon}</span>
                   <div>
                     <p className="font-bold text-slate-800 dark:text-slate-200">{item.label}</p>
                     <p className="text-[9px] text-slate-400 font-semibold">{item.desc}</p>
@@ -205,34 +222,34 @@ export default function CleaningProfilePage() {
             
             <button
               onClick={() => navigate('/cleaning/settings')}
-              className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group font-sans text-xs text-left"
+              className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group font-sans text-xs text-left cursor-pointer"
             >
               <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-slate-400 group-hover:text-cleanserve-primary transition-colors text-[18px]">language</span>
+                <span className="material-symbols-outlined text-slate-400 group-hover:text-orange-500 transition-colors text-[18px]">language</span>
                 <div>
                   <p className="font-bold text-slate-800 dark:text-slate-200">Language</p>
                   <p className="text-[9px] text-slate-400 font-semibold">Choose your preferred language</p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                <span className="text-[10px] font-bold text-cleanserve-primary">English</span>
+                <span className="text-[10px] font-bold text-orange-500">English</span>
                 <span className="material-symbols-outlined text-slate-450 group-hover:translate-x-0.5 transition-transform text-sm">chevron_right</span>
               </div>
             </button>
 
             <button
               onClick={() => navigate('/cleaning/settings')}
-              className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group font-sans text-xs text-left"
+              className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group font-sans text-xs text-left cursor-pointer"
             >
               <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-slate-400 group-hover:text-cleanserve-primary transition-colors text-[18px]">dark_mode</span>
+                <span className="material-symbols-outlined text-slate-400 group-hover:text-orange-500 transition-colors text-[18px]">dark_mode</span>
                 <div>
                   <p className="font-bold text-slate-800 dark:text-slate-200">Theme</p>
                   <p className="text-[9px] text-slate-400 font-semibold">Choose your preferred theme</p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                <span className="text-[10px] font-bold text-cleanserve-primary">Active</span>
+                <span className="text-[10px] font-bold text-orange-500">Active</span>
                 <span className="material-symbols-outlined text-slate-450 group-hover:translate-x-0.5 transition-transform text-sm">chevron_right</span>
               </div>
             </button>
@@ -243,7 +260,7 @@ export default function CleaningProfilePage() {
         <section className="bg-white dark:bg-sd-surface-container rounded-2xl border border-slate-150 dark:border-slate-800 p-5 shadow-sm">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 font-sans">Recent Activity</h3>
-            <span className="text-[10px] font-bold text-cleanserve-primary cursor-pointer hover:underline font-sans">View All</span>
+            <button type="button" onClick={() => alert("View All clicked!")} className="text-[10px] font-bold text-orange-500 cursor-pointer hover:underline font-sans">View All</button>
           </div>
 
           <div className="space-y-4 relative before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-[2.5px] before:bg-slate-100 dark:before:bg-slate-800/80">
@@ -257,7 +274,7 @@ export default function CleaningProfilePage() {
                     <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{act.title}</p>
                     <span className="text-[9px] text-slate-400 font-semibold shrink-0 ml-2">{act.timestamp}</span>
                   </div>
-                  <p className="text-[10px] text-slate-450 dark:text-slate-400 font-semibold">{act.subtitle}</p>
+                  <p className="text-[10px] text-slate-455 dark:text-slate-400 font-semibold">{act.subtitle}</p>
                 </div>
               </div>
             ))}
@@ -268,17 +285,16 @@ export default function CleaningProfilePage() {
         <section className="bg-white dark:bg-sd-surface-container rounded-2xl border border-slate-150 dark:border-slate-800 p-5 shadow-sm md:col-span-2 lg:col-span-1">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 font-sans">Work Preferences</h3>
-            <span className="text-[10px] font-bold text-cleanserve-primary cursor-pointer hover:underline font-sans">Edit</span>
+            <button type="button" onClick={() => alert("Edit clicked!")} className="text-[10px] font-bold text-orange-500 cursor-pointer hover:underline font-sans">Edit</button>
           </div>
-
           <div className="space-y-4 font-sans text-xs">
             {preferences.map((pref, idx) => (
               <div key={idx} className="flex items-start gap-3">
                 <div className="w-7 h-7 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-cleanserve-primary text-[16px]">{pref.icon}</span>
+                  <span className="material-symbols-outlined text-orange-500 text-[16px]">{pref.icon}</span>
                 </div>
                 <div>
-                  <p className="text-[9px] text-slate-450 font-bold uppercase tracking-wider leading-none mb-1">{pref.label}</p>
+                  <p className="text-[9px] text-slate-455 font-bold uppercase tracking-wider leading-none mb-1">{pref.label}</p>
                   <p className="font-extrabold text-slate-800 dark:text-slate-200 leading-tight">{pref.value}</p>
                 </div>
               </div>
@@ -287,11 +303,11 @@ export default function CleaningProfilePage() {
         </section>
       </div>
 
-      {/* Badges & Achievements */}
+     {/* Badges & Achievements */}
       <section className="bg-white dark:bg-sd-surface-container rounded-2xl border border-slate-150 dark:border-slate-800 p-6 shadow-sm">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100 font-sans">Badges & Achievements</h3>
-          <span className="text-xs font-bold text-cleanserve-primary cursor-pointer hover:underline font-sans">View All</span>
+          <span className="text-xs font-bold text-orange-500 cursor-pointer hover:underline font-sans">View All</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
