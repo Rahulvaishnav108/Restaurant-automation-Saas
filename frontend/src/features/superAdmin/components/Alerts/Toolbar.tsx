@@ -41,7 +41,7 @@ export default function Toolbar({
   const [sortOpen, setSortOpen] = useState(false);
 
   const base = darkMode
-    ? 'bg-[#0b132b] border-slate-800 text-slate-300'
+    ? 'bg-slate-900 border-slate-800 text-slate-300'
     : 'bg-white border-gray-100 text-gray-600';
 
   const inputBase = darkMode
@@ -115,7 +115,7 @@ export default function Toolbar({
             {sortOpen && (
               <div className={cx(
                 'absolute right-0 top-full mt-1.5 w-44 rounded-xl border shadow-xl z-20 py-1 overflow-hidden',
-                darkMode ? 'bg-[#0b132b] border-slate-700' : 'bg-white border-gray-100'
+                darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-100'
               )}>
                 {SORT_OPTIONS.map(opt => (
                   <button

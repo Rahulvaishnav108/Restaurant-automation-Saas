@@ -1,4 +1,4 @@
-import { Utensils, DollarSign, ShoppingBag, Percent } from "lucide-react";
+import { Utensils, IndianRupee, ShoppingBag, Percent } from "lucide-react";
 
 export const revenueData = [
   { month: "Jan", revenue: 42000, orders: 45000 },
@@ -20,19 +20,19 @@ export const restaurants = [
   {
     name: "Burger House",
     orders: 1240,
-    revenue: "$12,400",
+    revenue: "₹12,400",
     growth: "+12%",
   },
   {
     name: "Pizza Hub",
     orders: 980,
-    revenue: "$9,200",
+    revenue: "₹9,200",
     growth: "+9%",
   },
   {
     name: "Food Point",
     orders: 870,
-    revenue: "$8,100",
+    revenue: "₹8,100",
     growth: "+7%",
   },
 ];
@@ -48,9 +48,9 @@ export const stats = [
   },
   {
     title: "Monthly Revenue",
-    value: "$67,000",
+    value: "₹67,000",
     growth: "+21.8%",
-    icon: DollarSign,
+    icon: IndianRupee,
     lightColor: "text-amber-600 bg-amber-500/10",
     darkColor: "text-amber-400 bg-amber-500/10",
   },
@@ -64,7 +64,7 @@ export const stats = [
   },
   {
     title: "Commission Earned",
-    value: "$6,700",
+    value: "₹6,700",
     growth: "+18.4%",
     icon: Percent,
     lightColor: "text-indigo-600 bg-indigo-500/10",

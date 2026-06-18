@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -102,61 +103,68 @@ function makeTopCustomers(customers: Customer[]): TopCustomer[] {
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 
-export const useCustomersStore = create<CustomersStore>((set) => ({
-  stats: {
-    totalCustomers: 1248,
-    totalCustomersChange: '+12.5%',
-    loyalCustomers: 342,
-    loyalCustomersChange: '+8.3%',
-    totalVisits: 3856,
-    totalVisitsChange: '+15.2%',
-    totalSpent: '₹24,860',
-    totalSpentChange: '+18.7%',
-  },
+export const useCustomersStore = create<CustomersStore>()(
+  persist(
+    (set) => ({
+      stats: {
+        totalCustomers: 1248,
+        totalCustomersChange: '+12.5%',
+        loyalCustomers: 342,
+        loyalCustomersChange: '+8.3%',
+        totalVisits: 3856,
+        totalVisitsChange: '+15.2%',
+        totalSpent: '₹24,860',
+        totalSpentChange: '+18.7%',
+      },
 
-  customers: seedCustomers,
+      customers: seedCustomers,
 
-  topCustomers: makeTopCustomers(seedCustomers),
+      topCustomers: makeTopCustomers(seedCustomers),
 
-  loyaltyDistribution: {
-    gold: 349, silver: 399, bronze: 500,
-    goldPct: 28, silverPct: 32, bronzePct: 40,
-  },
+      loyaltyDistribution: {
+        gold: 349, silver: 399, bronze: 500,
+        goldPct: 28, silverPct: 32, bronzePct: 40,
+      },
 
-  customerOverview: { active: 936, inactive: 187, new: 125, total: 1248 },
+      customerOverview: { active: 936, inactive: 187, new: 125, total: 1248 },
 
-  activeStatusFilter: 'All',
-  activeTierFilter: 'All',
-  searchQuery: '',
-  currentPage: 1,
-  perPage: 8,
+      activeStatusFilter: 'All',
+      activeTierFilter: 'All',
+      searchQuery: '',
+      currentPage: 1,
+      perPage: 8,
 
-  setStatusFilter: (s) => set({ activeStatusFilter: s, currentPage: 1 }),
-  setTierFilter: (t) => set({ activeTierFilter: t, currentPage: 1 }),
-  setSearchQuery: (q) => set({ searchQuery: q, currentPage: 1 }),
-  setCurrentPage: (p) => set({ currentPage: p }),
+      setStatusFilter: (s) => set({ activeStatusFilter: s, currentPage: 1 }),
+      setTierFilter: (t) => set({ activeTierFilter: t, currentPage: 1 }),
+      setSearchQuery: (q) => set({ searchQuery: q, currentPage: 1 }),
+      setCurrentPage: (p) => set({ currentPage: p }),
 
-  addCustomer: (newCustomer) =>
-    set((state) => {
-      const id = `C${String(state.customers.length + 1).padStart(3, '0')}`;
-      const today = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
-      const customer: Customer = {
-        ...newCustomer,
-        id,
-        totalVisits: 0,
-        totalSpent: '₹0',
-        totalSpentRaw: 0,
-        lastOrder: today,
-        lastOrderId: `Order #${1234 + state.customers.length + 1}`,
-      };
-      const updatedCustomers = [customer, ...state.customers];
-      return {
-        customers: updatedCustomers,
-        topCustomers: makeTopCustomers(updatedCustomers),
-        stats: {
-          ...state.stats,
-          totalCustomers: state.stats.totalCustomers + 1,
-        },
-      };
+      addCustomer: (newCustomer) =>
+        set((state) => {
+          const id = `C${String(state.customers.length + 1).padStart(3, '0')}`;
+          const today = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+          const customer: Customer = {
+            ...newCustomer,
+            id,
+            totalVisits: 0,
+            totalSpent: '₹0',
+            totalSpentRaw: 0,
+            lastOrder: today,
+            lastOrderId: `Order #${1234 + state.customers.length + 1}`,
+          };
+          const updatedCustomers = [customer, ...state.customers];
+          return {
+            customers: updatedCustomers,
+            topCustomers: makeTopCustomers(updatedCustomers),
+            stats: {
+              ...state.stats,
+              totalCustomers: state.stats.totalCustomers + 1,
+            },
+          };
+        }),
     }),
-}));
+    {
+      name: 'admin-customers-store',
+    }
+  )
+);

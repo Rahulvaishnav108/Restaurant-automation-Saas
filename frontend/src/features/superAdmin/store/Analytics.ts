@@ -2,7 +2,7 @@
 import {
   BarChart3,
   Utensils,
-  DollarSign,
+  IndianRupee,
   TrendingUp,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -63,9 +63,9 @@ export const metricsData: MetricItem[] = [
   },
   {
     label: "Revenue Today",
-    current: "$48,230",
+    current: "₹48,230",
     shift: "+8.2% vs yesterday",
-    icon: DollarSign,
+    icon: IndianRupee,
     darkBg: "bg-emerald-500/10 text-emerald-400",
     lightBg: "bg-emerald-50 text-emerald-600",
   },

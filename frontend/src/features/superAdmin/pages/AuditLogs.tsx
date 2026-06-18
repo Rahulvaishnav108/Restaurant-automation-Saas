@@ -16,7 +16,7 @@ export default function AuditLogsPage() {
   // Dark mode: initialise from localStorage, default to dark
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('theme');
-    return saved ? saved === 'dark' : true;
+    return saved ? saved === 'dark' : false;
   });
 
   // Sync theme when a global "sync-app-theme" event fires (e.g. from Layout sidebar)
@@ -52,7 +52,7 @@ export default function AuditLogsPage() {
   return (
     <div
       className={`min-h-screen font-sans antialiased transition-colors duration-300 px-4 sm:px-6 py-6 sm:py-8 ${
-        darkMode ? 'bg-[#020817] text-slate-50' : 'bg-[#F8FAFC] text-slate-900'
+        darkMode ? 'bg-slate-950 text-slate-50' : 'bg-slate-50 text-slate-900'
       }`}
     >
       <div className="max-w-7xl mx-auto">

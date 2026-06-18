@@ -23,7 +23,7 @@ const DEFAULT_FORM: NewRestaurantForm = {
   location: "",
   plan: "Basic",
   status: "Trial",
-  revenue: "$0",
+  revenue: "₹0",
   branches: 1,
 };
 
@@ -31,9 +31,9 @@ export default function Restaurant() {
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("theme");
-      return saved ? saved === "dark" : true;
+      return saved ? saved === "dark" : false;
     }
-    return true;
+    return false;
   });
 
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -114,9 +114,9 @@ export default function Restaurant() {
       location: newRestaurant.location || "Remote Deployment Location",
       plan: newRestaurant.plan,
       status: newRestaurant.status,
-      revenue: newRestaurant.revenue.startsWith("$")
+      revenue: newRestaurant.revenue.startsWith("₹")
         ? newRestaurant.revenue
-        : `$${newRestaurant.revenue}`,
+        : `₹${newRestaurant.revenue}`,
       branches: Number(newRestaurant.branches) || 1,
     };
 
@@ -128,7 +128,7 @@ export default function Restaurant() {
   return (
     <div
       className={`min-h-screen px-4 sm:px-6 py-6 sm:py-8 transition-colors duration-300 ${
-        darkMode ? "bg-[#020817] text-slate-100" : "bg-[#F8FAFC] text-slate-800"
+        darkMode ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-800"
       }`}
     >
       {/* Page header */}

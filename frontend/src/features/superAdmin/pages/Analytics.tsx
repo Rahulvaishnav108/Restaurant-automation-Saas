@@ -68,8 +68,8 @@ export default function Analytics() {
     <div
       className={`min-h-screen font-sans antialiased transition-colors duration-300 ${
         darkMode
-          ? "bg-[#020817] text-slate-100"
-          : "bg-[#F8FAFC] text-slate-900"
+          ? "bg-slate-950 text-slate-100"
+          : "bg-slate-50 text-slate-900"
       }`}
     >
       <main className="w-full px-4 sm:px-6 xl:px-8 py-6 sm:py-8 max-w-[1600px] mx-auto space-y-6">

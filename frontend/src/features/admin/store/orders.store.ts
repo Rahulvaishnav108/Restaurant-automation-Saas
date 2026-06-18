@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -145,53 +146,60 @@ const seedOrders: Order[] = [
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 
-export const useOrdersStore = create<OrdersStore>((set) => ({
-  stats: {
-    totalOrders: 156,
-    totalOrdersChange: '+12.5%',
-    pending: 27,
-    completed: 102,
-    totalRevenue: '₹12,450.80',
-    totalRevenueChange: '+15.6%',
-    avgOrderValue: '₹79.81',
-    avgOrderValueChange: '+6.4%',
-  },
-  orders: seedOrders,
-  activeTab: 'All',
-  searchQuery: '',
-  currentPage: 1,
-  perPage: 10,
-  sortBy: 'default',
-  dateFilter: 'today',
-  paymentFilter: 'All',
-  minAmount: '',
-  maxAmount: '',
+export const useOrdersStore = create<OrdersStore>()(
+  persist(
+    (set) => ({
+      stats: {
+        totalOrders: 156,
+        totalOrdersChange: '+12.5%',
+        pending: 27,
+        completed: 102,
+        totalRevenue: '₹12,450.80',
+        totalRevenueChange: '+15.6%',
+        avgOrderValue: '₹79.81',
+        avgOrderValueChange: '+6.4%',
+      },
+      orders: seedOrders,
+      activeTab: 'All',
+      searchQuery: '',
+      currentPage: 1,
+      perPage: 10,
+      sortBy: 'default',
+      dateFilter: 'today',
+      paymentFilter: 'All',
+      minAmount: '',
+      maxAmount: '',
 
-  setActiveTab:     (tab) => set({ activeTab: tab, currentPage: 1 }),
-  setSearchQuery:   (q)   => set({ searchQuery: q, currentPage: 1 }),
-  setCurrentPage:   (p)   => set({ currentPage: p }),
-  setPerPage:       (n)   => set({ perPage: n, currentPage: 1 }),
-  setSortBy:        (s)   => set({ sortBy: s, currentPage: 1 }),
-  setDateFilter:    (d)   => set({ dateFilter: d, currentPage: 1 }),
-  setPaymentFilter: (p)   => set({ paymentFilter: p, currentPage: 1 }),
-  setMinAmount:     (v)   => set({ minAmount: v, currentPage: 1 }),
-  setMaxAmount:     (v)   => set({ maxAmount: v, currentPage: 1 }),
-  resetFilters: () => set({
-    activeTab: 'All', searchQuery: '', dateFilter: 'today',
-    paymentFilter: 'All', minAmount: '', maxAmount: '',
-    sortBy: 'default', currentPage: 1,
-  }),
+      setActiveTab:     (tab) => set({ activeTab: tab, currentPage: 1 }),
+      setSearchQuery:   (q)   => set({ searchQuery: q, currentPage: 1 }),
+      setCurrentPage:   (p)   => set({ currentPage: p }),
+      setPerPage:       (n)   => set({ perPage: n, currentPage: 1 }),
+      setSortBy:        (s)   => set({ sortBy: s, currentPage: 1 }),
+      setDateFilter:    (d)   => set({ dateFilter: d, currentPage: 1 }),
+      setPaymentFilter: (p)   => set({ paymentFilter: p, currentPage: 1 }),
+      setMinAmount:     (v)   => set({ minAmount: v, currentPage: 1 }),
+      setMaxAmount:     (v)   => set({ maxAmount: v, currentPage: 1 }),
+      resetFilters: () => set({
+        activeTab: 'All', searchQuery: '', dateFilter: 'today',
+        paymentFilter: 'All', minAmount: '', maxAmount: '',
+        sortBy: 'default', currentPage: 1,
+      }),
 
-  updateOrderStatus: (id, status) =>
-    set((state) => ({
-      orders: state.orders.map((o) => (o.id === id ? { ...o, status } : o)),
-    })),
+      updateOrderStatus: (id, status) =>
+        set((state) => ({
+          orders: state.orders.map((o) => (o.id === id ? { ...o, status } : o)),
+        })),
 
-  updateOrder: (id, patch) =>
-    set((state) => ({
-      orders: state.orders.map((o) => (o.id === id ? { ...o, ...patch } : o)),
-    })),
+      updateOrder: (id, patch) =>
+        set((state) => ({
+          orders: state.orders.map((o) => (o.id === id ? { ...o, ...patch } : o)),
+        })),
 
-  addOrder: (order) =>
-    set((state) => ({ orders: [order, ...state.orders] })),
-}));
+      addOrder: (order) =>
+        set((state) => ({ orders: [order, ...state.orders] })),
+    }),
+    {
+      name: 'admin-orders-store',
+    }
+  )
+);

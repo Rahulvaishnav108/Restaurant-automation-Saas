@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -288,58 +289,65 @@ interface ReservationsStore extends ReservationsState {
   updateReservation: (id: string, updates: Partial<Reservation>) => void;
 }
 
-export const useReservationsStore = create<ReservationsStore>((set) => ({
-  ...initialState,
+export const useReservationsStore = create<ReservationsStore>()(
+  persist(
+    (set) => ({
+      ...initialState,
 
-  setSelectedGuest: (reservation) =>
-    set({ selectedGuest: reservation }),
+      setSelectedGuest: (reservation) =>
+        set({ selectedGuest: reservation }),
 
-  updateReservationStatus: (id, status) =>
-    set((state) => ({
-      upcomingReservations: state.upcomingReservations.map((r) =>
-        r.id === id ? { ...r, status } : r
-      ),
-      allReservations: state.allReservations.map((r) =>
-        r.id === id ? { ...r, status } : r
-      ),
-    })),
+      updateReservationStatus: (id, status) =>
+        set((state) => ({
+          upcomingReservations: state.upcomingReservations.map((r) =>
+            r.id === id ? { ...r, status } : r
+          ),
+          allReservations: state.allReservations.map((r) =>
+            r.id === id ? { ...r, status } : r
+          ),
+        })),
 
-  setCalendarView: (view) => set({ calendarView: view }),
+      setCalendarView: (view) => set({ calendarView: view }),
 
-  setSelectedDate: (date) => set({ selectedDate: date }),
+      setSelectedDate: (date) => set({ selectedDate: date }),
 
-  setFilterStatus: (filterStatus) => set({ filterStatus }),
+      setFilterStatus: (filterStatus) => set({ filterStatus }),
 
-  setFilterTime: (filterTime) => set({ filterTime }),
+      setFilterTime: (filterTime) => set({ filterTime }),
 
-  addReservation: (reservation) =>
-    set((state) => {
-      const newRes: Reservation = {
-        ...reservation,
-        id: `r${Date.now()}`,
-      };
-      return {
-        upcomingReservations: [newRes, ...state.upcomingReservations],
-        allReservations: [newRes, ...state.allReservations],
-        stats: {
-          ...state.stats,
-          total: state.stats.total + 1,
-          pending: state.stats.pending + 1,
-        },
-      };
+      addReservation: (reservation) =>
+        set((state) => {
+          const newRes: Reservation = {
+            ...reservation,
+            id: `r${Date.now()}`,
+          };
+          return {
+            upcomingReservations: [newRes, ...state.upcomingReservations],
+            allReservations: [newRes, ...state.allReservations],
+            stats: {
+              ...state.stats,
+              total: state.stats.total + 1,
+              pending: state.stats.pending + 1,
+            },
+          };
+        }),
+
+      updateReservation: (id, updates) =>
+        set((state) => ({
+          upcomingReservations: state.upcomingReservations.map((r) =>
+            r.id === id ? { ...r, ...updates } : r
+          ),
+          allReservations: state.allReservations.map((r) =>
+            r.id === id ? { ...r, ...updates } : r
+          ),
+          selectedGuest:
+            state.selectedGuest?.id === id
+              ? { ...state.selectedGuest, ...updates }
+              : state.selectedGuest,
+        })),
     }),
-
-  updateReservation: (id, updates) =>
-    set((state) => ({
-      upcomingReservations: state.upcomingReservations.map((r) =>
-        r.id === id ? { ...r, ...updates } : r
-      ),
-      allReservations: state.allReservations.map((r) =>
-        r.id === id ? { ...r, ...updates } : r
-      ),
-      selectedGuest:
-        state.selectedGuest?.id === id
-          ? { ...state.selectedGuest, ...updates }
-          : state.selectedGuest,
-    })),
-}));
+    {
+      name: 'admin-reservations-store',
+    }
+  )
+);

@@ -8,6 +8,7 @@ import {
   TeamCard,
   NotificationsCard,
   IntegrationsCard,
+  ThemeSelectorCard,
 } from '../components/settings/Index';
 
 function ComingSoonSection({ title }: { title: string }) {
@@ -72,7 +73,7 @@ function SettingsContent(): JSX.Element {
     case 'backup':
       return <ComingSoonSection title="Backup & Export" />;
     case 'system':
-      return <ComingSoonSection title="System Preferences" />;
+      return <ThemeSelectorCard />;
     default:
       return <div />;
   }
@@ -83,7 +84,7 @@ export default function SettingsPage(): JSX.Element {
     <div>
       {/* Header */}
       <div className="mb-4 sm:mb-6">
-        <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-gray-50 tracking-tight">Settings</h1>
+        <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Settings</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
           Manage your restaurant settings and preferences
         </p>

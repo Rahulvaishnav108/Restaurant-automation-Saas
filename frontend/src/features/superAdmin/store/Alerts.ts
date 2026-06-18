@@ -29,7 +29,7 @@ export const INITIAL_ALERTS: Alert[] = [
   {
     id: '3',
     title: 'Failed Transaction',
-    description: 'Payment failed for order ORD-2026-001238. Amount: $670. Reason: Insufficient funds. Retry attempted 3/3 times.',
+    description: 'Payment failed for order ORD-2026-001238. Amount: ₹670. Reason: Insufficient funds. Retry attempted 3/3 times.',
     type: 'critical',
     status: 'read',
     entityType: 'payment',

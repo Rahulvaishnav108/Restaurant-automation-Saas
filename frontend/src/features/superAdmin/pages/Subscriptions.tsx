@@ -27,7 +27,7 @@ import AddRestaurantModal from "../components/Subscriptions/Addrestaurantmodal";
 const EMPTY_FORM: NewRestaurantForm = {
   name: "", owner: "", email: "", phone: "",
   location: "", plan: "Basic", status: "Trial",
-  revenue: "$0", branches: 1, tags: "",
+  revenue: "₹0", branches: 1, tags: "",
 };
 
 const PLAN_ORDER: Record<PlanType, number> = { Basic: 0, Standard: 1, Premium: 2, Enterprise: 3 };
@@ -38,9 +38,9 @@ export default function Subscriptions() {
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("theme");
-      return saved ? saved === "dark" : true;
+      return saved ? saved === "dark" : false;
     }
-    return true;
+    return false;
   });
 
   // ── Modal state ───────────────────────────────────────────────────────────
@@ -109,7 +109,7 @@ export default function Subscriptions() {
       location: formData.location.trim() || "Location TBD",
       plan: formData.plan,
       status: formData.status,
-      revenue: formData.revenue.startsWith("$") ? formData.revenue : `$${formData.revenue}`,
+      revenue: formData.revenue.startsWith("₹") ? formData.revenue : `₹${formData.revenue}`,
       branches: Math.max(1, Number(formData.branches) || 1),
       joinedDate: new Date().toISOString().slice(0, 10),
       lastActive: new Date().toISOString().slice(0, 10),
@@ -163,7 +163,7 @@ export default function Subscriptions() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className={`min-h-screen px-6 py-8 transition-colors duration-300 ${
-      darkMode ? "bg-[#020817] text-slate-100" : "bg-[#F8FAFC] text-slate-800"
+      darkMode ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-800"
     }`}>
 
       {/* Page Header */}

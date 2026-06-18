@@ -22,7 +22,7 @@ function StatCard({
   right,
 }: StatCardProps) {
   return (
-    <div className="flex-1 min-w-0 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl px-4 sm:px-5 py-4 flex items-center gap-3 sm:gap-4">
+    <div className="flex-1 min-w-[190px] bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl px-4 sm:px-5 py-4 flex items-center gap-3 sm:gap-4">
       <div
         className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}
       >
@@ -104,7 +104,7 @@ export function StaffStatCards(): JSX.Element {
       />
 
       {/* Attendance Donut */}
-      <div className="col-span-2 sm:col-span-1 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl px-4 sm:px-5 py-4 flex items-center gap-3 sm:gap-4 lg:flex-shrink-0">
+      <div className="col-span-2 sm:col-span-1 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl px-4 sm:px-5 py-4 flex items-center gap-3 sm:gap-4 lg:flex-shrink-0 lg:min-w-[250px]">
         <div className="relative flex-shrink-0">
           <svg width="80" height="80" viewBox="0 0 80 80">
             <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f3f4f6" strokeWidth="8" />

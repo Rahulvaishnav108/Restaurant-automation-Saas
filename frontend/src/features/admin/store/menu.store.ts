@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -164,94 +165,101 @@ const DEFAULT_ADVANCED_FILTER: AdvancedFilter = { minPrice: '', maxPrice: '', st
 let nextItemId = 100;
 let nextCatId  = 200;
 
-export const useMenuStore = create<MenuStore>((set) => ({
-  items:      seedItems,
-  categories: rebuildCounts(seedItems, seedCategories),
+export const useMenuStore = create<MenuStore>()(
+  persist(
+    (set) => ({
+      items:      seedItems,
+      categories: rebuildCounts(seedItems, seedCategories),
 
-  activeCategory:  'all',
-  activeFilter:    'All Items',
-  advancedFilter:  DEFAULT_ADVANCED_FILTER,
-  searchQuery:     '',
-  sortOption:      'Name A-Z',
-  currentPage:     1,
-  perPage:         12,
+      activeCategory:  'all',
+      activeFilter:    'All Items',
+      advancedFilter:  DEFAULT_ADVANCED_FILTER,
+      searchQuery:     '',
+      sortOption:      'Name A-Z',
+      currentPage:     1,
+      perPage:         12,
 
-  setActiveCategory:  (id) => set({ activeCategory: id,  currentPage: 1 }),
-  setActiveFilter:    (f)  => set({ activeFilter: f,     currentPage: 1 }),
-  setAdvancedFilter:  (f)  => set({ advancedFilter: f,   currentPage: 1 }),
-  setSearchQuery:     (q)  => set({ searchQuery: q,      currentPage: 1 }),
-  setSortOption:      (s)  => set({ sortOption: s }),
-  setCurrentPage:     (p)  => set({ currentPage: p }),
+      setActiveCategory:  (id) => set({ activeCategory: id,  currentPage: 1 }),
+      setActiveFilter:    (f)  => set({ activeFilter: f,     currentPage: 1 }),
+      setAdvancedFilter:  (f)  => set({ advancedFilter: f,   currentPage: 1 }),
+      setSearchQuery:     (q)  => set({ searchQuery: q,      currentPage: 1 }),
+      setSortOption:      (s)  => set({ sortOption: s }),
+      setCurrentPage:     (p)  => set({ currentPage: p }),
 
-  toggleItemEnabled: (id) =>
-    set((state) => {
-      const items = state.items.map((item) =>
-        item.id === id ? { ...item, enabled: !item.enabled } : item
-      );
-      return { items, categories: rebuildCounts(items, state.categories) };
+      toggleItemEnabled: (id) =>
+        set((state) => {
+          const items = state.items.map((item) =>
+            item.id === id ? { ...item, enabled: !item.enabled } : item
+          );
+          return { items, categories: rebuildCounts(items, state.categories) };
+        }),
+
+      updateItemStatus: (id, status) =>
+        set((state) => ({
+          items: state.items.map((item) =>
+            item.id === id ? { ...item, status } : item
+          ),
+        })),
+
+      addItem: (item) =>
+        set((state) => {
+          const newItem: MenuItem = { ...item, id: `m${++nextItemId}` };
+          const items = [...state.items, newItem];
+          return { items, categories: rebuildCounts(items, state.categories), currentPage: 1 };
+        }),
+
+      updateItem: (id, data) =>
+        set((state) => {
+          const items = state.items.map((item) =>
+            item.id === id ? { ...item, ...data } : item
+          );
+          return { items, categories: rebuildCounts(items, state.categories) };
+        }),
+
+      deleteItem: (id) =>
+        set((state) => {
+          const items = state.items.filter((item) => item.id !== id);
+          return { items, categories: rebuildCounts(items, state.categories) };
+        }),
+
+      addCategory: (name) =>
+        set((state) => {
+          const newCat: Category = {
+            id:    `cat${++nextCatId}-${slugify(name)}`,
+            name,
+            count: 0,
+          };
+          const withoutAll = state.categories.filter((c) => c.id !== 'all');
+          const allCat     = state.categories.find((c)  => c.id === 'all')!;
+          return { categories: [allCat, ...withoutAll, newCat] };
+        }),
+
+      updateCategory: (id, name) =>
+        set((state) => ({
+          categories: state.categories.map((c) =>
+            c.id === id ? { ...c, name } : c
+          ),
+        })),
+
+      deleteCategory: (id) =>
+        set((state) => {
+          const items = state.items.map((item) =>
+            item.category === id ? { ...item, category: 'uncategorised' } : item
+          );
+          const categories = state.categories.filter((c) => c.id !== id && c.id !== 'all');
+          const allCat     = { ...state.categories.find((c) => c.id === 'all')!, count: items.length };
+          return {
+            items,
+            categories: [allCat, ...categories],
+            activeCategory: state.activeCategory === id ? 'all' : state.activeCategory,
+          };
+        }),
     }),
-
-  updateItemStatus: (id, status) =>
-    set((state) => ({
-      items: state.items.map((item) =>
-        item.id === id ? { ...item, status } : item
-      ),
-    })),
-
-  addItem: (item) =>
-    set((state) => {
-      const newItem: MenuItem = { ...item, id: `m${++nextItemId}` };
-      const items = [...state.items, newItem];
-      return { items, categories: rebuildCounts(items, state.categories), currentPage: 1 };
-    }),
-
-  updateItem: (id, data) =>
-    set((state) => {
-      const items = state.items.map((item) =>
-        item.id === id ? { ...item, ...data } : item
-      );
-      return { items, categories: rebuildCounts(items, state.categories) };
-    }),
-
-  deleteItem: (id) =>
-    set((state) => {
-      const items = state.items.filter((item) => item.id !== id);
-      return { items, categories: rebuildCounts(items, state.categories) };
-    }),
-
-  addCategory: (name) =>
-    set((state) => {
-      const newCat: Category = {
-        id:    `cat${++nextCatId}-${slugify(name)}`,
-        name,
-        count: 0,
-      };
-      const withoutAll = state.categories.filter((c) => c.id !== 'all');
-      const allCat     = state.categories.find((c)  => c.id === 'all')!;
-      return { categories: [allCat, ...withoutAll, newCat] };
-    }),
-
-  updateCategory: (id, name) =>
-    set((state) => ({
-      categories: state.categories.map((c) =>
-        c.id === id ? { ...c, name } : c
-      ),
-    })),
-
-  deleteCategory: (id) =>
-    set((state) => {
-      const items = state.items.map((item) =>
-        item.category === id ? { ...item, category: 'uncategorised' } : item
-      );
-      const categories = state.categories.filter((c) => c.id !== id && c.id !== 'all');
-      const allCat     = { ...state.categories.find((c) => c.id === 'all')!, count: items.length };
-      return {
-        items,
-        categories: [allCat, ...categories],
-        activeCategory: state.activeCategory === id ? 'all' : state.activeCategory,
-      };
-    }),
-}));
+    {
+      name: 'admin-menu-store',
+    }
+  )
+);
 
 // ── Selector (pure, no hooks) ─────────────────────────────────────────────────
 

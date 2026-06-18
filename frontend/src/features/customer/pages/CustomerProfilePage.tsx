@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../../app/providers/ThemeProvider';
 import { useCustomerStore } from '../store/customer.store';
+import ImageCropperModal from '../components/dashboard/ImageCropperModal';
 
 const STATS_CONFIG = [
   { icon: 'event_available', key: 'reservations', label: 'Reservations', color: 'bg-orange-100 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400' },
@@ -11,7 +12,7 @@ const STATS_CONFIG = [
 ];
 
 const MENU_ITEMS = [
-  { icon: 'person_outline', label: 'Personal Information', desc: 'Update your name, email and phone', color: 'bg-orange-50 text-orange-500 dark:bg-orange-950/20 dark:text-orange-400', key: 'profile' },
+  { icon: 'person_outline', label: 'Personal Information', desc: 'Update your name and phone', color: 'bg-orange-50 text-orange-500 dark:bg-orange-950/20 dark:text-orange-400', key: 'profile' },
   { icon: 'star_outline', label: 'Reward Points', desc: 'View your reward points and history', color: 'bg-purple-50 text-purple-500 dark:bg-purple-950/20 dark:text-purple-400', key: 'loyalty', badge: '450 Pts' },
   { icon: 'confirmation_number', label: 'Offers & Coupons', desc: 'View available restaurant offers', color: 'bg-red-50 text-red-500 dark:bg-red-950/20 dark:text-red-400', key: 'offers', badge: '5 Available' },
   { icon: 'notifications_active', label: 'Notifications', desc: 'Manage your alert preferences', color: 'bg-yellow-50 text-yellow-600 dark:bg-yellow-950/20 dark:text-yellow-400', key: 'notifications' },
@@ -19,10 +20,6 @@ const MENU_ITEMS = [
 
 const AVATAR_OPTIONS = [
   { icon: 'person', label: 'Default' },
-  { icon: 'cooking', label: 'Chef' },
-  { icon: 'restaurant', label: 'Gourmet' },
-  { icon: 'local_pizza', label: 'Pizza Fan' },
-  { icon: 'local_cafe', label: 'Coffee Lover' },
 ];
 
 export default function CustomerProfilePage() {
@@ -49,11 +46,13 @@ export default function CustomerProfilePage() {
 
   // Form states
   const [editName, setEditName] = useState(profile.name);
-  const [editEmail, setEditEmail] = useState(profile.email || '');
   const [editPhone, setEditPhone] = useState(profile.phone);
   const [selectedAvatar, setSelectedAvatar] = useState(profile.avatar || 'person');
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const avatarFileInputRef = useRef<HTMLInputElement>(null);
+
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [tempImageSrc, setTempImageSrc] = useState('');
 
   const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -61,12 +60,20 @@ export default function CustomerProfilePage() {
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64Url = reader.result as string;
-        setSelectedAvatar(base64Url);
-        updateProfile({ avatar: base64Url });
-        showToast('Custom photo uploaded successfully!');
+        setTempImageSrc(base64Url);
+        setCropperOpen(true);
+        setAvatarMenuOpen(false);
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleCropConfirm = (croppedBase64: string) => {
+    setSelectedAvatar(croppedBase64);
+    updateProfile({ avatar: croppedBase64 });
+    setCropperOpen(false);
+    setTempImageSrc('');
+    showToast('Custom photo uploaded and cropped successfully!');
   };
 
   // Local notification preference state for form toggles
@@ -114,16 +121,10 @@ export default function CustomerProfilePage() {
       showToast('Please enter a valid phone number', 'error');
       return;
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (editEmail.trim() && !emailRegex.test(editEmail)) {
-      showToast('Please enter a valid email address', 'error');
-      return;
-    }
 
     updateProfile({
       name: editName,
       phone: editPhone,
-      email: editEmail,
     });
     setActiveModal(null);
     showToast('Personal information updated successfully!');
@@ -184,7 +185,7 @@ export default function CustomerProfilePage() {
           {/* Profile Card */}
           <div className="bg-white rounded-2xl p-5 border border-sd-surface-variant sd-food-card-shadow flex flex-col sm:flex-row gap-5 items-start">
             <div className="relative shrink-0">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-sd-primary-container/30 to-sd-primary-fixed-dim overflow-hidden flex items-center justify-center ring-4 ring-sd-primary-fixed shadow-md">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-sd-primary-container/30 to-sd-primary-fixed-dim overflow-hidden flex items-center justify-center ring-4 ring-sd-primary-fixed shadow-md">
                 {selectedAvatar.startsWith('data:image') || selectedAvatar.startsWith('http') ? (
                   <img src={selectedAvatar} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
@@ -252,17 +253,24 @@ export default function CustomerProfilePage() {
             <div className="flex-1 w-full">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                 <div>
-                  <h3 className="text-xl font-bold text-sd-on-surface font-sans">{profile.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xl font-bold text-sd-on-surface font-sans">{profile.name}</h3>
+                    <button
+                        onClick={() => {
+                          setEditName(profile.name);
+                          setEditPhone(profile.phone);
+                          setActiveModal('profile');
+                        }}
+                      className="p-1.5 text-sd-on-surface-variant hover:text-sd-primary hover:bg-sd-surface-container rounded-full transition-colors flex items-center justify-center"
+                      title="Edit Profile"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">edit</span>
+                    </button>
+                  </div>
                   <div className="flex items-center gap-2 mt-1 text-sd-on-surface-variant">
                     <span className="material-symbols-outlined text-[16px]">call</span>
                     <span className="text-sm font-semibold font-sans">{profile.phone}</span>
                   </div>
-                  {profile.email && (
-                    <div className="flex items-center gap-2 mt-0.5 text-sd-on-surface-variant">
-                      <span className="material-symbols-outlined text-[16px]">mail</span>
-                      <span className="text-xs font-sans truncate">{profile.email}</span>
-                    </div>
-                  )}
                 </div>
                 <div className="bg-sd-primary-fixed/30 text-sd-primary px-3 py-1 rounded-full flex items-center gap-1 self-start shrink-0">
                   <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>
@@ -292,7 +300,7 @@ export default function CustomerProfilePage() {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
             {STATS_CONFIG.map(({ icon, key, label, color }) => {
               let value = '0';
               if (key === 'reservations') value = '12';
@@ -301,12 +309,12 @@ export default function CustomerProfilePage() {
               if (key === 'offers') value = String(offers.filter(o => !o.claimed).length);
 
               return (
-                <div key={label} className="bg-white p-3.5 rounded-xl border border-sd-surface-variant text-center hover:shadow-md transition-all sd-food-card-shadow">
-                  <div className={`w-9 h-9 mx-auto rounded-full ${color} flex items-center justify-center mb-2`}>
-                    <span className="material-symbols-outlined text-[18px]">{icon}</span>
+                <div key={label} className="bg-white p-2 sm:p-3.5 rounded-xl border border-sd-surface-variant text-center hover:shadow-md transition-all sd-food-card-shadow">
+                  <div className={`w-7 h-7 sm:w-9 sm:h-9 mx-auto rounded-full ${color} flex items-center justify-center mb-1 sm:mb-2`}>
+                    <span className="material-symbols-outlined text-[14px] sm:text-[18px]">{icon}</span>
                   </div>
-                  <p className="text-base font-bold font-sans">{value}</p>
-                  <p className="text-[11px] text-sd-on-surface-variant font-sans">{label}</p>
+                  <p className="text-sm sm:text-base font-bold font-sans">{value}</p>
+                  <p className="text-[9px] sm:text-[11px] text-sd-on-surface-variant font-sans truncate">{label}</p>
                 </div>
               );
             })}
@@ -329,7 +337,6 @@ export default function CustomerProfilePage() {
                     if (key === 'profile') {
                       setEditName(profile.name);
                       setEditPhone(profile.phone);
-                      setEditEmail(profile.email || '');
                       setActiveModal('profile');
                     } else if (key === 'loyalty') {
                       setActiveModal('loyalty');
@@ -535,17 +542,6 @@ export default function CustomerProfilePage() {
                       className="w-full px-4 py-2.5 rounded-xl border border-sd-surface-variant focus:outline-none focus:ring-2 focus:ring-sd-primary focus:border-sd-primary font-sans text-sm"
                       placeholder="+91 98765 43210"
                       required
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="editEmail" className="block text-xs font-bold text-sd-on-surface-variant uppercase tracking-wider mb-1 font-sans">Email Address</label>
-                    <input 
-                      id="editEmail"
-                      type="email" 
-                      value={editEmail}
-                      onChange={(e) => setEditEmail(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-sd-surface-variant focus:outline-none focus:ring-2 focus:ring-sd-primary focus:border-sd-primary font-sans text-sm"
-                      placeholder="rahul.sharma@example.com"
                     />
                   </div>
                   <div className="pt-2 flex justify-end gap-3 shrink-0">
@@ -823,6 +819,15 @@ export default function CustomerProfilePage() {
           </div>
         </div>
       )}
+      <ImageCropperModal
+        isOpen={cropperOpen}
+        imageSrc={tempImageSrc}
+        onClose={() => {
+          setCropperOpen(false);
+          setTempImageSrc('');
+        }}
+        onConfirm={handleCropConfirm}
+      />
     </div>
   );
 }

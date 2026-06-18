@@ -61,9 +61,9 @@ export default function CustomerMenuPage() {
             </label>
 
             {/* Spicy Toggle */}
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
               <span className="material-symbols-outlined text-sd-primary text-[18px]">local_fire_department</span>
-              <span className="text-sm font-semibold text-sd-on-surface-variant font-sans">Spicy</span>
+              <span className="text-sm font-semibold text-sd-on-surface-variant font-sans">Extra Spicy</span>
               <div
                 className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
                   spicyOnly ? 'bg-sd-primary/20' : 'bg-sd-surface-variant'

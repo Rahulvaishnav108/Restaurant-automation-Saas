@@ -99,7 +99,7 @@ export default function RestaurantTable({
   if (isMobile) {
     return (
       <div className={`rounded-2xl border transition-all ${
-        darkMode ? "bg-[#090f1c]/40 border-slate-900" : "bg-white border-slate-200/70 shadow-sm"
+        darkMode ? "bg-slate-900/40 border-slate-800/80" : "bg-white border-slate-200/70 shadow-sm"
       }`}>
         {restaurants.length > 0 ? (
           <div className="p-3 space-y-3">
@@ -130,7 +130,7 @@ export default function RestaurantTable({
   // Desktop Table View
   return (
     <div className={`rounded-2xl border transition-all ${
-      darkMode ? "bg-[#090f1c]/40 border-slate-900" : "bg-white border-slate-200/70 shadow-sm"
+      darkMode ? "bg-slate-900/40 border-slate-800/80" : "bg-white border-slate-200/70 shadow-sm"
     }`}>
       <div className="overflow-x-auto w-full rounded-2xl">
         {restaurants.length > 0 ? (
@@ -263,7 +263,7 @@ export default function RestaurantTable({
                               aria-label="Close dropdown" 
                             />
                             <div className={`absolute right-0 mt-2 w-48 rounded-xl border p-2 shadow-xl z-40 text-left ${
-                              darkMode ? "bg-[#0b1324] border-slate-800 shadow-black/40" : "bg-white border-slate-200 shadow-slate-200"
+                              darkMode ? "bg-slate-950 border-slate-800 shadow-black/40" : "bg-white border-slate-200 shadow-slate-200"
                             }`}>
                               <p className={`text-[10px] font-bold uppercase px-2.5 py-1 ${darkMode ? "text-slate-500" : "text-slate-400"}`}>
                                 Set Status
@@ -340,7 +340,7 @@ export default function RestaurantTable({
                               aria-label="Close dropdown" 
                             />
                             <div className={`absolute right-0 mt-2 w-44 rounded-xl border p-1.5 shadow-xl z-40 text-left ${
-                              darkMode ? "bg-[#0b1324] border-slate-800 shadow-black/40" : "bg-white border-slate-200 shadow-slate-200"
+                              darkMode ? "bg-slate-950 border-slate-800 shadow-black/40" : "bg-white border-slate-200 shadow-slate-200"
                             }`}>
                               <button
                                 onClick={() => { onView(row); setActiveMoreRow(null); }}

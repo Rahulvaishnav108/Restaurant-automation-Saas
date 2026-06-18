@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -161,129 +162,136 @@ function recomputeStats(items: InventoryItem[]): InventoryStats {
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 
-export const useInventoryStore = create<InventoryStore>((set) => ({
-  stats: recomputeStats(seedItems),
+export const useInventoryStore = create<InventoryStore>()(
+  persist(
+    (set) => ({
+      stats: recomputeStats(seedItems),
 
-  items: seedItems,
+      items: seedItems,
 
-  stockAlerts: [
-    { id: 'A001', name: 'Chicken Breast',     detail: '15.20 kg left',  status: 'Low Stock',    imageEmoji: '🍗' },
-    { id: 'A002', name: 'Olive Oil',          detail: '3.00 L left',    status: 'Low Stock',    imageEmoji: '🫒' },
-    { id: 'A003', name: 'Mozzarella Cheese',  detail: 'Out of stock',   status: 'Out of Stock', imageEmoji: '🧀' },
-    { id: 'A004', name: 'Disinfectant Spray', detail: '2 pcs left',     status: 'Low Stock',    imageEmoji: '🧴' },
-    { id: 'A005', name: 'Lettuce',            detail: '8.50 kg left',   status: 'Low Stock',    imageEmoji: '🥬' },
-    { id: 'A006', name: 'Onions',             detail: '9.50 kg left',   status: 'Low Stock',    imageEmoji: '🧅' },
-    { id: 'A007', name: 'Floor Cleaner',      detail: '4.00 L left',    status: 'Low Stock',    imageEmoji: '🧹' },
-  ],
+      stockAlerts: [
+        { id: 'A001', name: 'Chicken Breast',     detail: '15.20 kg left',  status: 'Low Stock',    imageEmoji: '🍗' },
+        { id: 'A002', name: 'Olive Oil',          detail: '3.00 L left',    status: 'Low Stock',    imageEmoji: '🫒' },
+        { id: 'A003', name: 'Mozzarella Cheese',  detail: 'Out of stock',   status: 'Out of Stock', imageEmoji: '🧀' },
+        { id: 'A004', name: 'Disinfectant Spray', detail: '2 pcs left',     status: 'Low Stock',    imageEmoji: '🧴' },
+        { id: 'A005', name: 'Lettuce',            detail: '8.50 kg left',   status: 'Low Stock',    imageEmoji: '🥬' },
+        { id: 'A006', name: 'Onions',             detail: '9.50 kg left',   status: 'Low Stock',    imageEmoji: '🧅' },
+        { id: 'A007', name: 'Floor Cleaner',      detail: '4.00 L left',    status: 'Low Stock',    imageEmoji: '🧹' },
+      ],
 
-  topSuppliers: [
-    { id: 'S001', name: 'Fresh Farm Foods',     spent: '₹12,450.00', color: 'bg-green-500',  initials: 'FF' },
-    { id: 'S002', name: 'Global Beverages',     spent: '₹6,780.50',  color: 'bg-blue-500',   initials: 'GB' },
-    { id: 'S003', name: 'Pack & More Supplies', spent: '₹3,240.00',  color: 'bg-orange-500', initials: 'PM' },
-    { id: 'S004', name: 'CleanPro India',       spent: '₹1,890.00',  color: 'bg-purple-500', initials: 'CP' },
-    { id: 'S005', name: 'Agro Direct',          spent: '₹1,320.00',  color: 'bg-red-500',    initials: 'AD' },
-  ],
+      topSuppliers: [
+        { id: 'S001', name: 'Fresh Farm Foods',     spent: '₹12,450.00', color: 'bg-green-500',  initials: 'FF' },
+        { id: 'S002', name: 'Global Beverages',     spent: '₹6,780.50',  color: 'bg-blue-500',   initials: 'GB' },
+        { id: 'S003', name: 'Pack & More Supplies', spent: '₹3,240.00',  color: 'bg-orange-500', initials: 'PM' },
+        { id: 'S004', name: 'CleanPro India',       spent: '₹1,890.00',  color: 'bg-purple-500', initials: 'CP' },
+        { id: 'S005', name: 'Agro Direct',          spent: '₹1,320.00',  color: 'bg-red-500',    initials: 'AD' },
+      ],
 
-  valueOverTime: [
-    { label: 'Apr 20', value: 18000 },
-    { label: 'Apr 27', value: 19500 },
-    { label: 'May 4',  value: 17800 },
-    { label: 'May 11', value: 21000 },
-    { label: 'May 18', value: 24680 },
-  ],
+      valueOverTime: [
+        { label: 'Apr 20', value: 18000 },
+        { label: 'Apr 27', value: 19500 },
+        { label: 'May 4',  value: 17800 },
+        { label: 'May 11', value: 21000 },
+        { label: 'May 18', value: 24680 },
+      ],
 
-  topUsedIngredients: [
-    { label: 'Chicken Breast', value: 90 },
-    { label: 'Tomatoes',       value: 75 },
-    { label: 'Lettuce',        value: 55 },
-    { label: 'Cheese',         value: 40 },
-    { label: 'Olive Oil',      value: 30 },
-  ],
+      topUsedIngredients: [
+        { label: 'Chicken Breast', value: 90 },
+        { label: 'Tomatoes',       value: 75 },
+        { label: 'Lettuce',        value: 55 },
+        { label: 'Cheese',         value: 40 },
+        { label: 'Olive Oil',      value: 30 },
+      ],
 
-  statusDistribution: {
-    inStock: 156, inStockPct: 62.9,
-    lowStock: 18, lowStockPct: 7.3,
-    outOfStock: 6, outOfStockPct: 2.4,
-    expiringSoon: 11, expiringSoonPct: 4.4,
-  },
+      statusDistribution: {
+        inStock: 156, inStockPct: 62.9,
+        lowStock: 18, lowStockPct: 7.3,
+        outOfStock: 6, outOfStockPct: 2.4,
+        expiringSoon: 11, expiringSoonPct: 4.4,
+      },
 
-  activeTab:      'All Items',
-  activeCategory: 'All Categories',
-  searchQuery:    '',
-  currentPage:    1,
-  perPage:        8,
+      activeTab:      'All Items',
+      activeCategory: 'All Categories',
+      searchQuery:    '',
+      currentPage:    1,
+      perPage:        8,
 
-  // Modals
-  showAddItemModal:     false,
-  showImportModal:      false,
-  showStockAlertsModal: false,
-  showSuppliersModal:   false,
-  showValueChartModal:  false,
-  showDonutModal:       false,
-  showIngredientsModal: false,
+      // Modals
+      showAddItemModal:     false,
+      showImportModal:      false,
+      showStockAlertsModal: false,
+      showSuppliersModal:   false,
+      showValueChartModal:  false,
+      showDonutModal:       false,
+      showIngredientsModal: false,
 
-  setActiveTab:      (t) => set({ activeTab: t,      currentPage: 1 }),
-  setActiveCategory: (c) => set({ activeCategory: c, currentPage: 1 }),
-  setSearchQuery:    (q) => set({ searchQuery: q,    currentPage: 1 }),
-  setCurrentPage:    (p) => set({ currentPage: p }),
+      setActiveTab:      (t) => set({ activeTab: t,      currentPage: 1 }),
+      setActiveCategory: (c) => set({ activeCategory: c, currentPage: 1 }),
+      setSearchQuery:    (q) => set({ searchQuery: q,    currentPage: 1 }),
+      setCurrentPage:    (p) => set({ currentPage: p }),
 
-  setShowAddItemModal:     (v) => set({ showAddItemModal: v }),
-  setShowImportModal:      (v) => set({ showImportModal: v }),
-  setShowStockAlertsModal: (v) => set({ showStockAlertsModal: v }),
-  setShowSuppliersModal:   (v) => set({ showSuppliersModal: v }),
-  setShowValueChartModal:  (v) => set({ showValueChartModal: v }),
-  setShowDonutModal:       (v) => set({ showDonutModal: v }),
-  setShowIngredientsModal: (v) => set({ showIngredientsModal: v }),
+      setShowAddItemModal:     (v) => set({ showAddItemModal: v }),
+      setShowImportModal:      (v) => set({ showImportModal: v }),
+      setShowStockAlertsModal: (v) => set({ showStockAlertsModal: v }),
+      setShowSuppliersModal:   (v) => set({ showSuppliersModal: v }),
+      setShowValueChartModal:  (v) => set({ showValueChartModal: v }),
+      setShowDonutModal:       (v) => set({ showDonutModal: v }),
+      setShowIngredientsModal: (v) => set({ showIngredientsModal: v }),
 
-  addItem: (form) =>
-    set((state) => {
-      const currentStock = parseFloat(form.currentStock) || 0;
-      const parLevel     = parseFloat(form.parLevel) || 0;
-      const newItem: InventoryItem = {
-        id:           `I${String(state.items.length + 1).padStart(3, '0')}`,
-        name:         form.name.trim(),
-        category:     form.category,
-        unit:         form.unit.trim() || 'pcs',
-        currentStock,
-        parLevel,
-        status:       deriveStatus(currentStock, parLevel),
-        lastUpdated:  new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-        imageEmoji:   form.imageEmoji || '📦',
-      };
-      const items = [newItem, ...state.items];
-      return {
-        items,
-        stats: recomputeStats(items),
-        showAddItemModal: false,
-      };
+      addItem: (form) =>
+        set((state) => {
+          const currentStock = parseFloat(form.currentStock) || 0;
+          const parLevel     = parseFloat(form.parLevel) || 0;
+          const newItem: InventoryItem = {
+            id:           `I${String(state.items.length + 1).padStart(3, '0')}`,
+            name:         form.name.trim(),
+            category:     form.category,
+            unit:         form.unit.trim() || 'pcs',
+            currentStock,
+            parLevel,
+            status:       deriveStatus(currentStock, parLevel),
+            lastUpdated:  new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+            imageEmoji:   form.imageEmoji || '📦',
+          };
+          const items = [newItem, ...state.items];
+          return {
+            items,
+            stats: recomputeStats(items),
+            showAddItemModal: false,
+          };
+        }),
+
+      deleteItem: (id) =>
+        set((state) => {
+          const items = state.items.filter((i) => i.id !== id);
+          return { items, stats: recomputeStats(items) };
+        }),
+
+      importItems: (raw) =>
+        set((state) => {
+          const lines = raw.trim().split('\n').filter(Boolean);
+          const newItems: InventoryItem[] = lines.map((line, idx) => {
+            const parts = line.split(',').map((s) => s.trim());
+            const currentStock = parseFloat(parts[2]) || 0;
+            const parLevel     = parseFloat(parts[3]) || 0;
+            return {
+              id:           `IMP${Date.now()}_${idx}`,
+              name:         parts[0] || `Item ${idx + 1}`,
+              category:     (parts[1] as ItemCategory) || 'Other',
+              unit:         parts[4] || 'pcs',
+              currentStock,
+              parLevel,
+              status:       deriveStatus(currentStock, parLevel),
+              lastUpdated:  new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+              imageEmoji:   parts[5] || '📦',
+            };
+          });
+          const items = [...newItems, ...state.items];
+          return { items, stats: recomputeStats(items), showImportModal: false };
+        }),
     }),
-
-  deleteItem: (id) =>
-    set((state) => {
-      const items = state.items.filter((i) => i.id !== id);
-      return { items, stats: recomputeStats(items) };
-    }),
-
-  importItems: (raw) =>
-    set((state) => {
-      const lines = raw.trim().split('\n').filter(Boolean);
-      const newItems: InventoryItem[] = lines.map((line, idx) => {
-        const parts = line.split(',').map((s) => s.trim());
-        const currentStock = parseFloat(parts[2]) || 0;
-        const parLevel     = parseFloat(parts[3]) || 0;
-        return {
-          id:           `IMP${Date.now()}_${idx}`,
-          name:         parts[0] || `Item ${idx + 1}`,
-          category:     (parts[1] as ItemCategory) || 'Other',
-          unit:         parts[4] || 'pcs',
-          currentStock,
-          parLevel,
-          status:       deriveStatus(currentStock, parLevel),
-          lastUpdated:  new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-          imageEmoji:   parts[5] || '📦',
-        };
-      });
-      const items = [...newItems, ...state.items];
-      return { items, stats: recomputeStats(items), showImportModal: false };
-    }),
-}));
+    {
+      name: 'admin-inventory-store',
+    }
+  )
+);

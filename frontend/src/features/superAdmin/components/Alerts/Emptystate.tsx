@@ -45,7 +45,7 @@ export default function EmptyState({ type, darkMode, onReset }: EmptyStateProps)
   return (
     <div className={cx(
       'flex flex-col items-center justify-center py-20 px-4 rounded-2xl border border-dashed transition-colors',
-      darkMode ? 'bg-[#0b132b]/60 border-slate-800' : 'bg-gray-50/40 border-gray-100'
+      darkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-gray-50/40 border-gray-100'
     )}>
       <div className={cx('w-16 h-16 rounded-2xl flex items-center justify-center mb-4', iconBg)}>
         <Icon className={cx('w-7 h-7', iconColor)} />

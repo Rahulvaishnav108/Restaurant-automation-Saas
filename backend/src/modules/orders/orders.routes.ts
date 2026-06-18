@@ -16,11 +16,7 @@ import { OrdersController } from './orders.controller';
 
 const router = Router();
 
-/*
-|--------------------------------------------------------------------------
-| SESSION-BASED CUSTOMER APIs (QR session token auth)
-|--------------------------------------------------------------------------
-*/
+
 
 // Place Order
 router.post(
