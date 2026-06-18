@@ -2,13 +2,18 @@ import { useCallback, useEffect, useState } from 'react';
 import { cleaningStore } from '../store/cleaning.store';
 import { cleaningAPI, type CleaningMetric, type UrgentTask } from '../api/cleaning.api';
 
+// Hum yahan temporary interface bana rahe hain taaki TypeScript error na de
+interface ProcessedTask extends UrgentTask {
+  rawStatus: string;
+  rawPriority: string;
+}
+
 export function useCleaning() {
   const [metrics, setMetrics] = useState<CleaningMetric[]>([]);
   const [urgentTasks, setUrgentTasks] = useState<UrgentTask[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error] = useState<string | null>(null);
 
-  // Core Data Sync Engine with explicit fallback mapping
   const processAndSyncData = useCallback(() => {
     const storeTables = cleaningStore.tables || [];
 
@@ -25,13 +30,12 @@ export function useCleaning() {
       { label: 'Service Rating', value: '4.9/5', color: 'bg-purple-500/10 text-purple-500' },
     ]);
 
-    const processedTasks = storeTables.map((task) => {
+    const processedTasks: ProcessedTask[] = storeTables.map((task) => {
       let displayStatus = 'Needs Cleaning';
       let badgeColor = '#f59e0b';
       let badgeBg = 'rgba(245,158,11,0.15)';
       let rawStatus = 'PENDING';
 
-      // Explicit strict string checks to avoid falling into wrong buckets
       if (task.status === 'Needs Cleaning') {
         displayStatus = 'Needs Cleaning';
         badgeColor = '#f59e0b';
@@ -55,6 +59,7 @@ export function useCleaning() {
         displayStatus = 'Available';
         badgeColor = '#22c55e';
         badgeBg = 'rgba(34,197,94,0.15)';
+        
         rawStatus = 'VERIFIED';
       }
 
@@ -69,13 +74,14 @@ export function useCleaning() {
         rawPriority: task.priority || 'Medium',
         rawStatus: rawStatus,
         progress: task.progress || 0
-      };
+      } as ProcessedTask;
     });
 
-    const sortedTasks = processedTasks.sort((a: any, b: any) => {
+    const priorityWeight: Record<string, number> = { High: 3, Medium: 2, Low: 1 };
+
+    const sortedTasks = [...processedTasks].sort((a: ProcessedTask, b: ProcessedTask) => {
       if (a.rawStatus === 'REQUESTED' && b.rawStatus !== 'REQUESTED') return -1;
       if (a.rawStatus !== 'REQUESTED' && b.rawStatus === 'REQUESTED') return 1;
-      const priorityWeight: any = { High: 3, Medium: 2, Low: 1 };
       return (priorityWeight[b.rawPriority] || 0) - (priorityWeight[a.rawPriority] || 0);
     });
 
@@ -104,28 +110,8 @@ export function useCleaning() {
   }, []);
 
   useEffect(() => {
-    void loadDashboard();
+    loadDashboard();
   }, [loadDashboard]);
-
-  const assignTask = useCallback((taskId: string) => {
-    cleaningStore.startCleaning(taskId);
-  }, []);
-
-  const startTask = useCallback((taskId: string) => {
-    cleaningStore.startCleaning(taskId);
-  }, []);
-
-  const completeTask = useCallback((taskId: string) => {
-    cleaningStore.updateProgress(taskId);
-  }, []);
-
-  const verifyTask = useCallback((taskId: string) => {
-    cleaningStore.completeInspection(taskId);
-  }, []);
-
-  const reportIssue = useCallback((taskId: string, issue: string) => {
-    cleaningStore.reportMaintenance(taskId, issue);
-  }, []);
 
   return {
     metrics,
@@ -142,11 +128,11 @@ export function useCleaning() {
     jobStatus: [],
     loading,
     error,
-    assignTask,
-    startTask,
-    completeTask,
-    verifyTask,
-    reportIssue,
+    assignTask: (taskId: string) => cleaningStore.startCleaning(taskId),
+    startTask: (taskId: string) => cleaningStore.startCleaning(taskId),
+    completeTask: (taskId: string) => cleaningStore.updateProgress(taskId),
+    verifyTask: (taskId: string) => cleaningStore.completeInspection(taskId),
+    reportIssue: (taskId: string, issue: string) => cleaningStore.reportMaintenance(taskId, issue),
     refresh: loadDashboard,
   };
 }
