@@ -16,6 +16,15 @@ interface CleaningRequest {
   assignedTo: { name: string; avatar: string } | null;
   rawId: string;
 }
+interface TableTask {
+  id: string;
+  rawId?: string; // Yeh '?' add kar
+  rawStatus?: 'PENDING' | 'REQUESTED' | 'IN_PROGRESS' | 'COMPLETED' | 'VERIFIED';
+  rawPriority?: 'High' | 'Medium' | 'Low';
+  progress?: number;
+  waiting?: string;
+}
+
 
 export default function CleaningRequestsPage() {
   const { searchQuery } = useCleaningSearch();
@@ -46,7 +55,7 @@ export default function CleaningRequestsPage() {
 
   // 🔌 Connecting directly to central simulation hook layer
   const { urgentTasks, startTask, completeTask, verifyTask, reportIssue } = useCleaning();
-  const safeTasks = (urgentTasks || []) as any[];
+  const safeTasks = (urgentTasks || []) as unknown as TableTask[];
 
   // Close custom drop components sheets cleanly when clicking outside boundaries
   useEffect(() => {

@@ -88,16 +88,6 @@ export function useCleaning() {
     setUrgentTasks(sortedTasks);
   }, []);
 
-  useEffect(() => {
-    processAndSyncData();
-    const unsubscribe = cleaningStore.subscribe(() => {
-      processAndSyncData();
-    });
-    return () => {
-      unsubscribe();
-    };
-  }, [processAndSyncData]);
-
   const loadDashboard = useCallback(async () => {
     setLoading(true);
     try {
@@ -109,9 +99,24 @@ export function useCleaning() {
     }
   }, []);
 
+
+// Pehla Effect
   useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
+    const timer = setTimeout(() => processAndSyncData(), 0);
+    const unsubscribe = cleaningStore.subscribe(() => {
+      processAndSyncData();
+    });
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+    };
+  }, [processAndSyncData]); // <--- Yahan 'processAndSyncData' daal diya
+
+  // Dusra Effect
+  useEffect(() => {
+    const timer = setTimeout(() => loadDashboard(), 0);
+    return () => clearTimeout(timer);
+  }, [loadDashboard]); // <--- Yahan 'loadDashboard' daal diya
 
   return {
     metrics,

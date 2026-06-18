@@ -25,17 +25,25 @@ interface BadgeItem {
   bgClass: string;
   shadowClass: string;
 }
+interface TableTask {
+  id: string;
+  rawId?: string; // Yeh '?' add kar
+  rawStatus?: 'PENDING' | 'REQUESTED' | 'IN_PROGRESS' | 'COMPLETED' | 'VERIFIED';
+  rawPriority?: 'High' | 'Medium' | 'Low';
+  progress?: number;
+  waiting?: string;
+}
 
 export default function CleaningProfilePage() {
   const navigate = useNavigate();
 
   // 🔌 Connect with dynamic system telemetry layer
   const { urgentTasks } = useCleaning();
-  const safeTasks = (urgentTasks || []) as any[];
+ const safeTasks: TableTask[] = (urgentTasks || []) as TableTask[];
 
   // Dynamic values tracking calculation directly bound to real-time arrays
   const liveCleanedCount = safeTasks.filter(t => t.rawStatus === 'COMPLETED' || t.rawStatus === 'VERIFIED').length;
-  const liveInProgressCount = safeTasks.filter(t => t.rawStatus === 'IN_PROGRESS').length;
+  const liveInProgressCount = safeTasks.filter((t: TableTask) => t.rawStatus === 'IN_PROGRESS').length;
 
   const activities: ActivityItem[] = [
     { icon: 'check_circle', iconBg: 'bg-green-100 dark:bg-green-950/30', iconColor: 'text-green-600 dark:text-green-400', title: 'Completed table T01', timestamp: 'Jun 16, 2026', subtitle: 'Dining Area A • 10:30 AM' },
@@ -252,7 +260,7 @@ export default function CleaningProfilePage() {
         <section className="bg-white dark:bg-sd-surface-container rounded-2xl border border-slate-150 dark:border-slate-800 p-5 shadow-sm">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 font-sans">Recent Activity</h3>
-            <span onClick={() => alert("View All clicked!")} className="text-[10px] font-bold text-orange-500 cursor-pointer hover:underline font-sans">View All</span>
+            <button type="button" onClick={() => alert("View All clicked!")} className="text-[10px] font-bold text-orange-500 cursor-pointer hover:underline font-sans">View All</button>
           </div>
 
           <div className="space-y-4 relative before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-[2.5px] before:bg-slate-100 dark:before:bg-slate-800/80">
@@ -277,9 +285,8 @@ export default function CleaningProfilePage() {
         <section className="bg-white dark:bg-sd-surface-container rounded-2xl border border-slate-150 dark:border-slate-800 p-5 shadow-sm md:col-span-2 lg:col-span-1">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 font-sans">Work Preferences</h3>
-            <span onClick={() => alert("Edit clicked!")} className="text-[10px] font-bold text-orange-500 cursor-pointer hover:underline font-sans">Edit</span>
+            <button type="button" onClick={() => alert("Edit clicked!")} className="text-[10px] font-bold text-orange-500 cursor-pointer hover:underline font-sans">Edit</button>
           </div>
-
           <div className="space-y-4 font-sans text-xs">
             {preferences.map((pref, idx) => (
               <div key={idx} className="flex items-start gap-3">

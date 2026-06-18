@@ -13,6 +13,15 @@ interface TableRow {
   rawId: string;
 }
 
+interface TableTask {
+  id: string;
+  rawId: string;
+  rawStatus?: 'PENDING' | 'REQUESTED' | 'IN_PROGRESS' | 'COMPLETED' | 'VERIFIED';
+  rawPriority?: 'High' | 'Medium' | 'Low';
+  progress?: number;
+  waiting?: string;
+}
+
 export default function CleaningTablesPage() {
   const { searchQuery } = useCleaningSearch();
   const [statusFilter, setStatusFilter] = useState('All Status');
@@ -38,8 +47,7 @@ export default function CleaningTablesPage() {
 
   // 🔌 Connecting to the live operational global store layer hook context channel
   const { urgentTasks, startTask, completeTask, verifyTask } = useCleaning();
-  const safeTasks = (urgentTasks || []) as any[];
-
+  const safeTasks: TableTask[] = (urgentTasks || []) as unknown as TableTask[];
   // Close custom lists when clicking outside boundaries
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -52,7 +60,8 @@ export default function CleaningTablesPage() {
   }, []);
 
   // Pure state transformer mapped to render original static array details smoothly
-  const tables: TableRow[] = safeTasks.map(t => {
+    // Naya (Without any):
+const tables: TableRow[] = safeTasks.map((t: TableTask) => {
     let displayStatus: 'Pending' | 'In Progress' | 'Completed' = 'Pending';
     if (t.rawStatus === 'IN_PROGRESS') displayStatus = 'In Progress';
     if (t.rawStatus === 'COMPLETED' || t.rawStatus === 'VERIFIED') displayStatus = 'Completed';
@@ -72,7 +81,7 @@ export default function CleaningTablesPage() {
       seats: t.id === 'T03' || t.id === 'T05' ? 6 : t.id === 'T15' ? 3 : (t.id === 'T12' || t.id === 'T02' ? 2 : 4),
       status: displayStatus,
       priority: (t.rawPriority === 'High' || t.rawStatus === 'REQUESTED' ? 'High' : t.rawPriority === 'Low' ? 'Low' : 'Medium') as 'High' | 'Medium' | 'Low',
-      lastCleaned: t.rawStatus === 'VERIFIED' ? '10:30 AM' : (t.rawStatus === 'COMPLETED' ? 'Just Now' : t.waiting),
+      lastCleaned: t.rawStatus === 'VERIFIED' ? '10:30 AM' : (t.rawStatus === 'COMPLETED' ? 'Just Now' : (t.waiting || '')),
       assignedTo: assignedStaff,
       rawId: t.id
     };

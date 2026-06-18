@@ -12,6 +12,16 @@ interface HygieneTask {
   completed: boolean;
 }
 
+// Yeh interface define karlo
+interface TableTask {
+  id: string;
+  rawId?: string; // Yeh '?' add kar
+  rawStatus?: 'PENDING' | 'REQUESTED' | 'IN_PROGRESS' | 'COMPLETED' | 'VERIFIED';
+  rawPriority?: 'High' | 'Medium' | 'Low';
+  progress?: number;
+  waiting?: string;
+}
+
 export default function CleaningDashboard() {
   const { searchQuery } = useCleaningSearch();
   const [showRequestModal, setShowRequestModal] = useState(false);
@@ -20,12 +30,13 @@ export default function CleaningDashboard() {
   
   // 🔌 Connecting directly to global store engine to drive real-time sync channel
   const { urgentTasks, startTask, completeTask, verifyTask, reportIssue } = useCleaning();
-  const safeTasks = (urgentTasks || []) as any[];
+  // Line 33 ko aise likh:
+const safeTasks = (urgentTasks || []) as unknown as TableTask[];
 
   // 1. Dynamic Reactive Extraction: Tables to Clean mapping (Image 1, Point b)
   const tablesToClean = safeTasks
     .filter(t => t.rawStatus === 'PENDING' || t.rawStatus === 'REQUESTED')
-    .map(t => {
+    .map((t: TableTask) => {
       const isHigh = t.rawPriority === 'High' || t.rawStatus === 'REQUESTED';
       const isLow = t.rawPriority === 'Low';
       return {
@@ -73,12 +84,12 @@ export default function CleaningDashboard() {
   ]);
 
   // Operational pipeline click interceptors wrapping original layout events
-  const handleStartCleaning = (table: any) => {
-    startTask(table.rawId);
+  const handleStartCleaning = (table: TableTask) => {
+    startTask(table.rawId || '');
   };
 
-  const handleContinue = (item: any) => {
-    completeTask(item.rawId);
+  const handleContinue = (item: TableTask) => {
+   completeTask(item.rawId || '');
   };
 
   const handleToggleHygieneTask = (id: string) => {

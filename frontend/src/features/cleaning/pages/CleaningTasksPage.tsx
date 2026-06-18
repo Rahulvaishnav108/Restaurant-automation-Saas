@@ -17,6 +17,15 @@ interface CleanTask {
   rawId: string;
 }
 
+interface TableTask {
+  id: string;
+  rawStatus?: 'PENDING' | 'REQUESTED' | 'IN_PROGRESS' | 'COMPLETED' | 'VERIFIED';
+  rawPriority?: 'High' | 'Medium' | 'Low';
+  timeAgo?: string;
+  progress?: number;
+  notes?: string;
+}
+
 export default function CleaningTasksPage() {
   const { searchQuery } = useCleaningSearch();
   const [statusFilter, setStatusFilter] = useState('All Status');
@@ -39,8 +48,9 @@ export default function CleaningTasksPage() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // 🔌 Pulling operational real-time tasks states from unified central wire layer hook
+  // 🔌 Pulling operational real-time tasks...
   const { urgentTasks, startTask, completeTask, verifyTask, reportIssue } = useCleaning();
-  const safeTasks = (urgentTasks || []) as any[];
+  const safeTasks: TableTask[] = (urgentTasks || []) as unknown as TableTask[];
 
   // Close custom bottom rows droplist sheet cleanly when clicking outside boundaries
   useEffect(() => {
