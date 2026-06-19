@@ -1,11 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { INVENTORY, type InventoryItem } from '../store/kitchenData';
 import { useKitchenSearch } from '../components/dashboard/KitchenSearchContext';
 
 export default function KitchenInventoryPage() {
   const { query } = useKitchenSearch();
-  const [inventory, setInventory] = useState<InventoryItem[]>(INVENTORY);
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+
+  const [inventory, setInventory] = useState<InventoryItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('kitchen_inventory');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch (e) {
+          console.error("Failed to parse kitchen inventory", e);
+        }
+      }
+    }
+    return INVENTORY;
+  });
+
+  const [selectedCategory, setSelectedCategory] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('kitchen_inventory_selected_category');
+      if (stored) return stored;
+    }
+    return 'All';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('kitchen_inventory', JSON.stringify(inventory));
+  }, [inventory]);
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    localStorage.setItem('kitchen_inventory_selected_category', category);
+  };
 
   // Categories list derived from inventory data
   const categories = ['All', ...Array.from(new Set(inventory.map(item => item.category)))];
@@ -126,7 +155,7 @@ export default function KitchenInventoryPage() {
         {categories.map(category => (
           <button
             key={category}
-            onClick={() => setSelectedCategory(category)}
+            onClick={() => handleCategoryChange(category)}
             className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
               selectedCategory === category
                 ? 'bg-orange-50 text-orange-600 border-orange-200'
