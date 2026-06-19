@@ -84,3 +84,19 @@ export async function getCustomerRetentionAnalytics(req: Request, res: Response,
     next(error);
   }
 }
+
+import logger from '../../config/logger';
+
+export async function getInventoryAnalytics(req: Request, res: Response, next: NextFunction) {
+  try {
+    const restaurantId = getRestaurantId(req);
+    const query = req.query as unknown as AnalyticsQueryInput;
+    logger.info('[DEBUG] getInventoryAnalytics req.query', { query });
+    const data = await AnalyticsService.getInventoryAnalytics(restaurantId, query);
+    logger.info('[DEBUG] getInventoryAnalytics data', { data });
+    ok(res, { inventoryAnalytics: data });
+  } catch (error) {
+    logger.error('[DEBUG] getInventoryAnalytics ERROR', { error });
+    next(error);
+  }
+}

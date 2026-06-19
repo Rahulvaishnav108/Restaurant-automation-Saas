@@ -20,6 +20,11 @@ export interface IOrderItem {
   price: number;
   totalPrice: number;
   notes?: string;
+  ingredients?: {
+    inventoryItemId: mongoose.Types.ObjectId;
+    inventoryItemName: string;
+    quantity: number;
+  }[];
 }
 
 export interface IOrder extends Document {
@@ -72,6 +77,8 @@ export interface IOrder extends Document {
 
   rejectionReason?: string;
 
+  stockDeducted: boolean;
+
   createdAt: Date;
 
   updatedAt: Date;
@@ -114,6 +121,15 @@ const orderItemSchema = new Schema<IOrderItem>(
       trim: true,
       default: "",
     },
+
+    ingredients: [
+      {
+        inventoryItemId: { type: Schema.Types.ObjectId, ref: 'InventoryItem', required: true },
+        inventoryItemName: { type: String, required: true },
+        quantity: { type: Number, required: true },
+        _id: false,
+      },
+    ],
   },
   {
     _id: false,
@@ -283,6 +299,11 @@ export const orderSchema = new Schema<IOrder>(
       trim: true,
       default: "",
     },
+
+    stockDeducted: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
@@ -302,6 +323,7 @@ orderSchema.index({ priority: 1 });
 orderSchema.index({ paymentStatus: 1 });
 orderSchema.index({ kitchenStaffId: 1 });
 orderSchema.index({ serviceStaffId: 1 });
+orderSchema.index({ restaurantId: 1, stockDeducted: 1, createdAt: 1 });
 
 export default orderSchema;
 

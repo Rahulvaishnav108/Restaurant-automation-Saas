@@ -2,7 +2,8 @@ import type { NextFunction, Request, Response } from 'express';
 import { ErrorCode } from '../../constants/errors';
 import { AppError } from '../../utils/AppError';
 import { ok } from '../../utils/responses';
-import { InventoryItemModel } from './inventory.model';
+import { InventoryService } from './inventory.service';
+import { InventoryTransactionService } from './inventoryTransaction.service';
 
 function resolveRestaurantId(req: Request, candidate?: unknown): string {
   if (req.user?.restaurantId) {
@@ -19,25 +20,22 @@ function resolveRestaurantId(req: Request, candidate?: unknown): string {
 export async function createInventoryItemController(req: Request, res: Response, next: NextFunction) {
   try {
     const restaurantId = resolveRestaurantId(req, req.body.restaurantId);
-    const existing = await InventoryItemModel.exists({
-      restaurantId,
-      name: req.body.name,
-    });
-
-    if (existing) {
-      throw new AppError('Inventory item already exists', 409, ErrorCode.CONFLICT);
-    }
-
-    const item = await InventoryItemModel.create({
-      restaurantId,
-      name: req.body.name,
-      stock: req.body.stock,
-      unit: req.body.unit,
-      threshold: req.body.threshold,
-      active: req.body.active ?? true,
-    });
+    const item = await InventoryService.createInventoryItem(restaurantId, req.body);
 
     ok(res, { item }, 201);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function bulkImportController(req: Request, res: Response, next: NextFunction) {
+  try {
+    // Determine restaurantId from user context or body (if admin)
+    // The payload is an array, so we check if req.user has restaurantId
+    const restaurantId = resolveRestaurantId(req);
+    const result = await InventoryService.bulkImportInventory(restaurantId, req.body, req.user?.id);
+
+    ok(res, result, 201);
   } catch (error) {
     next(error);
   }
@@ -47,19 +45,9 @@ export async function listInventoryController(req: Request, res: Response, next:
   try {
     const restaurantId = resolveRestaurantId(req, req.query.restaurantId);
     const search = typeof req.query.q === 'string' ? req.query.q.trim() : '';
-    const filter: Record<string, unknown> = {
-      restaurantId,
-    };
+    const active = typeof req.query.active === 'boolean' ? req.query.active : undefined;
 
-    if (typeof req.query.active === 'boolean') {
-      filter.active = req.query.active;
-    }
-
-    if (search) {
-      filter.name = { $regex: search, $options: 'i' };
-    }
-
-    const items = await InventoryItemModel.find(filter).sort({ createdAt: -1 }).lean();
+    const items = await InventoryService.listInventoryItems(restaurantId, search, active);
 
     ok(res, {
       items,
@@ -75,37 +63,7 @@ export async function listInventoryController(req: Request, res: Response, next:
 export async function updateInventoryItemController(req: Request, res: Response, next: NextFunction) {
   try {
     const restaurantId = resolveRestaurantId(req, req.body.restaurantId ?? req.query.restaurantId);
-
-    if (req.body.name) {
-      const existing = await InventoryItemModel.exists({
-        _id: { $ne: req.params.id },
-        restaurantId,
-        name: req.body.name,
-      });
-
-      if (existing) {
-        throw new AppError('Inventory item already exists', 409, ErrorCode.CONFLICT);
-      }
-    }
-
-    const item = await InventoryItemModel.findOneAndUpdate(
-      {
-        _id: req.params.id,
-        restaurantId,
-      },
-      {
-        name: req.body.name,
-        stock: req.body.stock,
-        unit: req.body.unit,
-        threshold: req.body.threshold,
-        active: req.body.active,
-      },
-      { new: true, runValidators: true },
-    ).lean();
-
-    if (!item) {
-      throw new AppError('Inventory item not found', 404, ErrorCode.NOT_FOUND);
-    }
+    const item = await InventoryService.updateInventoryItem(restaurantId, req.params.id, req.body);
 
     ok(res, { item });
   } catch (error) {
@@ -116,13 +74,7 @@ export async function updateInventoryItemController(req: Request, res: Response,
 export async function getInventoryAlertsController(req: Request, res: Response, next: NextFunction) {
   try {
     const restaurantId = resolveRestaurantId(req, req.query.restaurantId);
-    const items = await InventoryItemModel.find({
-      restaurantId,
-      active: true,
-      $expr: { $lte: ['$stock', '$threshold'] },
-    })
-      .sort({ stock: 1, threshold: 1, updatedAt: -1 })
-      .lean();
+    const items = await InventoryService.getInventoryAlerts(restaurantId);
 
     ok(res, {
       alerts: items.map((item) => ({
@@ -131,6 +83,60 @@ export async function getInventoryAlertsController(req: Request, res: Response, 
       })),
       meta: {
         count: items.length,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteInventoryItemController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const restaurantId = resolveRestaurantId(req, req.query.restaurantId);
+    
+    // Fallback: actor might be populated by auth middleware
+    const actor = req.user ? { id: req.user.id, role: req.user.role } : { id: 'system', role: 'system' };
+    
+    await InventoryService.deleteInventoryItem(restaurantId, req.params.id, actor);
+
+    ok(res, { message: 'Inventory item successfully deleted' });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getInventoryStatsController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const restaurantId = resolveRestaurantId(req, req.query.restaurantId);
+    
+    const stats = await InventoryService.getInventoryStats(restaurantId);
+
+    ok(res, { stats });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getInventoryItemByIdController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const restaurantId = resolveRestaurantId(req, req.query.restaurantId);
+    const item = await InventoryService.getInventoryItemById(restaurantId, req.params.id);
+
+    ok(res, { item });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getItemTransactionsController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const restaurantId = resolveRestaurantId(req, req.query.restaurantId);
+    const transactions = await InventoryTransactionService.getItemTransactions(restaurantId, req.params.id);
+
+    ok(res, {
+      transactions,
+      meta: {
+        count: transactions.length,
       },
     });
   } catch (error) {

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import logger from '../../config/logger';
 import { BillingService } from '../billing/billing.service';
 import { BillingModel } from '../billing/billing.model';
 import { BillStatus } from '../billing/billing.schema';
@@ -7,6 +8,7 @@ import { OrderModel } from '../orders/orders.model';
 import { TableModel } from '../tables/tables.model';
 import { UserModel } from '../users/users.model';
 import { UserRole } from '../../constants/roles';
+import { NotificationModel } from '../notifications/notifications.model';
 import type { AnalyticsQueryInput } from './analytics.schema';
 
 type AnalyticsDateRange = Pick<AnalyticsQueryInput, 'from' | 'to'>;
@@ -281,6 +283,82 @@ export class AnalyticsService {
         totalVisits: customer.totalVisits,
         totalSpent: customer.totalSpent,
         lastVisitAt: customer.lastVisitAt,
+      })),
+      filters: {
+        from: filters.from ?? null,
+        to: filters.to ?? null,
+      },
+    };
+  }
+
+  static async getInventoryAnalytics(restaurantId: string, filters: AnalyticsDateRange) {
+    const restaurantObjectId = new mongoose.Types.ObjectId(restaurantId);
+    const createdAtMatch = buildDateRangeMatch('createdAt', filters);
+
+    // 1. Consumption Pipeline
+    const consumptionPipeline: any[] = [
+      {
+        $match: {
+          restaurantId: restaurantObjectId,
+          stockDeducted: true,
+          ...createdAtMatch,
+        },
+      },
+      { $unwind: '$items' },
+      { $unwind: '$items.ingredients' },
+      {
+        $group: {
+          _id: '$items.ingredients.inventoryItemId',
+          name: { $first: '$items.ingredients.inventoryItemName' },
+          totalConsumed: {
+            $sum: { $multiply: ['$items.quantity', '$items.ingredients.quantity'] },
+          },
+        },
+      },
+      { $sort: { totalConsumed: -1 } },
+      { $limit: 10 },
+    ];
+
+    // 2. Low Stock Trends Pipeline (Frequency of alerts)
+    const trendsPipeline: any[] = [
+      {
+        $match: {
+          restaurantId: restaurantObjectId,
+          type: 'LOW_STOCK_ALERT',
+          ...createdAtMatch,
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: '%Y-%m-%d',
+              date: '$createdAt',
+            },
+          },
+          alertCount: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ];
+
+    const [topConsumedIngredients, lowStockTrends] = await Promise.all([
+      OrderModel.aggregate(consumptionPipeline),
+      NotificationModel.aggregate(trendsPipeline),
+    ]);
+
+    logger.info('[DEBUG] AnalyticsService topConsumedIngredients', { topConsumedIngredients });
+    logger.info('[DEBUG] AnalyticsService lowStockTrends', { lowStockTrends });
+
+    return {
+      topConsumedIngredients: topConsumedIngredients.map((item) => ({
+        inventoryItemId: item._id,
+        name: item.name,
+        totalConsumed: item.totalConsumed,
+      })),
+      lowStockTrends: lowStockTrends.map((trend) => ({
+        date: trend._id,
+        alertCount: trend.alertCount,
       })),
       filters: {
         from: filters.from ?? null,

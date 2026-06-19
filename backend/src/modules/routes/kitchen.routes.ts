@@ -22,6 +22,8 @@ import {
 } from '../orders/orders.schema';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
+import { inventoryQuerySchema } from '../inventory/inventory.schema';
+import { listInventoryController, getInventoryAlertsController } from '../inventory/inventory.controller';
 
 export const kitchenRouter = Router();
 
@@ -320,4 +322,17 @@ kitchenRouter.patch(
   '/orders/:id/reject',
   validate({ params: orderIdParamsSchema, body: rejectOrderBodySchema }),
   OrdersController.rejectOrder
+);
+
+// ── Kitchen Inventory Access (Read-Only) ────────────────────────────────────────
+kitchenRouter.get(
+  '/inventory',
+  validate({ query: inventoryQuerySchema }),
+  listInventoryController
+);
+
+kitchenRouter.get(
+  '/inventory/alerts',
+  validate({ query: inventoryQuerySchema }),
+  getInventoryAlertsController
 );
