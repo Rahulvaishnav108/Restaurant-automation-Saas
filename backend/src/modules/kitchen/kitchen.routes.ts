@@ -4,6 +4,7 @@ import { requireAuth } from '../../middleware/requireAuth';
 import { roleGuard } from '../../middleware/roleGuard';
 import { tenantGuard } from '../../middleware/tenantGuard';
 import { validate } from '../../middleware/validate';
+import { inventoryQuerySchema } from '../inventory/inventory.schema';
 import {
   acceptOrderBodySchema,
   delayOrderBodySchema,
@@ -24,6 +25,9 @@ const kitchenRoles = [roles.kitchenStaff, roles.restaurantAdmin] as const;
 router.use(requireAuth, roleGuard(...kitchenRoles), tenantGuard);
 
 router.get('/dashboard', KitchenController.getDashboard);
+
+router.get('/inventory', validate({ query: inventoryQuerySchema }), KitchenController.getInventory);
+router.get('/inventory/alerts', validate({ query: inventoryQuerySchema }), KitchenController.getInventoryAlerts);
 
 router.get('/orders', validate({ query: kitchenOrdersQuerySchema }), KitchenController.getOrders);
 router.get('/orders/:id', validate({ params: orderIdParamsSchema }), KitchenController.getOrderDetails);

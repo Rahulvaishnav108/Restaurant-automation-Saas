@@ -17,10 +17,14 @@ function resolveRestaurantId(req: Request, candidate?: unknown): string {
   throw new AppError('Restaurant context required', 403, ErrorCode.FORBIDDEN);
 }
 
+function getActor(req: Request) {
+  return req.user ? { id: req.user.id, role: req.user.role } : { id: 'system', role: 'system' };
+}
+
 export async function createInventoryItemController(req: Request, res: Response, next: NextFunction) {
   try {
     const restaurantId = resolveRestaurantId(req, req.body.restaurantId);
-    const item = await InventoryService.createInventoryItem(restaurantId, req.body);
+    const item = await InventoryService.createInventoryItem(restaurantId, req.body, getActor(req));
 
     ok(res, { item }, 201);
   } catch (error) {
@@ -33,7 +37,7 @@ export async function bulkImportController(req: Request, res: Response, next: Ne
     // Determine restaurantId from user context or body (if admin)
     // The payload is an array, so we check if req.user has restaurantId
     const restaurantId = resolveRestaurantId(req);
-    const result = await InventoryService.bulkImportInventory(restaurantId, req.body, req.user?.id);
+    const result = await InventoryService.bulkImportInventory(restaurantId, req.body, getActor(req));
 
     ok(res, result, 201);
   } catch (error) {
@@ -63,7 +67,7 @@ export async function listInventoryController(req: Request, res: Response, next:
 export async function updateInventoryItemController(req: Request, res: Response, next: NextFunction) {
   try {
     const restaurantId = resolveRestaurantId(req, req.body.restaurantId ?? req.query.restaurantId);
-    const item = await InventoryService.updateInventoryItem(restaurantId, req.params.id, req.body);
+    const item = await InventoryService.updateInventoryItem(restaurantId, req.params.id, req.body, getActor(req));
 
     ok(res, { item });
   } catch (error) {
@@ -93,11 +97,7 @@ export async function getInventoryAlertsController(req: Request, res: Response, 
 export async function deleteInventoryItemController(req: Request, res: Response, next: NextFunction) {
   try {
     const restaurantId = resolveRestaurantId(req, req.query.restaurantId);
-    
-    // Fallback: actor might be populated by auth middleware
-    const actor = req.user ? { id: req.user.id, role: req.user.role } : { id: 'system', role: 'system' };
-    
-    await InventoryService.deleteInventoryItem(restaurantId, req.params.id, actor);
+    await InventoryService.deleteInventoryItem(restaurantId, req.params.id, getActor(req));
 
     ok(res, { message: 'Inventory item successfully deleted' });
   } catch (error) {

@@ -12,7 +12,7 @@ import { InventoryTransactionService } from './inventoryTransaction.service';
 import { InventoryTransactionModel, TransactionAction, TransactionSource } from './inventoryTransaction.model';
 
 export class InventoryService {
-  static async createInventoryItem(restaurantId: string, data: any) {
+  static async createInventoryItem(restaurantId: string, data: any, actor: { id: string; role: string }) {
     const existing = await InventoryItemModel.exists({
       restaurantId,
       name: data.name,
@@ -45,12 +45,23 @@ export class InventoryService {
       previousStock: 0,
       newStock: item.stock,
       source: TransactionSource.SYSTEM, // Assume SYSTEM initially, or ADMIN if passed
+      performedBy: actor.id,
+    });
+
+    void logAuditRaw({
+      entityType: AuditEntity.INVENTORY_ITEM,
+      entityId: item._id.toString(),
+      action: AuditAction.ADMIN_INVENTORY_CREATED,
+      restaurantId,
+      actorId: actor.id,
+      actorRole: actor.role,
+      metadata: { name: item.name, stock: item.stock },
     });
 
     return item;
   }
 
-  static async bulkImportInventory(restaurantId: string | Types.ObjectId, items: any[], performedBy?: string | Types.ObjectId) {
+  static async bulkImportInventory(restaurantId: string | Types.ObjectId, items: any[], actor: { id: string; role: string }) {
     const existingItems = await InventoryItemModel.find({ restaurantId }).select('name').lean();
     const existingNames = new Set(existingItems.map(i => i.name.toLowerCase()));
 
@@ -92,11 +103,21 @@ export class InventoryService {
         quantity: doc.stock,
         previousStock: 0,
         newStock: doc.stock,
-        performedBy,
+        performedBy: actor?.id,
         source: TransactionSource.BULK_IMPORT,
       }));
 
       await InventoryTransactionService.recordBulkTransactions(transactions as any);
+
+      void logAuditRaw({
+        entityType: AuditEntity.INVENTORY_ITEM,
+        entityId: 'bulk',
+        action: AuditAction.ADMIN_INVENTORY_BULK_IMPORTED,
+        restaurantId: restaurantId.toString(),
+        actorId: actor?.id || 'system',
+        actorRole: actor?.role || 'system',
+        metadata: { imported: importedCount, skipped: duplicates.length },
+      });
     }
 
     return {
@@ -142,7 +163,7 @@ export class InventoryService {
     return item;
   }
 
-  static async updateInventoryItem(restaurantId: string, itemId: string, data: any, performedBy?: string) {
+  static async updateInventoryItem(restaurantId: string, itemId: string, data: any, actor: { id: string; role: string }) {
     if (data.name) {
       const existing = await InventoryItemModel.exists({
         _id: { $ne: itemId },
@@ -194,10 +215,20 @@ export class InventoryService {
         quantity: Math.abs(item.stock - previousStock),
         previousStock,
         newStock: item.stock,
-        performedBy,
+        performedBy: actor.id,
         source: TransactionSource.ADMIN,
       });
     }
+
+    void logAuditRaw({
+      entityType: AuditEntity.INVENTORY_ITEM,
+      entityId: itemId,
+      action: AuditAction.ADMIN_INVENTORY_UPDATED,
+      restaurantId,
+      actorId: actor.id,
+      actorRole: actor.role,
+      metadata: { updatedFields: Object.keys(data) },
+    });
 
     return item.toObject();
   }
