@@ -1,17 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { Bell, MapPin, ChevronDown, Menu, X } from 'lucide-react';
 
 interface LandingNavbarProps {
   onLoginClick: () => void;
 }
 
-const navLinks = [
-  { name: 'Home', path: '/' },
-  { name: 'Restaurants', path: '/restaurants' },
-  { name: 'Offers', path: '/offers' },
-  { name: 'Reservations', path: '/reservations' },
-];
+const navLinks = ['Home', 'Restaurants', 'Offers', 'Reservations'];
 
 export default function LandingNavbar({ onLoginClick }: LandingNavbarProps) {
   const [scrolled, setScrolled] = useState(false);
@@ -36,16 +30,16 @@ export default function LandingNavbar({ onLoginClick }: LandingNavbarProps) {
 
           {/* Logo */}
           <a href="/" className="flex items-center select-none flex-shrink-0">
-            <span className="text-[#FF9F00] font-bold text-4lg sm:text-4xl" style={{ fontFamily: "'Instrument Serif', serif" }}>
+            <span className="text-amber-400 font-bold text-lg sm:text-xl" style={{ fontFamily: "'Instrument Serif', serif" }}>
               Serve
             </span>
-            <span className="text-white font-bold text-4lg sm:text-4xl" style={{ fontFamily: "'Instrument Serif', serif" }}>
+            <span className="text-white font-bold text-lg sm:text-xl" style={{ fontFamily: "'Instrument Serif', serif" }}>
               Sphere
             </span>
           </a>
 
           {/* Location — desktop only */}
-          <button className="hidden md:flex items-center gap-1.5 text-[#FF9F00]/75 hover:text-[#FF9F00] transition-colors text-sm ml-4">
+          <button className="hidden md:flex items-center gap-1.5 text-amber-200/75 hover:text-amber-300 transition-colors text-sm ml-4">
             <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
             <span>Mulund, Mumbai</span>
             <ChevronDown className="w-3.5 h-3.5" />
@@ -54,17 +48,18 @@ export default function LandingNavbar({ onLoginClick }: LandingNavbarProps) {
           {/* Desktop nav links */}
           <div className="hidden md:flex items-center gap-6 lg:gap-8 ml-auto mr-6">
             {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                to={link.path}
-                className={`text-sm font-medium transition-colors whitespace-nowrap ${
-                  link.name === 'Home'
-                    ? 'text-[#FF9F00] border-b border-[#FF9F00] pb-0.5'
+              <button
+                key={link}
+                type="button"
+                onClick={() => {}}
+                className={`text-sm font-medium transition-colors whitespace-nowrap bg-transparent border-none p-0 cursor-pointer ${
+                  link === 'Home'
+                    ? 'text-amber-400 border-b border-amber-400 pb-0.5'
                     : 'text-stone-300 hover:text-white'
                 }`}
               >
-                {link.name}
-              </Link>
+                {link}
+              </button>
             ))}
           </div>
 
@@ -75,7 +70,7 @@ export default function LandingNavbar({ onLoginClick }: LandingNavbarProps) {
             </button>
             <button
               onClick={onLoginClick}
-              className="bg-[#FF9F00] hover:bg-[#FF9F00] text-stone-900 font-semibold text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-full transition-colors whitespace-nowrap"
+              className="bg-amber-500 hover:bg-amber-400 text-stone-900 font-semibold text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-full transition-colors whitespace-nowrap"
             >
               Login / Sign Up
             </button>
@@ -92,22 +87,22 @@ export default function LandingNavbar({ onLoginClick }: LandingNavbarProps) {
 
       {/* Mobile dropdown */}
       {mobileOpen && (
-        <div className="md:hidden bg-[#1a0e00]/99 backdrop-blur-md border-t border-[#FF9F00]/30 px-4 pt-2 pb-4">
-          <div className="flex items-center gap-1.5 text-[#FF9F00]/60 text-xs py-2.5 border-b border-[#FF9F00]/30 mb-2">
-            <MapPin className="w-3 h-3 text-[#FF9F00]" />
+        <div className="md:hidden bg-[#1a0e00]/99 backdrop-blur-md border-t border-amber-900/30 px-4 pt-2 pb-4">
+          <div className="flex items-center gap-1.5 text-amber-200/60 text-xs py-2.5 border-b border-amber-900/30 mb-2">
+            <MapPin className="w-3 h-3 text-amber-400" />
             <span>Mulund, Mumbai</span>
           </div>
           {navLinks.map((link) => (
-            <Link
-              key={link.name}
-              to={link.path}
+            <button
+              key={link}
+              type="button"
               onClick={() => setMobileOpen(false)}
-              className={`block text-sm font-medium py-2.5 px-2 rounded-lg transition-colors ${
-                link.name === 'Home' ? 'text-[#FF9F00]' : 'text-stone-300 hover:text-white'
+              className={`block w-full text-left text-sm font-medium py-2.5 px-2 rounded-lg transition-colors bg-transparent border-none cursor-pointer ${
+                link === 'Home' ? 'text-amber-400' : 'text-stone-300 hover:text-white'
               }`}
             >
-              {link.name}
-            </Link>
+              {link}
+            </button>
           ))}
         </div>
       )}

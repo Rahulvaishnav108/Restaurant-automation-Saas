@@ -93,7 +93,7 @@ export default function Transactions() {
   return (
     // px-4 on mobile → px-6 on desktop, slightly tighter top padding on mobile
     <div className={`min-h-screen px-4 sm:px-6 py-5 sm:py-8 transition-colors duration-300 ${
-      darkMode ? "bg-[#020817] text-slate-100" : "bg-[#F8FAFC] text-slate-800"
+      darkMode ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-800"
     }`}>
       <TransactionMetrics metrics={metrics} darkMode={darkMode} />
       <TransactionControls

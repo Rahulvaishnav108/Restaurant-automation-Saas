@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -119,103 +120,110 @@ let idCounter = 100;
 
 // ── Store ──────────────────────────────────────────────────────────────────
 
-export const useStaffStore = create<StaffStore>((set) => ({
-  stats: {
-    totalStaff: 48,
-    totalStaffChange: '+12.5%',
-    activeToday: 32,
-    activeTodayPct: '66.7% of total staff',
-    onLeave: 4,
-    onLeavePct: '8.3% of total staff',
-    totalPayroll: '₹18,750.00',
-    totalPayrollChange: '↓ 5.4% vs last month',
-    avgPerformance: '4.6 / 5.0',
-    avgPerformanceChange: '↑ 0.3 vs last month',
-    attendancePct: 92,
-  },
+export const useStaffStore = create<StaffStore>()(
+  persist(
+    (set) => ({
+      stats: {
+        totalStaff: 48,
+        totalStaffChange: '+12.5%',
+        activeToday: 32,
+        activeTodayPct: '66.7% of total staff',
+        onLeave: 4,
+        onLeavePct: '8.3% of total staff',
+        totalPayroll: '₹18,750.00',
+        totalPayrollChange: '↓ 5.4% vs last month',
+        avgPerformance: '4.6 / 5.0',
+        avgPerformanceChange: '↑ 0.3 vs last month',
+        attendancePct: 92,
+      },
 
-  members: seedMembers,
+      members: seedMembers,
 
-  shifts: [
-    { id: 'sh1', label: 'Morning Shift', time: '09:00 AM – 05:00 PM', staffCount: 12, staffAvatars: ['JS','SJ','MB','ED'], extra: 8  },
-    { id: 'sh2', label: 'Evening Shift', time: '05:00 PM – 01:00 AM', staffCount: 15, staffAvatars: ['DW','LM','RT','AW'], extra: 11 },
-    { id: 'sh3', label: 'Night Shift',   time: '01:00 AM – 09:00 AM', staffCount: 5,  staffAvatars: ['JG','PS'],           extra: 3  },
-  ],
-
-  birthdays: [
-    { id: 'b1', name: 'Sarah Johnson', avatar: 'SJ', date: 'May 24' },
-    { id: 'b2', name: 'Michael Brown', avatar: 'MB', date: 'May 26' },
-    { id: 'b3', name: 'Emily Davis',   avatar: 'ED', date: 'May 28' },
-    { id: 'b4', name: 'David Wilson',  avatar: 'DW', date: 'Jun 2'  },
-    { id: 'b5', name: 'Lisa Martinez', avatar: 'LM', date: 'Jun 10' },
-  ],
-
-  attendanceBreakdown: [
-    { label: 'Present', count: 441, color: '#22c55e' },
-    { label: 'Absent',  count: 23,  color: '#ef4444' },
-    { label: 'Late',    count: 14,  color: '#f97316' },
-    { label: 'Leave',   count: 18,  color: '#a855f7' },
-  ],
-
-  payrollLines: [
-    { label: 'Regular Pay',  amount: '₹14,250.00' },
-    { label: 'Overtime Pay', amount: '₹2,260.00'  },
-    { label: 'Deductions',   amount: '₹750.00'    },
-    { label: 'Bonuses',      amount: '₹1,290.00'  },
-  ],
-
-  roleDistribution: [
-    { role: 'Manager',   count: 5,  pct: '10.4%', color: '#f97316' },
-    { role: 'Chef',      count: 8,  pct: '16.7%', color: '#22c55e' },
-    { role: 'Server',    count: 20, pct: '41.7%', color: '#3b82f6' },
-    { role: 'Bartender', count: 7,  pct: '14.6%', color: '#a855f7' },
-    { role: 'Host',      count: 0,  pct: '0%',    color: '#eab308' },
-    { role: 'Cleaner',   count: 8,  pct: '16.7%', color: '#64748b' },
-  ],
-
-  searchQuery: '',
-  roleFilter: 'All Roles',
-  departmentFilter: 'All Departments',
-  statusFilter: 'All',
-  currentPage: 1,
-  perPage: 5,
-  showAll: false,
-
-  setSearchQuery:      (q) => set({ searchQuery: q, currentPage: 1 }),
-  setRoleFilter:       (r) => set({ roleFilter: r, currentPage: 1 }),
-  setDepartmentFilter: (d) => set({ departmentFilter: d, currentPage: 1 }),
-  setStatusFilter:     (s) => set({ statusFilter: s, currentPage: 1 }),
-  setCurrentPage:      (p) => set({ currentPage: p }),
-  setShowAll:          (v) => set({ showAll: v, currentPage: 1 }),
-
-  updateMemberStatus: (id, status) =>
-    set((state) => ({
-      members: state.members.map((m) => (m.id === id ? { ...m, status } : m)),
-    })),
-
-  addMember: (m) =>
-    set((state) => ({
-      members: [
-        ...state.members,
-        { ...m, id: `s${++idCounter}` },
+      shifts: [
+        { id: 'sh1', label: 'Morning Shift', time: '09:00 AM – 05:00 PM', staffCount: 12, staffAvatars: ['JS','SJ','MB','ED'], extra: 8  },
+        { id: 'sh2', label: 'Evening Shift', time: '05:00 PM – 01:00 AM', staffCount: 15, staffAvatars: ['DW','LM','RT','AW'], extra: 11 },
+        { id: 'sh3', label: 'Night Shift',   time: '01:00 AM – 09:00 AM', staffCount: 5,  staffAvatars: ['JG','PS'],           extra: 3  },
       ],
-      stats: {
-        ...state.stats,
-        totalStaff: state.stats.totalStaff + 1,
-      },
-    })),
 
-  updateMember: (id, updates) =>
-    set((state) => ({
-      members: state.members.map((m) => (m.id === id ? { ...m, ...updates } : m)),
-    })),
+      birthdays: [
+        { id: 'b1', name: 'Sarah Johnson', avatar: 'SJ', date: 'May 24' },
+        { id: 'b2', name: 'Michael Brown', avatar: 'MB', date: 'May 26' },
+        { id: 'b3', name: 'Emily Davis',   avatar: 'ED', date: 'May 28' },
+        { id: 'b4', name: 'David Wilson',  avatar: 'DW', date: 'Jun 2'  },
+        { id: 'b5', name: 'Lisa Martinez', avatar: 'LM', date: 'Jun 10' },
+      ],
 
-  deleteMember: (id) =>
-    set((state) => ({
-      members: state.members.filter((m) => m.id !== id),
-      stats: {
-        ...state.stats,
-        totalStaff: Math.max(0, state.stats.totalStaff - 1),
-      },
-    })),
-}));
+      attendanceBreakdown: [
+        { label: 'Present', count: 441, color: '#22c55e' },
+        { label: 'Absent',  count: 23,  color: '#ef4444' },
+        { label: 'Late',    count: 14,  color: '#f97316' },
+        { label: 'Leave',   count: 18,  color: '#a855f7' },
+      ],
+
+      payrollLines: [
+        { label: 'Regular Pay',  amount: '₹14,250.00' },
+        { label: 'Overtime Pay', amount: '₹2,260.00'  },
+        { label: 'Deductions',   amount: '₹750.00'    },
+        { label: 'Bonuses',      amount: '₹1,290.00'  },
+      ],
+
+      roleDistribution: [
+        { role: 'Manager',   count: 5,  pct: '10.4%', color: '#f97316' },
+        { role: 'Chef',      count: 8,  pct: '16.7%', color: '#22c55e' },
+        { role: 'Server',    count: 20, pct: '41.7%', color: '#3b82f6' },
+        { role: 'Bartender', count: 7,  pct: '14.6%', color: '#a855f7' },
+        { role: 'Host',      count: 0,  pct: '0%',    color: '#eab308' },
+        { role: 'Cleaner',   count: 8,  pct: '16.7%', color: '#64748b' },
+      ],
+
+      searchQuery: '',
+      roleFilter: 'All Roles',
+      departmentFilter: 'All Departments',
+      statusFilter: 'All',
+      currentPage: 1,
+      perPage: 5,
+      showAll: false,
+
+      setSearchQuery:      (q) => set({ searchQuery: q, currentPage: 1 }),
+      setRoleFilter:       (r) => set({ roleFilter: r, currentPage: 1 }),
+      setDepartmentFilter: (d) => set({ departmentFilter: d, currentPage: 1 }),
+      setStatusFilter:     (s) => set({ statusFilter: s, currentPage: 1 }),
+      setCurrentPage:      (p) => set({ currentPage: p }),
+      setShowAll:          (v) => set({ showAll: v, currentPage: 1 }),
+
+      updateMemberStatus: (id, status) =>
+        set((state) => ({
+          members: state.members.map((m) => (m.id === id ? { ...m, status } : m)),
+        })),
+
+      addMember: (m) =>
+        set((state) => ({
+          members: [
+            ...state.members,
+            { ...m, id: `s${++idCounter}` },
+          ],
+          stats: {
+            ...state.stats,
+            totalStaff: state.stats.totalStaff + 1,
+          },
+        })),
+
+      updateMember: (id, updates) =>
+        set((state) => ({
+          members: state.members.map((m) => (m.id === id ? { ...m, ...updates } : m)),
+        })),
+
+      deleteMember: (id) =>
+        set((state) => ({
+          members: state.members.filter((m) => m.id !== id),
+          stats: {
+            ...state.stats,
+            totalStaff: Math.max(0, state.stats.totalStaff - 1),
+          },
+        })),
+    }),
+    {
+      name: 'admin-staff-store',
+    }
+  )
+);

@@ -99,7 +99,7 @@ export default function TierCards({ metrics, tierFilter, darkMode, onTierChange 
     {
       tier: "Basic" as const,
       label: "Basic Plan",
-      price: `$${PLAN_PRICES.Basic}`,
+      price: `₹${PLAN_PRICES.Basic}`,
       icon: <Package size={18} />,
       accentRing: "ring-orange-500",
       accentBg: "bg-orange-500/5",
@@ -110,7 +110,7 @@ export default function TierCards({ metrics, tierFilter, darkMode, onTierChange 
     {
       tier: "Standard" as const,
       label: "Standard Plan",
-      price: `$${PLAN_PRICES.Standard}`,
+      price: `₹${PLAN_PRICES.Standard}`,
       icon: <Zap size={18} />,
       accentRing: "ring-blue-500",
       accentBg: "bg-blue-500/5",
@@ -121,7 +121,7 @@ export default function TierCards({ metrics, tierFilter, darkMode, onTierChange 
     {
       tier: "Premium" as const,
       label: "Premium Plan",
-      price: `$${PLAN_PRICES.Premium}`,
+      price: `₹${PLAN_PRICES.Premium}`,
       icon: <Crown size={18} />,
       accentRing: "ring-purple-500",
       accentBg: "bg-purple-500/5",
@@ -132,7 +132,7 @@ export default function TierCards({ metrics, tierFilter, darkMode, onTierChange 
     {
       tier: "Enterprise" as const,
       label: "Enterprise Plan",
-      price: `$${PLAN_PRICES.Enterprise}`,
+      price: `₹${PLAN_PRICES.Enterprise}`,
       icon: <Building2 size={18} />,
       accentRing: "ring-emerald-500",
       accentBg: "bg-emerald-500/5",

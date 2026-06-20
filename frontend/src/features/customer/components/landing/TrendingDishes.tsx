@@ -79,7 +79,7 @@ export default function TrendingDishes() {
         {trendingDishes.map((dish) => (
           <div
             key={dish.id}
-            className="flex-shrink-0 w-[150px] sm:w-auto rounded-2xl bg-[#2a1800]/60 border border-[#FF9F00]/30 hover:border-[#FF9F00]/40 overflow-hidden transition-all hover:-translate-y-1 duration-200 group"
+            className="flex-shrink-0 w-[150px] sm:w-auto rounded-2xl bg-[#2a1800]/60 border border-amber-900/30 hover:border-amber-500/40 overflow-hidden transition-all hover:-translate-y-1 duration-200 group"
           >
             {/* Image */}
             <div className="relative h-28 sm:h-32 overflow-hidden">
@@ -88,7 +88,7 @@ export default function TrendingDishes() {
                 alt={dish.name}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
-              <button className="absolute top-2 right-2 w-6 h-6 sm:w-7 sm:h-7 bg-[#1c0f00]/80 backdrop-blur-sm text-[#FF9F00] hover:bg-[#FF9F00] hover:text-stone-900 rounded-full flex items-center justify-center transition-all">
+              <button className="absolute top-2 right-2 w-6 h-6 sm:w-7 sm:h-7 bg-[#1c0f00]/80 backdrop-blur-sm text-amber-400 hover:bg-amber-500 hover:text-stone-900 rounded-full flex items-center justify-center transition-all">
                 <ShoppingCart className="w-3 h-3" />
               </button>
             </div>
@@ -97,14 +97,14 @@ export default function TrendingDishes() {
               <p className="font-semibold text-white text-xs sm:text-sm leading-tight mb-0.5">{dish.name}</p>
               <p className="text-stone-500 text-[10px] sm:text-xs mb-1.5">{dish.description}</p>
               {dish.badge && (
-                <span className="inline-block text-[9px] sm:text-[10px] text-[#FF9F00] font-bold bg-[#FF9F00]/10 border border-[#FF9F00]/20 px-1.5 py-0.5 rounded-full mb-1">
+                <span className="inline-block text-[9px] sm:text-[10px] text-amber-400 font-bold bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 rounded-full mb-1">
                   {dish.badge}
                 </span>
               )}
               <div className="flex items-center justify-between mt-1">
-                <span className="text-[#FF9F00] font-bold text-xs sm:text-sm">₹{dish.price}</span>
+                <span className="text-amber-400 font-bold text-xs sm:text-sm">₹{dish.price}</span>
                 <div className="flex items-center gap-0.5 text-stone-400 text-[10px] sm:text-xs">
-                  <Star className="w-2.5 h-2.5 fill-[#FF9F00] text-[#FF9F00]" />
+                  <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
                   {dish.rating}
                 </div>
               </div>

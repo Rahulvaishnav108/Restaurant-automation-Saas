@@ -12,13 +12,13 @@ export default function CategoryFilter() {
           <button
             key={name}
             onClick={() => setActiveCategory(name)}
-            className={`flex flex-col items-center justify-center min-w-[72px] h-20 rounded-xl transition-all shrink-0 ${
+            className={`flex flex-col items-center justify-center min-w-[72px] h-[80px] rounded-[10px] transition-all shrink-0 ${
               isActive
                 ? 'bg-sd-primary-container text-white shadow-lg shadow-sd-primary-container/20 hover:scale-105'
                 : 'bg-sd-surface border border-sd-surface-variant text-sd-on-surface-variant hover:bg-sd-surface-container hover:border-sd-primary/30'
             }`}
           >
-            <div className={`p-1.5 ${isActive ? 'bg-white/20' : ''} rounded-lg mb-1`}>
+            <div className={`w-8 h-8 rounded-full ${isActive ? 'bg-white/20' : ''} flex items-center justify-center mb-1`}>
               <span
                 className="material-symbols-outlined text-[20px]"
                 style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}

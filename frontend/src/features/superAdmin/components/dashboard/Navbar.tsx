@@ -28,6 +28,7 @@ interface NavbarProps {
   onMobileMenuToggle?: () => void;
   /** Whether the mobile sidebar drawer is currently open */
   mobileMenuOpen?: boolean;
+  sidebarCollapsed: boolean;
 }
 
 // ─── Profile Card ────────────────────────────────────────────────────────────
@@ -41,7 +42,7 @@ function ProfileCard({ darkMode, onClose }: ProfileCardProps) {
 
   const stats = [
     { label: "Orders", value: "1.4K" },
-    { label: "Revenue", value: "$92K" },
+    { label: "Revenue", value: "₹92K" },
     { label: "Partners", value: "38" },
   ];
 
@@ -179,6 +180,7 @@ export default function Navbar({
   onThemeToggle,
   onMobileMenuToggle,
   mobileMenuOpen = false,
+  sidebarCollapsed,
 }: NavbarProps) {
   const navigate = useNavigate();
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -244,7 +246,7 @@ export default function Navbar({
       {/* ── MAIN NAVBAR ── */}
       <header
         className={`fixed top-0 right-0 z-40 h-16 border-b backdrop-blur-md transition-all duration-300
-          left-0 lg:left-[260px]
+          left-0 ${sidebarCollapsed ? "lg:left-[72px]" : "lg:left-[260px]"}
           ${
             darkMode
               ? "bg-slate-950/80 border-slate-800 shadow-md shadow-black/10"
@@ -289,24 +291,8 @@ export default function Navbar({
               </div>
             </div>
 
-            {/* Brand – desktop */}
-            <div className="hidden lg:flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center font-black text-white text-base">
-                ⬢
-              </div>
-              <div className="leading-tight">
-                <h1 className="font-bold text-sm tracking-tight uppercase text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-500">
-                  Super Admin
-                </h1>
-                <p
-                  className={`text-[10px] font-semibold tracking-wider uppercase ${
-                    darkMode ? "text-slate-500" : "text-slate-400"
-                  }`}
-                >
-                  HQ Terminal
-                </p>
-              </div>
-            </div>
+            {/* Brand – desktop (hidden to prevent clashing and redundancy with sidebar) */}
+            <div className="hidden"></div>
           </div>
 
           {/* CENTER: Search bar */}

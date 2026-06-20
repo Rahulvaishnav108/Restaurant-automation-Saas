@@ -1,6 +1,6 @@
 // src/features/superAdmin/components/Analytics/Analyticskpicards.tsx
 import React from "react";
-import { TrendingUp, DollarSign, Utensils, Percent } from "lucide-react";
+import { TrendingUp, IndianRupee, Utensils, Percent } from "lucide-react";
 import { MetricItem } from "../../store/Analytics";
 
 interface AnalyticsKPICardsProps {
@@ -95,9 +95,9 @@ export default function AnalyticsKPICards({
         <StatCard
           darkMode={darkMode}
           label="Gross Terminal GMV"
-          value={`$${totalVolume.toLocaleString()}`}
+          value={`₹${totalVolume.toLocaleString()}`}
           badge={trendBadge("+18.4% premium")}
-          icon={<DollarSign size={17} />}
+          icon={<IndianRupee size={17} />}
           iconBg={
             darkMode
               ? "bg-emerald-500/10 text-emerald-500"
@@ -111,11 +111,11 @@ export default function AnalyticsKPICards({
         <StatCard
           darkMode={darkMode}
           label="AOV / Revenue Cut"
-          value={`$${averageOrderValue} AOV`}
+          value={`₹${averageOrderValue} AOV`}
           badge={
             <div className="flex items-center gap-1 text-amber-500 text-[11px] font-semibold">
-              <Percent size={11} />
-              <span>Comm: ${totalCommission.toLocaleString()}</span>
+               <Percent size={11} />
+               <span>Comm: ₹${totalCommission.toLocaleString()}</span>
             </div>
           }
           icon={<Utensils size={17} />}

@@ -1,6 +1,6 @@
 // AlertsDashboard.tsx  ← main page component
 import React from 'react';
-import { useTheme } from '../hooks/usetheme';
+import { useOutletContext } from 'react-router-dom';
 import { useAlerts } from '../hooks/usealerts';
 import Header from '../components/Alerts/Header';
 import StatsGrid from '../components/Alerts/Statsgrid';
@@ -9,7 +9,7 @@ import AlertCard from '../components/Alerts/Alertcard';
 import EmptyState from '../components/Alerts/Emptystate';
 import { cx } from '../utils/Alertutils';
 export default function AlertsDashboard() {
-  const { darkMode, toggleTheme } = useTheme();
+  const { darkMode, toggleTheme } = useOutletContext<{ darkMode: boolean; toggleTheme: () => void }>();
 
   const {
     alerts,
@@ -38,7 +38,7 @@ export default function AlertsDashboard() {
   return (
     <div className={cx(
       'min-h-screen font-sans antialiased transition-colors duration-300 py-6',
-      darkMode ? 'bg-[#020817] text-slate-50' : 'bg-[#F8FAFC] text-slate-900'
+      darkMode ? 'bg-slate-950 text-slate-50' : 'bg-slate-50 text-slate-900'
     )}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <Header darkMode={darkMode} toggleTheme={toggleTheme} newCount={stats.new} />

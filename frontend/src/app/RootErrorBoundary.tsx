@@ -28,23 +28,20 @@ export default function RootErrorBoundary(): JSX.Element {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6 font-sans">
-      {/* Orange glow accent */}
-      <div className="absolute inset-x-0 top-0 h-[500px] bg-orange-radial pointer-events-none opacity-40" />
-      
-      <div className="relative max-w-lg w-full bg-slate-900/80 backdrop-blur-md border border-slate-800/80 rounded-[2rem] p-8 shadow-2xl flex flex-col items-center text-center">
+    <div className="min-h-screen bg-white text-slate-900 flex items-center justify-center p-6 font-sans">
+      <div className="relative max-w-lg w-full flex flex-col items-center text-center">
         {/* Warning Icon */}
-        <div className="w-16 h-16 bg-red-950/40 border border-red-500/30 rounded-2xl flex items-center justify-center text-red-500 mb-6">
+        <div className="w-16 h-16 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-center text-red-500 mb-6">
           <span className="material-symbols-outlined text-4xl">error</span>
         </div>
 
         {/* Title */}
-        <h1 className="text-2xl font-extrabold text-white mb-3 tracking-tight font-sans">
+        <h1 className="text-2xl font-extrabold text-slate-900 mb-3 tracking-tight font-sans">
           Something went wrong
         </h1>
         
         {/* Description */}
-        <p className="text-slate-400 text-sm mb-8 max-w-md leading-relaxed font-sans">
+        <p className="text-slate-600 text-sm mb-8 max-w-md leading-relaxed font-sans">
           We encountered an unexpected error on this page. Our team has been notified, and we&apos;re working to get it resolved.
         </p>
 
@@ -68,10 +65,10 @@ export default function RootErrorBoundary(): JSX.Element {
         </div>
 
         {/* Developer details accordion */}
-        <div className="w-full text-left border-t border-slate-800/80 pt-6">
+        <div className="w-full text-left border-t border-slate-200 pt-6">
           <button
             onClick={() => setShowDetails(!showDetails)}
-            className="flex items-center justify-between w-full text-xs font-semibold text-slate-500 hover:text-slate-300 transition-colors"
+            className="flex items-center justify-between w-full text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors"
           >
             <span>DEVELOPER DETAILS</span>
             <span className="material-symbols-outlined text-[16px] transition-transform duration-300" style={{ transform: showDetails ? 'rotate(180deg)' : 'none' }}>
@@ -80,8 +77,8 @@ export default function RootErrorBoundary(): JSX.Element {
           </button>
 
           {showDetails && (
-            <div className="mt-3 bg-slate-950 border border-slate-800/60 rounded-xl p-4 overflow-x-auto max-h-48 text-left text-xs font-mono text-red-400/90 leading-relaxed sd-custom-scrollbar">
-              <div className="font-bold text-white mb-1.5">{errorMessage}</div>
+            <div className="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-4 overflow-x-auto max-h-48 text-left text-xs font-mono text-red-600 leading-relaxed sd-custom-scrollbar">
+              <div className="font-bold text-slate-900 mb-1.5">{errorMessage}</div>
               {errorStack && <pre className="whitespace-pre text-[10px] text-slate-500 select-all">{errorStack}</pre>}
             </div>
           )}

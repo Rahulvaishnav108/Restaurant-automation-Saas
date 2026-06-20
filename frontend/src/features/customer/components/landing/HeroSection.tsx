@@ -29,7 +29,7 @@ export default function HeroSection({ searchQuery, onSearchChange, onSearch }: H
           Find the best
           <br />
           restaurants{' '}
-          <em className="text-[#FF9F00] italic">near you</em>
+          <em className="text-amber-400 not-italic">near you</em>
         </h1>
 
         <p className="text-stone-300 text-sm sm:text-base mb-7 leading-relaxed max-w-sm sm:max-w-md mx-auto">
@@ -37,8 +37,8 @@ export default function HeroSection({ searchQuery, onSearchChange, onSearch }: H
         </p>
 
         {/* Search bar */}
-        <div className="flex items-center bg-[#1c1000]/90 backdrop-blur-md border border-[#FF9F00]/40 rounded-full pl-3 pr-1.5 py-1.5 w-full max-w-lg mx-auto shadow-2xl shadow-black/60 gap-2">
-          <MapPin className="w-4 h-4 text-[#FF9F00] flex-shrink-0" />
+        <div className="flex items-center bg-[#1c1000]/90 backdrop-blur-md border border-amber-900/40 rounded-full pl-3 pr-1.5 py-1.5 w-full max-w-lg mx-auto shadow-2xl shadow-black/60 gap-2">
+          <MapPin className="w-4 h-4 text-amber-400 flex-shrink-0" />
           <input
             type="text"
             value={searchQuery}
@@ -49,7 +49,7 @@ export default function HeroSection({ searchQuery, onSearchChange, onSearch }: H
           />
           <button
             onClick={onSearch}
-            className="bg-[#FF9F00] hover:bg-[#FF9F00] active:bg-[#FF9F00] text-stone-900 font-bold text-xs sm:text-sm px-4 sm:px-5 py-2 sm:py-2.5 rounded-full transition-colors flex-shrink-0"
+            className="bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-stone-900 font-bold text-xs sm:text-sm px-4 sm:px-5 py-2 sm:py-2.5 rounded-full transition-colors flex-shrink-0"
           >
             Search
           </button>
@@ -57,15 +57,15 @@ export default function HeroSection({ searchQuery, onSearchChange, onSearch }: H
 
         {/* Stats */}
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-5 text-xs sm:text-sm">
-          <div className="flex items-center gap-1.5 text-[#FF9F00]/80">
-            <MapPin className="w-3.5 h-3.5 text-[#FF9F00] flex-shrink-0" />
+          <div className="flex items-center gap-1.5 text-amber-200/80">
+            <MapPin className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
             <span>24 Restaurants Nearby</span>
           </div>
-          <div className="flex items-center gap-1.5 text-[#FF9F00]/80">
-            <Star className="w-3.5 h-3.5 text-[#FF9F00] fill-[#FF9F00] flex-shrink-0" />
+          <div className="flex items-center gap-1.5 text-amber-200/80">
+            <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
             <span>4.5+ Avg Ratings</span>
           </div>
-          <div className="flex items-center gap-1.5 text-[#FF9F00]/80">
+          <div className="flex items-center gap-1.5 text-amber-200/80">
             <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0 animate-pulse" />
             <span>Live Availability</span>
           </div>

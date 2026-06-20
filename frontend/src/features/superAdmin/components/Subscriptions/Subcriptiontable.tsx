@@ -47,7 +47,7 @@ function EditDropdownContent({
 }) {
   return (
     <div className={`w-52 rounded-xl border p-2 shadow-2xl ${
-      darkMode ? "bg-[#0b1324] border-slate-800 shadow-black/50" : "bg-white border-slate-200 shadow-slate-200"
+      darkMode ? "bg-slate-950 border-slate-800 shadow-black/50" : "bg-white border-slate-200 shadow-slate-200"
     }`}>
       <p className={`text-[10px] font-bold uppercase px-2 py-1 ${darkMode ? "text-slate-500" : "text-slate-400"}`}>
         Set Status
@@ -256,7 +256,7 @@ function MobileRestaurantCard({
               <>
                 <button type="button" className="fixed inset-0 z-10 cursor-default" onClick={() => setShowMore(false)} aria-label="Close" />
                 <div className={`absolute right-0 bottom-full mb-2 w-44 rounded-xl border p-1.5 shadow-2xl z-20 ${
-                  darkMode ? "bg-[#0b1324] border-slate-800 shadow-black/50" : "bg-white border-slate-200 shadow-slate-200"
+                  darkMode ? "bg-slate-950 border-slate-800 shadow-black/50" : "bg-white border-slate-200 shadow-slate-200"
                 }`}>
                   <button onClick={() => { onView(row); setShowMore(false); }} className={`w-full text-left px-2.5 py-2 text-xs font-medium rounded-lg hover:bg-slate-500/5 flex items-center gap-2 ${darkMode ? "text-slate-300 hover:text-white" : "text-slate-700 hover:text-slate-900"}`}>
                     <Eye size={13} /> View Profile
@@ -318,7 +318,7 @@ export default function SubscriptionTable({
   if (restaurants.length === 0) {
     return (
       <div className={`rounded-2xl border transition-all ${
-        darkMode ? "bg-[#090f1c]/50 border-slate-900" : "bg-white border-slate-200/70 shadow-sm"
+        darkMode ? "bg-slate-900/40 border-slate-800/80" : "bg-white border-slate-200/70 shadow-sm"
       }`}>
         <EmptyState darkMode={darkMode} label={String(emptyLabel)} onResetFilters={onResetFilters} />
       </div>
@@ -344,7 +344,7 @@ export default function SubscriptionTable({
 
       {/* ── DESKTOP: full table (hidden below lg) ───────────────────────── */}
       <div className={`hidden lg:block rounded-2xl border overflow-visible transition-all ${
-        darkMode ? "bg-[#090f1c]/50 border-slate-900" : "bg-white border-slate-200/70 shadow-sm"
+        darkMode ? "bg-slate-900/40 border-slate-800/80" : "bg-white border-slate-200/70 shadow-sm"
       }`}>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[1050px]">
@@ -507,7 +507,7 @@ export default function SubscriptionTable({
                             <>
                               <button type="button" className="fixed inset-0 z-10 cursor-default" onClick={() => setMoreDropdownId(null)} aria-label="Close dropdown" />
                               <div className={`absolute right-0 mt-2 w-44 rounded-xl border p-1.5 shadow-2xl z-20 ${
-                                darkMode ? "bg-[#0b1324] border-slate-800 shadow-black/50" : "bg-white border-slate-200 shadow-slate-200"
+                                darkMode ? "bg-slate-950 border-slate-800 shadow-black/50" : "bg-white border-slate-200 shadow-slate-200"
                               }`}>
                                 <button onClick={() => { closeAll(); onView(row); }} className={`w-full text-left px-2.5 py-2 text-xs font-medium rounded-lg hover:bg-slate-500/5 flex items-center gap-2 ${darkMode ? "text-slate-300 hover:text-white" : "text-slate-700 hover:text-slate-900"}`}>
                                   <Eye size={13} /> View Profile

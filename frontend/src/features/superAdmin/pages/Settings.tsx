@@ -22,8 +22,15 @@ import {
 import { Card, CardTitle, ToggleRow, SaveBar, Divider } from "../components/Settings/Settingsui";
 
 // ─── Appearance Panel ────────────────────────────────────────────────────────
-function AppearanceSettings({ darkMode }: { darkMode: boolean }) {
-  const [theme, setTheme] = useState<"dark" | "light" | "system">(darkMode ? "dark" : "light");
+function AppearanceSettings({
+  darkMode,
+  themePreference,
+  setThemePreference,
+}: {
+  darkMode: boolean;
+  themePreference: "dark" | "light" | "system";
+  setThemePreference: (pref: "dark" | "light" | "system") => void;
+}) {
   const [density, setDensity] = useState<"compact" | "comfortable" | "spacious">("comfortable");
   const [accent, setAccent] = useState<"orange" | "blue" | "violet" | "emerald">("orange");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -50,9 +57,9 @@ function AppearanceSettings({ darkMode }: { darkMode: boolean }) {
           {(["dark", "light", "system"] as const).map((t) => (
             <button
               key={t}
-              onClick={() => setTheme(t)}
+              onClick={() => setThemePreference(t)}
               className={`flex flex-col items-center gap-2 px-4 py-4 rounded-xl border text-xs font-semibold transition-all capitalize ${
-                theme === t
+                themePreference === t
                   ? "border-orange-500/60 bg-orange-500/10 text-orange-400"
                   : darkMode
                   ? "border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200"
@@ -386,10 +393,12 @@ function DangerZoneSettings({ darkMode }: { darkMode: boolean }) {
 
 interface OutletContext {
   darkMode: boolean;
+  themePreference: "dark" | "light" | "system";
+  setThemePreference: (pref: "dark" | "light" | "system") => void;
 }
 
 export default function Settings() {
-  const { darkMode } = useOutletContext<OutletContext>();
+  const { darkMode, themePreference, setThemePreference } = useOutletContext<OutletContext>();
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
 
   const renderPanel = () => {
@@ -397,7 +406,7 @@ export default function Settings() {
       case "general":       return <GeneralSettings darkMode={darkMode} />;
       case "notifications": return <NotificationSettings darkMode={darkMode} />;
       case "security":      return <SecuritySettings darkMode={darkMode} />;
-      case "appearance":    return <AppearanceSettings darkMode={darkMode} />;
+      case "appearance":    return <AppearanceSettings darkMode={darkMode} themePreference={themePreference} setThemePreference={setThemePreference} />;
       case "billing":       return <BillingSettings darkMode={darkMode} />;
       case "integrations":  return <IntegrationsSettings darkMode={darkMode} />;
       case "danger":        return <DangerZoneSettings darkMode={darkMode} />;

@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingBag, UtensilsCrossed, CalendarDays,
   Users, Package, UserCog, BarChart3, Settings,
-  ChevronLeft, ChevronRight, ArrowRight, Crown, LayoutGrid, X,
+  ArrowRight, Crown, LayoutGrid, X,
 } from 'lucide-react';
 
 const navItems = [
@@ -20,12 +20,12 @@ const navItems = [
 ];
 
 interface AdminSidebarProps {
-  mobileOpen?: boolean;
-  onMobileClose?: () => void;
+  collapsed: boolean;
+  onToggle: () => void;
+  onItemClick?: () => void;
 }
 
-export function AdminSidebar({ mobileOpen = false, onMobileClose }: AdminSidebarProps): JSX.Element {
-  const [collapsed, setCollapsed] = useState(false);
+export function AdminSidebar({ collapsed, onToggle, onItemClick }: AdminSidebarProps): JSX.Element {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -35,45 +35,57 @@ export function AdminSidebar({ mobileOpen = false, onMobileClose }: AdminSidebar
   useEffect(() => {
     if (pathnameRef.current === location.pathname) return;
     pathnameRef.current = location.pathname;
-    onMobileClose?.();
-  }, [location.pathname, onMobileClose]);
+    onItemClick?.();
+  }, [location.pathname, onItemClick]);
 
   // Close mobile drawer on Escape
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onMobileClose?.();
+      if (e.key === 'Escape') onItemClick?.();
     }
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
-  }, [onMobileClose]);
+  }, [onItemClick]);
 
-  const sidebarContent = (
+  return (
     <aside
       className={`
-        relative flex flex-col bg-white dark:bg-gray-900
+        fixed left-0 top-0 z-50 flex flex-col bg-white dark:bg-gray-900
         border-r border-gray-100 dark:border-gray-800
-        transition-all duration-300 h-full
-        ${collapsed ? 'w-[72px]' : 'w-[220px]'}
+        transition-all duration-300 h-screen
+        ${collapsed ? 'w-[72px]' : 'w-64 shadow-xl lg:shadow-none'}
       `}
     >
-      {/* Logo */}
-      <div
-        className="flex items-center gap-2.5 px-4 py-4 border-b border-gray-100 dark:border-gray-800 cursor-pointer select-none"
-        onClick={() => navigate('/admin')}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => e.key === 'Enter' && navigate('/admin')}
-      >
-        <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center shadow-md">
-          <UtensilsCrossed className="w-5 h-5 text-white" />
+      {/* Header */}
+      <div className={`flex ${collapsed ? 'flex-col items-center gap-3 px-2' : 'items-center justify-between px-4'} py-4 border-b border-gray-100 dark:border-gray-800 shrink-0`}>
+        <div
+          className="flex items-center gap-2.5 cursor-pointer select-none"
+          onClick={() => {
+            navigate('/admin');
+            onItemClick?.();
+          }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/admin')}
+        >
+          <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center shadow-md">
+            <UtensilsCrossed className="w-5 h-5 text-white" />
+          </div>
+          {!collapsed && <span className="font-extrabold text-lg text-orange-500 tracking-tight">RestoHub</span>}
         </div>
-        {!collapsed && <span className="font-extrabold text-lg text-orange-500 tracking-tight">RestoHub</span>}
+        <button
+          onClick={onToggle}
+          className="p-1.5 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all hidden lg:flex items-center justify-center cursor-pointer"
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          <span className="material-symbols-outlined text-[20px]">{collapsed ? 'menu_open' : 'menu'}</span>
+        </button>
       </div>
 
-      {/* Mobile close button (visible only in drawer) */}
-      {mobileOpen && (
+      {/* Mobile close button (visible only when expanded on mobile) */}
+      {!collapsed && (
         <button
-          onClick={onMobileClose}
+          onClick={onToggle}
           className="absolute top-3 right-3 w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors lg:hidden"
           aria-label="Close menu"
         >
@@ -81,14 +93,7 @@ export function AdminSidebar({ mobileOpen = false, onMobileClose }: AdminSidebar
         </button>
       )}
 
-      {/* Desktop collapse toggle */}
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-[66px] z-10 w-6 h-6 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow flex items-center justify-center text-gray-400 hover:text-orange-500 transition-colors hidden lg:flex"
-        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      >
-        {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
-      </button>
+
 
       {/* Nav */}
       <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
@@ -101,6 +106,7 @@ export function AdminSidebar({ mobileOpen = false, onMobileClose }: AdminSidebar
               key={to}
               to={to}
               end={to === '/admin'}
+              onClick={onItemClick}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group ${
                 isActive
                   ? 'bg-orange-50 dark:bg-orange-950/40 text-orange-500 dark:text-orange-400'
@@ -124,7 +130,10 @@ export function AdminSidebar({ mobileOpen = false, onMobileClose }: AdminSidebar
           <p className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-0.5">Upgrade to Pro</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 leading-snug">Unlock advanced features and grow your restaurant business.</p>
           <button
-            onClick={() => navigate('/admin/settings')}
+            onClick={() => {
+              navigate('/admin/settings');
+              onItemClick?.();
+            }}
             className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-colors"
           >
             Upgrade Now <ArrowRight className="w-3 h-3" />
@@ -132,33 +141,5 @@ export function AdminSidebar({ mobileOpen = false, onMobileClose }: AdminSidebar
         </div>
       )}
     </aside>
-  );
-
-  return (
-    <>
-      {/* Desktop sidebar */}
-      <div className="hidden lg:flex min-h-screen flex-shrink-0">
-        {sidebarContent}
-      </div>
-
-      {/* Mobile drawer overlay */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            role="button"
-            tabIndex={0}
-            aria-label="Close navigation"
-            onClick={onMobileClose}
-            onKeyDown={(e) => e.key === 'Enter' && onMobileClose?.()}
-          />
-          {/* Drawer panel */}
-          <div className="absolute left-0 top-0 h-full w-[240px] shadow-2xl z-50">
-            {sidebarContent}
-          </div>
-        </div>
-      )}
-    </>
   );
 }

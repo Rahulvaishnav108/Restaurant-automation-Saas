@@ -1,11 +1,27 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../components/dashboard/CartContext';
+import { useCustomerStore } from '../store/customer.store';
 
 export default function CustomerCheckoutPage() {
-  const { items, updateQuantity, removeItem, subtotal, resCharges, discount, total } = useCart();
+  const { items, updateQuantity, removeItem, subtotal, resCharges, discount, total, clearCart } = useCart();
   const [paymentMethod, setPaymentMethod] = useState('upi');
   const [coupon, setCoupon] = useState('');
+  const navigate = useNavigate();
+  const { addNotification } = useCustomerStore();
+
+  const handlePlaceOrder = () => {
+    if (items.length === 0) return;
+
+    addNotification(
+      'Order Placed! 🍽️',
+      `Your order for ${items.map((i) => `${i.name} x${i.quantity}`).join(', ')} has been placed. Total: ₹${total}`,
+      'order',
+      '/customer/orders'
+    );
+    clearCart();
+    navigate('/customer/orders');
+  };
 
   const PAYMENT_OPTIONS = [
     { id: 'upi', icon: 'account_balance_wallet', label: 'UPI', desc: 'Google Pay, PhonePe, Paytm & more' },
@@ -146,7 +162,11 @@ export default function CustomerCheckoutPage() {
                 <span className="text-lg font-bold text-sd-primary font-sans">₹{total}</span>
               </div>
             </div>
-            <button className="w-full bg-sd-primary-container text-white h-13 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 hover:shadow-xl hover:shadow-sd-primary-container/20 transition-all active:scale-95 font-sans">
+            <button
+              onClick={handlePlaceOrder}
+              disabled={items.length === 0}
+              className="w-full bg-sd-primary-container text-white h-13 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 hover:shadow-xl hover:shadow-sd-primary-container/20 transition-all active:scale-95 font-sans disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               Pay ₹{total}
               <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
             </button>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import QRScannerModal from './QRScannerModal';
+import { useCustomerStore } from '../../store/customer.store';
 
 const NAV_ITEMS = [
   { to: '/customer/home', icon: 'home', label: 'Home' },
@@ -18,6 +19,7 @@ interface Props {
 export default function CustomerSidebar({ collapsed, onToggle }: Props) {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+  const { profile } = useCustomerStore();
 
   return (
     <aside
@@ -154,7 +156,13 @@ export default function CustomerSidebar({ collapsed, onToggle }: Props) {
           }
           title={collapsed ? 'Profile' : undefined}
         >
-          <span className="material-symbols-outlined">person</span>
+          {profile.avatar && (profile.avatar.startsWith('data:image') || profile.avatar.startsWith('http')) ? (
+            <div className="w-[22px] h-[22px] rounded-full overflow-hidden shrink-0 border border-sd-outline-variant">
+              <img src={profile.avatar} alt="Avatar" className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <span className="material-symbols-outlined">{profile.avatar || 'person'}</span>
+          )}
           {!collapsed && <span>Profile</span>}
         </NavLink>
       </div>

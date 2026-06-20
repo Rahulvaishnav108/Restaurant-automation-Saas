@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -176,32 +177,39 @@ interface SettingsStore extends SettingsState {
   toggleIntegration: (id: string) => void;
 }
 
-export const useSettingsStore = create<SettingsStore>((set) => ({
-  ...initialState,
+export const useSettingsStore = create<SettingsStore>()(
+  persist(
+    (set) => ({
+      ...initialState,
 
-  setActiveSection: (section) => set({ activeSection: section }),
-  setEditingProfile: (v) => set({ editingProfile: v }),
-  setEditingRestaurant: (v) => set({ editingRestaurant: v }),
+      setActiveSection: (section) => set({ activeSection: section }),
+      setEditingProfile: (v) => set({ editingProfile: v }),
+      setEditingRestaurant: (v) => set({ editingRestaurant: v }),
 
-  updateProfile: (data) =>
-    set((state) => ({ profile: { ...state.profile, ...data } })),
+      updateProfile: (data) =>
+        set((state) => ({ profile: { ...state.profile, ...data } })),
 
-  updateRestaurant: (data) =>
-    set((state) => ({ restaurant: { ...state.restaurant, ...data } })),
+      updateRestaurant: (data) =>
+        set((state) => ({ restaurant: { ...state.restaurant, ...data } })),
 
-  toggleNotification: (id) =>
-    set((state) => ({
-      notifications: state.notifications.map((n) =>
-        n.id === id ? { ...n, enabled: !n.enabled } : n
-      ),
-    })),
+      toggleNotification: (id) =>
+        set((state) => ({
+          notifications: state.notifications.map((n) =>
+            n.id === id ? { ...n, enabled: !n.enabled } : n
+          ),
+        })),
 
-  toggleIntegration: (id) =>
-    set((state) => ({
-      integrations: state.integrations.map((i) =>
-        i.id === id
-          ? { ...i, status: i.status === 'Connected' ? 'Not Connected' : 'Connected' }
-          : i
-      ) as Integration[],
-    })),
-}));
+      toggleIntegration: (id) =>
+        set((state) => ({
+          integrations: state.integrations.map((i) =>
+            i.id === id
+              ? { ...i, status: i.status === 'Connected' ? 'Not Connected' : 'Connected' }
+              : i
+          ) as Integration[],
+        })),
+    }),
+    {
+      name: 'admin-settings-store',
+    }
+  )
+);

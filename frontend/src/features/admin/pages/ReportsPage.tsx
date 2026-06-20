@@ -27,7 +27,7 @@ export default function ReportsPage(): JSX.Element {
       {/* Page header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-gray-100">
+          <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
             Reports &amp; Analytics
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
