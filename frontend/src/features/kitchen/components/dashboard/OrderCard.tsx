@@ -72,13 +72,13 @@ export default function OrderCard({ order, onAccept, onReject, onMarkReady, onDe
 
       {/* Action Buttons */}
       {order.status === 'new' && (
-        <div className="flex gap-2">
+        <div className="flex flex-col min-[380px]:flex-row lg:flex-col xl:flex-col min-[1400px]:flex-row gap-2">
           <button onClick={() => onReject?.(order.id)} className={`flex-1 py-1.5 border rounded-lg text-xs font-bold font-sans ${colors.btnSecondary}`}>Reject</button>
           <button onClick={() => onAccept?.(order.id)} className={`flex-1 py-1.5 text-white rounded-lg text-xs font-bold shadow-md font-sans ${colors.btnPrimary}`}>Accept</button>
         </div>
       )}
       {order.status === 'preparing' && (
-        <div className="flex gap-2">
+        <div className="flex flex-col min-[380px]:flex-row lg:flex-col xl:flex-col min-[1400px]:flex-row gap-2">
           <button onClick={() => onDelay?.(order.id)} className={`flex-1 py-1.5 border rounded-lg text-xs font-bold font-sans flex items-center justify-center gap-1 ${colors.btnSecondary}`}>
             <span className="material-symbols-outlined text-[14px]">schedule</span> Delay
           </button>
@@ -89,7 +89,7 @@ export default function OrderCard({ order, onAccept, onReject, onMarkReady, onDe
         <button onClick={() => onPickup?.(order.id)} className={`w-full py-2 text-white rounded-lg text-xs font-bold font-sans ${colors.btnPrimary}`}>Ready for Pickup</button>
       )}
       {order.status === 'delayed' && (
-        <div className="flex gap-2">
+        <div className="flex flex-col min-[380px]:flex-row lg:flex-col xl:flex-col min-[1400px]:flex-row gap-2">
           <button onClick={() => onRush?.(order.id)} className="flex-1 py-1.5 border border-red-200 text-red-500 rounded-lg text-xs font-bold font-sans flex items-center justify-center gap-1">⚡ Rush</button>
           <button className="flex-1 py-1.5 border border-slate-200 text-slate-500 rounded-lg text-xs font-bold font-sans">Delay Info</button>
         </div>

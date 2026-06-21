@@ -1,11 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BATCHES, type CookingBatch } from '../store/kitchenData';
 import { useKitchenSearch } from '../components/dashboard/KitchenSearchContext';
 
 export default function BatchCookingPage() {
   const { query } = useKitchenSearch();
-  const [batches, setBatches] = useState<CookingBatch[]>(BATCHES);
-  const [tab, setTab] = useState<'active' | 'scheduled' | 'completed'>('active');
+
+  const [batches, setBatches] = useState<CookingBatch[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('kitchen_batches');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch (e) {
+          console.error("Failed to parse kitchen batches", e);
+        }
+      }
+    }
+    return BATCHES;
+  });
+
+  const [tab, setTab] = useState<'active' | 'scheduled' | 'completed'>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('kitchen_batches_tab');
+      if (stored === 'active' || stored === 'scheduled' || stored === 'completed') {
+        return stored;
+      }
+    }
+    return 'active';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('kitchen_batches', JSON.stringify(batches));
+  }, [batches]);
+
+  const handleTabChange = (t: 'active' | 'scheduled' | 'completed') => {
+    setTab(t);
+    localStorage.setItem('kitchen_batches_tab', t);
+  };
 
   const filtered = batches.filter(b => {
     if (b.status !== tab) return false;
@@ -43,7 +74,7 @@ export default function BatchCookingPage() {
       {/* Tabs */}
       <div className="flex gap-1 mb-6">
         {TABS.map(({ label, value, count }) => (
-          <button key={value} onClick={() => setTab(value)}
+          <button key={value} onClick={() => handleTabChange(value)}
             className={`px-4 py-2 rounded-lg text-sm font-bold font-sans transition-colors flex items-center gap-2 ${tab === value ? 'bg-orange-100 text-orange-600' : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'}`}>
             {label}
             <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${tab === value ? 'bg-orange-200 text-orange-700' : 'bg-slate-100 text-slate-400'}`}>{count}</span>

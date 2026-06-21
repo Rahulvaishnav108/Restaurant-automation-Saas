@@ -1,11 +1,26 @@
 import React, { useState } from 'react';
-import { DAILY_METRICS, HOURLY_ORDERS, POPULAR_ITEMS, STATION_EFFICIENCY } from '../store/kitchenData';
+import { ANALYTICS_DATA } from '../store/kitchenData';
 
 export default function KitchenAnalyticsPage() {
-  const [timeRange, setTimeRange] = useState<'today' | 'yesterday' | 'weekly'>('today');
+  const [timeRange, setTimeRange] = useState<'today' | 'yesterday' | 'weekly'>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('kitchen_analytics_time_range');
+      if (stored === 'today' || stored === 'yesterday' || stored === 'weekly') {
+        return stored;
+      }
+    }
+    return 'today';
+  });
+
+  const handleTimeRangeChange = (range: 'today' | 'yesterday' | 'weekly') => {
+    setTimeRange(range);
+    localStorage.setItem('kitchen_analytics_time_range', range);
+  };
+
+  const { metrics, chartData, popularItems, stationEfficiency } = ANALYTICS_DATA[timeRange];
 
   // Max value for scaling SVG chart bars
-  const maxHourlyOrders = Math.max(...HOURLY_ORDERS.map(d => d.orders));
+  const maxHourlyOrders = Math.max(...chartData.map(d => d.orders));
 
   return (  
     <div className="p-4 lg:p-8 h-full overflow-y-auto font-sans">
@@ -19,7 +34,7 @@ export default function KitchenAnalyticsPage() {
           {(['today', 'yesterday', 'weekly'] as const).map(range => (
             <button
               key={range}
-              onClick={() => setTimeRange(range)}
+              onClick={() => handleTimeRangeChange(range)}
               className={`px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
                 timeRange === range
                   ? 'bg-orange-600 text-white shadow-sm'
@@ -33,8 +48,8 @@ export default function KitchenAnalyticsPage() {
       </div>
 
       {/* KPI Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
-        {DAILY_METRICS.map((metric, idx) => {
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6">
+        {metrics.map((metric, idx) => {
           const isPositive = metric.change >= 0;
           const changeText = isPositive ? `+${metric.change}` : `${metric.change}`;
           const isPrepTime = metric.label.includes('Prep');
@@ -70,15 +85,21 @@ export default function KitchenAnalyticsPage() {
         <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm lg:col-span-2">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="font-bold text-base text-slate-800">Hourly Order Volume</h3>
-              <p className="text-xs text-slate-400">Peak times and order loads throughout the shift</p>
+              <h3 className="font-bold text-base text-slate-800">
+                {timeRange === 'weekly' ? 'Daily Order Volume' : 'Hourly Order Volume'}
+              </h3>
+              <p className="text-xs text-slate-400">
+                {timeRange === 'weekly'
+                  ? 'Daily order loads throughout the week'
+                  : 'Peak times and order loads throughout the shift'}
+              </p>
             </div>
             <span className="text-xs font-bold text-slate-400">Live Feed</span>
           </div>
 
           {/* SVG Bar Chart */}
           <div className="w-full h-60 flex items-end justify-between px-2 pt-6">
-            {HOURLY_ORDERS.map((d, index) => {
+            {chartData.map((d, index) => {
               // Scale height relative to maximum value, height constraint max 180px
               const barHeight = maxHourlyOrders > 0 ? (d.orders / maxHourlyOrders) * 160 : 0;
 
@@ -95,7 +116,7 @@ export default function KitchenAnalyticsPage() {
                   />
                   {/* Label */}
                   <span className="text-[10px] font-semibold text-slate-400 mt-2 rotate-0 sm:rotate-0">
-                    {d.hour}
+                    {d.label}
                   </span>
                 </div>
               );
@@ -110,7 +131,7 @@ export default function KitchenAnalyticsPage() {
             <p className="text-xs text-slate-400">Most requested menu items in kitchen</p>
           </div>
           <div className="space-y-4">
-            {POPULAR_ITEMS.map((item, idx) => (
+            {popularItems.map((item, idx) => (
               <div key={idx}>
                 <div className="flex justify-between text-xs font-semibold mb-1">
                   <span className="text-slate-700">{item.name}</span>
@@ -135,7 +156,7 @@ export default function KitchenAnalyticsPage() {
           <p className="text-xs text-slate-400">Order completion rate & speed score per cooking counter</p>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
-          {STATION_EFFICIENCY.map((station, idx) => (
+          {stationEfficiency.map((station, idx) => (
             <div key={idx} className="border border-slate-100 p-4 rounded-xl text-center hover:bg-slate-50/50 transition-colors">
               <span className="text-xs font-bold text-slate-500 block">{station.station} Station</span>
               <div className="my-3 flex justify-center">
