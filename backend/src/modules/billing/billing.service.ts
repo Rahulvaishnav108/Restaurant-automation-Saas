@@ -341,20 +341,7 @@ export class BillingService {
       console.error('Failed to trigger payment success notification:', notifError);
     }
 
-    // Trigger stock deduction hook
-    try {
-      const orders = await OrderModel.find({
-        restaurantId,
-        sessionId,
-        status: { $ne: OrderStatus.CANCELLED }
-      });
-      const orderItems = orders.flatMap(order => order.items);
-      if (orderItems.length > 0) {
-        await InventoryService.deductStock(orderItems);
-      }
-    } catch (inventoryError) {
-      console.error(`Failed to deduct inventory for session ${sessionId}:`, inventoryError);
-    }
+    // Stock deduction is now handled by OrdersService.startCooking() during the kitchen workflow.
 
     // End session automatically upon successful payment is disabled to allow subsequent session-linked operations (e.g. feedback, loyalty, reorders) in the PRD lifecycle.
     /*

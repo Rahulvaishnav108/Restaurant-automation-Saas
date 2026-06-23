@@ -86,6 +86,14 @@ export const createItemSchema = z.object({
   spiceLevel: z.number().int().min(0).max(5).optional(),
   tags: z.array(z.string().max(50)).max(10).optional(),
   displayOrder: z.number().int().min(0).optional().default(0),
+  ingredients: z
+    .array(
+      z.object({
+        inventoryItemId: objectIdSchema,
+        quantity: z.number().positive('Quantity must be greater than 0'),
+      })
+    )
+    .optional(),
 });
 
 export const updateItemSchema = createItemSchema.partial();
