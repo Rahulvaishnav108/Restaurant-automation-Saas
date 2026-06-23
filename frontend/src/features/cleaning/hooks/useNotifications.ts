@@ -92,15 +92,36 @@ export function useNotifications() {
   const clearRead = useCallback(() => {
     setNotifications((current) => current.filter((item) => !item.read));
   }, []);
-
+  // Add this function (Around line 92)
+  const addNotification = useCallback((title: string, message: string) => {
+    const newNotif: NotificationItem = {
+      id: Date.now(),
+      title,
+      message,
+      time: 'Just Now',
+      tone: 'urgent',
+      read: false,
+    };
+    setNotifications((prev) => [newNotif, ...prev]);
+  }, []);
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- async fetch on mount, setState is post-await
     void fetchNotifications();
   }, [fetchNotifications]);
+  
+  useEffect(() => {
+    const handleNewRequest = (event: any) => {
+      // Nayi notification ko state mein push karo
+      setNotifications((prev) => [event.detail, ...prev]);
+    };
 
+    window.addEventListener('new-cleaning-request', handleNewRequest);
+    return () => window.removeEventListener('new-cleaning-request', handleNewRequest);
+  }, []);
+  
   return {
     notifications,
     unreadCount,
+    addNotification,
     loading,
     error,
     markAsRead,

@@ -32,7 +32,9 @@ export default function CleaningTasksPage() {
   const [priorityFilter, setPriorityFilter] = useState('All Priority');
   const [areaFilter, setAreaFilter] = useState('All Area');
   const [showAddModal, setShowAddModal] = useState(false);
-  
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [selectedTask, setSelectedTask] = useState<CleanTask | null>(null);
+
   // New task form state
   const [newTaskName, setNewTaskName] = useState('');
   const [newTaskLocation, setNewRequestLocation] = useState('Dining Area A');
@@ -47,12 +49,9 @@ export default function CleaningTasksPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  // 🔌 Pulling operational real-time tasks states from unified central wire layer hook
-  // 🔌 Pulling operational real-time tasks...
   const { urgentTasks, startTask, completeTask, verifyTask, reportIssue } = useCleaning();
   const safeTasks: TableTask[] = (urgentTasks || []) as unknown as TableTask[];
 
-  // Close custom bottom rows droplist sheet cleanly when clicking outside boundaries
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (rowsRef.current && !rowsRef.current.contains(event.target as Node)) {
@@ -63,7 +62,6 @@ export default function CleaningTasksPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Map state hooks context arrays directly into CleanTask original structural arrays parameters
   const tasks: CleanTask[] = safeTasks.map((t, index) => {
     let displayStatus: 'Pending' | 'In Progress' | 'Completed' = 'Pending';
     if (t.rawStatus === 'IN_PROGRESS') displayStatus = 'In Progress';
@@ -97,8 +95,11 @@ export default function CleaningTasksPage() {
 
     return {
       id: `TSK-2026-0${10 + index}`,
-      name: t.id === 'T12' || t.id === 'T05' ? `Restroom Sanitization (${t.id})` : `Clean Dining Table ${t.id}`,
-      location: t.id === 'T15' ? 'Terrace Area' : (t.id === 'T05' ? 'Floor 1' : 'Dining Area A'),
+      name:
+        t.id === 'T12' || t.id === 'T05'
+          ? `Restroom Sanitization (${t.id})`
+          : `Clean Dining Table ${t.id}`,
+      location: t.id === 'T15' ? 'Terrace Area' : t.id === 'T05' ? 'Floor 1' : 'Dining Area A',
       type: type,
       icon: icon,
       iconColor: iconColor,
@@ -107,16 +108,15 @@ export default function CleaningTasksPage() {
       dueTime: t.rawStatus === 'REQUESTED' ? 'Today, Just Now' : 'Today, 11:00 AM',
       overdue: isHigh && displayStatus !== 'Completed',
       borderClass: borderClass,
-      rawId: t.id
+      rawId: t.id,
     };
   });
 
-  // Statistics counters calculation driven by active store pipeline layers lengths
-  const totalCount = tasks.length + 19; 
-  const pendingCount = tasks.filter(t => t.status === 'Pending').length + 5;
-  const inProgressCount = tasks.filter(t => t.status === 'In Progress').length + 10;
-  const completedCount = tasks.filter(t => t.status === 'Completed').length + 3;
-  const overdueCount = tasks.filter(t => t.overdue && t.status !== 'Completed').length + 1;
+  const totalCount = tasks.length + 19;
+  const pendingCount = tasks.filter((t) => t.status === 'Pending').length + 5;
+  const inProgressCount = tasks.filter((t) => t.status === 'In Progress').length + 10;
+  const completedCount = tasks.filter((t) => t.status === 'Completed').length + 3;
+  const overdueCount = tasks.filter((t) => t.overdue && t.status !== 'Completed').length + 1;
 
   // Add task pipeline handler linking to central store
   const handleAddTask = (e: React.FormEvent) => {
@@ -138,57 +138,85 @@ export default function CleaningTasksPage() {
     }
   };
 
-  // 🔥 Functional Action Row Hooks Triggers
   const handleViewTaskDetailsLog = (row: CleanTask) => {
-    alert(`[CleanServe Operational Task Log]\n-----------------------\nTask Code ID: ${row.id}\nTask Description: ${row.name}\nLocation Area: ${row.location}\nHygiene Vector Category: ${row.type}\nPriority Level: ${row.priority}\nOperational Status: ${row.status}\nTask Expected Due Window: ${row.dueTime}\nOverdue Flag Matrix: ${row.overdue ? 'YES - SYSTEM ALERT' : 'NO'}`);
+    setSelectedTask(row); // Modal khulega
+  };
+  const handleActionClick = (row: CleanTask, action: 'start' | 'complete' | 'verify') => {
+    if (action === 'start') startTask(row.rawId);
+    else if (action === 'complete') completeTask(row.rawId);
+    else if (action === 'verify') verifyTask(row.rawId);
+    setOpenMenuId(null);
   };
 
   const handleOpenTaskMenuConfig = (row: CleanTask) => {
-    const confirmation = window.confirm(`[Task Master Operations Override]\n\nClick OK to register a manual high efficiency audit schedule reset vector to Table ${row.rawId},\nor Cancel to ignore.`);
+    const confirmation = window.confirm(
+      `[Task Master Operations Override]\n\nClick OK to register a manual high efficiency audit schedule reset vector to Table ${row.rawId},\nor Cancel to ignore.`
+    );
     if (confirmation) {
       alert(`Hygiene recheck interval telemetry updated for Table ${row.rawId}.`);
     }
   };
 
-  // 🔥 Functional CSV Export Logic Linked
   const handleExportTasksCSV = () => {
     if (filteredTasks.length === 0) {
-      alert("Export karne ke liye koi tasks nahi hain!");
+      alert('Export karne ke liye koi tasks nahi hain!');
       return;
     }
-    const headers = ["Task ID", "Task Name", "Location / Table", "Type", "Priority", "Status", "Due Window"];
-    const rows = filteredTasks.map(t => [t.id, `"${t.name}"`, t.location, t.type, t.priority, t.status, t.dueTime]);
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const headers = [
+      'Task ID',
+      'Task Name',
+      'Location / Table',
+      'Type',
+      'Priority',
+      'Status',
+      'Due Window',
+    ];
+    const rows = filteredTasks.map((t) => [
+      t.id,
+      `"${t.name}"`,
+      t.location,
+      t.type,
+      t.priority,
+      t.status,
+      t.dueTime,
+    ]);
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
-    const linkAnchor = document.createElement("a");
-    linkAnchor.setAttribute("href", encodedUri);
-    linkAnchor.setAttribute("download", `CleanServe_Operational_Tasks_${new Date().toISOString().split('T')[0]}.csv`);
+    const linkAnchor = document.createElement('a');
+    linkAnchor.setAttribute('href', encodedUri);
+    linkAnchor.setAttribute(
+      'download',
+      `CleanServe_Operational_Tasks_${new Date().toISOString().split('T')[0]}.csv`
+    );
     document.body.appendChild(linkAnchor);
     linkAnchor.click();
     document.body.removeChild(linkAnchor);
   };
 
-  // 🔥 Functional Filter Layout Resets Trigger
   const handleResetFiltersToggle = () => {
     setStatusFilter('All Status');
     setPriorityFilter('All Priority');
     setAreaFilter('All Area');
     setCurrentPage(1);
-    alert("System operational filters query vectors synchronized successfully to baseline configurations.");
+    alert(
+      'System operational filters query vectors synchronized successfully to baseline configurations.'
+    );
   };
 
   // Filter conditions
-  const filteredTasks = tasks.filter(t => {
-    const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          t.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          t.id.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredTasks = tasks.filter((t) => {
+    const matchesSearch =
+      t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.id.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'All Status' || t.status === statusFilter;
     const matchesPriority = priorityFilter === 'All Priority' || t.priority === priorityFilter;
     const matchesArea = areaFilter === 'All Area' || t.location.includes(areaFilter);
     return matchesSearch && matchesStatus && matchesPriority && matchesArea;
   });
 
-  // Calculate dynamic paginated items slicing safely
   const indexOfLastRow = currentPage * rowsPerPage;
   const indexOfFirstRow = indexOfLastRow - rowsPerPage;
   const currentPaginatedTasks = filteredTasks.slice(indexOfFirstRow, indexOfLastRow);
@@ -198,8 +226,12 @@ export default function CleaningTasksPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 font-sans tracking-tight">Tasks</h1>
-          <p className="text-xs text-slate-455 dark:text-slate-400 mt-0.5">View and manage your assigned cleaning and hygiene tasks.</p>
+          <h1 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 font-sans tracking-tight">
+            Tasks
+          </h1>
+          <p className="text-xs text-slate-455 dark:text-slate-400 mt-0.5">
+            View and manage your assigned cleaning and hygiene tasks.
+          </p>
         </div>
         <div className="flex gap-3">
           <button
@@ -210,7 +242,7 @@ export default function CleaningTasksPage() {
             Add Task
           </button>
           {/* 🔥 Connected onClick Trigger for Export button */}
-          <button 
+          <button
             onClick={handleExportTasksCSV}
             className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-orange-500 dark:hover:border-orange-500 transition-all active:scale-95 text-xs cursor-pointer"
           >
@@ -227,8 +259,12 @@ export default function CleaningTasksPage() {
             <span className="material-symbols-outlined text-[20px]">assignment</span>
           </div>
           <div>
-            <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-150 leading-none">{totalCount}</h3>
-            <p className="text-[10px] text-slate-400 dark:text-slate-400 mt-1 font-sans font-semibold">Total Tasks</p>
+            <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-150 leading-none">
+              {totalCount}
+            </h3>
+            <p className="text-[10px] text-slate-400 dark:text-slate-400 mt-1 font-sans font-semibold">
+              Total Tasks
+            </p>
           </div>
         </div>
 
@@ -237,8 +273,12 @@ export default function CleaningTasksPage() {
             <span className="material-symbols-outlined text-[20px]">schedule</span>
           </div>
           <div>
-            <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-150 leading-none">{pendingCount}</h3>
-            <p className="text-[10px] text-slate-400 dark:text-slate-400 mt-1 font-sans font-semibold">Pending</p>
+            <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-150 leading-none">
+              {pendingCount}
+            </h3>
+            <p className="text-[10px] text-slate-400 dark:text-slate-400 mt-1 font-sans font-semibold">
+              Pending
+            </p>
           </div>
         </div>
 
@@ -247,8 +287,12 @@ export default function CleaningTasksPage() {
             <span className="material-symbols-outlined text-[20px]">sync</span>
           </div>
           <div>
-            <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-150 leading-none">{inProgressCount}</h3>
-            <p className="text-[10px] text-slate-400 dark:text-slate-400 mt-1 font-sans font-semibold">In Progress</p>
+            <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-150 leading-none">
+              {inProgressCount}
+            </h3>
+            <p className="text-[10px] text-slate-400 dark:text-slate-400 mt-1 font-sans font-semibold">
+              In Progress
+            </p>
           </div>
         </div>
 
@@ -257,8 +301,12 @@ export default function CleaningTasksPage() {
             <span className="material-symbols-outlined text-[20px]">check_circle</span>
           </div>
           <div>
-            <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-150 leading-none">{completedCount}</h3>
-            <p className="text-[10px] text-slate-400 dark:text-slate-400 mt-1 font-sans font-semibold">Completed</p>
+            <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-150 leading-none">
+              {completedCount}
+            </h3>
+            <p className="text-[10px] text-slate-400 dark:text-slate-400 mt-1 font-sans font-semibold">
+              Completed
+            </p>
           </div>
         </div>
 
@@ -267,8 +315,12 @@ export default function CleaningTasksPage() {
             <span className="material-symbols-outlined text-[20px]">error</span>
           </div>
           <div>
-            <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-150 leading-none">{overdueCount}</h3>
-            <p className="text-[10px] text-slate-400 dark:text-slate-400 mt-1 font-sans font-semibold">Overdue</p>
+            <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-150 leading-none">
+              {overdueCount}
+            </h3>
+            <p className="text-[10px] text-slate-400 dark:text-slate-400 mt-1 font-sans font-semibold">
+              Overdue
+            </p>
           </div>
         </div>
       </section>
@@ -276,10 +328,9 @@ export default function CleaningTasksPage() {
       {/* Toolbar & Filter Bar Grid - Original Teeno Select elements untouched! */}
       <section className="bg-white dark:bg-sd-surface-container p-4 rounded-t-2xl border border-slate-150 dark:border-slate-800/60 shadow-sm flex flex-wrap items-center justify-between gap-4 relative z-10">
         <div className="flex flex-wrap items-center gap-3 overflow-x-auto no-scrollbar">
-          
           <select
             value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
+            onChange={(e) => setStatusFilter(e.target.value)}
             className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-sans py-2 px-3 focus:ring-2 focus:ring-orange-500 font-bold text-slate-700 dark:text-slate-200 outline-none"
           >
             <option>All Status</option>
@@ -287,10 +338,10 @@ export default function CleaningTasksPage() {
             <option value="In Progress">In Progress</option>
             <option value="Completed">Completed</option>
           </select>
-          
+
           <select
             value={priorityFilter}
-            onChange={e => setPriorityFilter(e.target.value)}
+            onChange={(e) => setPriorityFilter(e.target.value)}
             className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-sans py-2 px-3 focus:ring-2 focus:ring-orange-500 font-bold text-slate-700 dark:text-slate-200 outline-none"
           >
             <option>All Priority</option>
@@ -301,7 +352,7 @@ export default function CleaningTasksPage() {
 
           <select
             value={areaFilter}
-            onChange={e => setAreaFilter(e.target.value)}
+            onChange={(e) => setAreaFilter(e.target.value)}
             className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-sans py-2 px-3 focus:ring-2 focus:ring-orange-500 font-bold text-slate-700 dark:text-slate-200 outline-none"
           >
             <option>All Area</option>
@@ -310,9 +361,9 @@ export default function CleaningTasksPage() {
             <option value="Pantry">Pantry Area</option>
             <option value="Conference">Conference Room</option>
           </select>
-          
+
           {/* 🔥 Connected onClick Trigger for Filter action button */}
-          <button 
+          <button
             onClick={handleResetFiltersToggle}
             className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 dark:border-slate-700 text-xs font-sans font-bold text-slate-600 dark:text-slate-300 hover:text-orange-500 hover:border-orange-500 rounded-xl transition-all cursor-pointer"
           >
@@ -351,25 +402,38 @@ export default function CleaningTasksPage() {
                   </td>
                 </tr>
               ) : (
-                currentPaginatedTasks.map(row => (
-                  <tr key={row.id} className={`hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-l-4 ${row.borderClass} transition-colors group`}>
-                    <td className="px-6 py-4 whitespace-nowrap font-extrabold text-orange-500">{row.id}</td>
-                    <td className="px-6 py-4 font-bold text-slate-800 dark:text-slate-200">{row.name}</td>
-                    <td className="px-6 py-4 text-slate-500 dark:text-slate-455 font-semibold">{row.location}</td>
+                currentPaginatedTasks.map((row) => (
+                  <tr
+                    key={row.id}
+                    className={`hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-l-4 ${row.borderClass} transition-colors group`}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap font-extrabold text-orange-500">
+                      {row.id}
+                    </td>
+                    <td className="px-6 py-4 font-bold text-slate-800 dark:text-slate-200">
+                      {row.name}
+                    </td>
+                    <td className="px-6 py-4 text-slate-500 dark:text-slate-455 font-semibold">
+                      {row.location}
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1.5 font-semibold text-slate-700 dark:text-slate-355">
-                        <span className={`material-symbols-outlined text-[16px] ${row.iconColor}`}>{row.icon}</span>
+                        <span className={`material-symbols-outlined text-[16px] ${row.iconColor}`}>
+                          {row.icon}
+                        </span>
                         {row.type}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                        row.priority === 'High'
-                          ? 'bg-red-50 text-red-600 dark:bg-red-950/20 dark:text-red-400'
-                          : row.priority === 'Medium'
-                            ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20 dark:text-orange-400'
-                            : 'bg-green-50 text-green-600 dark:bg-green-950/20 dark:text-green-400'
-                      }`}>
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                          row.priority === 'High'
+                            ? 'bg-red-50 text-red-600 dark:bg-red-950/20 dark:text-red-400'
+                            : row.priority === 'Medium'
+                              ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20 dark:text-orange-400'
+                              : 'bg-green-50 text-green-600 dark:bg-green-950/20 dark:text-green-400'
+                        }`}
+                      >
                         {row.priority}
                       </span>
                     </td>
@@ -388,30 +452,58 @@ export default function CleaningTasksPage() {
                       </button>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap leading-relaxed">
-                      <div className="font-semibold text-slate-700 dark:text-slate-300">{row.dueTime}</div>
+                      <div className="font-semibold text-slate-700 dark:text-slate-300">
+                        {row.dueTime}
+                      </div>
                       {row.overdue && row.status !== 'Completed' && (
-                        <span className="text-[10px] text-red-500 font-extrabold uppercase tracking-tighter">Overdue</span>
+                        <span className="text-[10px] text-red-500 font-extrabold uppercase tracking-tighter">
+                          Overdue
+                        </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-6 py-4 text-center relative">
                       <div className="flex justify-center gap-2">
-                        {/* 👁️ Eye details action toggle */}
-                        <button 
+                        {/* 👁️ Eye details action */}
+                        <button
                           onClick={() => handleViewTaskDetailsLog(row)}
                           className="p-1 text-orange-500 hover:bg-orange-500/10 rounded transition-colors cursor-pointer"
                           title="View Task Details"
                         >
                           <span className="material-symbols-outlined text-[18px]">visibility</span>
                         </button>
-                        {/* 💬 Three dots configurations action toggle */}
-                        <button 
-                          onClick={() => handleOpenTaskMenuConfig(row)}
+                        {/* 💬 More Actions menu */}
+                        <button
+                          onClick={() => setOpenMenuId(openMenuId === row.id ? null : row.id)}
                           className="p-1 text-slate-400 hover:text-orange-500 rounded transition-colors cursor-pointer"
                           title="Task Quick Config"
                         >
                           <span className="material-symbols-outlined text-[18px]">more_vert</span>
                         </button>
                       </div>
+
+                      {/* Dropdown Menu */}
+                      {openMenuId === row.id && (
+                        <div className="absolute right-0 top-12 w-44 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-xl shadow-2xl z-[999] p-1">
+                          <button
+                            onClick={() => handleActionClick(row, 'start')}
+                            className="w-full text-left px-4 py-2 text-xs font-bold text-orange-600 hover:bg-orange-50 rounded-lg"
+                          >
+                            Start Task
+                          </button>
+                          <button
+                            onClick={() => handleActionClick(row, 'complete')}
+                            className="w-full text-left px-4 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-lg"
+                          >
+                            Mark Completed
+                          </button>
+                          <button
+                            onClick={() => handleActionClick(row, 'verify')}
+                            className="w-full text-left px-4 py-2 text-xs font-bold text-green-600 hover:bg-green-50 rounded-lg"
+                          >
+                            Verify Audit
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -420,11 +512,13 @@ export default function CleaningTasksPage() {
           </table>
         </div>
 
-        {/* 🛠️ FIXED: Bottom Pagination layout container blended seamlessly (Silver line cleared!) */}
+        {/*  FIXED: Bottom Pagination layout container blended seamlessly (Silver line cleared!) */}
         <div className="px-6 py-4 bg-white dark:bg-sd-surface-container flex flex-col md:flex-row md:items-center justify-between gap-4 border-t border-slate-100 dark:border-slate-800 relative z-30">
-          <p className="text-slate-400 dark:text-slate-455 font-bold">Showing {indexOfFirstRow + 1} to {Math.min(indexOfLastRow, filteredTasks.length)} of {totalCount} tasks</p>
+          <p className="text-slate-400 dark:text-slate-455 font-bold">
+            Showing {indexOfFirstRow + 1} to {Math.min(indexOfLastRow, filteredTasks.length)} of{' '}
+            {totalCount} tasks
+          </p>
           <div className="flex items-center gap-6">
-            
             {/* 💥 Custom HTML Rows Per Page Menu Block (No System Blue Highlight) */}
             <div className="flex items-center gap-2" ref={rowsRef}>
               <span className="text-slate-400 dark:text-slate-455 font-bold">Rows per page</span>
@@ -435,17 +529,25 @@ export default function CleaningTasksPage() {
                   className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg py-1 px-2.5 font-bold text-slate-700 dark:text-slate-355 flex items-center gap-1 outline-none hover:border-orange-500 cursor-pointer"
                 >
                   <span>{rowsPerPage}</span>
-                  <span className="material-symbols-outlined text-xs text-slate-400">keyboard_arrow_down</span>
+                  <span className="material-symbols-outlined text-xs text-slate-400">
+                    keyboard_arrow_down
+                  </span>
                 </button>
                 {isRowsOpen && (
                   <div className="absolute right-0 bottom-full mb-1.5 w-16 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg overflow-hidden flex flex-col font-sans text-xs z-50">
-                    {[5, 10, 25].map(size => (
+                    {[5, 10, 25].map((size) => (
                       <button
                         key={size}
                         type="button"
-                        onClick={() => { setRowsPerPage(size); setCurrentPage(1); setIsRowsOpen(false); }}
+                        onClick={() => {
+                          setRowsPerPage(size);
+                          setCurrentPage(1);
+                          setIsRowsOpen(false);
+                        }}
                         className={`w-full text-center py-1.5 font-bold transition-colors cursor-pointer ${
-                          rowsPerPage === size ? 'bg-orange-500 text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-orange-500/10 hover:text-orange-500'
+                          rowsPerPage === size
+                            ? 'bg-orange-500 text-white'
+                            : 'text-slate-700 dark:text-slate-200 hover:bg-orange-500/10 hover:text-orange-500'
                         }`}
                       >
                         {size}
@@ -455,34 +557,34 @@ export default function CleaningTasksPage() {
                 )}
               </div>
             </div>
-            
-            {/* 💥 Custom HTML Pagination Active Page Layout Controls (Pages 1 & 2 fully click-reactive!) */}
+
+            {/*  Custom HTML Pagination Active Page Layout Controls (Pages 1 & 2 fully click-reactive!) */}
             <div className="flex items-center gap-1">
-              <button 
+              <button
                 type="button"
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
                 className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span className="material-symbols-outlined text-sm">chevron_left</span>
               </button>
-              {[1, 2].map(page => (
-                <button 
+              {[1, 2].map((page) => (
+                <button
                   key={page}
                   type="button"
                   onClick={() => setCurrentPage(page)}
                   className={`w-8 h-8 font-bold rounded-lg transition-all cursor-pointer ${
-                    currentPage === page 
-                      ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' 
+                    currentPage === page
+                      ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
                       : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-650 dark:text-slate-355'
                   }`}
                 >
                   {page}
                 </button>
               ))}
-              <button 
+              <button
                 type="button"
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, 2))}
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, 2))}
                 disabled={currentPage === 2}
                 className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -496,7 +598,9 @@ export default function CleaningTasksPage() {
       {/* Extra Widget Row */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative z-0">
         <div className="lg:col-span-2 bg-white dark:bg-sd-surface-container p-6 rounded-2xl border border-slate-150 dark:border-slate-800 shadow-sm">
-          <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 mb-4 font-sans">Weekly Cleaning Efficiency</h3>
+          <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 mb-4 font-sans">
+            Weekly Cleaning Efficiency
+          </h3>
           <div className="flex items-end gap-3 h-32 pl-4 border-l border-slate-100 dark:border-slate-800">
             {[
               { day: 'MON', height: 'h-[60%]', pct: '60%' },
@@ -504,14 +608,21 @@ export default function CleaningTasksPage() {
               { day: 'WED', height: 'h-[85%]', pct: '85%' },
               { day: 'THU', height: 'h-[30%]', pct: '30%' },
               { day: 'FRI', height: 'h-[70%]', pct: '70%' },
-            ].map(col => (
-              <div key={col.day} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group cursor-pointer">
-                <div className={`w-full bg-orange-500/20 dark:bg-orange-500/10 group-hover:bg-orange-500/40 rounded-t-lg ${col.height} transition-all relative`}>
+            ].map((col) => (
+              <div
+                key={col.day}
+                className="flex-1 flex flex-col items-center gap-2 h-full justify-end group cursor-pointer"
+              >
+                <div
+                  className={`w-full bg-orange-500/20 dark:bg-orange-500/10 group-hover:bg-orange-500/40 rounded-t-lg ${col.height} transition-all relative`}
+                >
                   <span className="absolute -top-7 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[9px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity font-bold">
                     {col.pct}
                   </span>
                 </div>
-                <span className="text-[10px] text-slate-400 dark:text-slate-400 font-bold font-sans">{col.day}</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-400 font-bold font-sans">
+                  {col.day}
+                </span>
               </div>
             ))}
           </div>
@@ -521,7 +632,8 @@ export default function CleaningTasksPage() {
           <div className="relative z-10 font-sans">
             <h3 className="font-extrabold text-sm mb-2">Efficiency Tip</h3>
             <p className="text-xs opacity-90 leading-relaxed">
-              Focus on &quot;High Priority&quot; tasks in Dining Area A first to maintain peak service hygiene during peak dining rush hours.
+              Focus on &quot;High Priority&quot; tasks in Dining Area A first to maintain peak
+              service hygiene during peak dining rush hours.
             </p>
           </div>
           <div className="mt-4 relative z-10">
@@ -537,13 +649,20 @@ export default function CleaningTasksPage() {
       {showAddModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fadeIn">
           <div className="bg-white dark:bg-sd-surface-container rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-xl w-full max-w-sm">
-            <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-100 mb-1 font-sans">Assign New Cleaning Task</h3>
+            <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-100 mb-1 font-sans">
+              Assign New Cleaning Task
+            </h3>
             <p className="text-[11px] text-slate-400 dark:text-slate-455 mb-4 font-sans leading-relaxed">
               Log a manual cleanup, deep scrubbing, or supply replenishment duty.
             </p>
             <form onSubmit={handleAddTask} className="space-y-4 font-sans text-xs">
               <div>
-                <label htmlFor="new-task-name" className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">Task Description</label>
+                <label
+                  htmlFor="new-task-name"
+                  className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5"
+                >
+                  Task Description
+                </label>
                 <input
                   id="new-task-name"
                   type="text"
@@ -557,7 +676,12 @@ export default function CleaningTasksPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="new-task-location" className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">Task Area</label>
+                  <label
+                    htmlFor="new-task-location"
+                    className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5"
+                  >
+                    Task Area
+                  </label>
                   <input
                     id="new-task-location"
                     type="text"
@@ -569,7 +693,12 @@ export default function CleaningTasksPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="new-task-type" className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">Task Type</label>
+                  <label
+                    htmlFor="new-task-type"
+                    className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5"
+                  >
+                    Task Type
+                  </label>
                   <select
                     id="new-task-type"
                     value={newTaskType}
@@ -585,7 +714,12 @@ export default function CleaningTasksPage() {
               </div>
 
               <div>
-                <label htmlFor="new-task-priority" className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">Priority Urgency</label>
+                <label
+                  htmlFor="new-task-priority"
+                  className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5"
+                >
+                  Priority Urgency
+                </label>
                 <select
                   id="new-task-priority"
                   value={newTaskPriority}
@@ -614,6 +748,39 @@ export default function CleaningTasksPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Task Details Modal */}
+      {selectedTask && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[1000] p-4">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl w-full max-w-sm border dark:border-slate-800 shadow-2xl">
+            <h3 className="font-extrabold text-lg text-slate-800 dark:text-white mb-4">
+              Task: {selectedTask.name}
+            </h3>
+            <div className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
+              <p>
+                <strong>Location:</strong> {selectedTask.location}
+              </p>
+              <p>
+                <strong>Type:</strong> {selectedTask.type}
+              </p>
+              <p>
+                <strong>Priority:</strong> {selectedTask.priority}
+              </p>
+              <p>
+                <strong>Status:</strong> {selectedTask.status}
+              </p>
+              <p>
+                <strong>Due:</strong> {selectedTask.dueTime}
+              </p>
+            </div>
+            <button
+              onClick={() => setSelectedTask(null)}
+              className="mt-6 w-full py-2 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
