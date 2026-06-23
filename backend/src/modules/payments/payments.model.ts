@@ -11,6 +11,12 @@ export interface IPayment extends Document {
   method: string;
   provider: string;
   providerPaymentId?: string | null;
+
+  // Razorpay-specific fields
+  razorpayOrderId?: string | null;     // Razorpay order ID (order_Abc123)
+  razorpayPaymentId?: string | null;   // Razorpay payment ID (pay_Xyz789) — set after customer pays
+  razorpaySignature?: string | null;   // HMAC signature verified on our end
+
   status: PaymentStatus;
   verifiedAt?: Date | null;
   failureReason?: string | null;
@@ -30,6 +36,12 @@ const paymentSchema = new Schema<IPayment>(
     method: { type: String, required: true, trim: true },
     provider: { type: String, default: 'mock', trim: true },
     providerPaymentId: { type: String, default: null, trim: true, index: true },
+
+    // Razorpay-specific
+    razorpayOrderId:   { type: String, default: null, trim: true, index: true },
+    razorpayPaymentId: { type: String, default: null, trim: true, index: true },
+    razorpaySignature: { type: String, default: null, trim: true },
+
     status: {
       type: String,
       enum: Object.values(PaymentStatus),
