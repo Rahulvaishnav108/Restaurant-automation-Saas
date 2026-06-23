@@ -185,7 +185,7 @@ export class InventoryService {
       throw new AppError('Inventory item not found', 404, ErrorCode.NOT_FOUND);
     }
 
-    let previousStock = item.stock;
+    const previousStock = item.stock;
 
     if (data.name !== undefined) item.name = data.name;
     if (data.stock !== undefined) {
