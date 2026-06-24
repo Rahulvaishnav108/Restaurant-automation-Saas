@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useCleaning } from '../hooks/usecleaning';
+import { useNotifications } from '../hooks/useNotifications';
 import { useCleaningSearch } from '../components/dashboard/CleaningSearchContext';
+import { cleaningStore } from '../store/cleaning.store';
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 interface HygieneTask {
   id: string;
@@ -12,10 +15,9 @@ interface HygieneTask {
   completed: boolean;
 }
 
-// Yeh interface define karlo
 interface TableTask {
   id: string;
-  rawId?: string; // Yeh '?' add kar
+  rawId?: string;
   rawStatus?: 'PENDING' | 'REQUESTED' | 'IN_PROGRESS' | 'COMPLETED' | 'VERIFIED';
   rawPriority?: 'High' | 'Medium' | 'Low';
   progress?: number;
@@ -28,12 +30,13 @@ export default function CleaningDashboard() {
   const [newRequestTable, setNewRequestTable] = useState('');
   const [newRequestPriority, setNewRequestPriority] = useState('Medium');
   
-  // 🔌 Connecting directly to global store engine to drive real-time sync channel
+  const { unreadCount, addNotification } = useNotifications();
+  
   const { urgentTasks, startTask, completeTask, verifyTask, reportIssue } = useCleaning();
-  // Line 33 ko aise likh:
-const safeTasks = (urgentTasks || []) as unknown as TableTask[];
+  
+  const safeTasks = (urgentTasks || []) as unknown as TableTask[];
+  const requestCount = (urgentTasks as unknown as TableTask[])?.filter(t => t.rawStatus === 'REQUESTED').length || 0;
 
-  // 1. Dynamic Reactive Extraction: Tables to Clean mapping (Image 1, Point b)
   const tablesToClean = safeTasks
     .filter(t => t.rawStatus === 'PENDING' || t.rawStatus === 'REQUESTED')
     .map((t: TableTask) => {
@@ -55,7 +58,6 @@ const safeTasks = (urgentTasks || []) as unknown as TableTask[];
       };
     });
 
-  // 2. Dynamic Reactive Extraction: In Progress wheels layout items tracking
   const inProgress = safeTasks
     .filter(t => t.rawStatus === 'IN_PROGRESS')
     .map(t => ({
@@ -65,7 +67,7 @@ const safeTasks = (urgentTasks || []) as unknown as TableTask[];
       rawId: t.id
     }));
 
-  // 3. Dynamic Reactive Extraction: Completed Today logs setup
+  
   const completedToday = safeTasks
     .filter(t => t.rawStatus === 'COMPLETED' || t.rawStatus === 'VERIFIED')
     .map(t => ({
@@ -113,14 +115,36 @@ const safeTasks = (urgentTasks || []) as unknown as TableTask[];
     if (!newRequestTable.trim()) return;
     const tableId = newRequestTable.toUpperCase().startsWith('T') ? newRequestTable.toUpperCase() : `T${newRequestTable}`;
     
-    // Add request trigger via central architecture fallback engine
-    reportIssue(tableId, 'Customer direct cleaning request via dashboard panel layout');
+    reportIssue(tableId, 'Customer direct cleaning request');
+    
+    cleaningStore.addCleaningRequest({
+      id: `CR-2026-${Math.floor(Math.random() * 999)}`,
+      type: 'Cleaning Request',
+      icon: 'table_restaurant',
+      iconColor: 'text-orange-500',
+      location: `Table ${tableId}`,
+      requestedBy: { name: 'Staff', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuANsaeL1qIrdjS8VjlskxOHt17ofWL0mQA8HTEyUyGUmb0WZEoFeVIhAYDxByw8LuxWxFKIdV270hwAPBmZFNJdIOoLB7X4CRStTLzQ66uJ709k9Kvpbt3yDChYZmi0IOgzaKGIARmUFWTp8fiuOG-poilaUus94iK5MEMaPofwxQGipJFvuis9fWEp53IS84fln5N1GSiP7xWII9WnJi1qTw5gFY4eKQQgrXVlslMwV6TbZi4nnm2vGRG3hjoOoFQyNc23SGR4j9U' },
+      priority: 'High',
+      status: 'Pending',
+      requestedOn: new Date().toLocaleDateString(),
+      requestedTime: new Date().toLocaleTimeString(),
+    });
+
+    window.dispatchEvent(new CustomEvent('new-cleaning-request', { 
+      detail: { 
+        id: Date.now(), 
+        title: `New Request: ${tableId}`, 
+        message: 'Table requires immediate cleaning.',
+        read: false 
+      } 
+    }));
     
     setNewRequestTable('');
     setShowRequestModal(false);
   };
 
-  // Keep original sorting filters parameters fully safe
+  
+
   const filteredTablesToClean = tablesToClean.filter(t => 
     t.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
     t.priority.toLowerCase().includes(searchQuery.toLowerCase())
