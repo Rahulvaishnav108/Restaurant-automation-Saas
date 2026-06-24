@@ -119,9 +119,8 @@ export default function CleaningProfilePage() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1.5">Full Name</label>
-                <input
-                  type="text"
+                <label htmlFor="full-name" className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1.5">Full Name</label>
+                <input id="full-name" type="text"
                   value={profileData.name}
                   onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
                   className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
@@ -129,8 +128,8 @@ export default function CleaningProfilePage() {
               </div>
 
               <div>
-                <label className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1.5">Phone</label>
-                <input
+                <label htmlFor="phone-number" className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1.5">Phone</label>
+                <input id="phone-number"
                   type="tel"
                   value={profileData.phone}
                   onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}

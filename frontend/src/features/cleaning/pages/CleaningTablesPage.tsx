@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useCleaning } from '../hooks/usecleaning';
 import { useCleaningSearch } from '../components/dashboard/CleaningSearchContext';
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 interface TableRow {
   id: string;

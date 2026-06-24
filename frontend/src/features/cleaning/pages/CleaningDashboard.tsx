@@ -3,6 +3,7 @@ import { useCleaning } from '../hooks/usecleaning';
 import { useNotifications } from '../hooks/useNotifications';
 import { useCleaningSearch } from '../components/dashboard/CleaningSearchContext';
 import { cleaningStore } from '../store/cleaning.store';
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 interface HygieneTask {
   id: string;

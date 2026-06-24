@@ -104,15 +104,19 @@ export function useNotifications() {
     };
     setNotifications((prev) => [newNotif, ...prev]);
   }, []);
-  useEffect(() => {
-    void fetchNotifications();
-  }, [fetchNotifications]);
+ // useNotifications.ts (Around line 107-109)
+useEffect(() => {
+  const loadData = async () => {
+    await fetchNotifications();
+  };
+  loadData();
+}, [fetchNotifications]);
   
   useEffect(() => {
-    const handleNewRequest = (event: any) => {
-      // Nayi notification ko state mein push karo
-      setNotifications((prev) => [event.detail, ...prev]);
-    };
+    const handleNewRequest = (event: Event) => {
+  const customEvent = event as CustomEvent; 
+  setNotifications((prev) => [customEvent.detail, ...prev]);
+};
 
     window.addEventListener('new-cleaning-request', handleNewRequest);
     return () => window.removeEventListener('new-cleaning-request', handleNewRequest);

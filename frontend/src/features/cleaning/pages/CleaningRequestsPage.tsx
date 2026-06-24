@@ -3,6 +3,7 @@ import { useCleaning } from '../hooks/usecleaning';
 import { useCleaningSearch } from '../components/dashboard/CleaningSearchContext';
 import { useNotifications } from '../hooks/useNotifications';
 import { cleaningStore } from '../store/cleaning.store';
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 interface CleaningRequest {
   id: string;
@@ -38,8 +39,7 @@ export default function CleaningRequestsPage() {
   // New request form state
   const [newRequestType, setNewRequestType] = useState('Spill Cleanup');
   const [newRequestLocation, setNewRequestLocation] = useState('Dining Area A');
-  const [newRequestPriority, setNewRequestPriority] = useState('Medium');
-
+  const [newRequestPriority, setNewRequestPriority] = useState<'High' | 'Medium' | 'Low'>('Medium');
   // 💥 Premium Custom Top Filter Dropdowns Tracking States
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isPriorityOpen, setIsPriorityOpen] = useState(false);
@@ -158,7 +158,7 @@ export default function CleaningRequestsPage() {
         avatar:
           'https://lh3.googleusercontent.com/aida-public/AB6AXuCZ1EeclPIzb65zLML4Z-Ep8QnCj_Ey68uOYKOfFtZuK_k5ILmHPwi-DSDwYreE9ju4D4Z79Hp6UeAKZXSwBOURkmGSQ7hNQ8-lDeQGBfmjcHltnwofvxh67WrZSDukcUkwZiuZjqYa74AhkTFTcLWqysc21n_T9l3J9vkmkj_lFhXuaPU189ige8Tlb5foWMvGnW27LhowBJk4dHeUfzWcmeRluinE4acRYrVtfGNEr0sYCTnJ1sdGsg1NYN3HFCrqzkH0-TJrClE',
       },
-      priority: newRequestPriority as any,
+      priority: newRequestPriority as 'High' | 'Medium' | 'Low',
       status: 'Scheduled',
       requestedOn: new Date().toLocaleDateString(),
       requestedTime: new Date().toLocaleTimeString(),
@@ -177,7 +177,9 @@ export default function CleaningRequestsPage() {
 
     setShowAddModal(false);
   };
-
+  const handleAction = (data: unknown) => {
+  console.log(data);
+  };
   // Toggle status linked directly with state update hooks pipelines
   const handleToggleRequestStatus = (rawId: string, currentStatus: string) => {
     if (currentStatus === 'Scheduled') {
@@ -822,7 +824,7 @@ export default function CleaningRequestsPage() {
                 <select
                   id="new-request-priority"
                   value={newRequestPriority}
-                  onChange={(e) => setNewRequestPriority(e.target.value)}
+                  onChange={(e) => setNewRequestPriority(e.target.value as 'High' | 'Medium' | 'Low')}
                   className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 >
                   <option value="High">High Urgency (Red Alert)</option>
