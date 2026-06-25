@@ -1,6 +1,5 @@
 // src/features/superAdmin/pages/SuperadminDashboard.tsx
 
-import { useEffect, useState } from "react";
 import { useOutletContext, useSearchParams } from "react-router-dom";
 import StatsGrid from "../components/dashboard/Statsgrid";
 import RevenueChart from "../components/dashboard/RevenueChart";
@@ -27,20 +26,13 @@ export default function SuperAdminDashboard() {
   //    no need for local state or event listeners.
   const { darkMode } = useOutletContext<OutletContext>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [requestsOpen, setRequestsOpen] = useState(
-    () => searchParams.get("requests") === "new"
-  );
+  const requestsOpen = searchParams.get("requests") === "new";
   const requests = useRestaurantRequestsStore((state) => state.requests);
   const approveRequest = useRestaurantRequestsStore((state) => state.approveRequest);
   const denyRequest = useRestaurantRequestsStore((state) => state.denyRequest);
 
-  useEffect(() => {
-    if (searchParams.get("requests") === "new") setRequestsOpen(true);
-  }, [searchParams]);
-
   const closeRequests = () => {
-    setRequestsOpen(false);
-    if (searchParams.get("requests")) setSearchParams({});
+    setSearchParams({});
   };
 
   const now = new Date();
@@ -91,7 +83,7 @@ export default function SuperAdminDashboard() {
 
           <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={() => setRequestsOpen(true)}
+              onClick={() => setSearchParams({ requests: "new" })}
               className={`relative self-start sm:self-auto inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition-all duration-200 ${
                 darkMode
                   ? "border-orange-500/30 text-orange-300 bg-orange-500/10 hover:bg-orange-500/15"

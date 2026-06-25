@@ -408,6 +408,17 @@ export default function Navbar({
                               navigate("/superadmin?requests=new");
                             }
                           }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              if ("request" in item && item.request) {
+                                setNotificationsOpen(false);
+                                navigate("/superadmin?requests=new");
+                              }
+                            }
+                          }}
+                          role="button"
+                          tabIndex={0}
                           className={`p-3.5 flex gap-3 cursor-pointer group relative ${
                             item.unread
                               ? darkMode

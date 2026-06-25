@@ -10,6 +10,7 @@ export function useAlerts() {
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
   const [searchQuery, setSearchQuery] = useState('');
+  const [baseTime] = useState(() => Date.now());
 
   const linkedAlerts = useMemo<Alert[]>(() => {
     const existingEntities = new Set(
@@ -26,14 +27,14 @@ export function useAlerts() {
         status: 'new',
         entity: request.name,
         entityType: 'restaurant',
-        timestamp: new Date(Date.now() - index * 60_000).toISOString(),
+        timestamp: new Date(baseTime - index * 60_000).toISOString(),
         actionLabel: 'Review Request',
         actionHref: '/superadmin?requests=new',
         tags: ['onboarding', 'new-request', 'placeholder'],
       }));
 
     return [...requestAlerts, ...alerts];
-  }, [alerts, requests]);
+  }, [alerts, requests, baseTime]);
 
   const stats = useMemo(() => ({
     total: linkedAlerts.length,
