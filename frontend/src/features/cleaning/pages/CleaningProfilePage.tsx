@@ -179,14 +179,6 @@ export default function CleaningProfilePage() {
     { title: 'Rising Star', desc: 'Top performer of the month', earned: 'Earned on May 1, 2026', icon: 'workspace_premium', bgClass: 'bg-teal-500', shadowClass: 'shadow-teal-250 dark:shadow-none' },
   ];
 
-  // ✅ Handler for photo upload
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setProfileImage(imageUrl);
-    }
-  };
   return (
     <>
       <div className="space-y-6 lg:space-y-8 animate-fadeIn cleaning-panel">
@@ -216,7 +208,7 @@ export default function CleaningProfilePage() {
                     />
                   ) : (
                     <div className="w-28 h-28 rounded-full border-4 border-slate-100 dark:border-slate-800 shadow-md bg-orange-500/10 flex items-center justify-center text-orange-500 font-bold text-3xl">
-                      {profile.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      {profile.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
                     </div>
                   )}
                   <span className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-sd-surface-container rounded-full" />
