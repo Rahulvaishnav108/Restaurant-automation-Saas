@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../../auth/AuthProvider";
 import {
   Bell,
   Moon,
@@ -39,6 +40,7 @@ interface ProfileCardProps {
 
 function ProfileCard({ darkMode, onClose }: ProfileCardProps) {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
 
   const stats = [
     { label: "Orders", value: "1.4K" },
@@ -163,7 +165,10 @@ function ProfileCard({ darkMode, onClose }: ProfileCardProps) {
 
         {/* Sign Out */}
         <button
-          onClick={() => console.log("Logging out...")}
+          onClick={() => {
+            signOut();
+            onClose();
+          }}
           className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-500/10 transition-colors"
         >
           <LogOut size={14} />

@@ -16,7 +16,12 @@ const CATEGORIES = [
 ];
 
 export default function CustomerFeedbackPage() {
-  const { requestService, addNotification } = useCustomerStore();
+  const { orders, requestService, addNotification } = useCustomerStore();
+
+  // Find the latest served/completed order for feedback. Fallback to first order, then a mock fallback if no orders exist.
+  const latestServedOrder = orders.find(o => o.status === 'Served' || o.status === 'Completed') || orders[0];
+  const orderId = latestServedOrder ? latestServedOrder.id : '#ORD-2840';
+  const orderDate = latestServedOrder?.date || '23 Jun, 08:15 PM';
 
   const [selected, setSelected] = useState('excellent');
   const [ratings, setRatings] = useState<Record<string, number>>({
@@ -30,6 +35,16 @@ export default function CustomerFeedbackPage() {
   const [photos, setPhotos] = useState<string[]>([]);
   const [supportModalOpen, setSupportModalOpen] = useState(false);
   const [supportMsg, setSupportMsg] = useState('');
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submittedData, setSubmittedData] = useState<{
+    overall: string;
+    emoji: string;
+    ratings: Record<string, number>;
+    feedback: string;
+    photos: string[];
+    date: string;
+    orderId: string;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -87,29 +102,142 @@ export default function CustomerFeedbackPage() {
   };
 
   const handleSubmitFeedback = () => {
+    const selectedEmojiObj = EMOJIS.find((e) => e.id === selected);
+    const overallText = selectedEmojiObj?.label || selected;
+    const overallEmoji = selectedEmojiObj?.emoji || '🤩';
+
     addNotification(
       'Feedback Received! 🌟',
-      `Thank you for your rating: "${EMOJIS.find((e) => e.id === selected)?.label || selected}". We appreciate your feedback!`,
+      `Thank you for your rating: "${overallText}". We appreciate your feedback!`,
       'info',
       '/customer/feedback'
     );
 
-    showToast('Feedback submitted! Thank you.');
-    
-    // Clear/Reset fields after submission
-    setFeedback('');
-    setPhotos([]);
-    setSelected('excellent');
-    setRatings({
-      'Food Quality': 5,
-      Taste: 5,
-      'Service Speed': 5,
-      Ambience: 5,
+    setSubmittedData({
+      overall: overallText,
+      emoji: overallEmoji,
+      ratings: { ...ratings },
+      feedback: feedback,
+      photos: [...photos],
+      date: orderDate,
+      orderId: orderId,
     });
+    setIsSubmitted(true);
+
+    showToast('Feedback submitted! Thank you.');
   };
 
+  if (isSubmitted && submittedData) {
+    return (
+      <div className="p-4 md:p-8 pb-24 md:pb-8 overflow-y-auto h-full sd-custom-scrollbar animate-fadeIn">
+        {/* Toast Alert */}
+        {toast && (
+          <div className={`fixed top-4 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl shadow-xl z-[150] flex items-center gap-2 border text-sm font-semibold font-sans animate-fadeIn ${
+            toast.type === 'success'
+              ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-950 dark:border-green-900 dark:text-green-300'
+              : 'bg-red-50 border-red-200 text-red-700 dark:bg-red-950 dark:border-red-900 dark:text-red-300'
+          }`}>
+            <span className="material-symbols-outlined text-lg">
+              {toast.type === 'success' ? 'check_circle' : 'error'}
+            </span>
+            {toast.message}
+          </div>
+        )}
+
+        {/* Success header */}
+        <div className="text-center py-8 px-4 bg-white dark:bg-sd-surface-container rounded-3xl border border-sd-surface-variant sd-food-card-shadow mb-8 max-w-2xl mx-auto">
+          <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="material-symbols-outlined text-3xl font-bold">done</span>
+          </div>
+          <h2 className="text-2xl font-extrabold text-sd-on-surface font-sans">Feedback Submitted done✅</h2>
+          <p className="text-sm text-sd-on-surface-variant font-sans mt-2">
+            Thank you! Your feedback helps us improve our service.
+          </p>
+        </div>
+
+        {/* The Feedback we gave card */}
+        <div className="bg-white dark:bg-sd-surface-container rounded-3xl border border-sd-surface-variant sd-food-card-shadow p-6 max-w-2xl mx-auto space-y-6">
+          <div className="flex justify-between items-start border-b border-sd-surface-variant pb-4">
+            <div>
+              <h3 className="text-lg font-bold text-sd-on-surface font-sans">Your Feedback Summary</h3>
+              <p className="text-xs text-sd-on-surface-variant font-sans mt-1">Order {submittedData.orderId}</p>
+            </div>
+            <div className="text-right">
+              <span className="bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-400 text-xs font-bold px-3 py-1 rounded-full font-sans">Submitted</span>
+              <p className="text-[10px] text-sd-on-surface-variant font-sans mt-1.5">Date: {submittedData.date}</p>
+            </div>
+          </div>
+
+          {/* Overall Experience */}
+          <div className="flex items-center gap-4 p-4 bg-sd-surface-container-low rounded-2xl">
+            <span className="text-4xl">{submittedData.emoji}</span>
+            <div>
+              <p className="text-xs text-sd-on-surface-variant font-sans uppercase font-bold tracking-wider">Overall Experience</p>
+              <p className="text-base font-extrabold text-sd-primary font-sans">{submittedData.overall}</p>
+            </div>
+          </div>
+
+          {/* Category Ratings */}
+          <div className="space-y-3">
+            <h4 className="text-xs uppercase tracking-wider text-sd-on-surface-variant font-bold font-sans">Ratings Given</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {CATEGORIES.map(({ icon, label, color }) => {
+                const ratingVal = submittedData.ratings[label] || 0;
+                return (
+                  <div key={label} className="flex items-center gap-3 p-3 bg-sd-surface/30 rounded-xl border border-sd-surface-variant">
+                    <div className={`w-8 h-8 rounded-full ${color} flex items-center justify-center shrink-0`}>
+                      <span className="material-symbols-outlined text-[16px]">{icon}</span>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold font-sans text-sd-on-surface">{label}</p>
+                      <div className="flex gap-0.5 mt-0.5">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <span
+                            key={star}
+                            className={`material-symbols-outlined text-[16px] ${star <= ratingVal ? 'text-sd-primary' : 'text-sd-surface-container-high'}`}
+                            style={{ fontVariationSettings: star <= ratingVal ? "'FILL' 1" : "'FILL' 0" }}
+                          >
+                            star
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Comments/Feedback Text */}
+          {submittedData.feedback && (
+            <div className="space-y-2">
+              <h4 className="text-xs uppercase tracking-wider text-sd-on-surface-variant font-bold font-sans">Your Comments</h4>
+              <div className="p-4 bg-sd-surface-container-low rounded-2xl border border-sd-surface-variant">
+                <p className="text-sm text-sd-on-surface font-sans italic">"{submittedData.feedback}"</p>
+              </div>
+            </div>
+          )}
+
+          {/* Photos */}
+          {submittedData.photos.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-xs uppercase tracking-wider text-sd-on-surface-variant font-bold font-sans">Uploaded Photos</h4>
+              <div className="flex gap-2 overflow-x-auto py-1 sd-custom-scrollbar">
+                {submittedData.photos.map((src, idx) => (
+                  <div key={idx} className="w-20 h-20 rounded-xl overflow-hidden border border-sd-surface-variant shrink-0">
+                    <img src={src} alt="Uploaded" className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-4 md:p-8 pb-24 md:pb-8 overflow-y-auto h-full sd-custom-scrollbar">
+    <div className="p-4 md:p-8 pb-24 md:pb-8 overflow-y-auto h-full sd-custom-scrollbar animate-fadeIn">
       {/* Toast Alert */}
       {toast && (
         <div className={`fixed top-4 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl shadow-xl z-[150] flex items-center gap-2 border text-sm font-semibold font-sans animate-fadeIn ${
@@ -127,20 +255,20 @@ export default function CustomerFeedbackPage() {
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-sd-on-surface font-sans">Rate Your Experience</h2>
         <div className="flex items-center gap-2 mt-1">
-          <p className="text-sm text-sd-on-surface-variant font-sans">Order #ORD-12456</p>
+          <p className="text-sm text-sd-on-surface-variant font-sans">Order {orderId}</p>
           <span className="bg-sd-secondary-container text-sd-on-secondary-container text-[10px] font-bold px-2 py-0.5 rounded-full font-sans">Served</span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Order Summary */}
-        <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-sd-surface-variant sd-food-card-shadow flex flex-col sm:flex-row gap-5">
+        <div className="lg:col-span-2 bg-white dark:bg-sd-surface-container rounded-2xl p-5 border border-sd-surface-variant sd-food-card-shadow flex flex-col sm:flex-row gap-5">
           <div className="w-full sm:w-1/3 h-40 rounded-xl bg-gradient-to-br from-sd-primary-fixed via-sd-primary-fixed-dim to-sd-primary-container/20 flex items-center justify-center shrink-0 overflow-hidden">
             <span className="material-symbols-outlined text-6xl text-sd-primary/30">lunch_dining</span>
           </div>
           <div className="flex-1 flex flex-col justify-center">
             <p className="text-[10px] uppercase tracking-wider text-sd-on-surface-variant font-semibold mb-1 font-sans">Served on</p>
-            <p className="text-base font-bold font-sans mb-3">24 May, 08:15 PM</p>
+            <p className="text-base font-bold font-sans mb-3">{orderDate}</p>
             <div className="p-3.5 bg-sd-surface-container-low rounded-xl">
               <p className="text-sm text-sd-on-surface-variant font-sans">Thank you for dining with us! We hope you enjoyed your meal and look forward to serving you again soon.</p>
             </div>

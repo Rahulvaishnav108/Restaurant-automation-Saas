@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
 import {

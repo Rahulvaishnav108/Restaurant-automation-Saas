@@ -53,7 +53,7 @@ export function AppShell({ title, subtitle, accent, stats, children }: AppShellP
               </div>
               <button
                 className="inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-medium transition hover:bg-white/20"
-                onClick={signOut}
+                onClick={() => signOut()}
                 type="button"
               >
                 <LogOut className="h-4 w-4" />

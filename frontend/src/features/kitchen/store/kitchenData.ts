@@ -35,7 +35,7 @@ export const ORDERS: KitchenOrder[] = [
   { id: 'ORD-12581', items: [{ name: 'Butter Chicken', qty: 1 }, { name: 'Garlic Naan', qty: 2 }], table: 'T02', type: 'dine-in', status: 'preparing', time: '08:35 AM', timeAgo: '2h ago', progress: 60, chef: 'Chef Meena' },
   { id: 'ORD-12582', items: [{ name: 'Veg Fried Rice', qty: 1 }, { name: 'Honey Chilli Potato', qty: 1 }], table: 'T09', type: 'take-away', status: 'preparing', time: '08:33 AM', timeAgo: '2h ago', progress: 40, chef: 'Chef Ravi' },
   { id: 'ORD-12583', items: [{ name: 'Chicken Biryani', qty: 3 }, { name: 'Raita', qty: 1 }], table: 'T01', type: 'dine-in', status: 'preparing', time: '08:30 AM', timeAgo: '2h ago', progress: 75, priority: 'vip', chef: 'Chef Arjun' },
-  { id: 'ORD-12584', items: [{ name: 'Fish Curry', qty: 1 }, { name: 'Steamed Rice', qty: 2 }], table: 'T06', type: 'dine-in', status: 'preparing', time: '08:28 AM', timeAgo: '2h ago', progress: 85, chef: 'Chef Priya' },
+  { id: 'ORD-12584', items: [{ name: 'Fish Curry', qty: 1 }, { name: 'Steamed Rice', qty: 2 }], table: 'T07', type: 'dine-in', status: 'preparing', time: '08:28 AM', timeAgo: '2h ago', progress: 85, chef: 'Chef Priya' },
   { id: 'ORD-12580', items: [{ name: 'Chole Bhature', qty: 2 }], table: 'T13', type: 'dine-in', status: 'preparing', time: '08:25 AM', timeAgo: '2h ago', progress: 30, chef: 'Chef Meena' },
   { id: 'ORD-12579', items: [{ name: 'Egg Biryani', qty: 1 }, { name: 'Mirchi Ka Salan', qty: 1 }], table: 'T04', type: 'take-away', status: 'preparing', time: '08:22 AM', timeAgo: '2h ago', progress: 50, chef: 'Chef Ravi' },
   { id: 'ORD-12575', items: [{ name: 'Paneer Lababdar', qty: 1 }, { name: 'Jeera Rice', qty: 1 }], table: 'T11', type: 'dine-in', status: 'preparing', time: '08:18 AM', timeAgo: '2h ago', progress: 90, chef: 'Chef Arjun' },
@@ -47,7 +47,7 @@ export const ORDERS: KitchenOrder[] = [
   { id: 'ORD-12573', items: [{ name: 'Samosa', qty: 4 }, { name: 'Green Chutney', qty: 1 }], table: 'T16', type: 'dine-in', status: 'ready', time: '08:24 AM', timeAgo: '2h ago' },
   { id: 'ORD-12572', items: [{ name: 'Aloo Paratha', qty: 2 }, { name: 'Curd', qty: 1 }], table: 'T07', type: 'take-away', status: 'ready', time: '08:22 AM', timeAgo: '2h ago' },
   // DELAYED
-  { id: 'ORD-12570', items: [{ name: 'Mutton Rogan Josh', qty: 1 }, { name: 'Jeera Rice', qty: 2 }], table: 'T06', type: 'dine-in', status: 'delayed', time: '08:15 AM', timeAgo: '2h ago', delayMins: 10 },
+  { id: 'ORD-12570', items: [{ name: 'Mutton Rogan Josh', qty: 1 }, { name: 'Jeera Rice', qty: 2 }], table: 'T07', type: 'dine-in', status: 'delayed', time: '08:15 AM', timeAgo: '2h ago', delayMins: 10 },
   { id: 'ORD-12571', items: [{ name: 'Chicken Curry', qty: 1 }, { name: 'Paratha', qty: 2 }], table: 'T14', type: 'dine-in', status: 'delayed', time: '08:10 AM', timeAgo: '2h ago', delayMins: 15 },
   { id: 'ORD-12569', items: [{ name: 'Lamb Kebab', qty: 2 }], table: 'T03', type: 'delivery', status: 'delayed', time: '08:05 AM', timeAgo: '2h ago', delayMins: 20 },
   // COMPLETED
@@ -292,7 +292,7 @@ export interface LiveAlert {
 }
 
 export const LIVE_ALERTS: LiveAlert[] = [
-  { id: 'ALT-01', icon: '🚨', message: 'Table T06 order delayed by 10 mins', time: '2 mins ago', type: 'critical' },
+  { id: 'ALT-01', icon: '🚨', message: 'Table T07 order delayed by 10 mins', time: '2 mins ago', type: 'critical' },
   { id: 'ALT-02', icon: '⭐', message: 'VIP Order from Table T01', time: '5 mins ago', type: 'warning' },
   { id: 'ALT-03', icon: '🚩', message: 'High priority order from Table T03', time: '8 mins ago', type: 'critical' },
   { id: 'ALT-04', icon: '📦', message: 'Paneer stock critically low — 3 kg remaining', time: '12 mins ago', type: 'critical' },

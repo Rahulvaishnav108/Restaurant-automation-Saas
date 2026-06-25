@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { ANALYTICS_DATA } from '../store/kitchenData';
+import { useAuth } from '../../../auth/AuthProvider';
+import { Navigate } from 'react-router-dom';
 
 export default function KitchenAnalyticsPage() {
+  const { user } = useAuth();
+
   const [timeRange, setTimeRange] = useState<'today' | 'yesterday' | 'weekly'>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('kitchen_analytics_time_range');
@@ -11,6 +15,10 @@ export default function KitchenAnalyticsPage() {
     }
     return 'today';
   });
+
+  if (user?.internal_role === 'CHEF') {
+    return <Navigate to="/kitchen" replace />;
+  }
 
   const handleTimeRangeChange = (range: 'today' | 'yesterday' | 'weekly') => {
     setTimeRange(range);

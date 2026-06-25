@@ -9,7 +9,6 @@ import {
   getRepeatCustomersAnalytics,
   getKitchenPerformanceAnalytics,
   getTableUtilizationAnalytics,
-  getInventoryAnalytics,
 } from './analytics.controller';
 
 const router = Router();

@@ -24,6 +24,7 @@ export const listAuditLogs = asyncHandler(async (req: Request, res: Response) =>
 
   const result = await auditService.listAuditLogs({
     restaurantId,
+    actorId:    query.actorId,
     actorRole:  query.actorRole,
     action:     query.action,
     entityType: query.entityType,

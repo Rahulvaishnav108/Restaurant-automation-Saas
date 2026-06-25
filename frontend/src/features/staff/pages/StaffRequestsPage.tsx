@@ -1,25 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useStaffSearch } from '../components/dashboard/StaffSearchContext';
+import { useStaffDashboard } from '../hooks/useStaffDashboard';
+import type { RequestItem } from '../store/staff.store';
 
-interface Request {
-  id: number;
-  table: string;
-  type: 'Call Waiter' | 'Water Bottle' | 'Extra Napkins' | 'Clean Table' | 'Cutlery';
-  time: string;
-  elapsedMinutes: number;
-  status: 'Pending' | 'InProgress' | 'Resolved';
-  severity: 'low' | 'medium' | 'high';
-}
+type Request = RequestItem;
 
 export default function StaffRequestsPage() {
   const { query } = useStaffSearch();
-  const [requests, setRequests] = useState<Request[]>([
-    { id: 1, table: 'Table 2', type: 'Call Waiter', time: '2 mins ago', elapsedMinutes: 2, status: 'Pending', severity: 'high' },
-    { id: 2, table: 'Table 1', type: 'Extra Napkins', time: '5 mins ago', elapsedMinutes: 5, status: 'Pending', severity: 'low' },
-    { id: 3, table: 'Table 3', type: 'Water Bottle', time: '8 mins ago', elapsedMinutes: 8, status: 'InProgress', severity: 'low' },
-    { id: 4, table: 'Table 4', type: 'Clean Table', time: '12 mins ago', elapsedMinutes: 12, status: 'Pending', severity: 'medium' },
-    { id: 5, table: 'Table 5', type: 'Cutlery', time: '15 mins ago', elapsedMinutes: 15, status: 'Resolved', severity: 'low' },
-  ]);
+  const { requests, setRequests } = useStaffDashboard();
 
   const updateRequestStatus = (id: number, status: Request['status']) => {
     setRequests(prev => prev.map(r => r.id === id ? { ...r, status } : r));

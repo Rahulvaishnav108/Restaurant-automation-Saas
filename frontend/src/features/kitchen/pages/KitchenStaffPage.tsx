@@ -3,6 +3,8 @@ import { STAFF, type KitchenStaff } from '../store/kitchenData';
 import { useKitchenSearch } from '../components/dashboard/KitchenSearchContext';
 import { useKitchenStore } from '../store/kitchen.store';
 import ImageCropperModal from '../../customer/components/dashboard/ImageCropperModal';
+import { useAuth } from '../../../auth/AuthProvider';
+import { Navigate } from 'react-router-dom';
 
 export interface JoineeRequest {
   id: string;
@@ -43,6 +45,8 @@ const STATION_OPTIONS = [
 ];
 
 export default function KitchenStaffPage() {
+  const { user } = useAuth();
+
   const { query } = useKitchenSearch();
   const { profile: loggedInProfile, updateProfile } = useKitchenStore();
 
@@ -122,6 +126,10 @@ export default function KitchenStaffPage() {
   useEffect(() => {
     localStorage.setItem('kitchen_joinees', JSON.stringify(joinees));
   }, [joinees]);
+
+  if (user?.internal_role === 'CHEF') {
+    return <Navigate to="/kitchen" replace />;
+  }
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });

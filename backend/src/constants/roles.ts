@@ -7,6 +7,50 @@ export enum UserRole {
   SUPER_ADMIN = 'super-admin',
 }
 
+// ── Internal role enums (sub-roles within each operational panel) ──────
+
+export enum KitchenRole {
+  CHEF = 'CHEF',
+  KITCHEN_SUPERVISOR = 'KITCHEN_SUPERVISOR',
+  HEAD_CHEF = 'HEAD_CHEF',
+}
+
+export enum StaffInternalRole {
+  WAITER = 'WAITER',
+  FLOOR_STAFF = 'FLOOR_STAFF',
+  FLOOR_SUPERVISOR = 'FLOOR_SUPERVISOR',
+}
+
+export enum CleaningRole {
+  CLEANING_STAFF = 'CLEANING_STAFF',
+  HOUSEKEEPING = 'HOUSEKEEPING',
+  CLEANING_SUPERVISOR = 'CLEANING_SUPERVISOR',
+}
+
+// ── Panel identifiers (used in JWT and cookie names) ──────────────────
+
+export type Panel = 'customer' | 'kitchen' | 'staff' | 'cleaning' | 'admin' | 'superadmin';
+
+export const USER_ROLE_TO_PANEL: Record<UserRole, Panel> = {
+  [UserRole.CUSTOMER]: 'customer',
+  [UserRole.KITCHEN_STAFF]: 'kitchen',
+  [UserRole.SERVICE_STAFF]: 'staff',
+  [UserRole.CLEANING_STAFF]: 'cleaning',
+  [UserRole.RESTAURANT_ADMIN]: 'admin',
+  [UserRole.SUPER_ADMIN]: 'superadmin',
+};
+
+export const PANEL_TO_USER_ROLE: Record<Panel, UserRole> = {
+  customer: UserRole.CUSTOMER,
+  kitchen: UserRole.KITCHEN_STAFF,
+  staff: UserRole.SERVICE_STAFF,
+  cleaning: UserRole.CLEANING_STAFF,
+  admin: UserRole.RESTAURANT_ADMIN,
+  superadmin: UserRole.SUPER_ADMIN,
+};
+
+// ── Convenience lookups ───────────────────────────────────────────────
+
 export const roles = {
   customer: UserRole.CUSTOMER,
   serviceStaff: UserRole.SERVICE_STAFF,

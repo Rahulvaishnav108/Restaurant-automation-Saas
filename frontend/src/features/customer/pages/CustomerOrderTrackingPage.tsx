@@ -13,10 +13,13 @@ const STEPS = [
 export default function CustomerOrderTrackingPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { orders, reorder } = useCustomerStore();
+  const { orders, reorder, tableCode } = useCustomerStore();
   
   // Read invoice query param: e.g. ?invoice=ORD-2840
   const invoiceOrderId = searchParams.get('invoice');
+  const matchedOrder = invoiceOrderId 
+    ? orders.find(o => o.id === invoiceOrderId || o.id.replace('#', '') === invoiceOrderId.replace('#', '')) 
+    : null;
 
   // Find active orders (status in Placed, Preparing, Ready)
   const activeOrder = orders.find(o => o.status === 'Placed' || o.status === 'Preparing' || o.status === 'Ready');
@@ -119,7 +122,7 @@ export default function CustomerOrderTrackingPage() {
     doc.text("Smart Dining SaaS", 14, 30);
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    doc.text("Table: T07 | Date: " + new Date().toLocaleDateString(), 14, 37);
+    doc.text("Table: " + tableCode + " | Date: " + new Date().toLocaleDateString(), 14, 37);
     doc.text("Payment Mode: UPI (Paid via Smart Wallet)", 14, 42);
     
     // Divider
@@ -183,133 +186,6 @@ export default function CustomerOrderTrackingPage() {
   };
 
   // ────────────────────────────────────────────────────────
-  // RENDER: Detailed Billing Invoice View
-  // ────────────────────────────────────────────────────────
-  if (invoiceOrderId) {
-    const matchedOrder = orders.find(o => o.id === invoiceOrderId || o.id.replace('#', '') === invoiceOrderId.replace('#', ''));
-    if (!matchedOrder) {
-      return (
-        <div className="p-8 text-center space-y-4">
-          <p className="text-red-500 font-bold font-sans">Order not found.</p>
-          <button onClick={() => setSearchParams({})} className="px-4 py-2 bg-sd-primary text-white rounded-xl">Back to Orders</button>
-        </div>
-      );
-    }
-    
-    const invoiceItems = parseOrderItems(matchedOrder.items);
-    const subtotal = matchedOrder.total;
-    const gst = Math.round(subtotal * 0.05);
-    const serviceCharge = Math.round(subtotal * 0.05);
-    const grandTotal = Math.round(subtotal * 1.1);
-
-    return (
-      <div className="p-4 md:p-8 pb-24 md:pb-8 overflow-y-auto h-full sd-custom-scrollbar max-w-2xl mx-auto">
-        {/* Back navigation */}
-        <button 
-          onClick={() => setSearchParams({})}
-          className="flex items-center gap-2 text-sd-on-surface-variant hover:text-sd-primary mb-6 transition-colors font-sans text-sm font-semibold"
-        >
-          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-          Back to Orders
-        </button>
-
-        {/* Invoice Paper Box */}
-        <div className="bg-white dark:bg-sd-surface-container rounded-3xl p-6 sm:p-8 border border-sd-surface-variant sd-food-card-shadow space-y-6">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-sd-surface-variant">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="bg-sd-primary-container w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm shrink-0">
-                  <span className="material-symbols-outlined text-[16px]">restaurant</span>
-                </div>
-                <h2 className="text-xl font-bold text-sd-primary font-sans">Smart Dining</h2>
-              </div>
-              <p className="text-xs text-sd-on-surface-variant font-sans mt-1">Table T07 | Order Billing Receipt</p>
-            </div>
-            <div className="text-left sm:text-right">
-              <span className="bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-400 px-3.5 py-1 rounded-full text-xs font-bold font-sans flex items-center gap-1">
-                <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                PAID & SERVED
-              </span>
-              <p className="text-[10px] text-sd-on-surface-variant font-sans mt-1.5">Date: {new Date().toLocaleDateString()}</p>
-            </div>
-          </div>
-
-          {/* Details */}
-          <div className="grid grid-cols-2 gap-4 text-xs font-sans">
-            <div>
-              <p className="text-sd-on-surface-variant font-bold uppercase tracking-wider text-[10px]">Order Details</p>
-              <p className="text-sd-on-surface font-semibold mt-1">Order ID: {matchedOrder.id}</p>
-              <p className="text-sd-on-surface-variant mt-0.5">ETA: Served ({matchedOrder.eta || '-'})</p>
-            </div>
-            <div>
-              <p className="text-sd-on-surface-variant font-bold uppercase tracking-wider text-[10px]">Payment Details</p>
-              <p className="text-sd-on-surface font-semibold mt-1">Method: UPI payment</p>
-              <p className="text-sd-on-surface-variant mt-0.5">Reference: SMART-UPI-9840</p>
-            </div>
-          </div>
-
-          {/* Items Table */}
-          <div className="border-t border-b border-sd-surface-variant py-4">
-            <h4 className="text-[10px] font-bold text-sd-on-surface-variant uppercase tracking-wider mb-3 font-sans">Bill Summary</h4>
-            <div className="space-y-3">
-              {invoiceItems.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center text-sm font-sans text-sd-on-surface">
-                  <div className="flex-1">
-                    <p className="font-bold">{item.name}</p>
-                    <p className="text-[10px] text-sd-on-surface-variant">Unit Price: ₹{item.price}</p>
-                  </div>
-                  <span className="text-sd-on-surface-variant font-semibold w-16 text-center">x{item.qty}</span>
-                  <span className="font-bold w-20 text-right">₹{item.total}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Calculations */}
-          <div className="space-y-2 border-b border-sd-surface-variant pb-4 text-sm font-sans text-sd-on-surface-variant">
-            <div className="flex justify-between">
-              <span>Subtotal</span>
-              <span className="font-semibold text-sd-on-surface">₹{subtotal}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>CGST & SGST (5%)</span>
-              <span className="font-semibold text-sd-on-surface">₹{gst}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Service Charge (5%)</span>
-              <span className="font-semibold text-sd-on-surface">₹{serviceCharge}</span>
-            </div>
-          </div>
-
-          {/* Grand Total */}
-          <div className="flex justify-between items-center text-base font-bold font-sans text-sd-on-surface">
-            <span>Grand Total</span>
-            <span className="text-lg text-sd-primary">₹{grandTotal}</span>
-          </div>
-
-          {/* Actions */}
-          <div className="pt-4 flex gap-3 flex-col sm:flex-row">
-            <button
-              onClick={() => downloadInvoice(matchedOrder)}
-              className="flex-1 bg-sd-primary hover:bg-sd-primary/95 text-white py-3 rounded-2xl font-bold text-sm hover:shadow-lg transition-all flex items-center justify-center gap-2 font-sans active:scale-95"
-            >
-              <span className="material-symbols-outlined text-[18px]">download</span>
-              Download PDF Invoice
-            </button>
-            <button
-              onClick={() => setSearchParams({})}
-              className="flex-1 border border-sd-surface-variant hover:bg-sd-surface-container py-3 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 font-sans text-sd-on-surface"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ────────────────────────────────────────────────────────
   // RENDER: Orders Tracking & Past Orders List
   // ────────────────────────────────────────────────────────
   return (
@@ -319,7 +195,7 @@ export default function CustomerOrderTrackingPage() {
           <h2 className="text-2xl font-bold text-sd-on-surface font-sans">Your Orders</h2>
           <div className="flex items-center gap-1 text-sd-primary cursor-pointer hover:opacity-80 transition-opacity mt-0.5">
             <span className="material-symbols-outlined text-[16px]">location_on</span>
-            <span className="text-sm font-semibold font-sans">Table T07</span>
+            <span className="text-sm font-semibold font-sans">Table {tableCode}</span>
           </div>
         </div>
       </div>
@@ -328,6 +204,56 @@ export default function CustomerOrderTrackingPage() {
         {/* Left / Active Order Column */}
         <div className="lg:col-span-8 space-y-6">
           
+          {/* Past Orders Section */}
+          <div className="space-y-4">
+            <h3 className="text-base font-bold text-sd-on-surface font-sans px-1">Order History & Receipts</h3>
+            {pastOrders.length === 0 ? (
+              <p className="text-xs text-sd-on-surface-variant font-sans text-center py-6 bg-white dark:bg-sd-surface-container rounded-2xl border border-sd-outline-variant">
+                No past orders recorded yet.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {pastOrders.map((order) => (
+                  <div 
+                    key={order.id} 
+                    className="bg-white dark:bg-sd-surface-container p-4 rounded-2xl border border-sd-outline-variant dark:border-sd-outline-variant/40 sd-food-card-shadow flex flex-col sm:flex-row justify-between sm:items-center gap-4 hover:shadow-md transition-shadow"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-sd-on-surface font-sans">{order.id}</span>
+                        <span className="bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-400 px-2 py-0.5 rounded text-[10px] font-bold font-sans uppercase">
+                          Served
+                        </span>
+                      </div>
+                      <p className="text-xs text-sd-on-surface-variant font-sans mt-1 max-w-sm truncate">
+                        {order.items}
+                      </p>
+                      <p className="text-[10px] text-sd-on-surface-variant/60 font-sans mt-1">Total Paid: ₹{order.total}</p>
+                    </div>
+                    
+                    <div className="flex gap-2 self-end sm:self-center shrink-0">
+                      <button
+                        onClick={() => setSearchParams({ invoice: order.id })}
+                        className="px-3.5 py-1.5 border border-sd-surface-variant hover:bg-sd-surface-container rounded-xl text-xs font-bold font-sans transition-colors text-sd-on-surface"
+                      >
+                        View Invoice
+                      </button>
+                      <button
+                        onClick={() => {
+                          reorder(order);
+                          navigate('/customer/orders'); // reload list
+                        }}
+                        className="px-3.5 py-1.5 bg-sd-primary/10 text-sd-primary hover:bg-sd-primary hover:text-white rounded-xl text-xs font-bold font-sans transition-colors"
+                      >
+                        Reorder
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Active order tracking */}
           {activeOrder ? (
             <div className="space-y-6">
@@ -428,56 +354,6 @@ export default function CustomerOrderTrackingPage() {
               </button>
             </div>
           )}
-
-          {/* Past Orders Section */}
-          <div className="space-y-4">
-            <h3 className="text-base font-bold text-sd-on-surface font-sans px-1">Order History & Receipts</h3>
-            {pastOrders.length === 0 ? (
-              <p className="text-xs text-sd-on-surface-variant font-sans text-center py-6 bg-white dark:bg-sd-surface-container rounded-2xl border border-sd-outline-variant">
-                No past orders recorded yet.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {pastOrders.map((order) => (
-                  <div 
-                    key={order.id} 
-                    className="bg-white dark:bg-sd-surface-container p-4 rounded-2xl border border-sd-outline-variant dark:border-sd-outline-variant/40 sd-food-card-shadow flex flex-col sm:flex-row justify-between sm:items-center gap-4 hover:shadow-md transition-shadow"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-sd-on-surface font-sans">{order.id}</span>
-                        <span className="bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-400 px-2 py-0.5 rounded text-[10px] font-bold font-sans uppercase">
-                          Served
-                        </span>
-                      </div>
-                      <p className="text-xs text-sd-on-surface-variant font-sans mt-1 max-w-sm truncate">
-                        {order.items}
-                      </p>
-                      <p className="text-[10px] text-sd-on-surface-variant/60 font-sans mt-1">Total Paid: ₹{order.total}</p>
-                    </div>
-                    
-                    <div className="flex gap-2 self-end sm:self-center shrink-0">
-                      <button
-                        onClick={() => setSearchParams({ invoice: order.id })}
-                        className="px-3.5 py-1.5 border border-sd-surface-variant hover:bg-sd-surface-container rounded-xl text-xs font-bold font-sans transition-colors text-sd-on-surface"
-                      >
-                        View Invoice
-                      </button>
-                      <button
-                        onClick={() => {
-                          reorder(order);
-                          navigate('/customer/orders'); // reload list
-                        }}
-                        className="px-3.5 py-1.5 bg-sd-primary/10 text-sd-primary hover:bg-sd-primary hover:text-white rounded-xl text-xs font-bold font-sans transition-colors"
-                      >
-                        Reorder
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Right / Bill Details Column */}
@@ -532,6 +408,124 @@ export default function CustomerOrderTrackingPage() {
           </div>
         </div>
       </div>
+
+      {/* Invoice Modal Popup */}
+      {matchedOrder && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-sd-surface-container rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl animate-scaleUp flex flex-col max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="p-6 border-b border-sd-surface-variant flex justify-between items-center bg-sd-surface-container-low shrink-0">
+              <div>
+                <h3 className="text-lg font-bold text-sd-on-surface font-sans">Order Invoice</h3>
+                <p className="text-xs text-sd-on-surface-variant font-sans mt-0.5">Billing details for {matchedOrder.id}</p>
+              </div>
+              <button 
+                onClick={() => setSearchParams({})}
+                className="p-1.5 hover:bg-sd-surface-container rounded-lg text-sd-on-surface-variant transition-colors"
+                title="Close"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 sd-custom-scrollbar">
+              <div className="space-y-6">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-sd-surface-variant">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <div className="bg-sd-primary-container w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm shrink-0">
+                        <span className="material-symbols-outlined text-[16px]">restaurant</span>
+                      </div>
+                      <h2 className="text-xl font-bold text-sd-primary font-sans">Smart Dining</h2>
+                    </div>
+                    <p className="text-xs text-sd-on-surface-variant font-sans mt-1">Table {tableCode} | Order Billing Receipt</p>
+                  </div>
+                  <div className="text-left sm:text-right">
+                    <span className="bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-400 px-3.5 py-1 rounded-full text-xs font-bold font-sans flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                      PAID & SERVED
+                    </span>
+                    <p className="text-[10px] text-sd-on-surface-variant font-sans mt-1.5">Date: {new Date().toLocaleDateString()}</p>
+                  </div>
+                </div>
+
+                {/* Details */}
+                <div className="grid grid-cols-2 gap-4 text-xs font-sans">
+                  <div>
+                    <p className="text-sd-on-surface-variant font-bold uppercase tracking-wider text-[10px]">Order Details</p>
+                    <p className="text-sd-on-surface font-semibold mt-1">Order ID: {matchedOrder.id}</p>
+                    <p className="text-sd-on-surface-variant mt-0.5">ETA: Served ({matchedOrder.eta || '-'})</p>
+                  </div>
+                  <div>
+                    <p className="text-sd-on-surface-variant font-bold uppercase tracking-wider text-[10px]">Payment Details</p>
+                    <p className="text-sd-on-surface font-semibold mt-1">Method: UPI payment</p>
+                    <p className="text-sd-on-surface-variant mt-0.5">Reference: SMART-UPI-9840</p>
+                  </div>
+                </div>
+
+                {/* Items Table */}
+                <div className="border-t border-b border-sd-surface-variant py-4">
+                  <h4 className="text-[10px] font-bold text-sd-on-surface-variant uppercase tracking-wider mb-3 font-sans">Bill Summary</h4>
+                  <div className="space-y-3">
+                    {parseOrderItems(matchedOrder.items).map((item, idx) => (
+                      <div key={idx} className="flex justify-between items-center text-sm font-sans text-sd-on-surface">
+                        <div className="flex-1">
+                          <p className="font-bold">{item.name}</p>
+                          <p className="text-[10px] text-sd-on-surface-variant">Unit Price: ₹{item.price}</p>
+                        </div>
+                        <span className="text-sd-on-surface-variant font-semibold w-16 text-center">x{item.qty}</span>
+                        <span className="font-bold w-20 text-right">₹{item.total}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Calculations */}
+                <div className="space-y-2 border-b border-sd-surface-variant pb-4 text-sm font-sans text-sd-on-surface-variant">
+                  <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span className="font-semibold text-sd-on-surface">₹{matchedOrder.total}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>CGST & SGST (5%)</span>
+                    <span className="font-semibold text-sd-on-surface">₹{Math.round(matchedOrder.total * 0.05)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Service Charge (5%)</span>
+                    <span className="font-semibold text-sd-on-surface">₹{Math.round(matchedOrder.total * 0.05)}</span>
+                  </div>
+                </div>
+
+                {/* Grand Total */}
+                <div className="flex justify-between items-center text-base font-bold font-sans text-sd-on-surface">
+                  <span>Grand Total</span>
+                  <span className="text-lg text-sd-primary">₹{Math.round(matchedOrder.total * 1.1)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-sd-surface-container-low border-t border-sd-surface-variant flex gap-3 shrink-0">
+              <button
+                onClick={() => downloadInvoice(matchedOrder)}
+                className="flex-1 bg-sd-primary hover:bg-sd-primary/95 text-white py-3 rounded-2xl font-bold text-sm hover:shadow-lg transition-all flex items-center justify-center gap-2 font-sans active:scale-95"
+              >
+                <span className="material-symbols-outlined text-[18px]">download</span>
+                Download PDF
+              </button>
+              <button
+                onClick={() => setSearchParams({})}
+                className="flex-1 border border-sd-surface-variant hover:bg-sd-surface-container py-3 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 font-sans text-sd-on-surface"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

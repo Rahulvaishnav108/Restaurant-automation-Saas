@@ -195,29 +195,22 @@ export default function CleaningTasksPage() {
 
   return (
     <div className="space-y-6 lg:space-y-8 animate-fadeIn cleaning-panel">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 font-sans tracking-tight">Tasks</h1>
-          <p className="text-xs text-slate-455 dark:text-slate-400 mt-0.5">View and manage your assigned cleaning and hygiene tasks.</p>
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 shadow-md shadow-orange-500/10 cursor-pointer text-xs"
-          >
-            <span className="material-symbols-outlined text-[18px]">add</span>
-            Add Task
-          </button>
-          {/* 🔥 Connected onClick Trigger for Export button */}
-          <button 
-            onClick={handleExportTasksCSV}
-            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-orange-500 dark:hover:border-orange-500 transition-all active:scale-95 text-xs cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-[18px]">download</span>
-            Export
-          </button>
-        </div>
+      {/* Header Info Action Buttons */}
+      <div className="flex justify-end gap-3 mb-4">
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 shadow-md shadow-orange-500/10 cursor-pointer text-xs"
+        >
+          <span className="material-symbols-outlined text-[18px]">add</span>
+          Add Task
+        </button>
+        <button 
+          onClick={handleExportTasksCSV}
+          className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-orange-500 dark:hover:border-orange-500 transition-all active:scale-95 text-xs cursor-pointer"
+        >
+          <span className="material-symbols-outlined text-[18px]">download</span>
+          Export
+        </button>
       </div>
 
       {/* Stats Bento Grid */}

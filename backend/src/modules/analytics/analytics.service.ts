@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import logger from '../../config/logger';
-import { BillingService } from '../billing/billing.service';
 import { BillingModel } from '../billing/billing.model';
 import { BillStatus, PaymentMethod } from '../billing/billing.schema';
 import { CustomerProfileModel } from './customerProfile.model';

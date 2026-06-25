@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import QRScannerModal from './QRScannerModal';
 import { useCustomerStore } from '../../store/customer.store';
+import { useAuth } from '../../../../auth/AuthProvider';
 
 const NAV_ITEMS = [
   { to: '/customer/home', icon: 'home', label: 'Home' },
@@ -19,7 +20,8 @@ interface Props {
 export default function CustomerSidebar({ collapsed, onToggle }: Props) {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
-  const { profile } = useCustomerStore();
+  const { profile, tableCode } = useCustomerStore();
+  const { isAuthenticated } = useAuth();
 
   return (
     <aside
@@ -28,29 +30,54 @@ export default function CustomerSidebar({ collapsed, onToggle }: Props) {
       }`}
     >
       {/* Header */}
-      <div className={`flex ${collapsed ? 'flex-col items-center gap-4 px-2' : 'items-center justify-between px-4'} py-5 border-b border-sd-surface-variant/50 shrink-0`}>
-        <div className="flex items-center gap-3">
-          <div className="bg-sd-primary-container w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0">
-            <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-              restaurant
-            </span>
+      <div className={`flex flex-col ${collapsed ? 'items-center px-2' : 'px-4'} py-5 border-b border-sd-surface-variant/50 shrink-0`}>
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-3">
+            <div className="bg-sd-primary-container w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 shadow-md">
+              <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                restaurant
+              </span>
+            </div>
+            {!collapsed && (
+              <h1 className="text-lg font-extrabold text-sd-primary font-sans whitespace-nowrap tracking-tight">Smart Dining</h1>
+            )}
           </div>
           {!collapsed && (
-            <div className="overflow-hidden">
-              <h1 className="text-lg font-bold text-sd-primary font-sans whitespace-nowrap">Smart Dining</h1>
-              <p className="text-xs text-sd-on-surface-variant font-sans">Table T07</p>
-            </div>
+            <button
+              onClick={onToggle}
+              className="p-1.5 text-sd-on-surface-variant hover:bg-sd-surface-container rounded-lg transition-all duration-200"
+              title="Collapse sidebar"
+            >
+              <span className="material-symbols-outlined text-[22px]">menu</span>
+            </button>
           )}
         </div>
-        <button
-          onClick={onToggle}
-          className="p-1.5 text-sd-on-surface-variant hover:bg-sd-surface-container rounded-lg transition-all duration-200"
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          <span className="material-symbols-outlined text-[22px]">
-            {collapsed ? 'menu_open' : 'menu'}
-          </span>
-        </button>
+        
+        {/* Below the logo (when not collapsed) */}
+        {!collapsed && (
+          <div className="mt-3 pl-1 space-y-1.5 animate-fadeIn">
+            {/* Location (icon first + text) */}
+            <div className="flex items-center gap-2 text-xs text-sd-on-surface-variant font-sans">
+              <span className="material-symbols-outlined text-[16px] text-sd-primary" style={{ fontVariationSettings: "'FILL' 1" }}>location_on</span>
+              <span className="font-semibold">Sadar Nagpur</span>
+            </div>
+            {/* Table Number */}
+            <div className="flex items-center gap-2 text-xs text-sd-on-surface-variant font-sans">
+              <span className="material-symbols-outlined text-[16px] text-sd-secondary dark:text-sd-secondary-container" style={{ fontVariationSettings: "'FILL' 1" }}>table_restaurant</span>
+              <span className="font-medium bg-sd-secondary-container/10 dark:bg-sd-secondary-container/20 px-2 py-0.5 rounded-md text-sd-secondary dark:text-sd-secondary-container">Table {tableCode}</span>
+            </div>
+          </div>
+        )}
+        
+        {collapsed && (
+          <button
+            onClick={onToggle}
+            className="mt-4 p-1.5 text-sd-on-surface-variant hover:bg-sd-surface-container rounded-lg transition-all duration-200"
+            title="Expand sidebar"
+          >
+            <span className="material-symbols-outlined text-[22px]">menu_open</span>
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -144,28 +171,30 @@ export default function CustomerSidebar({ collapsed, onToggle }: Props) {
       )}
 
       {/* Profile */}
-      <div className="border-t border-sd-surface-variant/50 px-2 py-2">
-        <NavLink
-          to="/customer/profile"
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-3 rounded-xl transition-colors font-sans text-sm font-semibold ${
-              isActive
-                ? 'bg-sd-primary-container text-white'
-                : 'text-sd-on-surface-variant hover:bg-sd-surface-container'
-            } ${collapsed ? 'justify-center' : ''}`
-          }
-          title={collapsed ? 'Profile' : undefined}
-        >
-          {profile.avatar && (profile.avatar.startsWith('data:image') || profile.avatar.startsWith('http')) ? (
-            <div className="w-[22px] h-[22px] rounded-full overflow-hidden shrink-0 border border-sd-outline-variant">
-              <img src={profile.avatar} alt="Avatar" className="w-full h-full object-cover" />
-            </div>
-          ) : (
-            <span className="material-symbols-outlined">{profile.avatar || 'person'}</span>
-          )}
-          {!collapsed && <span>Profile</span>}
-        </NavLink>
-      </div>
+      {isAuthenticated && (
+        <div className="border-t border-sd-surface-variant/50 px-2 py-2">
+          <NavLink
+            to="/customer/profile"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-3 rounded-xl transition-colors font-sans text-sm font-semibold ${
+                isActive
+                  ? 'bg-sd-primary-container text-white'
+                  : 'text-sd-on-surface-variant hover:bg-sd-surface-container'
+              } ${collapsed ? 'justify-center' : ''}`
+            }
+            title={collapsed ? 'Profile' : undefined}
+          >
+            {profile.avatar && (profile.avatar.startsWith('data:image') || profile.avatar.startsWith('http')) ? (
+              <div className="w-[22px] h-[22px] rounded-full overflow-hidden shrink-0 border border-sd-outline-variant">
+                <img src={profile.avatar} alt="Avatar" className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <span className="material-symbols-outlined">{profile.avatar || 'person'}</span>
+            )}
+            {!collapsed && <span>Profile</span>}
+          </NavLink>
+        </div>
+      )}
 
       {/* QR Scanner Modal Overlay */}
       <QRScannerModal

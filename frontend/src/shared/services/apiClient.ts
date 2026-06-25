@@ -1,6 +1,12 @@
 import axios from 'axios';
 import { env } from '../../lib/env';
-import { getAccessToken } from '../../auth/tokenStore';
+import { getAccessToken, type Panel } from '../../auth/tokenStore';
+
+const ACTIVE_PANEL_KEY = 'ra/active-panel';
+
+function getActivePanel(): Panel {
+  return (localStorage.getItem(ACTIVE_PANEL_KEY) as Panel) ?? 'customer';
+}
 
 export function getSessionToken(): string | null {
   return localStorage.getItem('x-session-token');
@@ -20,7 +26,9 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
-  const token = getAccessToken();
+  // Resolve the access token from the currently active panel
+  const panel = getActivePanel();
+  const token = getAccessToken(panel);
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -33,3 +41,4 @@ apiClient.interceptors.request.use((config) => {
 
   return config;
 });
+

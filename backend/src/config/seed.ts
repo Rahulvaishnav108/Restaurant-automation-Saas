@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import logger from './logger';
 import { hashPassword } from '../utils/crypto';
-import { UserRole } from '../constants/roles';
+import { UserRole, KitchenRole, StaffInternalRole, CleaningRole } from '../constants/roles';
 import {
   BatchStatus,
   CleaningStatus,
@@ -45,6 +45,9 @@ type SeedUserInput = {
   password: string;
   role: UserRole;
   restaurantId?: mongoose.Types.ObjectId;
+  kitchen_role?: KitchenRole;
+  staff_role?: StaffInternalRole;
+  cleaning_role?: CleaningRole;
 };
 
 async function upsertUser(input: SeedUserInput) {
@@ -61,6 +64,9 @@ async function upsertUser(input: SeedUserInput) {
         role: input.role,
         status: UserStatus.ACTIVE,
         restaurantId: input.restaurantId ?? null,
+        kitchen_role: input.kitchen_role ?? null,
+        staff_role: input.staff_role ?? null,
+        cleaning_role: input.cleaning_role ?? null,
         isEmailVerified: true,
         isMobileVerified: true,
         isDeleted: false,
@@ -135,7 +141,7 @@ export async function seedDevelopmentData(): Promise<void> {
 
   const [adminUser, customerUser, staffUser, , , superAdminUser] = await Promise.all([
     upsertUser({
-      name: 'Neha Admin',
+      name: 'Admin',
       email: 'admin@ambertable.com',
       mobile: '5555555555',
       password: 'Admin@123',
@@ -157,6 +163,7 @@ export async function seedDevelopmentData(): Promise<void> {
       password: 'Staff@123',
       role: UserRole.SERVICE_STAFF,
       restaurantId: amberTable._id,
+      staff_role: StaffInternalRole.FLOOR_SUPERVISOR,
     }),
     upsertUser({
       name: 'Kabir Kitchen',
@@ -165,6 +172,7 @@ export async function seedDevelopmentData(): Promise<void> {
       password: 'Kitchen@123',
       role: UserRole.KITCHEN_STAFF,
       restaurantId: amberTable._id,
+      kitchen_role: KitchenRole.HEAD_CHEF,
     }),
     upsertUser({
       name: 'Meera Cleaning',
@@ -173,6 +181,7 @@ export async function seedDevelopmentData(): Promise<void> {
       password: 'Cleaning@123',
       role: UserRole.CLEANING_STAFF,
       restaurantId: amberTable._id,
+      cleaning_role: CleaningRole.CLEANING_SUPERVISOR,
     }),
     upsertUser({
       name: 'Platform Owner',

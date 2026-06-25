@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { TableModel } from '../tables/tables.model';
-import { QueueEntryModel } from '../queue/queue.model';
 import queueRouter from '../queue/queue.routes';
 import { ReservationModel } from '../reservations/reservations.model';
 import reservationsRouter from '../reservations/reservations.routes';
@@ -16,10 +15,8 @@ import {
   entityIdParamsSchema,
   issueEscalationBodySchema,
   occupyTableBodySchema,
-  queuePriorityBodySchema,
   requestAcceptBodySchema,
   requestCompleteBodySchema,
-  reservationCheckInBodySchema,
   reserveTableBodySchema,
   staffTablesQuerySchema,
 } from '../staff/staff.schema';

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useKitchenStore, KitchenProfile } from '../../store/kitchen.store';
 import ImageCropperModal from '../../../customer/components/dashboard/ImageCropperModal';
+import { useAuth } from '../../../../auth/AuthProvider';
 
 interface Props {
   isOpen: boolean;
@@ -36,6 +37,7 @@ const STATION_OPTIONS = [
 ];
 
 export default function KitchenProfilePanel({ isOpen, onClose }: Props) {
+  const { signOut } = useAuth();
   const { profile, updateProfile } = useKitchenStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -391,22 +393,35 @@ export default function KitchenProfilePanel({ isOpen, onClose }: Props) {
             </form>
 
             {/* Footer */}
-            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-850 flex items-center justify-end gap-3 shrink-0">
+            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-850 flex items-center justify-between gap-3 shrink-0">
               <button
                 type="button"
-                onClick={onClose}
-                className="px-4 py-2.5 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold font-sans transition-all"
+                onClick={() => {
+                  signOut();
+                  onClose();
+                }}
+                className="px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/20 dark:hover:bg-red-900/30 dark:text-red-400 rounded-xl text-xs font-bold font-sans transition-all flex items-center gap-1.5"
               >
-                Cancel
+                <span className="material-symbols-outlined text-[16px]">logout</span>
+                Logout
               </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold hover:shadow-lg transition-all font-sans flex items-center gap-1.5 shadow-sm shadow-orange-500/20"
-              >
-                <span className="material-symbols-outlined text-[16px]">save</span>
-                Save Details
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2.5 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold font-sans transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold hover:shadow-lg transition-all font-sans flex items-center gap-1.5 shadow-sm shadow-orange-500/20"
+                >
+                  <span className="material-symbols-outlined text-[16px]">save</span>
+                  Save Details
+                </button>
+              </div>
             </div>
           </div>
         </div>

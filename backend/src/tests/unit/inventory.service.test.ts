@@ -6,8 +6,6 @@ import { logAuditRaw } from '../../modules/auditLogs/auditLogs.helper';
 import { NotificationsService } from '../../modules/notifications/notifications.service';
 import { AppError } from '../../utils/AppError';
 
-import { InventoryTransactionModel } from '../../modules/inventory/inventoryTransaction.model';
-
 jest.mock('../../modules/inventory/inventory.model');
 jest.mock('../../modules/inventory/inventoryTransaction.service');
 jest.mock('../../modules/inventory/inventoryTransaction.model');

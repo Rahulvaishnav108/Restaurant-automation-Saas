@@ -56,8 +56,6 @@ describe('Supplier Routes Integration', () => {
     expect(response.status).toBe(403);
   });
 
-  let createdSupplierId: string;
-
   it('creates a supplier successfully', async () => {
     const response = await request(app)
       .post('/api/v1/admin/suppliers')
@@ -70,7 +68,6 @@ describe('Supplier Routes Integration', () => {
     expect(response.status).toBe(201);
     expect(response.body.success).toBe(true);
     expect(response.body.data.supplier.name).toBe('Veggie Corp');
-    createdSupplierId = response.body.data.supplier._id;
   });
 
   it('fetches suppliers correctly', async () => {

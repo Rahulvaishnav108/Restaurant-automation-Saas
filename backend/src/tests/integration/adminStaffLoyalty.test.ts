@@ -92,19 +92,16 @@ describe('Admin staff attendance/performance and loyalty routes', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         name: 'Premium Visits',
-        pointsPerVisit: 150,
-        silverThreshold: 300,
-        goldThreshold: 700,
-        notes: 'Applies to dine-in loyalty visits',
+        pointsPerAmount: 10,
+        minimumOrderAmount: 150,
       });
 
     expect(createResponse.status).toBe(201);
     expect(createResponse.body.success).toBe(true);
     expect(createResponse.body.data.rule).toMatchObject({
       name: 'Premium Visits',
-      pointsPerVisit: 150,
-      silverThreshold: 300,
-      goldThreshold: 700,
+      pointsPerAmount: 10,
+      minimumOrderAmount: 150,
       active: true,
     });
 
@@ -117,7 +114,7 @@ describe('Admin staff attendance/performance and loyalty routes', () => {
     expect(listResponse.body.data.rules).toHaveLength(1);
     expect(listResponse.body.data.rules[0]).toMatchObject({
       name: 'Premium Visits',
-      pointsPerVisit: 150,
+      pointsPerAmount: 10,
     });
   });
 });

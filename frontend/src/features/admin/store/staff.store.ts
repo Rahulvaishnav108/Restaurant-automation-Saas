@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { apiClient } from '../../../shared/services/apiClient';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -21,6 +22,10 @@ export interface StaffMember {
   hireDate: string;
   performance: number; // 1-5
   salary: number; // in INR
+  dbRole?: string;
+  kitchen_role?: string;
+  staff_role?: string;
+  cleaning_role?: string;
 }
 
 export interface Shift {
@@ -95,13 +100,68 @@ interface StaffStore {
   setStatusFilter: (s: StaffStatus | 'All') => void;
   setCurrentPage: (p: number) => void;
   setShowAll: (v: boolean) => void;
-  updateMemberStatus: (id: string, status: StaffStatus) => void;
-  addMember: (m: Omit<StaffMember, 'id'>) => void;
-  updateMember: (id: string, updates: Partial<StaffMember>) => void;
-  deleteMember: (id: string) => void;
+  updateMemberStatus: (id: string, status: StaffStatus) => Promise<void>;
+  fetchMembers: () => Promise<void>;
+  addMember: (m: Omit<StaffMember, 'id' | 'avatar' | 'hireDate' | 'performance'> & { password?: string }) => Promise<void>;
+  updateMember: (id: string, updates: Partial<StaffMember> & { password?: string }) => Promise<void>;
+  deleteMember: (id: string) => Promise<void>;
 }
 
-// ── Seed Data ──────────────────────────────────────────────────────────────
+// ── Mapping Helper ─────────────────────────────────────────────────────────
+
+export function mapBackendUserToStaffMember(user: any): StaffMember {
+  const initials = user.name
+    ? user.name.split(' ').slice(0, 2).map((w: string) => w[0]).join('').toUpperCase()
+    : 'US';
+    
+  let feRole: StaffRole = 'Server';
+  let feDept: StaffDepartment = 'Service';
+  
+  if (user.role === 'kitchen-staff') {
+    feRole = 'Chef';
+    feDept = 'Kitchen';
+  } else if (user.role === 'service-staff') {
+    feRole = 'Server';
+    feDept = 'Service';
+  } else if (user.role === 'cleaning-staff') {
+    feRole = 'Cleaner';
+    feDept = 'Cleaning';
+  } else if (user.role === 'restaurant-admin') {
+    feRole = 'Manager';
+    feDept = 'Management';
+  }
+  
+  let feStatus: StaffStatus = 'Active';
+  if (user.status === 'INACTIVE' || user.status === 'BLOCKED') {
+    feStatus = 'Inactive';
+  } else if (user.status === 'SUSPENDED') {
+    feStatus = 'On Leave';
+  }
+  
+  const hireDate = user.createdAt 
+    ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : 'Jan 1, 2024';
+
+  return {
+    id: user._id || user.id,
+    name: user.name,
+    email: user.email,
+    avatar: initials,
+    role: feRole,
+    department: feDept,
+    phone: user.mobile || '',
+    status: feStatus,
+    hireDate,
+    performance: 4.2,
+    salary: 40000,
+    dbRole: user.role,
+    kitchen_role: user.kitchen_role,
+    staff_role: user.staff_role,
+    cleaning_role: user.cleaning_role,
+  };
+}
+
+// ── Seed Data (Fallback) ───────────────────────────────────────────────────
 
 const seedMembers: StaffMember[] = [
   { id: 's1',  name: 'John Smith',      email: 'john.smith@email.com',    avatar: 'JS', role: 'Manager',   department: 'Management', phone: '+91 98765 43210', status: 'Active',   hireDate: 'Jan 15, 2023', performance: 4.8, salary: 65000 },
@@ -116,13 +176,11 @@ const seedMembers: StaffMember[] = [
   { id: 's10', name: 'Priya Sharma',    email: 'priya.s@email.com',       avatar: 'PS', role: 'Manager',   department: 'Management', phone: '+91 98765 43219', status: 'Active',   hireDate: 'Sep 9, 2023',  performance: 4.9, salary: 70000 },
 ];
 
-let idCounter = 100;
-
 // ── Store ──────────────────────────────────────────────────────────────────
 
 export const useStaffStore = create<StaffStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       stats: {
         totalStaff: 48,
         totalStaffChange: '+12.5%',
@@ -191,39 +249,111 @@ export const useStaffStore = create<StaffStore>()(
       setCurrentPage:      (p) => set({ currentPage: p }),
       setShowAll:          (v) => set({ showAll: v, currentPage: 1 }),
 
-      updateMemberStatus: (id, status) =>
-        set((state) => ({
-          members: state.members.map((m) => (m.id === id ? { ...m, status } : m)),
-        })),
+      fetchMembers: async () => {
+        try {
+          const res = await apiClient.get('/admin/staff');
+          const backendUsers = res.data.data.staff || [];
+          const mapped = backendUsers.map(mapBackendUserToStaffMember);
+          set({ members: mapped });
+        } catch (err) {
+          console.error('Failed to fetch staff members', err);
+        }
+      },
 
-      addMember: (m) =>
-        set((state) => ({
-          members: [
-            ...state.members,
-            { ...m, id: `s${++idCounter}` },
-          ],
-          stats: {
-            ...state.stats,
-            totalStaff: state.stats.totalStaff + 1,
-          },
-        })),
+      updateMemberStatus: async (id, status) => {
+        try {
+          const dbStatus = status === 'Active' ? 'ACTIVE' : status === 'On Leave' ? 'SUSPENDED' : 'INACTIVE';
+          await apiClient.patch(`/admin/staff/${id}`, { status: dbStatus });
+          set((state) => ({
+            members: state.members.map((m) => (m.id === id ? { ...m, status } : m)),
+          }));
+        } catch (err) {
+          console.error('Failed to update member status', err);
+        }
+      },
 
-      updateMember: (id, updates) =>
-        set((state) => ({
-          members: state.members.map((m) => (m.id === id ? { ...m, ...updates } : m)),
-        })),
+      addMember: async (m) => {
+        try {
+          const payload = {
+            name: m.name,
+            email: m.email,
+            mobile: m.phone,
+            password: m.password || 'Staff@123',
+            role: m.dbRole || 'service-staff',
+            status: m.status === 'Active' ? 'ACTIVE' : m.status === 'On Leave' ? 'SUSPENDED' : 'INACTIVE',
+            kitchen_role: m.kitchen_role || null,
+            staff_role: m.staff_role || null,
+            cleaning_role: m.cleaning_role || null,
+          };
+          const res = await apiClient.post('/admin/staff', payload);
+          const newMember = mapBackendUserToStaffMember(res.data.data.staff);
+          set((state) => ({
+            members: [...state.members, newMember],
+            stats: {
+              ...state.stats,
+              totalStaff: state.stats.totalStaff + 1,
+            },
+          }));
+        } catch (err) {
+          console.error('Failed to add staff member', err);
+          throw err;
+        }
+      },
 
-      deleteMember: (id) =>
-        set((state) => ({
-          members: state.members.filter((m) => m.id !== id),
-          stats: {
-            ...state.stats,
-            totalStaff: Math.max(0, state.stats.totalStaff - 1),
-          },
-        })),
+      updateMember: async (id, updates) => {
+        try {
+          const payload: any = {};
+          if (updates.name !== undefined) payload.name = updates.name;
+          if (updates.email !== undefined) payload.email = updates.email;
+          if (updates.phone !== undefined) payload.mobile = updates.phone;
+          if (updates.password !== undefined && updates.password.trim() !== '') {
+            payload.password = updates.password;
+          }
+          if (updates.dbRole !== undefined) payload.role = updates.dbRole;
+          if (updates.status !== undefined) {
+            payload.status = updates.status === 'Active' ? 'ACTIVE' : updates.status === 'On Leave' ? 'SUSPENDED' : 'INACTIVE';
+          }
+          if (updates.kitchen_role !== undefined) payload.kitchen_role = updates.kitchen_role;
+          if (updates.staff_role !== undefined) payload.staff_role = updates.staff_role;
+          if (updates.cleaning_role !== undefined) payload.cleaning_role = updates.cleaning_role;
+
+          const res = await apiClient.patch(`/admin/staff/${id}`, payload);
+          const updated = mapBackendUserToStaffMember(res.data.data.staff);
+          set((state) => ({
+            members: state.members.map((m) => (m.id === id ? updated : m)),
+          }));
+        } catch (err) {
+          console.error('Failed to update staff member', err);
+          throw err;
+        }
+      },
+
+      deleteMember: async (id) => {
+        try {
+          await apiClient.delete(`/admin/staff/${id}`);
+          set((state) => ({
+            members: state.members.filter((m) => m.id !== id),
+            stats: {
+              ...state.stats,
+              totalStaff: Math.max(0, state.stats.totalStaff - 1),
+            },
+          }));
+        } catch (err) {
+          console.error('Failed to delete staff member', err);
+          throw err;
+        }
+      },
     }),
     {
       name: 'admin-staff-store',
+      partialize: (state) => ({
+        stats: state.stats,
+        shifts: state.shifts,
+        birthdays: state.birthdays,
+        attendanceBreakdown: state.attendanceBreakdown,
+        payrollLines: state.payrollLines,
+        roleDistribution: state.roleDistribution,
+      }),
     }
   )
 );

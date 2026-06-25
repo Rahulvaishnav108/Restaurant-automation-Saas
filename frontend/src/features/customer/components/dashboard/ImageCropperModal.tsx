@@ -24,9 +24,7 @@ export default function ImageCropperModal({ isOpen, imageSrc, onClose, onConfirm
   useEffect(() => {
     if (!imageSrc || !isOpen) return;
 
-    Promise.resolve().then(() => {
-      setImageLoaded(false);
-    });
+    setImageLoaded(false);
     const img = new Image();
     img.onload = () => {
       setImageSize({ width: img.width, height: img.height });

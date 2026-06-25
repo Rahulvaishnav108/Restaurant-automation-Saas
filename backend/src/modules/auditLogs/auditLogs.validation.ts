@@ -13,6 +13,12 @@ export const auditLogListQuerySchema = z.object({
     .regex(/^[a-f\d]{24}$/i, 'Invalid restaurantId format')
     .optional(),
 
+  // Filter by specific actor user
+  actorId: z
+    .string()
+    .regex(/^[a-f\d]{24}$/i, 'Invalid actorId format')
+    .optional(),
+
   // Filter by actor role (e.g. KITCHEN_STAFF, SERVICE_STAFF)
   actorRole: z.string().trim().optional(),
 

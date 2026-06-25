@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useKitchenStore } from '../../store/kitchen.store';
+import { useAuth } from '../../../../auth/AuthProvider';
 
 const NAV_ITEMS = [
   { to: '/kitchen', icon: 'dashboard', label: 'Overview', end: true },
@@ -23,6 +24,15 @@ interface Props {
 
 export default function KitchenSidebar({ collapsed, onToggle, onItemClick, onProfileClick }: Props) {
   const { profile } = useKitchenStore();
+  const { user } = useAuth();
+  const internalRole = user?.internal_role;
+
+  const filteredNavItems = NAV_ITEMS.filter(({ to }) => {
+    if (internalRole === 'CHEF' && (to === '/kitchen/staff' || to === '/kitchen/analytics')) {
+      return false;
+    }
+    return true;
+  });
 
   const getInitials = (fullName: string) => {
     if (!fullName) return 'CH';
@@ -64,7 +74,7 @@ export default function KitchenSidebar({ collapsed, onToggle, onItemClick, onPro
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1.5 px-3 py-4 overflow-y-auto">
-        {NAV_ITEMS.map(({ to, icon, label, badge, end }) => (
+        {filteredNavItems.map(({ to, icon, label, badge, end }) => (
           <NavLink
             key={to}
             to={to}

@@ -1,8 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../../app/providers/ThemeProvider';
 import { useCustomerStore } from '../store/customer.store';
 import ImageCropperModal from '../components/dashboard/ImageCropperModal';
+import { apiClient } from '../../../shared/services/apiClient';
+import { useAuth } from '../../../auth/AuthProvider';
 
 const STATS_CONFIG = [
   { icon: 'event_available', key: 'reservations', label: 'Reservations', color: 'bg-orange-100 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400' },
@@ -30,29 +32,53 @@ export default function CustomerProfilePage() {
 
   // Zustand state and actions
   const {
-    profile,
     loyaltyPoints,
     loyaltyHistory,
     offers,
     notificationPreferences,
     orders,
-    updateProfile,
     claimOffer,
     updateNotificationPreferences,
+    updateProfile,
   } = useCustomerStore();
+
+  const { signOut } = useAuth();
 
   // Local feedback toast state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // Form states
-  const [editName, setEditName] = useState(profile.name);
-  const [editPhone, setEditPhone] = useState(profile.phone);
-  const [selectedAvatar, setSelectedAvatar] = useState(profile.avatar || 'person');
+  // Form & Backend User states
+  const [userData, setUserData] = useState<{ name: string; mobile: string; avatar?: string; role?: string } | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [selectedAvatar, setSelectedAvatar] = useState('person');
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const avatarFileInputRef = useRef<HTMLInputElement>(null);
 
   const [cropperOpen, setCropperOpen] = useState(false);
   const [tempImageSrc, setTempImageSrc] = useState('');
+
+  // Fetch profile details from backend
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await apiClient.get('/users/me');
+        const user = response.data.data.user;
+        setUserData(user);
+        setEditName(user.name);
+        setEditPhone(user.mobile);
+        setSelectedAvatar(user.avatar || 'person');
+        updateProfile({
+          name: user.name,
+          phone: user.mobile,
+          avatar: user.avatar || 'person',
+        });
+      } catch (err) {
+        console.error('Failed to fetch user profile', err);
+      }
+    };
+    fetchProfile();
+  }, [updateProfile]);
 
   const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -68,12 +94,21 @@ export default function CustomerProfilePage() {
     }
   };
 
-  const handleCropConfirm = (croppedBase64: string) => {
-    setSelectedAvatar(croppedBase64);
-    updateProfile({ avatar: croppedBase64 });
-    setCropperOpen(false);
-    setTempImageSrc('');
-    showToast('Custom photo uploaded and cropped successfully!');
+  const handleCropConfirm = async (croppedBase64: string) => {
+    try {
+      const response = await apiClient.patch('/users/me', {
+        avatar: croppedBase64,
+      });
+      const updatedUser = response.data.data.user;
+      setUserData(updatedUser);
+      setSelectedAvatar(croppedBase64);
+      updateProfile({ avatar: croppedBase64 });
+      setCropperOpen(false);
+      setTempImageSrc('');
+      showToast('Custom photo uploaded and cropped successfully!');
+    } catch (err: any) {
+      showToast(err.response?.data?.message || 'Failed to update photo', 'error');
+    }
   };
 
   // Local notification preference state for form toggles
@@ -110,8 +145,8 @@ export default function CustomerProfilePage() {
     progressPercentage = Math.min(100, ((loyaltyPoints - 500) / 500) * 100);
   }
 
-  // Handle Save Profile Info
-  const handleSaveProfile = (e: React.FormEvent) => {
+  // Handle Save Profile Info to Backend
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editName.trim()) {
       showToast('Name is required', 'error');
@@ -122,12 +157,22 @@ export default function CustomerProfilePage() {
       return;
     }
 
-    updateProfile({
-      name: editName,
-      phone: editPhone,
-    });
-    setActiveModal(null);
-    showToast('Personal information updated successfully!');
+    try {
+      const response = await apiClient.patch('/users/me', {
+        name: editName,
+        mobile: editPhone,
+      });
+      const updatedUser = response.data.data.user;
+      setUserData(updatedUser);
+      updateProfile({
+        name: updatedUser.name,
+        phone: updatedUser.mobile,
+      });
+      setActiveModal(null);
+      showToast('Personal information updated successfully!');
+    } catch (err: any) {
+      showToast(err.response?.data?.message || 'Failed to update profile', 'error');
+    }
   };
 
   // Handle Save Notification preferences
@@ -214,11 +259,17 @@ export default function CustomerProfilePage() {
                         <button
                           key={opt.icon}
                           type="button"
-                          onClick={() => {
-                            setSelectedAvatar(opt.icon);
-                            updateProfile({ avatar: opt.icon });
-                            setAvatarMenuOpen(false);
-                            showToast(`Avatar changed to ${opt.label}!`);
+                          onClick={async () => {
+                            try {
+                              const response = await apiClient.patch('/users/me', { avatar: opt.icon });
+                              const updatedUser = response.data.data.user;
+                              setUserData(updatedUser);
+                              setSelectedAvatar(opt.icon);
+                              setAvatarMenuOpen(false);
+                              showToast(`Avatar changed to ${opt.label}!`);
+                            } catch (err: any) {
+                              showToast('Failed to change avatar', 'error');
+                            }
                           }}
                           className={`w-9 h-9 rounded-full flex items-center justify-center border hover:border-sd-primary transition-all ${
                             isSelected ? 'border-sd-primary bg-sd-primary/10 text-sd-primary' : 'border-sd-surface-variant text-sd-on-surface-variant'
@@ -254,11 +305,11 @@ export default function CustomerProfilePage() {
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-xl font-bold text-sd-on-surface font-sans">{profile.name}</h3>
+                    <h3 className="text-xl font-bold text-sd-on-surface font-sans">{userData?.name || 'Customer'}</h3>
                     <button
                         onClick={() => {
-                          setEditName(profile.name);
-                          setEditPhone(profile.phone);
+                          setEditName(userData?.name || '');
+                          setEditPhone(userData?.mobile || '');
                           setActiveModal('profile');
                         }}
                       className="p-1.5 text-sd-on-surface-variant hover:text-sd-primary hover:bg-sd-surface-container rounded-full transition-colors flex items-center justify-center"
@@ -269,13 +320,13 @@ export default function CustomerProfilePage() {
                   </div>
                   <div className="flex items-center gap-2 mt-1 text-sd-on-surface-variant">
                     <span className="material-symbols-outlined text-[16px]">call</span>
-                    <span className="text-sm font-semibold font-sans">{profile.phone}</span>
+                    <span className="text-sm font-semibold font-sans">{userData?.mobile || ''}</span>
                   </div>
                 </div>
                 <div className="bg-sd-primary-fixed/30 text-sd-primary px-3 py-1 rounded-full flex items-center gap-1 self-start shrink-0">
                   <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>
                   <span className="text-xs font-bold font-sans">
-                    {profile.isSmartMember ? 'Smart Member' : 'Regular Guest'}
+                    {userData?.role === 'customer' ? 'Smart Member' : 'Regular Guest'}
                   </span>
                 </div>
               </div>
@@ -285,7 +336,7 @@ export default function CustomerProfilePage() {
                     <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>crown</span>
                   </div>
                   <div>
-                    <p className="text-sm font-bold font-sans">You&apos;re a {profile.isSmartMember ? 'Smart' : 'Valued'} Member!</p>
+                    <p className="text-sm font-bold font-sans">You&apos;re a Valued Member!</p>
                     <p className="text-[11px] text-sd-on-surface-variant font-sans">Enjoy exclusive benefits and priority service.</p>
                   </div>
                 </div>
@@ -335,8 +386,8 @@ export default function CustomerProfilePage() {
                   key={label}
                   onClick={() => {
                     if (key === 'profile') {
-                      setEditName(profile.name);
-                      setEditPhone(profile.phone);
+                      setEditName(userData?.name || '');
+                      setEditPhone(userData?.mobile || '');
                       setActiveModal('profile');
                     } else if (key === 'loyalty') {
                       setActiveModal('loyalty');
@@ -478,7 +529,17 @@ export default function CustomerProfilePage() {
 
           {/* Logout */}
           <button
-            onClick={() => navigate('/auth/login')}
+            onClick={() => {
+              signOut();
+              // Reset profile store
+              updateProfile({
+                name: '',
+                phone: '',
+                email: '',
+                avatar: 'person',
+              });
+              navigate('/');
+            }}
             className="w-full flex items-center justify-between p-4 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 rounded-xl border border-red-100 dark:border-red-900/50 transition-all group"
           >
             <div className="flex items-center gap-3">

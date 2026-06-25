@@ -44,7 +44,7 @@ export default function StaffMenuPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-800 dark:text-slate-100 font-sans tracking-tight">Menu Browser</h1>
+          <h1 className="text-2xl font-extrabold text-slate-800 dark:text-slate-100 font-sans tracking-tight">Menu</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Browse menu items and manage real-time availability status.</p>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -73,18 +73,26 @@ export default function StaffMenuPage() {
               className={`bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-soft transition-all flex flex-col justify-between`}
             >
               <div>
-                <div className="flex justify-between items-start">
+                <div className="flex justify-between items-center">
                   <span className="text-[10px] text-slate-405 font-bold uppercase font-sans bg-slate-55 px-2.5 py-0.5 rounded border border-slate-100">
                     {item.category}
                   </span>
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-1.5 items-center">
                     {item.veg ? (
-                      <span className="w-4.5 h-4.5 border border-green-500 rounded flex items-center justify-center text-[8px] text-green-500 font-black" title="Vegetarian">🟢</span>
+                      <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <title>Vegetarian</title>
+                        <rect x="3" y="3" width="18" height="18" stroke="#0f8a3c" strokeWidth="2.5" />
+                        <circle cx="12" cy="12" r="5" fill="#0f8a3c" />
+                      </svg>
                     ) : (
-                      <span className="w-4.5 h-4.5 border border-red-500 rounded flex items-center justify-center text-[8px] text-red-500 font-black" title="Non-Vegetarian">🔴</span>
+                      <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <title>Non-Vegetarian</title>
+                        <rect x="3" y="3" width="18" height="18" stroke="#8b4513" strokeWidth="2.5" />
+                        <polygon points="12,6 6,17 18,17" fill="#8b4513" />
+                      </svg>
                     )}
                     {item.spicy && (
-                      <span className="text-xs" title="Spicy">🌶️</span>
+                      <img src="/spicy-chili.jpg" alt="Spicy" className="w-4.5 h-4.5 object-contain shrink-0" style={{ width: '18px', height: '18px' }} />
                     )}
                   </div>
                 </div>

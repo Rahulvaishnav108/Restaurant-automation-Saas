@@ -42,8 +42,11 @@ function AddStaffModal({ onClose }: AddStaffModalProps): JSX.Element {
     name: '',
     email: '',
     phone: '',
-    role: 'Server' as StaffRole,
-    department: 'Service' as StaffDepartment,
+    password: '',
+    dbRole: 'service-staff',
+    kitchen_role: '',
+    staff_role: '',
+    cleaning_role: '',
     status: 'Active' as StaffStatus,
     salary: '',
     hireDate: new Date().toLocaleDateString('en-US', {
@@ -61,6 +64,11 @@ function AddStaffModal({ onClose }: AddStaffModalProps): JSX.Element {
     if (!form.email.trim()) e.email = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = 'Invalid email';
     if (!form.phone.trim()) e.phone = 'Phone is required';
+    if (!form.password.trim()) e.password = 'Password is required';
+    else if (form.password.length < 8) e.password = 'Password must be at least 8 characters';
+    else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(form.password)) {
+      e.password = 'Must contain uppercase, lowercase, and digit';
+    }
     if (!form.salary || isNaN(Number(form.salary))) e.salary = 'Valid salary required';
     return e;
   };
@@ -71,23 +79,27 @@ function AddStaffModal({ onClose }: AddStaffModalProps): JSX.Element {
       setErrors(e);
       return;
     }
-    const initials = form.name
-      .split(' ')
-      .slice(0, 2)
-      .map((w) => w[0])
-      .join('')
-      .toUpperCase();
+    
+    let feRole: StaffRole = 'Server';
+    let feDept: StaffDepartment = 'Service';
+    if (form.dbRole === 'kitchen-staff') { feRole = 'Chef'; feDept = 'Kitchen'; }
+    else if (form.dbRole === 'service-staff') { feRole = 'Server'; feDept = 'Service'; }
+    else if (form.dbRole === 'cleaning-staff') { feRole = 'Cleaner'; feDept = 'Cleaning'; }
+    else if (form.dbRole === 'restaurant-admin') { feRole = 'Manager'; feDept = 'Management'; }
+
     addMember({
       name: form.name.trim(),
       email: form.email.trim(),
       phone: form.phone.trim(),
-      role: form.role,
-      department: form.department,
+      password: form.password,
+      dbRole: form.dbRole,
+      kitchen_role: form.kitchen_role || undefined,
+      staff_role: form.staff_role || undefined,
+      cleaning_role: form.cleaning_role || undefined,
+      role: feRole,
+      department: feDept,
       status: form.status,
       salary: Number(form.salary),
-      hireDate: form.hireDate,
-      performance: form.performance,
-      avatar: initials,
     });
     onClose();
   };
@@ -190,50 +202,115 @@ function AddStaffModal({ onClose }: AddStaffModalProps): JSX.Element {
             {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
           </div>
 
-          {/* Role & Department */}
+          {/* Password */}
+          <div>
+            <label
+              htmlFor="add-password"
+              className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"
+            >
+              Password *
+            </label>
+            <input
+              id="add-password"
+              type="password"
+              placeholder="Min 8 chars, 1 uppercase, 1 lowercase, 1 number"
+              value={form.password}
+              onChange={(e) => field('password', e.target.value)}
+              className={`w-full px-3 py-2.5 sm:py-2 text-sm bg-gray-50 dark:bg-gray-800 border rounded-xl outline-none focus:ring-2 focus:ring-orange-100 dark:focus:ring-orange-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 ${
+                errors.password ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'
+              }`}
+            />
+            {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
+          </div>
+
+          {/* Primary Role & Sub-role Selection */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label
-                htmlFor="add-role"
+                htmlFor="add-db-role"
                 className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"
               >
-                <Briefcase className="w-3.5 h-3.5" /> Role
+                <Briefcase className="w-3.5 h-3.5" /> Primary Role
               </label>
               <div className="relative">
                 <select
-                  id="add-role"
-                  value={form.role}
-                  onChange={(e) => field('role', e.target.value)}
+                  id="add-db-role"
+                  value={form.dbRole}
+                  onChange={(e) => {
+                    const selectedRole = e.target.value;
+                    let defaultSubRole = '';
+                    if (selectedRole === 'kitchen-staff') defaultSubRole = 'CHEF';
+                    else if (selectedRole === 'service-staff') defaultSubRole = 'WAITER';
+                    else if (selectedRole === 'cleaning-staff') defaultSubRole = 'CLEANING_STAFF';
+                    
+                    setForm((prev) => ({
+                      ...prev,
+                      dbRole: selectedRole,
+                      kitchen_role: selectedRole === 'kitchen-staff' ? defaultSubRole : '',
+                      staff_role: selectedRole === 'service-staff' ? defaultSubRole : '',
+                      cleaning_role: selectedRole === 'cleaning-staff' ? defaultSubRole : '',
+                    }));
+                  }}
                   className="w-full appearance-none px-3 py-2.5 sm:py-2 pr-8 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-gray-100"
                 >
-                  {ROLES.map((r) => (
-                    <option key={r}>{r}</option>
-                  ))}
+                  <option value="service-staff">Service Staff</option>
+                  <option value="kitchen-staff">Kitchen Staff</option>
+                  <option value="cleaning-staff">Cleaning Staff</option>
+                  <option value="restaurant-admin">Restaurant Admin</option>
                 </select>
                 <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
               </div>
             </div>
-            <div>
-              <label
-                htmlFor="add-dept"
-                className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"
-              >
-                <Building2 className="w-3.5 h-3.5" /> Department
-              </label>
-              <div className="relative">
-                <select
-                  id="add-dept"
-                  value={form.department}
-                  onChange={(e) => field('department', e.target.value)}
-                  className="w-full appearance-none px-3 py-2.5 sm:py-2 pr-8 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-gray-100"
+
+            {form.dbRole !== 'restaurant-admin' && (
+              <div>
+                <label
+                  htmlFor="add-sub-role"
+                  className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"
                 >
-                  {DEPTS.map((d) => (
-                    <option key={d}>{d}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                  <Building2 className="w-3.5 h-3.5" /> Operational Role
+                </label>
+                <div className="relative">
+                  {form.dbRole === 'kitchen-staff' && (
+                    <select
+                      id="add-sub-role"
+                      value={form.kitchen_role}
+                      onChange={(e) => field('kitchen_role', e.target.value)}
+                      className="w-full appearance-none px-3 py-2.5 sm:py-2 pr-8 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-gray-100"
+                    >
+                      <option value="CHEF">Chef</option>
+                      <option value="KITCHEN_SUPERVISOR">Kitchen Supervisor</option>
+                      <option value="HEAD_CHEF">Head Chef</option>
+                    </select>
+                  )}
+                  {form.dbRole === 'service-staff' && (
+                    <select
+                      id="add-sub-role"
+                      value={form.staff_role}
+                      onChange={(e) => field('staff_role', e.target.value)}
+                      className="w-full appearance-none px-3 py-2.5 sm:py-2 pr-8 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-gray-100"
+                    >
+                      <option value="WAITER">Waiter</option>
+                      <option value="FLOOR_STAFF">Floor Staff</option>
+                      <option value="FLOOR_SUPERVISOR">Floor Supervisor</option>
+                    </select>
+                  )}
+                  {form.dbRole === 'cleaning-staff' && (
+                    <select
+                      id="add-sub-role"
+                      value={form.cleaning_role}
+                      onChange={(e) => field('cleaning_role', e.target.value)}
+                      className="w-full appearance-none px-3 py-2.5 sm:py-2 pr-8 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-gray-100"
+                    >
+                      <option value="CLEANING_STAFF">Cleaning Staff</option>
+                      <option value="HOUSEKEEPING">Housekeeping</option>
+                      <option value="CLEANING_SUPERVISOR">Cleaning Supervisor</option>
+                    </select>
+                  )}
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Status & Salary */}

@@ -34,6 +34,7 @@ export type TrackedOrder = {
   total: number;
   status: 'Placed' | 'Preparing' | 'Ready' | 'Served' | 'Completed';
   eta: string;
+  date?: string;
 };
 
 export type CustomerNotification = {
@@ -156,6 +157,8 @@ type CustomerStore = {
   getFilteredItems: () => CustomerMenuItem[];
   getRecommendedItems: () => CustomerMenuItem[];
   assignRandomTable: () => void;
+  setTableCode: (code: string) => void;
+  addOrder: (order: TrackedOrder) => void;
 
   // Profile Features Actions
   updateProfile: (profile: Partial<CustomerProfile>) => void;
@@ -174,15 +177,15 @@ type CustomerStore = {
 export const useCustomerStore = create<CustomerStore>()(
   persist(
     (set, get) => ({
-      tableCode: generateTableCode(),
+      tableCode: 'T07',
       category: 'All',
       search: '',
       vegOnly: false,
       cart: [],
       favourites: [],
       orders: [
-        { id: '#ORD-2841', items: 'Hyderabadi Biryani x1, Mango Lassi x1', total: 338, status: 'Preparing', eta: '12 min' },
-        { id: '#ORD-2840', items: 'Smash Burger x2', total: 518, status: 'Served', eta: '-' },
+        { id: '#ORD-2841', items: 'Hyderabadi Biryani x1, Mango Lassi x1', total: 338, status: 'Preparing', eta: '12 min', date: '23 Jun, 08:49 PM' },
+        { id: '#ORD-2840', items: 'Smash Burger x2', total: 518, status: 'Served', eta: '-', date: '23 Jun, 08:15 PM' },
       ],
       serviceRequests: [],
 
@@ -235,12 +238,16 @@ export const useCustomerStore = create<CustomerStore>()(
 
         const total = get().getTotalPrice();
         const orderId = `#ORD-${Math.floor(3000 + Math.random() * 6000)}`;
+        const now = new Date();
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const formattedDate = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}, ${String(now.getHours() % 12 || 12).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} ${now.getHours() >= 12 ? 'PM' : 'AM'}`;
         const order: TrackedOrder = {
           id: orderId,
           items,
           total,
           status: 'Placed',
           eta: '18 min',
+          date: formattedDate,
         };
 
         // Calculate reward points earned: 1 point per 10 Rupees
@@ -283,11 +290,15 @@ export const useCustomerStore = create<CustomerStore>()(
       },
       reorder: (order) => {
         const orderId = `#ORD-${Math.floor(3000 + Math.random() * 6000)}`;
+        const now = new Date();
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const formattedDate = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}, ${String(now.getHours() % 12 || 12).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} ${now.getHours() >= 12 ? 'PM' : 'AM'}`;
         const newOrder: TrackedOrder = {
           ...order,
           id: orderId,
           status: 'Placed',
           eta: '18 min',
+          date: formattedDate,
         };
 
         const pointsEarned = Math.floor(newOrder.total / 10);
@@ -342,6 +353,8 @@ export const useCustomerStore = create<CustomerStore>()(
       },
       getRecommendedItems: () => getRecommendedItems(MENU_ITEMS, get().favourites, get().cart),
       assignRandomTable: () => set({ tableCode: generateTableCode() }),
+      setTableCode: (tableCode) => set({ tableCode }),
+      addOrder: (order) => set((state) => ({ orders: [order, ...state.orders] })),
 
       // Profile features action implementations
       updateProfile: (profileUpdates) => set((state) => ({

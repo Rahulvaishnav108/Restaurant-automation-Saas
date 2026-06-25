@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from './CartContext';
 import { useSearch } from './SearchContext';
 import { useCustomerStore } from '../../store/customer.store';
+import { useAuth } from '../../../../auth/AuthProvider';
 
 interface Props {
   onToggleCart: () => void;
@@ -15,11 +16,13 @@ export default function CustomerTopBar({ onToggleCart }: Props) {
   const location = useLocation();
   const isCheckoutPage = location.pathname.includes('/checkout');
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
   
   // Notification dropdown state and actions
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const {
     profile,
+    tableCode,
     notifications,
     markNotificationRead,
     markAllNotificationsRead,
@@ -78,13 +81,23 @@ export default function CustomerTopBar({ onToggleCart }: Props) {
       {/* Left: Brand Logo (mobile-only) or Search Bar (desktop-only) */}
       <div className="flex items-center gap-4 flex-1 max-w-xl">
         {/* Mobile Logo */}
-        <div className="flex sm:hidden items-center gap-2 shrink-0">
-          <div className="bg-sd-primary-container w-9 h-9 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm">
-            <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-              restaurant
-            </span>
+        <div className="flex sm:hidden flex-col shrink-0">
+          <div className="flex items-center gap-1.5">
+            <div className="bg-sd-primary-container w-7 h-7 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm">
+              <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                restaurant
+              </span>
+            </div>
+            <span className="text-sm font-bold text-sd-primary font-sans whitespace-nowrap">Smart Dining</span>
           </div>
-          <span className="text-base font-bold text-sd-primary font-sans whitespace-nowrap">Smart Dining</span>
+          <div className="flex items-center gap-2 text-[10px] text-sd-on-surface-variant font-sans mt-0.5">
+            <span className="flex items-center gap-0.5">
+              <span className="material-symbols-outlined text-[11px] text-sd-primary">location_on</span>
+              <span>Indiranagar</span>
+            </span>
+            <span>•</span>
+            <span className="font-semibold text-sd-secondary dark:text-sd-secondary-container bg-sd-secondary-container/10 dark:bg-sd-secondary-container/20 px-1.5 py-0.2 rounded">{tableCode}</span>
+          </div>
         </div>
 
         {/* Desktop Search Bar */}
@@ -291,19 +304,21 @@ export default function CustomerTopBar({ onToggleCart }: Props) {
           )}
         </div>
 
-        <button
-          onClick={() => navigate('/customer/profile')}
-          className="w-10 h-10 bg-white border border-sd-outline-variant rounded-full overflow-hidden flex items-center justify-center text-sd-on-surface-variant hover:bg-sd-surface-container-low transition-colors shrink-0"
-          title="Profile"
-        >
-          {profile.avatar && (profile.avatar.startsWith('data:image') || profile.avatar.startsWith('http')) ? (
-            <img src={profile.avatar} alt="Profile" className="w-full h-full object-cover" />
-          ) : (
-            <span className="material-symbols-outlined text-[20px]">
-              {profile.avatar || 'account_circle'}
-            </span>
-          )}
-        </button>
+        {isAuthenticated && (
+          <button
+            onClick={() => navigate('/customer/profile')}
+            className="w-10 h-10 bg-white border border-sd-outline-variant rounded-full overflow-hidden flex items-center justify-center text-sd-on-surface-variant hover:bg-sd-surface-container-low transition-colors shrink-0"
+            title="Profile"
+          >
+            {profile.avatar && (profile.avatar.startsWith('data:image') || profile.avatar.startsWith('http')) ? (
+              <img src={profile.avatar} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <span className="material-symbols-outlined text-[20px]">
+                {profile.avatar || 'account_circle'}
+              </span>
+            )}
+          </button>
+        )}
       </div>
     </header>
   );

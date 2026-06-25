@@ -107,7 +107,7 @@ export default {
 
       fontFamily: {
         sans: ["Inter", "Segoe UI", "sans-serif"],
-        display: ['"Instrument Serif"', "serif"],
+        display: ["Inter", "Segoe UI", "sans-serif"],
       },
 
       boxShadow: {

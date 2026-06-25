@@ -1,6 +1,13 @@
 import { Router } from 'express';
 import { roles } from '../constants/roles';
-import { requireAuth } from '../middleware/requireAuth';
+import {
+  requireAuth,
+  authenticateStaff,
+  authenticateKitchen,
+  authenticateCleaning,
+  authenticateAdmin,
+  authenticateSuperAdmin,
+} from '../middleware/requireAuth';
 import { roleGuard } from '../middleware/roleGuard';
 import { authRouter } from './routes/auth.routes';
 import { publicRouter } from './routes/public.routes';
@@ -34,9 +41,9 @@ apiRouter.use('/payments', paymentsRouter);
 apiRouter.use('/customer/cart', cartRouter);
 apiRouter.use('/customer/feedback', feedbackRouter);
 apiRouter.use('/customer', customerRouter);
-apiRouter.use('/staff', requireAuth, roleGuard(roles.serviceStaff, roles.restaurantAdmin), tenantGuard, staffRouter);
-apiRouter.use('/kitchen', requireAuth, roleGuard(roles.kitchenStaff, roles.restaurantAdmin), tenantGuard, kitchenRouter);
-apiRouter.use('/cleaning', requireAuth, roleGuard(roles.cleaningStaff, roles.restaurantAdmin), tenantGuard, cleaningRouter);
-apiRouter.use('/admin', requireAuth, roleGuard(roles.restaurantAdmin, roles.superAdmin), tenantGuard, adminRouter);
-apiRouter.use('/super-admin', requireAuth, roleGuard(roles.superAdmin), superAdminRouter);
+apiRouter.use('/staff', authenticateStaff, roleGuard(roles.serviceStaff, roles.restaurantAdmin), tenantGuard, staffRouter);
+apiRouter.use('/kitchen', authenticateKitchen, roleGuard(roles.kitchenStaff, roles.restaurantAdmin), tenantGuard, kitchenRouter);
+apiRouter.use('/cleaning', authenticateCleaning, roleGuard(roles.cleaningStaff, roles.restaurantAdmin), tenantGuard, cleaningRouter);
+apiRouter.use('/admin', authenticateAdmin, roleGuard(roles.restaurantAdmin, roles.superAdmin), tenantGuard, adminRouter);
+apiRouter.use('/super-admin', authenticateSuperAdmin, roleGuard(roles.superAdmin), superAdminRouter);
 apiRouter.use('/', requireAuth, sharedRouter);

@@ -5,8 +5,6 @@ import { BillStatus, PaymentMethod, PaymentStatus } from './billing.schema';
 import { OrderStatus } from '../../constants/statuses';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
-// import { endSession } from '../tableSessions/tableSessions.service';
-import { InventoryService } from '../inventory/inventory.service';
 import { OfferModel } from '../offers/offers.model';
 import { RestaurantModel } from '../restaurants/restaurants.model';
 import { NotificationsService } from '../notifications/notifications.service';

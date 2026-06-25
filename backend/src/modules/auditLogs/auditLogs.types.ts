@@ -98,6 +98,7 @@ export interface CreateAuditLogInput {
 // ── Query filters for admin list endpoint ─────────────────────────────
 export interface AuditLogFilters {
   restaurantId?: string;
+  actorId?:      string;
   actorRole?:    string;
   action?:       AuditAction;
   entityType?:   AuditEntity;

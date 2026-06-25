@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 import { z } from 'zod';
-import { STAFF_ROLES, UserRole } from '../../constants/roles';
+import { STAFF_ROLES, UserRole, KitchenRole, StaffInternalRole, CleaningRole } from '../../constants/roles';
 import { Priority, TableStatus } from '../../constants/statuses';
 
 const objectIdSchema = z.string().refine((value) => Types.ObjectId.isValid(value), {
@@ -85,6 +85,9 @@ export const createStaffBodySchema = z.object({
   password: passwordSchema,
   role: staffRoleSchema,
   status: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED', 'BLOCKED']).optional(),
+  kitchen_role: z.nativeEnum(KitchenRole).optional(),
+  staff_role: z.nativeEnum(StaffInternalRole).optional(),
+  cleaning_role: z.nativeEnum(CleaningRole).optional(),
 });
 
 export const updateStaffBodySchema = z
@@ -95,6 +98,9 @@ export const updateStaffBodySchema = z
     password: passwordSchema.optional(),
     role: staffRoleSchema.optional(),
     status: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED', 'BLOCKED']).optional(),
+    kitchen_role: z.nativeEnum(KitchenRole).optional().nullable(),
+    staff_role: z.nativeEnum(StaffInternalRole).optional().nullable(),
+    cleaning_role: z.nativeEnum(CleaningRole).optional().nullable(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: 'At least one field is required',
