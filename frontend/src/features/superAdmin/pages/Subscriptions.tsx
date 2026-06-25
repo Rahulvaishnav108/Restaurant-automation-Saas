@@ -16,6 +16,7 @@ import type {
 } from "../components/Subscriptions/Subcriptiontypes";
 
 import { restaurantData } from "../store/Subscriptions";
+import { useRestaurantRequestsStore } from "../store/RestaurantRequests";
 import { computeTierMetrics, exportToCSV, parseRevenue, generateId, formatCurrency } from "../utils/Subscriptionutils";
 
 import TierCards from "../components/Subscriptions/Tiercards";
@@ -71,6 +72,16 @@ export default function Subscriptions() {
 
   // ── Data state ────────────────────────────────────────────────────────────
   const [restaurants, setRestaurants] = useState<RestaurantNode[]>(restaurantData);
+  const approvedRestaurants = useRestaurantRequestsStore((state) => state.restaurants);
+  const updateApprovedRestaurantStatus = useRestaurantRequestsStore(
+    (state) => state.updateRestaurantStatus
+  );
+  const updateApprovedRestaurantPlan = useRestaurantRequestsStore(
+    (state) => state.updateRestaurantPlan
+  );
+  const deleteApprovedRestaurant = useRestaurantRequestsStore(
+    (state) => state.deleteRestaurant
+  );
 
   // ── Filter state ──────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
@@ -87,14 +98,20 @@ export default function Subscriptions() {
   };
 
   // ── CRUD handlers ─────────────────────────────────────────────────────────
-  const updateStatus = (id: string, status: StatusType) =>
+  const updateStatus = (id: string, status: StatusType) => {
+    updateApprovedRestaurantStatus(id, status);
     setRestaurants((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
+  };
 
-  const updatePlan = (id: string, plan: PlanType) =>
+  const updatePlan = (id: string, plan: PlanType) => {
+    if (plan !== "Enterprise") updateApprovedRestaurantPlan(id, plan);
     setRestaurants((prev) => prev.map((r) => (r.id === id ? { ...r, plan } : r)));
+  };
 
-  const deleteNode = (id: string) =>
+  const deleteNode = (id: string) => {
+    deleteApprovedRestaurant(id);
     setRestaurants((prev) => prev.filter((r) => r.id !== id));
+  };
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,11 +147,44 @@ export default function Subscriptions() {
   };
 
   // ── Derived data ──────────────────────────────────────────────────────────
-  const tierMetrics = useMemo(() => computeTierMetrics(restaurants), [restaurants]);
+  const linkedRestaurants = useMemo<RestaurantNode[]>(() => {
+    const existingKeys = new Set(
+      restaurants.flatMap((restaurant) => [
+        restaurant.id.toLowerCase(),
+        restaurant.name.toLowerCase(),
+      ])
+    );
+
+    const approvedSubscriptionRows = approvedRestaurants
+      .filter(
+        (restaurant) =>
+          !existingKeys.has(restaurant.id.toLowerCase()) &&
+          !existingKeys.has(restaurant.name.toLowerCase())
+      )
+      .map<RestaurantNode>((restaurant) => ({
+        id: restaurant.id,
+        name: restaurant.name,
+        owner: restaurant.owner,
+        email: restaurant.email,
+        phone: restaurant.phone,
+        location: restaurant.location,
+        plan: restaurant.plan,
+        status: restaurant.status,
+        revenue: restaurant.revenue,
+        branches: restaurant.branches,
+        joinedDate: new Date().toISOString().slice(0, 10),
+        lastActive: new Date().toISOString().slice(0, 10),
+        tags: ["New Request", "Placeholder"],
+      }));
+
+    return [...approvedSubscriptionRows, ...restaurants];
+  }, [approvedRestaurants, restaurants]);
+
+  const tierMetrics = useMemo(() => computeTierMetrics(linkedRestaurants), [linkedRestaurants]);
 
   const filtered = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    return restaurants.filter((r) => {
+    return linkedRestaurants.filter((r) => {
       const matchSearch =
         r.name.toLowerCase().includes(q) ||
         r.id.toLowerCase().includes(q) ||
@@ -144,7 +194,7 @@ export default function Subscriptions() {
       const matchTier = tierFilter === "All" || r.plan === tierFilter;
       return matchSearch && matchStatus && matchTier;
     });
-  }, [restaurants, searchQuery, statusFilter, tierFilter]);
+  }, [linkedRestaurants, searchQuery, statusFilter, tierFilter]);
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -204,7 +254,7 @@ export default function Subscriptions() {
         sortField={sortField}
         sortOrder={sortOrder}
         darkMode={darkMode}
-        totalCount={restaurants.length}
+        totalCount={linkedRestaurants.length}
         filteredCount={filtered.length}
         onSearchChange={setSearchQuery}
         onStatusChange={setStatusFilter}
@@ -234,7 +284,7 @@ export default function Subscriptions() {
       }`}>
         <span className={darkMode ? "text-slate-400" : "text-slate-500"}>
           Showing <span className={`font-bold ${darkMode ? "text-slate-100" : "text-slate-900"}`}>{sorted.length}</span> of{" "}
-          <span className={`font-bold ${darkMode ? "text-slate-100" : "text-slate-900"}`}>{restaurants.length}</span> restaurants
+          <span className={`font-bold ${darkMode ? "text-slate-100" : "text-slate-900"}`}>{linkedRestaurants.length}</span> restaurants
         </span>
         <div className={`h-4 w-px ${darkMode ? "bg-slate-800" : "bg-slate-300"}`} />
         <span className={darkMode ? "text-slate-400" : "text-slate-500"}>

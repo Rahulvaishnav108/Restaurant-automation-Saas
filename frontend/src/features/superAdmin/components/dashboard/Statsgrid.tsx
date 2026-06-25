@@ -1,5 +1,6 @@
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { stats } from "../../store/Superadmindashboard";
+import { useRestaurantRequestsStore } from "../../store/RestaurantRequests";
 
 interface StatItem {
   title: string;
@@ -16,11 +17,17 @@ interface StatsGridProps {
 }
 
 export default function StatsGrid({ darkMode }: StatsGridProps) {
+  const restaurantCount = useRestaurantRequestsStore(
+    (state) => state.restaurants.length
+  );
+
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 mb-6">
       {(stats as StatItem[]).map((stat) => {
         const Icon = stat.icon;
         const isPositive = !stat.growth.startsWith("-");
+        const value =
+          stat.title === "Total Restaurants" ? restaurantCount : stat.value;
 
         return (
           <div
@@ -41,7 +48,7 @@ export default function StatsGrid({ darkMode }: StatsGridProps) {
                   {stat.title}
                 </p>
                 <h3 className="text-xl sm:text-2xl font-bold tracking-tight leading-none">
-                  {stat.value}
+                  {value}
                 </h3>
                 <div
                   className={`flex items-center gap-1 text-xs font-semibold pt-1 ${

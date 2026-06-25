@@ -2,7 +2,7 @@
 // Fully responsive restaurants management page
 
 import { useState, useEffect, useMemo } from "react";
-import { restaurantData } from "../store/Restaurants";
+import { useRestaurantRequestsStore } from "../store/RestaurantRequests";
 import type {
   RestaurantsRow,
   StatusFilter,
@@ -38,7 +38,17 @@ export default function Restaurant() {
 
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
-  const [restaurants, setRestaurants] = useState<RestaurantsRow[]>(restaurantData);
+  const restaurants = useRestaurantRequestsStore((state) => state.restaurants);
+  const addRestaurant = useRestaurantRequestsStore((state) => state.addRestaurant);
+  const updateRestaurantStatus = useRestaurantRequestsStore(
+    (state) => state.updateRestaurantStatus
+  );
+  const updateRestaurantPlan = useRestaurantRequestsStore(
+    (state) => state.updateRestaurantPlan
+  );
+  const deleteRestaurantById = useRestaurantRequestsStore(
+    (state) => state.deleteRestaurant
+  );
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [viewingRestaurant, setViewingRestaurant] = useState<RestaurantsRow | null>(null);
@@ -90,15 +100,15 @@ export default function Restaurant() {
 
   // Update restaurant status
   const updateStatus = (id: string, status: "Active" | "Trial" | "Inactive") =>
-    setRestaurants((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
+    updateRestaurantStatus(id, status);
 
   // Update restaurant plan
   const updatePlan = (id: string, plan: "Premium" | "Standard" | "Basic") =>
-    setRestaurants((prev) => prev.map((r) => (r.id === id ? { ...r, plan } : r)));
+    updateRestaurantPlan(id, plan);
 
   // Delete restaurant
   const deleteRestaurant = (id: string) =>
-    setRestaurants((prev) => prev.filter((r) => r.id !== id));
+    deleteRestaurantById(id);
 
   // Handle form submission for new restaurant
   const handleSubmit = (e: React.FormEvent) => {
@@ -120,7 +130,7 @@ export default function Restaurant() {
       branches: Number(newRestaurant.branches) || 1,
     };
 
-    setRestaurants((prev) => [row, ...prev]);
+    addRestaurant(row);
     setIsModalOpen(false);
     setNewRestaurant(DEFAULT_FORM);
   };
