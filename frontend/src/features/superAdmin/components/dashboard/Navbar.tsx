@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../auth/AuthProvider";
 import {
@@ -21,6 +21,7 @@ import {
   MapPin,
   ChevronRight,
 } from "lucide-react";
+import { useRestaurantRequestsStore } from "../../store/RestaurantRequests";
 
 interface NavbarProps {
   darkMode: boolean;
@@ -193,6 +194,7 @@ export default function Navbar({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [systemMute, setSystemMute] = useState(false);
+  const requests = useRestaurantRequestsStore((state) => state.requests);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -219,15 +221,17 @@ export default function Navbar({
     );
   };
 
-  const notifications = [
-    {
-      id: 1,
-      title: "New Restaurant Onboarding",
-      description: "Burger Hub requested verification updates.",
-      time: "3 mins ago",
-      type: "info",
-      unread: true,
-    },
+  const notifications = useMemo(
+    () => [
+      ...requests.map((request) => ({
+        id: request.id,
+        title: "New Restaurant Request",
+        description: `${request.name} requested ${request.plan} onboarding.`,
+        time: request.requestedAt,
+        type: "info",
+        unread: true,
+        request: true,
+      })),
     {
       id: 2,
       title: "Gateway Timeout Alert",
@@ -244,7 +248,11 @@ export default function Navbar({
       type: "success",
       unread: false,
     },
-  ];
+    ],
+    [requests]
+  );
+
+  const unresolvedCount = requests.length + 1;
 
   return (
     <>
@@ -370,6 +378,11 @@ export default function Navbar({
                 >
                   <Bell size={16} />
                   <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                  {requests.length > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-orange-600 text-white text-[9px] font-bold flex items-center justify-center">
+                      {requests.length}
+                    </span>
+                  )}
                 </button>
 
                 {notificationsOpen && (
@@ -386,7 +399,7 @@ export default function Navbar({
                           Activity Center
                         </h3>
                         <p className="text-[10px] text-orange-500 font-semibold mt-0.5">
-                          2 Action items unresolved
+                          {unresolvedCount} Action items unresolved
                         </p>
                       </div>
                     </div>
@@ -394,6 +407,23 @@ export default function Navbar({
                       {notifications.map((item) => (
                         <div
                           key={item.id}
+                          onClick={() => {
+                            if ("request" in item && item.request) {
+                              setNotificationsOpen(false);
+                              navigate("/superadmin?requests=new");
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              if ("request" in item && item.request) {
+                                setNotificationsOpen(false);
+                                navigate("/superadmin?requests=new");
+                              }
+                            }
+                          }}
+                          role="button"
+                          tabIndex={0}
                           className={`p-3.5 flex gap-3 cursor-pointer group relative ${
                             item.unread
                               ? darkMode
@@ -408,6 +438,9 @@ export default function Navbar({
                             </p>
                             <p className="text-[11px] mt-0.5 text-slate-400">
                               {item.description}
+                            </p>
+                            <p className="text-[10px] mt-1 text-slate-500">
+                              {item.time}
                             </p>
                           </div>
                         </div>

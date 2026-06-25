@@ -1,5 +1,5 @@
 // src/features/superAdmin/pages/Analytics.tsx
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 
 import {
@@ -9,6 +9,7 @@ import {
   mockPlatformOrders,
 } from "../store/Analytics";
 import { exportOrdersAsCSV } from "../utils/Analyticsutils";
+import { useRestaurantRequestsStore } from "../store/RestaurantRequests";
 
 import AnalyticsHeader     from "../components/Analytics/Analyticsheader";
 import AnalyticsKPICards   from "../components/Analytics/Analyticskpicards";
@@ -22,6 +23,7 @@ interface LayoutContextType {
 
 export default function Analytics() {
   const { darkMode } = useOutletContext<LayoutContextType>();
+  const approvedRestaurants = useRestaurantRequestsStore((state) => state.restaurants);
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -31,19 +33,55 @@ export default function Analytics() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // ── Derived values ──────────────────────────────────────────────────────────
-  const totalVolume = mockPlatformOrders.reduce(
+  const linkedPlatformOrders = useMemo(() => {
+    const existingRestaurantNames = new Set(
+      mockPlatformOrders.map((order) => order.restaurant.toLowerCase())
+    );
+
+    const placeholderOrders = approvedRestaurants
+      .filter(
+        (restaurant) => !existingRestaurantNames.has(restaurant.name.toLowerCase())
+      )
+      .map((restaurant, index) => ({
+        id: `#ONB${restaurant.id.replace(/[^0-9]/g, "") || index}`,
+        restaurant: restaurant.name,
+        type: "Onboarding",
+        grossAmount: 0,
+        commission: 0,
+        status: "Processing" as const,
+        timestamp: "Awaiting backend sync",
+      }));
+
+    return [...placeholderOrders, ...mockPlatformOrders];
+  }, [approvedRestaurants]);
+
+  const analyticsMetrics = useMemo(
+    () =>
+      metricsData.map((metric) =>
+        metric.label === "Total Restaurants"
+          ? {
+              ...metric,
+              current: linkedPlatformOrders.length.toLocaleString(),
+              shift: `${approvedRestaurants.length} linked locally`,
+            }
+          : metric
+      ),
+    [approvedRestaurants.length, linkedPlatformOrders.length]
+  );
+
+  const totalVolume = linkedPlatformOrders.reduce(
     (acc, o) => acc + o.grossAmount,
     0,
   );
-  const totalCommission = mockPlatformOrders.reduce(
+  const totalCommission = linkedPlatformOrders.reduce(
     (acc, o) => acc + o.commission,
     0,
   );
   const averageOrderValue = Math.round(
-    totalVolume / mockPlatformOrders.length,
+    totalVolume / linkedPlatformOrders.length,
   );
 
-  const filteredOrders = mockPlatformOrders.filter((order) => {
+  const filteredOrders = linkedPlatformOrders.filter((order) => {
     const q = searchQuery.toLowerCase();
     const matchesSearch =
       order.restaurant.toLowerCase().includes(q) ||
@@ -86,7 +124,7 @@ export default function Analytics() {
         {/* 2 ── KPI summary cards */}
         <AnalyticsKPICards
           darkMode={darkMode}
-          metrics={metricsData}
+          metrics={analyticsMetrics}
           totalVolume={totalVolume}
           totalCommission={totalCommission}
           averageOrderValue={averageOrderValue}

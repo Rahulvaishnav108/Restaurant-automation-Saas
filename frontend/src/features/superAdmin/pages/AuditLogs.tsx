@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 
 import { LogType, initialLogs } from "../store/AuditLogs";
 import { exportLogsAsCSV } from "../utils/Auditlogsutils";
+import { useRestaurantRequestsStore } from "../store/RestaurantRequests";
 
 import AuditLogsHeader from "../components/Audit/Auditlogsheader";
 import AuditLogsKPICards from "../components/Audit/Auditlogskpicards";
@@ -12,6 +13,7 @@ import AuditLogsMobileCards from "../components/Audit/Auditlogsmobilecards";
 export default function AuditLogsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<LogType | 'All'>('All');
+  const approvedRestaurants = useRestaurantRequestsStore((state) => state.restaurants);
 
   // Dark mode: initialise from localStorage, default to dark
   const [darkMode, setDarkMode] = useState(() => {
@@ -37,7 +39,28 @@ export default function AuditLogsPage() {
   }, [darkMode]);
 
   // --- Derived data ---
-  const filteredLogs = initialLogs.filter((log) => {
+  const linkedLogs = useMemo(() => {
+    const existingTargets = new Set(
+      initialLogs.map((log) => log.target.toLowerCase())
+    );
+
+    const onboardingLogs = approvedRestaurants
+      .filter((restaurant) => !existingTargets.has(restaurant.name.toLowerCase()))
+      .map((restaurant, index) => ({
+        id: `request-${restaurant.id}`,
+        type: 'Restaurant' as LogType,
+        action: 'Restaurant Request Approved',
+        performedBy: 'Super Admin',
+        target: restaurant.name,
+        details: `Placeholder audit entry for ${restaurant.plan} onboarding until backend audit events are connected`,
+        ipAddress: 'Frontend Placeholder',
+        timestamp: `2026-06-25 ${String(12 + index).padStart(2, '0')}:00`,
+      }));
+
+    return [...onboardingLogs, ...initialLogs];
+  }, [approvedRestaurants]);
+
+  const filteredLogs = linkedLogs.filter((log) => {
     const query = searchTerm.toLowerCase();
     const matchesSearch =
       log.action.toLowerCase().includes(query) ||
@@ -61,7 +84,7 @@ export default function AuditLogsPage() {
         <AuditLogsHeader darkMode={darkMode} onExport={handleExport} />
 
         {/* 2. KPI summary cards */}
-        <AuditLogsKPICards darkMode={darkMode} logs={initialLogs} />
+        <AuditLogsKPICards darkMode={darkMode} logs={linkedLogs} />
 
         {/* 3. Search & type-filter bar */}
         <AuditLogsFilterBar

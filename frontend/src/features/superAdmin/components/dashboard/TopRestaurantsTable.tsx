@@ -1,5 +1,7 @@
 import { TrendingUp, Star } from "lucide-react";
+import { useMemo } from "react";
 import { restaurants } from "../../store/Superadmindashboard";
+import { useRestaurantRequestsStore } from "../../store/RestaurantRequests";
 
 interface Restaurant {
   name: string;
@@ -13,6 +15,22 @@ interface TopRestaurantsTableProps {
 }
 
 export default function TopRestaurantsTable({ darkMode }: TopRestaurantsTableProps) {
+  const restaurantRows = useRestaurantRequestsStore((state) => state.restaurants);
+  const topRestaurants = useMemo<Restaurant[]>(() => {
+    const existing = new Set(restaurants.map((restaurant) => restaurant.name));
+    const approvedRestaurants = restaurantRows
+      .filter((restaurant) => !existing.has(restaurant.name))
+      .slice(0, 3)
+      .map((restaurant) => ({
+        name: restaurant.name,
+        orders: 0,
+        revenue: restaurant.revenue,
+        growth: "New",
+      }));
+
+    return [...approvedRestaurants, ...restaurants].slice(0, 5);
+  }, [restaurantRows]);
+
   return (
     <div
       className={`rounded-xl border overflow-hidden ${
@@ -73,7 +91,7 @@ export default function TopRestaurantsTable({ darkMode }: TopRestaurantsTablePro
               darkMode ? "divide-slate-800/40" : "divide-slate-200/60"
             }`}
           >
-            {(restaurants as Restaurant[]).map((restaurant, idx) => (
+            {topRestaurants.map((restaurant, idx) => (
               <tr
                 key={restaurant.name}
                 className={`transition-colors ${
@@ -138,7 +156,7 @@ export default function TopRestaurantsTable({ darkMode }: TopRestaurantsTablePro
           darkMode ? "divide-slate-800/40" : "divide-slate-200/60"
         }`}
       >
-        {(restaurants as Restaurant[]).map((restaurant, idx) => (
+        {topRestaurants.map((restaurant, idx) => (
           <div
             key={restaurant.name}
             className={`p-4 flex items-center gap-3 transition-colors ${

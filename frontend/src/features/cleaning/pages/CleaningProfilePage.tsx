@@ -46,7 +46,6 @@ export default function CleaningProfilePage() {
   const { urgentTasks, profile, updateProfile } = useCleaning();
   const safeTasks: TableTask[] = (urgentTasks || []) as TableTask[];
 
-  // Dynamic values tracking calculation directly bound to real-time arrays
   const liveCleanedCount = safeTasks.filter(t => t.rawStatus === 'COMPLETED' || t.rawStatus === 'VERIFIED').length;
   const liveInProgressCount = safeTasks.filter((t: TableTask) => t.rawStatus === 'IN_PROGRESS').length;
 
@@ -160,6 +159,8 @@ export default function CleaningProfilePage() {
     { icon: 'timer', iconBg: 'bg-orange-100 dark:bg-orange-950/30', iconColor: 'text-orange-600 dark:text-orange-400', title: 'Started cleaning table T12', timestamp: 'Jun 16, 2026', subtitle: 'Dining Area A • 10:18 AM' },
     { icon: 'assignment', iconBg: 'bg-orange-100 dark:bg-orange-950/30', iconColor: 'text-orange-500 dark:text-orange-400', title: 'Completed task', timestamp: 'Jun 16, 2026', subtitle: 'Restroom Sanitization • 09:15 AM' },
     { icon: 'verified', iconBg: 'bg-purple-100 dark:bg-purple-950/30', iconColor: 'text-purple-600 dark:text-purple-400', title: 'Hygiene score updated', timestamp: 'Jun 15, 2026', subtitle: 'Score: 98% (Excellent)' },
+    { icon: 'check_circle', iconBg: 'bg-green-100 dark:bg-green-950/30', iconColor: 'text-green-600 dark:text-green-400', title: 'Completed table T05', timestamp: 'Jun 15, 2026', subtitle: 'Dining Area B • 03:45 PM' },
+    { icon: 'timer', iconBg: 'bg-orange-100 dark:bg-orange-950/30', iconColor: 'text-orange-600 dark:text-orange-400', title: 'Started cleaning table T08', timestamp: 'Jun 15, 2026', subtitle: 'Dining Area A • 02:30 PM' },
   ];
 
   const preferences: PreferenceItem[] = [
@@ -178,6 +179,14 @@ export default function CleaningProfilePage() {
     { title: 'Rising Star', desc: 'Top performer of the month', earned: 'Earned on May 1, 2026', icon: 'workspace_premium', bgClass: 'bg-teal-500', shadowClass: 'shadow-teal-250 dark:shadow-none' },
   ];
 
+  // ✅ Handler for photo upload
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const imageUrl = URL.createObjectURL(file);
+      setProfileImage(imageUrl);
+    }
+  };
   return (
     <>
       <div className="space-y-6 lg:space-y-8 animate-fadeIn cleaning-panel">
@@ -379,7 +388,6 @@ export default function CleaningProfilePage() {
                   <span className="material-symbols-outlined text-slate-450 group-hover:translate-x-0.5 transition-transform text-sm">chevron_right</span>
                 </div>
               </button>
-
               <button
                 onClick={() => navigate('/cleaning/settings')}
                 className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group font-sans text-xs text-left cursor-pointer"
