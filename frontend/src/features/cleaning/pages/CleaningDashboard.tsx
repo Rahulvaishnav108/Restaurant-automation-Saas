@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'; // useEffect add kiya
 import { useCleaning } from '../hooks/usecleaning';
 import { useNotifications } from '../hooks/useNotifications';
 import { useCleaningSearch } from '../components/dashboard/CleaningSearchContext';
-import { cleaningStore } from '../store/cleaning.store';
+import { cleaningStore, CleaningRequest } from '../store/cleaning.store';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 interface HygieneTask {
@@ -27,13 +27,13 @@ interface TableTask {
 export default function CleaningDashboard() {
   const { searchQuery } = useCleaningSearch();
   const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [requests, setRequests] = useState(cleaningStore.requests); 
+  const [requests, setRequests] = useState(cleaningStore.requests);
   const [newRequestTable, setNewRequestTable] = useState('');
   const [newRequestPriority, setNewRequestPriority] = useState('Medium');
-  const [showRequestModal, setShowRequestModal] = useState(false); 
+  const [showRequestModal, setShowRequestModal] = useState(false);
   const [showSpecialModal, setShowSpecialModal] = useState(false);
   const [specialNotes, setSpecialNotes] = useState('');
-  const [selectedRequest, setSelectedRequest] = useState<any | null>(null); 
+  const [selectedRequest, setSelectedRequest] = useState<CleaningRequest | null>(null);
 
   const { unreadCount, addNotification } = useNotifications();
   useEffect(() => {
@@ -511,7 +511,7 @@ export default function CleaningDashboard() {
               </button>
 
               <button
-                onClick={() => setShowHistoryModal(true)} 
+                onClick={() => setShowHistoryModal(true)}
                 className="bg-white dark:bg-sd-surface-container p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm text-center hover:scale-[1.02] transition-transform flex flex-col items-center group cursor-pointer"
               >
                 <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/30 flex items-center justify-center text-purple-600 mb-3 group-hover:bg-purple-600 group-hover:text-white transition-colors">
@@ -526,7 +526,7 @@ export default function CleaningDashboard() {
               </button>
 
               <button
-                onClick={() => setShowSpecialModal(true)} 
+                onClick={() => setShowSpecialModal(true)}
                 className="bg-white dark:bg-sd-surface-container p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm text-center hover:scale-[1.02] transition-transform flex flex-col items-center group cursor-pointer col-span-2"
               >
                 {/* Baki code waisa hi rehne do */}
@@ -659,7 +659,7 @@ export default function CleaningDashboard() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowRequestModal(false)}
+                  onClick={() => setShowHistoryModal(false)}
                   className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 text-slate-640 dark:text-slate-400 rounded-xl font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-200 transition-all active:scale-95"
                 >
                   Cancel
@@ -685,6 +685,7 @@ export default function CleaningDashboard() {
               </h3>
               <button
                 onClick={() => setShowHistoryModal(false)}
+                type="button"
                 className="text-slate-400 hover:text-slate-600"
               >
                 <span className="material-symbols-outlined">close</span>
@@ -694,7 +695,8 @@ export default function CleaningDashboard() {
             <div className="space-y-3">
               {requests.length > 0 ? (
                 requests.map((req) => (
-                  <div
+                  <button
+                    type="button"
                     key={req.id}
                     onClick={() => setSelectedRequest(req)}
                     className="p-3 border border-slate-100 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 flex justify-between items-center cursor-pointer hover:bg-slate-100"
@@ -710,7 +712,7 @@ export default function CleaningDashboard() {
                     <span className="text-[10px] font-bold text-orange-500 bg-orange-100 dark:bg-orange-950/30 px-2 py-1 rounded-full">
                       {req.status}
                     </span>
-                  </div>
+                  </button>
                 ))
               ) : (
                 <p className="text-xs text-slate-500 font-sans text-center">

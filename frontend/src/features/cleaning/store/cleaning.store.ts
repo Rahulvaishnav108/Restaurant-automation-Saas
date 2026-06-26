@@ -147,8 +147,8 @@ class CleaningStore {
     },
   ];
 
-  public tasks: any[] = [];
-  public addTask(newTask: any) {
+  public tasks: CleaningRequest[] = [];
+  public addTask(newTask: CleaningRequest) {
     this.tasks = [newTask, ...this.tasks];
     this.notify();
   }
