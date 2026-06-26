@@ -15,6 +15,8 @@ export enum AuditEntity {
   STAFF        = 'STAFF',
   OFFER        = 'OFFER',
   BILL         = 'BILL',
+  INVENTORY_ITEM = 'INVENTORY_ITEM',
+  SUPPLIER     = 'SUPPLIER',
 }
 
 // ── Actions per entity ────────────────────────────────────────────────
@@ -66,6 +68,13 @@ export enum AuditAction {
   ADMIN_OFFER_UPDATED   = 'ADMIN_OFFER_UPDATED',
   ADMIN_OFFER_DELETED   = 'ADMIN_OFFER_DELETED',
   ADMIN_SETTINGS_UPDATED = 'ADMIN_SETTINGS_UPDATED',
+  ADMIN_INVENTORY_CREATED = 'ADMIN_INVENTORY_CREATED',
+  ADMIN_INVENTORY_UPDATED = 'ADMIN_INVENTORY_UPDATED',
+  ADMIN_INVENTORY_DELETED = 'ADMIN_INVENTORY_DELETED',
+  ADMIN_INVENTORY_BULK_IMPORTED = 'ADMIN_INVENTORY_BULK_IMPORTED',
+  ADMIN_SUPPLIER_CREATED = 'ADMIN_SUPPLIER_CREATED',
+  ADMIN_SUPPLIER_UPDATED = 'ADMIN_SUPPLIER_UPDATED',
+  ADMIN_SUPPLIER_DELETED = 'ADMIN_SUPPLIER_DELETED',
 
   // Super admin
   SUPER_RESTAURANT_APPROVED  = 'SUPER_RESTAURANT_APPROVED',
@@ -89,6 +98,7 @@ export interface CreateAuditLogInput {
 // ── Query filters for admin list endpoint ─────────────────────────────
 export interface AuditLogFilters {
   restaurantId?: string;
+  actorId?:      string;
   actorRole?:    string;
   action?:       AuditAction;
   entityType?:   AuditEntity;

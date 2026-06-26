@@ -11,10 +11,30 @@ export interface IFeedback extends Document {
 
 const feedbackSchema = new Schema<IFeedback>(
   {
-    restaurantId: { type: Schema.Types.ObjectId, ref: 'Restaurant', required: true, index: true },
-    sessionId: { type: Schema.Types.ObjectId, ref: 'TableSession', required: true, index: true },
-    rating: { type: Number, required: true, min: 1, max: 5 },
-    comment: { type: String, default: '', trim: true, maxlength: 500 },
+    restaurantId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Restaurant',
+      required: true,
+      index: true,
+    },
+    sessionId: {
+      type: Schema.Types.ObjectId,
+      ref: 'TableSession',
+      required: true,
+      index: true,
+    },
+    rating: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 5,
+    },
+    comment: {
+      type: String,
+      default: '',
+      trim: true,
+      maxlength: 500,
+    },
   },
   {
     timestamps: true,
@@ -23,4 +43,11 @@ const feedbackSchema = new Schema<IFeedback>(
   },
 );
 
-export const FeedbackModel = mongoose.model<IFeedback>('Feedback', feedbackSchema);
+// One feedback per dining session
+feedbackSchema.index({ sessionId: 1 }, { unique: true });
+
+export const FeedbackModel = mongoose.model<IFeedback>(
+  'Feedback',
+  feedbackSchema
+);
+

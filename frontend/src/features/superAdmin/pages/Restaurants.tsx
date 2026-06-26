@@ -2,7 +2,7 @@
 // Fully responsive restaurants management page
 
 import { useState, useEffect, useMemo } from "react";
-import { restaurantData } from "../store/Restaurants";
+import { useRestaurantRequestsStore } from "../store/RestaurantRequests";
 import type {
   RestaurantsRow,
   StatusFilter,
@@ -23,7 +23,7 @@ const DEFAULT_FORM: NewRestaurantForm = {
   location: "",
   plan: "Basic",
   status: "Trial",
-  revenue: "$0",
+  revenue: "₹0",
   branches: 1,
 };
 
@@ -31,14 +31,24 @@ export default function Restaurant() {
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("theme");
-      return saved ? saved === "dark" : true;
+      return saved ? saved === "dark" : false;
     }
-    return true;
+    return false;
   });
 
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
-  const [restaurants, setRestaurants] = useState<RestaurantsRow[]>(restaurantData);
+  const restaurants = useRestaurantRequestsStore((state) => state.restaurants);
+  const addRestaurant = useRestaurantRequestsStore((state) => state.addRestaurant);
+  const updateRestaurantStatus = useRestaurantRequestsStore(
+    (state) => state.updateRestaurantStatus
+  );
+  const updateRestaurantPlan = useRestaurantRequestsStore(
+    (state) => state.updateRestaurantPlan
+  );
+  const deleteRestaurantById = useRestaurantRequestsStore(
+    (state) => state.deleteRestaurant
+  );
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [viewingRestaurant, setViewingRestaurant] = useState<RestaurantsRow | null>(null);
@@ -90,15 +100,15 @@ export default function Restaurant() {
 
   // Update restaurant status
   const updateStatus = (id: string, status: "Active" | "Trial" | "Inactive") =>
-    setRestaurants((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
+    updateRestaurantStatus(id, status);
 
   // Update restaurant plan
   const updatePlan = (id: string, plan: "Premium" | "Standard" | "Basic") =>
-    setRestaurants((prev) => prev.map((r) => (r.id === id ? { ...r, plan } : r)));
+    updateRestaurantPlan(id, plan);
 
   // Delete restaurant
   const deleteRestaurant = (id: string) =>
-    setRestaurants((prev) => prev.filter((r) => r.id !== id));
+    deleteRestaurantById(id);
 
   // Handle form submission for new restaurant
   const handleSubmit = (e: React.FormEvent) => {
@@ -114,13 +124,13 @@ export default function Restaurant() {
       location: newRestaurant.location || "Remote Deployment Location",
       plan: newRestaurant.plan,
       status: newRestaurant.status,
-      revenue: newRestaurant.revenue.startsWith("$")
+      revenue: newRestaurant.revenue.startsWith("₹")
         ? newRestaurant.revenue
-        : `$${newRestaurant.revenue}`,
+        : `₹${newRestaurant.revenue}`,
       branches: Number(newRestaurant.branches) || 1,
     };
 
-    setRestaurants((prev) => [row, ...prev]);
+    addRestaurant(row);
     setIsModalOpen(false);
     setNewRestaurant(DEFAULT_FORM);
   };
@@ -128,7 +138,7 @@ export default function Restaurant() {
   return (
     <div
       className={`min-h-screen px-4 sm:px-6 py-6 sm:py-8 transition-colors duration-300 ${
-        darkMode ? "bg-[#020817] text-slate-100" : "bg-[#F8FAFC] text-slate-800"
+        darkMode ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-800"
       }`}
     >
       {/* Page header */}

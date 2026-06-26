@@ -11,7 +11,7 @@ import { Priority, RequestStatus, RequestType } from '../../constants/statuses';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
 import { feedbackBodySchema } from './customer.schema';
-import { getActiveLoyaltyRule } from '../loyalty/loyalty.service';
+// import { getActiveLoyaltyRule } from '../loyalty/loyalty.service';
 
 export const customerRouter = Router();
 
@@ -136,7 +136,7 @@ customerRouter.get('/feedback', async (req, res, next) => {
     next(error);
   }
 });
-
+/*
 customerRouter.get('/loyalty', async (req, res, next) => {
   try {
     const visits = await TableSessionModel.countDocuments({
@@ -161,7 +161,7 @@ customerRouter.get('/loyalty', async (req, res, next) => {
     next(error);
   }
 });
-
+*/
 customerRouter.get('/offers', async (req, res, next) => {
   try {
     const offers = await OfferModel.find({

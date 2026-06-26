@@ -63,7 +63,10 @@ const logger = winston.createLogger({
   level: env.LOG_LEVEL,
   defaultMeta: { service: 'restaurant-automation-backend' },
   format: env.isProduction ? prodFormat : devFormat,
-  transports: [new winston.transports.Console()],
+  transports: [
+    new winston.transports.Console(),
+    new winston.transports.File({ filename: 'app.log' })
+  ],
 });
 
 export { logger };

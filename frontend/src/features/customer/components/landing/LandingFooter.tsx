@@ -1,122 +1,167 @@
-import React from 'react';
-import { Facebook, Instagram, Twitter, Linkedin } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React, { useState } from "react";
+import { Twitter, Instagram, Youtube, Facebook, Linkedin } from "lucide-react";
 
-const quickLinks = [
-  { label: 'Home', path: '/' },
-  { label: 'Restaurants', path: '/restaurants' },
-  { label: 'Reservations', path: '/reservations' },
-  { label: 'How it Works', path: '#' },
-  { label: 'Related Solutions', path: '#' },
-  { label: 'Offers', path: '/offers' },
-  { label: 'My Orders', path: '/customer' },
-];
+export default function LandingFooter(): JSX.Element {
+  const [email, setEmail] = useState("");
+  const [subscribed, setSubscribed] = useState(false);
 
-const supportLinks = [
-  { label: 'Help Center', path: '#' },
-  { label: 'Contact Us', path: '#' },
-  { label: 'FAQ', path: '#' },
-  { label: 'Privacy Policy', path: '#' },
-  { label: 'Terms & Conditions', path: '#' },
-  { label: 'Refund Policy', path: '#' },
-];
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email) {
+      setSubscribed(true);
+      setEmail("");
+      setTimeout(() => setSubscribed(false), 3000);
+    }
+  };
 
-const restaurantLinks = [
-  { label: 'Partner With Us', path: '#' },
-  { label: 'Restaurant Login', path: '/admin' },
-  { label: 'Related Solutions', path: '#' },
-  { label: 'Pricing', path: '#' },
-  { label: 'Resources', path: '#' },
-];
-
-export default function LandingFooter() {
   return (
-    <footer className="bg-[#0e0700]/95 border-t border-[#FF9F00]/25 mt-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
-
-        {/* Grid — 2 cols on mobile, 4 on desktop */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
-
-          {/* Brand — full width on mobile */}
-          <div className="col-span-2 md:col-span-1">
-            <div className="flex items-center gap-0.5 mb-3">
-              <span className="text-[#FF9F00] font-bold text-xl" style={{ fontFamily: "'Instrument Serif', serif" }}>
-                Serve
-              </span>
-              <span className="text-white font-bold text-xl" style={{ fontFamily: "'Instrument Serif', serif" }}>
-                Sphere
+    <footer className="bg-[#111827] text-white pt-16 pb-8" data-purpose="main-footer">
+      <div className="container mx-auto px-4">
+        {/* Top footer columns */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+          {/* Brand & Description */}
+          <div>
+            <div className="flex items-center gap-2 mb-6" data-purpose="footer-logo">
+              <div className="bg-[#FF5722] p-1.5 rounded-lg flex items-center justify-center">
+                <svg
+                  className="h-5 w-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                  ></path>
+                </svg>
+              </div>
+              <span className="text-xl font-extrabold tracking-tight">
+                Resto<span className="text-[#FF5722]">Hub</span>
               </span>
             </div>
-            <p className="text-stone-500 text-xs leading-relaxed max-w-xs">
-              Explore top restaurants around you, enjoy real-time availability, and experience modern dining without the hassle.
+            <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+              Your go-to platform to discover, reserve and enjoy the best restaurants near you.
             </p>
+            {/* Social Icons */}
+            <div className="flex gap-4">
+              <a
+                href="#"
+                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#FF5722] transition-colors text-gray-300 hover:text-white"
+                aria-label="Twitter"
+              >
+                <Twitter className="w-4 h-4" />
+              </a>
+              <a
+                href="#"
+                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#FF5722] transition-colors text-gray-300 hover:text-white"
+                aria-label="Instagram"
+              >
+                <Instagram className="w-4 h-4" />
+              </a>
+              <a
+                href="#"
+                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#FF5722] transition-colors text-gray-300 hover:text-white"
+                aria-label="Youtube"
+              >
+                <Youtube className="w-4 h-4" />
+              </a>
+              <a
+                href="#"
+                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#FF5722] transition-colors text-gray-300 hover:text-white"
+                aria-label="Facebook"
+              >
+                <Facebook className="w-4 h-4" />
+              </a>
+              <a
+                href="#"
+                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#FF5722] transition-colors text-gray-300 hover:text-white"
+                aria-label="Linkedin"
+              >
+                <Linkedin className="w-4 h-4" />
+              </a>
+            </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-white text-sm font-semibold mb-4">Quick Links</h4>
-            <ul className="space-y-2">
-              {quickLinks.map((l) => (
-                <li key={l.label}>
-                  <Link to={l.path} className="text-stone-500 hover:text-[#FF9F00] text-xs transition-colors">
-                    {l.label}
-                  </Link>
-                </li>
-              ))}
+            <h4 className="font-bold mb-6 text-base tracking-wider uppercase text-gray-200">Quick Links</h4>
+            <ul className="space-y-3.5 text-gray-400 text-sm font-semibold">
+              <li>
+                <a className="hover:text-[#FF5722] transition-colors" href="#">
+                  Home
+                </a>
+              </li>
+              <li>
+                <a className="hover:text-[#FF5722] transition-colors" href="#restaurants">
+                  Restaurants
+                </a>
+              </li>
+              <li>
+                <a className="hover:text-[#FF5722] transition-colors" href="#dishes">
+                  Dishes
+                </a>
+              </li>
+              <li>
+                <a className="hover:text-[#FF5722] transition-colors" href="#offers">
+                  Offers
+                </a>
+              </li>
             </ul>
           </div>
 
-          {/* Support */}
+          {/* For Restaurants */}
           <div>
-            <h4 className="text-white text-sm font-semibold mb-4">Support</h4>
-            <ul className="space-y-2">
-              {supportLinks.map((l) => (
-                <li key={l.label}>
-                  <Link to={l.path} className="text-stone-500 hover:text-[#FF9F00] text-xs transition-colors">
-                    {l.label}
-                  </Link>
-                </li>
-              ))}
+            <h4 className="font-bold mb-6 text-base tracking-wider uppercase text-gray-200">For Restaurants</h4>
+            <ul className="space-y-3.5 text-gray-400 text-sm font-semibold">
+              <li>
+                <a className="hover:text-[#FF5722] transition-colors" href="#">
+                  Add Restaurant
+                </a>
+              </li>
+              <li>
+                <a className="hover:text-[#FF5722] transition-colors" href="#">
+                  Partner With Us
+                </a>
+              </li>
+              <li>
+                <a className="hover:text-[#FF5722] transition-colors" href="#">
+                  Business Login
+                </a>
+              </li>
             </ul>
           </div>
-{/* For Restaurants */}
-<div>
-  <h4 className="text-white text-sm font-semibold mb-4">For Restaurants</h4>
-  <ul className="space-y-2">
-    {restaurantLinks.map((l) => (
-      <li key={l.label}>
-        <Link to={l.path} className="text-stone-500 hover:text-[#FF9F00] text-xs transition-colors">
-          {l.label}
-        </Link>
-      </li>
-    ))}
-  </ul>
-</div>
+
+          {/* Newsletter Subscribe */}
+          <div>
+            <h4 className="font-bold mb-6 text-base tracking-wider uppercase text-gray-200">Subscribe</h4>
+            <p className="text-gray-400 text-sm mb-4">
+              Get the latest updates and offers straight to your inbox.
+            </p>
+            <form onSubmit={handleSubscribe} className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/10">
+              <input
+                className="bg-transparent border-none focus:ring-0 text-sm flex-1 px-3 py-2 outline-none text-white placeholder:text-gray-500"
+                placeholder="Enter your email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <button
+                type="submit"
+                className="bg-[#FF5722] hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0 active:scale-95"
+              >
+                {subscribed ? "Subscribed!" : "Subscribe"}
+              </button>
+            </form>
+          </div>
         </div>
 
-        {/* Bottom bar */}
-        <div className="border-t border-[#FF9F00]/25 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-stone-600 text-xs">
-            © 2025 ServeSphere. All rights reserved.
-          </p>
-          <div className="flex items-center gap-2.5">
-            {[
-              { Icon: Facebook, url: 'https://facebook.com' },
-              { Icon: Instagram, url: 'https://instagram.com' },
-              { Icon: Twitter, url: 'https://twitter.com' },
-              { Icon: Linkedin, url: 'https://linkedin.com' },
-            ].map(({ Icon, url }, i) => (
-              <a
-                key={i}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#2a1800] hover:bg-[#FF9F00] flex items-center justify-center text-stone-400 hover:text-stone-900 transition-all border border-[#FF9F00]/30 hover:border-[#FF9F00]"
-              >
-                <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              </a>
-            ))}
-          </div>
+        {/* Bottom footer copyright */}
+        <div className="pt-8 border-t border-white/10 text-center text-gray-500 text-xs font-semibold">
+          <p>© 2026 RestoHub. All rights reserved.</p>
         </div>
       </div>
     </footer>

@@ -51,6 +51,10 @@ export interface IMenuItem extends Document {
   spiceLevel?: number; // 0-5
   tags?: string[];
   displayOrder: number;
+  ingredients?: {
+    inventoryItemId: Types.ObjectId;
+    quantity: number;
+  }[];
   createdBy: Types.ObjectId;
   updatedBy: Types.ObjectId;
   createdAt: Date;
@@ -75,6 +79,13 @@ const MenuItemSchema = new Schema<IMenuItem>(
     spiceLevel: { type: Number, min: 0, max: 5 },
     tags: [{ type: String, trim: true }],
     displayOrder: { type: Number, default: 0, min: 0 },
+    ingredients: [
+      {
+        inventoryItemId: { type: Schema.Types.ObjectId, ref: 'InventoryItem', required: true },
+        quantity: { type: Number, required: true, min: 0 },
+        _id: false,
+      },
+    ],
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },

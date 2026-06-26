@@ -195,7 +195,7 @@ export function MenuHeader({ onToggleCategories }: Props): JSX.Element {
         {/* Title row */}
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-extrabold text-gray-800 dark:text-gray-100 tracking-tight leading-tight">
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
               Menu Management
             </h1>
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">

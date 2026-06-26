@@ -1,4 +1,5 @@
 import type { AppRole } from '../constants/roles';
+import type { Panel } from '../constants/roles';
 
 declare global {
   namespace Express {
@@ -10,6 +11,8 @@ declare global {
         email?: string;
         role: AppRole | string;
         restaurantId?: string;
+        panel?: Panel;
+        internal_role?: string;
       };
       tableSession?: {
         _id: string;
@@ -23,3 +26,4 @@ declare global {
 }
 
 export {};
+

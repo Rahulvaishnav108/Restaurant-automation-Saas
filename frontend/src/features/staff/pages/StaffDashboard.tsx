@@ -1,16 +1,21 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useStaffSearch } from '../components/dashboard/StaffSearchContext';
+import { useStaffDashboard } from '../hooks/useStaffDashboard';
 
 export default function StaffDashboard() {
   const { query } = useStaffSearch();
+  const { orders, readyItems, requests } = useStaffDashboard();
 
-  // Mock data representing state that interacts with other pages
+  const pendingRequestsCount = requests.filter(r => r.status !== 'Resolved').length;
+  const readyFoodCount = readyItems.length;
+  const activeOrdersCount = orders.filter(o => ['Pending', 'Preparing', 'Ready', 'Served'].includes(o.status)).length;
+
   const stats = [
     { label: 'Active Tables', value: '6/8', icon: 'table_restaurant', color: 'text-dine-orange bg-orange-50 dark:bg-orange-950/40', link: '/staff/tables' },
-    { label: 'Pending Requests', value: '5', icon: 'notifications_active', color: 'text-red-500 bg-red-50 dark:bg-red-950/45', link: '/staff/requests', badge: 'Action Required' },
-    { label: 'Food Ready', value: '3 Items', icon: 'restaurant', color: 'text-green-500 bg-green-50 dark:bg-green-950/40', link: '/staff/food-ready' },
-    { label: "Today's Orders", value: '42', icon: 'receipt_long', color: 'text-blue-500 bg-blue-50 dark:bg-blue-950/40', link: '/staff/orders' },
+    { label: 'Pending Requests', value: `${pendingRequestsCount}`, icon: 'notifications_active', color: 'text-red-500 bg-red-50 dark:bg-red-950/45', link: '/staff/requests', badge: pendingRequestsCount > 0 ? 'Action Required' : undefined },
+    { label: 'Food Ready', value: `${readyFoodCount} Item${readyFoodCount !== 1 ? 's' : ''}`, icon: 'restaurant', color: 'text-green-500 bg-green-50 dark:bg-green-950/40', link: '/staff/food-ready' },
+    { label: "Today's Orders", value: `${orders.length}`, icon: 'receipt_long', color: 'text-blue-500 bg-blue-50 dark:bg-blue-950/40', link: '/staff/orders' },
     { label: 'Bill Requests', value: '2', icon: 'payments', color: 'text-purple-500 bg-purple-50 dark:bg-purple-950/40', link: '/staff/orders' },
     { label: 'Walk-in Queue', value: '4 Groups', icon: 'groups', color: 'text-teal-500 bg-teal-50 dark:bg-teal-950/40', link: '/staff/reservations' },
   ];
@@ -22,16 +27,8 @@ export default function StaffDashboard() {
     { id: 4, name: 'Table 4', guests: 2, status: 'Cleaning', bill: '₹0', elapsed: '5 mins', action: 'Clean' },
   ];
 
-  const pendingRequests = [
-    { id: 1, table: 'Table 2', type: 'Call Waiter', time: '2 mins ago', severity: 'high' },
-    { id: 2, table: 'Table 1', type: 'Extra Napkins', time: '5 mins ago', severity: 'low' },
-    { id: 3, table: 'Table 3', type: 'Water Bottle', time: '8 mins ago', severity: 'low' },
-  ];
-
-  const readyFood = [
-    { id: 1, table: 'Table 3', item: 'Paneer Tikka Masala', qty: 1, time: '3 mins ago' },
-    { id: 2, table: 'Table 1', item: 'Butter Naan', qty: 3, time: '1 min ago' },
-  ];
+  const pendingRequests = requests.filter(r => r.status !== 'Resolved').slice(0, 3);
+  const readyFood = readyItems.slice(0, 3);
 
   // Filtering based on search query
   const filteredTables = activeTables.filter(t => 
@@ -57,19 +54,21 @@ export default function StaffDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link
-            to="/staff/requests"
-            className="flex items-center gap-2 bg-red-500 hover:bg-red-650 text-white font-semibold text-xs py-2 px-4 rounded-xl shadow-md shadow-red-500/10 transition-all"
-          >
-            <span className="material-symbols-outlined text-[16px] animate-pulse">notifications_active</span>
-            5 Urgent Requests
-          </Link>
+          {pendingRequestsCount > 0 && (
+            <Link
+              to="/staff/requests"
+              className="flex items-center gap-2 bg-red-500 hover:bg-red-650 text-white font-semibold text-xs py-2 px-4 rounded-xl shadow-md shadow-red-500/10 transition-all animate-pulse"
+            >
+              <span className="material-symbols-outlined text-[16px]">notifications_active</span>
+              {pendingRequestsCount} Urgent Request{pendingRequestsCount !== 1 ? 's' : ''}
+            </Link>
+          )}
           <Link
             to="/staff/food-ready"
             className="flex items-center gap-2 bg-green-500 hover:bg-green-650 text-white font-semibold text-xs py-2 px-4 rounded-xl shadow-md shadow-green-500/10 transition-all"
           >
             <span className="material-symbols-outlined text-[16px]">restaurant</span>
-            Food Ready
+            Food Ready {readyFoodCount > 0 ? `(${readyFoodCount})` : ''}
           </Link>
         </div>
       </div>
@@ -242,7 +241,7 @@ export default function StaffDashboard() {
                         <span>•</span>
                         <span>Qty: {food.qty}</span>
                         <span>•</span>
-                        <span>{food.time}</span>
+                        <span>{food.readySince}</span>
                       </div>
                     </div>
                     <Link

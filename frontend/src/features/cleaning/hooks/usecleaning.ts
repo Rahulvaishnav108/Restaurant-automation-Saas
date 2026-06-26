@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { cleaningStore } from '../store/cleaning.store';
+import { cleaningStore, type StaffProfile } from '../store/cleaning.store';
 import { cleaningAPI, type CleaningMetric, type UrgentTask } from '../api/cleaning.api';
 
 // Hum yahan temporary interface bana rahe hain taaki TypeScript error na de
@@ -13,6 +13,17 @@ export function useCleaning() {
   const [urgentTasks, setUrgentTasks] = useState<UrgentTask[]>([]);
   const [loading, setLoading] = useState(false);
   const [error] = useState<string | null>(null);
+
+  const [profile, setProfile] = useState(() => cleaningStore.profile);
+
+  useEffect(() => {
+    const unsubscribe = cleaningStore.subscribe(() => {
+      setProfile(cleaningStore.profile);
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   const processAndSyncData = useCallback(() => {
     const storeTables = cleaningStore.tables || [];
@@ -133,6 +144,8 @@ export function useCleaning() {
     jobStatus: [],
     loading,
     error,
+    profile,
+    updateProfile: (updated: Partial<StaffProfile>) => cleaningStore.updateProfile(updated),
     assignTask: (taskId: string) => cleaningStore.startCleaning(taskId),
     startTask: (taskId: string) => cleaningStore.startCleaning(taskId),
     completeTask: (taskId: string) => cleaningStore.updateProgress(taskId),

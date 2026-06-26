@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useStaffStore } from '../../store/staff.store';
 import type { StaffRole, StaffDepartment, StaffStatus, StaffMember } from '../../store/staff.store';
+import { apiClient } from '../../../../shared/services/apiClient';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -86,10 +87,12 @@ function ViewStaffModal({
   member,
   onClose,
   onEdit,
+  onViewHistory,
 }: {
   member: StaffMember;
   onClose: () => void;
   onEdit: () => void;
+  onViewHistory: () => void;
 }): JSX.Element {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -164,6 +167,12 @@ function ViewStaffModal({
 
         <div className="flex items-center justify-end gap-2 px-5 pb-5">
           <button
+            onClick={onViewHistory}
+            className="px-4 py-2.5 sm:py-2 text-xs font-semibold text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/20 border border-orange-200 dark:border-orange-900 rounded-xl transition-colors"
+          >
+            View Login History
+          </button>
+          <button
             onClick={onClose}
             className="px-4 py-2.5 sm:py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
@@ -195,8 +204,11 @@ function EditStaffModal({
     name: member.name,
     email: member.email,
     phone: member.phone,
-    role: member.role,
-    department: member.department,
+    password: '',
+    dbRole: member.dbRole || (member.role === 'Chef' ? 'kitchen-staff' : member.role === 'Cleaner' ? 'cleaning-staff' : member.role === 'Manager' ? 'restaurant-admin' : 'service-staff'),
+    kitchen_role: member.kitchen_role || '',
+    staff_role: member.staff_role || '',
+    cleaning_role: member.cleaning_role || '',
     status: member.status,
     salary: String(member.salary),
     performance: member.performance,
@@ -207,6 +219,12 @@ function EditStaffModal({
     const e: Record<string, string> = {};
     if (!form.name.trim()) e.name = 'Name is required';
     if (!form.email.trim()) e.email = 'Email is required';
+    if (form.password.trim() !== '') {
+      if (form.password.length < 8) e.password = 'Password must be at least 8 characters';
+      else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(form.password)) {
+        e.password = 'Must contain uppercase, lowercase, and digit';
+      }
+    }
     if (!form.salary || isNaN(Number(form.salary))) e.salary = 'Valid salary required';
     return e;
   };
@@ -217,6 +235,14 @@ function EditStaffModal({
       setErrors(e);
       return;
     }
+    
+    let feRole: StaffRole = 'Server';
+    let feDept: StaffDepartment = 'Service';
+    if (form.dbRole === 'kitchen-staff') { feRole = 'Chef'; feDept = 'Kitchen'; }
+    else if (form.dbRole === 'service-staff') { feRole = 'Server'; feDept = 'Service'; }
+    else if (form.dbRole === 'cleaning-staff') { feRole = 'Cleaner'; feDept = 'Cleaning'; }
+    else if (form.dbRole === 'restaurant-admin') { feRole = 'Manager'; feDept = 'Management'; }
+
     const initials = form.name
       .split(' ')
       .slice(0, 2)
@@ -227,8 +253,13 @@ function EditStaffModal({
       name: form.name.trim(),
       email: form.email.trim(),
       phone: form.phone.trim(),
-      role: form.role,
-      department: form.department,
+      password: form.password || undefined,
+      dbRole: form.dbRole,
+      kitchen_role: form.kitchen_role || undefined,
+      staff_role: form.staff_role || undefined,
+      cleaning_role: form.cleaning_role || undefined,
+      role: feRole,
+      department: feDept,
       status: form.status,
       salary: Number(form.salary),
       performance: form.performance,
@@ -325,49 +356,115 @@ function EditStaffModal({
             />
           </div>
 
+          {/* Reset Password */}
+          <div>
+            <label
+              htmlFor="edit-password"
+              className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"
+            >
+              Reset Password
+            </label>
+            <input
+              id="edit-password"
+              type="password"
+              placeholder="Leave blank to keep current password"
+              value={form.password}
+              onChange={(e) => field('password', e.target.value)}
+              className={`w-full px-3 py-2.5 sm:py-2 text-sm bg-gray-50 dark:bg-gray-800 border rounded-xl outline-none focus:ring-2 focus:ring-orange-100 dark:focus:ring-orange-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 ${
+                errors.password ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'
+              }`}
+            />
+            {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
+          </div>
+
+          {/* Primary Role & Sub-role Selection */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label
-                htmlFor="edit-role"
+                htmlFor="edit-db-role"
                 className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"
               >
-                <Briefcase className="w-3.5 h-3.5" /> Role
+                <Briefcase className="w-3.5 h-3.5" /> Primary Role
               </label>
               <div className="relative">
                 <select
-                  id="edit-role"
-                  value={form.role}
-                  onChange={(e) => field('role', e.target.value)}
+                  id="edit-db-role"
+                  value={form.dbRole}
+                  onChange={(e) => {
+                    const selectedRole = e.target.value;
+                    let defaultSubRole = '';
+                    if (selectedRole === 'kitchen-staff') defaultSubRole = 'CHEF';
+                    else if (selectedRole === 'service-staff') defaultSubRole = 'WAITER';
+                    else if (selectedRole === 'cleaning-staff') defaultSubRole = 'CLEANING_STAFF';
+
+                    setForm((prev) => ({
+                      ...prev,
+                      dbRole: selectedRole,
+                      kitchen_role: selectedRole === 'kitchen-staff' ? defaultSubRole : '',
+                      staff_role: selectedRole === 'service-staff' ? defaultSubRole : '',
+                      cleaning_role: selectedRole === 'cleaning-staff' ? defaultSubRole : '',
+                    }));
+                  }}
                   className="w-full appearance-none px-3 py-2.5 sm:py-2 pr-8 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-gray-100"
                 >
-                  {EDIT_ROLES.map((r: StaffRole) => (
-                    <option key={r}>{r}</option>
-                  ))}
+                  <option value="service-staff">Service Staff</option>
+                  <option value="kitchen-staff">Kitchen Staff</option>
+                  <option value="cleaning-staff">Cleaning Staff</option>
+                  <option value="restaurant-admin">Restaurant Admin</option>
                 </select>
                 <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
               </div>
             </div>
-            <div>
-              <label
-                htmlFor="edit-dept"
-                className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"
-              >
-                <Building2 className="w-3.5 h-3.5" /> Department
-              </label>
-              <div className="relative">
-                <select
-                  id="edit-dept"
-                  value={form.department}
-                  onChange={(e) => field('department', e.target.value)}
-                  className="w-full appearance-none px-3 py-2.5 sm:py-2 pr-8 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-gray-100"
+
+            {form.dbRole !== 'restaurant-admin' && (
+              <div>
+                <label
+                  htmlFor="edit-sub-role"
+                  className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-1.5"
                 >
-                  {EDIT_DEPTS.map((d: StaffDepartment) => (
-                    <option key={d}>{d}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                  <Building2 className="w-3.5 h-3.5" /> Operational Role
+                </label>
+                <div className="relative">
+                  {form.dbRole === 'kitchen-staff' && (
+                    <select
+                      id="edit-sub-role"
+                      value={form.kitchen_role}
+                      onChange={(e) => field('kitchen_role', e.target.value)}
+                      className="w-full appearance-none px-3 py-2.5 sm:py-2 pr-8 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-gray-100"
+                    >
+                      <option value="CHEF">Chef</option>
+                      <option value="KITCHEN_SUPERVISOR">Kitchen Supervisor</option>
+                      <option value="HEAD_CHEF">Head Chef</option>
+                    </select>
+                  )}
+                  {form.dbRole === 'service-staff' && (
+                    <select
+                      id="edit-sub-role"
+                      value={form.staff_role}
+                      onChange={(e) => field('staff_role', e.target.value)}
+                      className="w-full appearance-none px-3 py-2.5 sm:py-2 pr-8 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-gray-100"
+                    >
+                      <option value="WAITER">Waiter</option>
+                      <option value="FLOOR_STAFF">Floor Staff</option>
+                      <option value="FLOOR_SUPERVISOR">Floor Supervisor</option>
+                    </select>
+                  )}
+                  {form.dbRole === 'cleaning-staff' && (
+                    <select
+                      id="edit-sub-role"
+                      value={form.cleaning_role}
+                      onChange={(e) => field('cleaning_role', e.target.value)}
+                      className="w-full appearance-none px-3 py-2.5 sm:py-2 pr-8 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-900 dark:text-gray-100"
+                    >
+                      <option value="CLEANING_STAFF">Cleaning Staff</option>
+                      <option value="HOUSEKEEPING">Housekeeping</option>
+                      <option value="CLEANING_SUPERVISOR">Cleaning Supervisor</option>
+                    </select>
+                  )}
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -486,8 +583,6 @@ function DeleteConfirmModal({
   );
 }
 
-// ── View All Modal ─────────────────────────────────────────────────────────
-
 function ViewAllModal({ onClose }: { onClose: () => void }): JSX.Element {
   const { members } = useStaffStore();
   const [search, setSearch] = useState('');
@@ -573,6 +668,101 @@ function ViewAllModal({ onClose }: { onClose: () => void }): JSX.Element {
               <div className="py-12 text-center text-sm text-gray-400">No members found</div>
             )}
           </div>
+        </div>
+
+        <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2.5 sm:py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Login History Modal ───────────────────────────────────────────────────
+
+function LoginHistoryModal({
+  member,
+  onClose,
+}: {
+  member: StaffMember;
+  onClose: () => void;
+}): JSX.Element {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchLogs() {
+      try {
+        const res = await apiClient.get(`/audit-logs?actorId=${member.id}&action=AUTH_LOGIN`);
+        setLogs(res.data.data.logs || []);
+      } catch (err) {
+        console.error('Failed to fetch login history', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchLogs();
+  }, [member.id]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <button
+        type="button"
+        aria-label="Close login history"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm w-full h-full cursor-default"
+        onClick={onClose}
+      />
+      <div className="relative z-10 bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[80vh] flex flex-col">
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 rounded-full bg-gray-200 dark:bg-gray-700" />
+        </div>
+
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+          <div>
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100">
+              Login History
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              Recent logins for {member.name}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
+            <X className="w-4 h-4 text-gray-400" />
+          </button>
+        </div>
+
+        <div className="p-5 overflow-y-auto flex-1 space-y-3">
+          {loading ? (
+            <div className="py-8 text-center text-sm text-gray-400">Loading history...</div>
+          ) : logs.length === 0 ? (
+            <div className="py-8 text-center text-sm text-gray-400">No login history recorded</div>
+          ) : (
+            logs.map((log) => (
+              <div
+                key={log._id}
+                className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 rounded-xl"
+              >
+                <div className="flex justify-between items-center text-xs font-semibold text-gray-750 dark:text-gray-300">
+                  <span>Logged In</span>
+                  <span className="text-gray-400 font-normal">
+                    {new Date(log.createdAt).toLocaleString()}
+                  </span>
+                </div>
+                <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                  <p>IP Address: {log.ipAddress || 'Unknown'}</p>
+                  <p className="truncate" title={log.userAgent}>User Agent: {log.userAgent || 'Unknown'}</p>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-end">
@@ -818,13 +1008,19 @@ export function StaffTable(): JSX.Element {
     setDepartmentFilter,
     setStatusFilter,
     setCurrentPage,
+    fetchMembers,
   } = useStaffStore();
 
   const [viewMember, setViewMember] = useState<StaffMember | null>(null);
   const [editMember, setEditMember] = useState<StaffMember | null>(null);
   const [deleteMember, setDeleteMember] = useState<StaffMember | null>(null);
+  const [loginHistoryMember, setLoginHistoryMember] = useState<StaffMember | null>(null);
   const [showViewAll, setShowViewAll] = useState(false);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
+
+  useEffect(() => {
+    fetchMembers?.();
+  }, [fetchMembers]);
 
   const filtered = members.filter((m) => {
     const q = searchQuery.toLowerCase();
@@ -1076,6 +1272,10 @@ export function StaffTable(): JSX.Element {
             setEditMember(viewMember);
             setViewMember(null);
           }}
+          onViewHistory={() => {
+            setLoginHistoryMember(viewMember);
+            setViewMember(null);
+          }}
         />
       )}
       {editMember && (
@@ -1083,6 +1283,12 @@ export function StaffTable(): JSX.Element {
       )}
       {deleteMember && (
         <DeleteConfirmModal member={deleteMember} onClose={() => setDeleteMember(null)} />
+      )}
+      {loginHistoryMember && (
+        <LoginHistoryModal
+          member={loginHistoryMember}
+          onClose={() => setLoginHistoryMember(null)}
+        />
       )}
     </>
   );

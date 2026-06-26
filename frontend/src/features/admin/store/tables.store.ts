@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -185,60 +186,67 @@ function computeStats(tables: Table[]): TableStats {
   };
 }
 
-export const useTablesStore = create<TablesStore>((set, _get) => ({
-  tables:          seedTables,
-  stats:           computeStats(seedTables),
-  selectedTableId: null,
-  selectedFloor:   1,
-  viewMode:        'floor-map',
-  showAddModal:    false,
-  showEditModal:   false,
-  filter: {
-    section: 'All',
-    status:  'All',
-    floor:   'All',
-    search:  '',
-  },
+export const useTablesStore = create<TablesStore>()(
+  persist(
+    (set, _get) => ({
+      tables:          seedTables,
+      stats:           computeStats(seedTables),
+      selectedTableId: null,
+      selectedFloor:   1,
+      viewMode:        'floor-map',
+      showAddModal:    false,
+      showEditModal:   false,
+      filter: {
+        section: 'All',
+        status:  'All',
+        floor:   'All',
+        search:  '',
+      },
 
-  selectTable: (id) => set({ selectedTableId: id }),
+      selectTable: (id) => set({ selectedTableId: id }),
 
-  setFloor: (floor) => set({ selectedFloor: floor }),
+      setFloor: (floor) => set({ selectedFloor: floor }),
 
-  setViewMode: (mode) => set({ viewMode: mode }),
+      setViewMode: (mode) => set({ viewMode: mode }),
 
-  setFilter: (patch) =>
-    set((s) => ({ filter: { ...s.filter, ...patch } })),
+      setFilter: (patch) =>
+        set((s) => ({ filter: { ...s.filter, ...patch } })),
 
-  updateTableStatus: (id, status) =>
-    set((s) => {
-      const tables = s.tables.map(t =>
-        t.id === id
-          ? { ...t, status, currentOrder: status !== 'Occupied' ? undefined : t.currentOrder }
-          : t
-      );
-      return { tables, stats: computeStats(tables) };
+      updateTableStatus: (id, status) =>
+        set((s) => {
+          const tables = s.tables.map(t =>
+            t.id === id
+              ? { ...t, status, currentOrder: status !== 'Occupied' ? undefined : t.currentOrder }
+              : t
+          );
+          return { tables, stats: computeStats(tables) };
+        }),
+
+      addTable: (t) =>
+        set((s) => {
+          const id  = Math.max(...s.tables.map(x => x.id)) + 1;
+          const pos = findFreePosition(t.floor, t.shape, s.tables);
+          const tables = [...s.tables, { ...t, id, x: pos.x, y: pos.y }];
+          return { tables, stats: computeStats(tables) };
+        }),
+
+      updateTable: (id, patch) =>
+        set((s) => {
+          const tables = s.tables.map(t => t.id === id ? { ...t, ...patch } : t);
+          return { tables, stats: computeStats(tables) };
+        }),
+
+      deleteTable: (id) =>
+        set((s) => {
+          const tables = s.tables.filter(t => t.id !== id);
+          return { tables, stats: computeStats(tables), selectedTableId: null };
+        }),
+
+      setShowAddModal:  (v) => set({ showAddModal: v }),
+      setShowEditModal: (v) => set({ showEditModal: v }),
     }),
-
-  addTable: (t) =>
-    set((s) => {
-      const id  = Math.max(...s.tables.map(x => x.id)) + 1;
-      const pos = findFreePosition(t.floor, t.shape, s.tables);
-      const tables = [...s.tables, { ...t, id, x: pos.x, y: pos.y }];
-      return { tables, stats: computeStats(tables) };
-    }),
-
-  updateTable: (id, patch) =>
-    set((s) => {
-      const tables = s.tables.map(t => t.id === id ? { ...t, ...patch } : t);
-      return { tables, stats: computeStats(tables) };
-    }),
-
-  deleteTable: (id) =>
-    set((s) => {
-      const tables = s.tables.filter(t => t.id !== id);
-      return { tables, stats: computeStats(tables), selectedTableId: null };
-    }),
-
-  setShowAddModal:  (v) => set({ showAddModal: v }),
-  setShowEditModal: (v) => set({ showEditModal: v }),
-}));
+    {
+      name: 'admin-tables-store',
+    }
+  )
+);

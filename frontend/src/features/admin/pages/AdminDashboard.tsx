@@ -11,7 +11,7 @@ const AdminDashboard = () => {
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-4xl sm:text-4xl text-gray-900 dark:text-white">Dashboard</h1>
+        <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{"Welcome back, Debesh! Here's what's happening today."}</p>
       </div>
 

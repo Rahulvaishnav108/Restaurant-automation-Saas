@@ -3,7 +3,7 @@
 import {
   TrendingUp,
   TrendingDown,
-  DollarSign,
+  IndianRupee,
   Percent,
   CheckCircle2,
   RefreshCw,
@@ -88,7 +88,7 @@ export default function TransactionMetrics({ metrics, darkMode }: TransactionMet
         value={formatCurrency(metrics.totalRevenue)}
         sub="+24.5% from last period"
         subPositive={true}
-        icon={<DollarSign size={18} />}
+        icon={<IndianRupee size={18} />}
         iconBg={darkMode ? "bg-blue-500/10 text-blue-400" : "bg-blue-50 text-blue-600"}
         darkMode={darkMode}
         accent="text-blue-500"

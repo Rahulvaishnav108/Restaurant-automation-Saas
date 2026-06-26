@@ -1,12 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { STATIONS, type KitchenStation } from '../store/kitchenData';
 import { useKitchenSearch } from '../components/dashboard/KitchenSearchContext';
 
 export default function KitchenStationsPage() {
   const { query } = useKitchenSearch();
-  const [stations, setStations] = useState<KitchenStation[]>(STATIONS);
+
+  const [stations, setStations] = useState<KitchenStation[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('kitchen_stations');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch (e) {
+          console.error("Failed to parse kitchen stations", e);
+        }
+      }
+    }
+    return STATIONS;
+  });
+
   const [editingStationId, setEditingStationId] = useState<string | null>(null);
   const [newChefName, setNewChefName] = useState<string>('');
+
+  useEffect(() => {
+    localStorage.setItem('kitchen_stations', JSON.stringify(stations));
+  }, [stations]);
 
   const filteredStations = stations.filter(station => {
     if (query) {

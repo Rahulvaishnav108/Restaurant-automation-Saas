@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import fs from 'fs';
 import logger from '../config/logger';
 import { ErrorCode } from '../constants/errors';
 import { AppError } from '../utils/AppError';
@@ -51,7 +52,7 @@ export async function createOTP(identifier: string, type: 'email' | 'mobile'): P
 
   await OtpModel.deleteMany({ identifier, type });
 
-  const plainOtp = generateOTP(6);
+  const plainOtp = generateOTP(type === 'mobile' ? 4 : 6);
   const otpHash = await hashPassword(plainOtp);
 
   await OtpModel.create({
@@ -62,6 +63,20 @@ export async function createOTP(identifier: string, type: 'email' | 'mobile'): P
   });
 
   logger.info(`OTP generated for ${type}: ${identifier}`);
+  if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'production') {
+    logger.warn(`[DEV ONLY] OTP for ${identifier}: ${plainOtp}`);
+    try {
+      fs.writeFileSync('otp.txt', `OTP for ${identifier}: ${plainOtp}\n`);
+      // Also write to workspace root if possible
+      try {
+        fs.writeFileSync('../otp.txt', `OTP for ${identifier}: ${plainOtp}\n`);
+      } catch (rootErr) {
+        // Ignore errors if workspace root is not writable
+      }
+    } catch (err) {
+      logger.error('Failed to write OTP to file', err);
+    }
+  }
 
   return plainOtp;
 }

@@ -9,7 +9,14 @@ import {
 } from '../billing/billing.schema';
 import { BillingService } from '../billing/billing.service';
 import { PaymentModel } from './payments.model';
+import type { IPayment } from './payments.model'; // used for explicit document casting below
 import type { ListPaymentsQuery, VerifyPaymentInput } from './payments.schema';
+import {
+  createRazorpayOrder,
+  verifyRazorpaySignature,
+  createRazorpayRefund,
+} from '../../services/razorpay.service';
+import { env } from '../../config/env';
 
 function toObjectId(value: string): mongoose.Types.ObjectId {
   if (!mongoose.Types.ObjectId.isValid(value)) {
@@ -64,8 +71,35 @@ function buildPaymentFilter(restaurantId: string, query: ListPaymentsQuery) {
 
 export class PaymentsService {
   static async createCustomerPayment(restaurantId: string, sessionId: string, method: PaymentMethod) {
+    // Step 1: Build the bill via BillingService (creates/updates Bill document)
     const result = await BillingService.createPayment(restaurantId, sessionId, method);
 
+    const isCashPayment = method === PaymentMethod.CASH;
+    const isRazorpayEnabled = !!(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET);
+
+    let razorpayOrderId: string | null = null;
+    let providerPaymentId = result.paymentIntentId; // default: mock intent id
+
+    // Step 2: For online methods (UPI, CARD, ONLINE, WALLET) + Razorpay configured
+    //         → create a real Razorpay order
+    if (!isCashPayment && isRazorpayEnabled) {
+      const rzpOrder = await createRazorpayOrder({
+        amount: result.amount,           // in ₹ — service converts to paise
+        currency: result.currency ?? 'INR',
+        receipt: String(result.billId),  // your internal bill ID as receipt
+        notes: {
+          restaurantId,
+          sessionId,
+          billId: String(result.billId),
+          method,
+        },
+      });
+
+      razorpayOrderId = rzpOrder.id;     // e.g. "order_Abc123XYZ"
+      providerPaymentId = rzpOrder.id;   // store Razorpay order ID as provider ref
+    }
+
+    // Step 3: Update the PaymentModel record created by BillingService
     const payment = await PaymentModel.findOneAndUpdate(
       {
         restaurantId: toObjectId(restaurantId),
@@ -73,9 +107,10 @@ export class PaymentsService {
         status: PaymentStatus.PENDING,
       },
       {
-        provider: 'mock',
-        providerPaymentId: result.paymentIntentId,
-        currency: result.currency,
+        provider: isRazorpayEnabled && !isCashPayment ? 'razorpay' : 'mock',
+        providerPaymentId,
+        razorpayOrderId,
+        currency: result.currency ?? 'INR',
         metadata: {
           billId: result.billId,
           source: 'customer_payment_create',
@@ -86,6 +121,10 @@ export class PaymentsService {
 
     return {
       ...result,
+      // Key fields the frontend needs to open Razorpay checkout
+      razorpayOrderId,
+      razorpayKeyId: isRazorpayEnabled && !isCashPayment ? env.RAZORPAY_KEY_ID : null,
+      provider: isRazorpayEnabled && !isCashPayment ? 'razorpay' : 'mock',
       payment,
     };
   }
@@ -95,7 +134,49 @@ export class PaymentsService {
     sessionId: string,
     paymentId: string,
     simulateStatus?: VerifyPaymentInput['simulateStatus'],
+    razorpayFields?: {
+      razorpay_order_id: string;
+      razorpay_payment_id: string;
+      razorpay_signature: string;
+    },
   ) {
+    const isRazorpayEnabled = !!(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET);
+
+    // --- RAZORPAY SIGNATURE VERIFICATION ---
+    // If Razorpay fields are provided, verify signature before anything else.
+    // This is the most important security step — prevents fake payment confirmations.
+    if (razorpayFields && isRazorpayEnabled) {
+      const isValid = verifyRazorpaySignature(razorpayFields);
+
+      if (!isValid) {
+        throw new AppError(
+          'Payment signature verification failed. Possible tampered request.',
+          400,
+          ErrorCode.PAYMENT_FAILED,
+        );
+      }
+
+      // Update PaymentModel with real Razorpay payment ID
+      await PaymentModel.findOneAndUpdate(
+        {
+          restaurantId: toObjectId(restaurantId),
+          sessionId: toObjectId(sessionId),
+          $or: [
+            { razorpayOrderId: razorpayFields.razorpay_order_id },
+            { providerPaymentId: razorpayFields.razorpay_order_id },
+          ],
+        },
+        {
+          razorpayPaymentId: razorpayFields.razorpay_payment_id,
+          razorpaySignature: razorpayFields.razorpay_signature,
+          providerPaymentId: razorpayFields.razorpay_payment_id,
+        },
+        { new: true },
+      );
+    }
+
+    // --- MARK BILL PAID ---
+    // paymentId here is either the mock intentId or Razorpay order_id
     const bill = await BillingService.verifyPayment(
       restaurantId,
       sessionId,
@@ -106,7 +187,11 @@ export class PaymentsService {
     const payment = await PaymentModel.findOne({
       restaurantId: toObjectId(restaurantId),
       sessionId: toObjectId(sessionId),
-      $or: [{ providerPaymentId: paymentId }, { _id: mongoose.Types.ObjectId.isValid(paymentId) ? toObjectId(paymentId) : null }],
+      $or: [
+        { providerPaymentId: paymentId },
+        { razorpayOrderId: paymentId },
+        { _id: mongoose.Types.ObjectId.isValid(paymentId) ? toObjectId(paymentId) : null },
+      ],
     }).lean();
 
     return {
@@ -252,6 +337,100 @@ export class PaymentsService {
         to: query.to ?? null,
       },
     };
+  }
+
+  static async refundPayment(
+    restaurantId: string,
+    paymentId: string,
+    refundAmountInRupees?: number,
+    reason?: string,
+  ) {
+    const payment = (await PaymentModel.findOne({
+      restaurantId: toObjectId(restaurantId),
+      $or: [
+        { providerPaymentId: paymentId },
+        { razorpayPaymentId: paymentId },
+        { _id: mongoose.Types.ObjectId.isValid(paymentId) ? toObjectId(paymentId) : null },
+      ],
+      status: PaymentStatus.COMPLETED,
+    })) as (IPayment & { _id: mongoose.Types.ObjectId }) | null;
+
+    if (!payment) {
+      throw new AppError('Completed payment not found for refund', 404, ErrorCode.NOT_FOUND);
+    }
+
+    const amountToRefund = refundAmountInRupees ?? payment.amount;
+    const isRazorpayEnabled = !!(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET);
+
+    // If this was a Razorpay payment, issue real refund
+    if (payment.provider === 'razorpay' && payment.razorpayPaymentId && isRazorpayEnabled) {
+      await createRazorpayRefund(payment.razorpayPaymentId, amountToRefund, {
+        reason: reason ?? 'Refund requested',
+        restaurantId,
+      });
+    }
+
+    payment.status = PaymentStatus.REFUNDED as any;
+    await payment.save();
+
+    return payment;
+  }
+
+  static async handleRazorpayWebhook(
+    rawBody: string,
+    signature: string,
+    webhookSecret: string,
+  ) {
+    const { verifyWebhookSignature } = await import('../../services/razorpay.service');
+
+    const isValid = verifyWebhookSignature(rawBody, signature, webhookSecret);
+    if (!isValid) {
+      throw new AppError('Invalid webhook signature', 400, ErrorCode.PAYMENT_FAILED);
+    }
+
+    const event = JSON.parse(rawBody);
+    const entity = event?.payload?.payment?.entity;
+
+    if (!entity) return { received: true };
+
+    const rzpPaymentId = entity.id;
+    const rzpOrderId   = entity.order_id;
+    const eventType    = event.event;
+
+    // Find the payment record by Razorpay order ID
+    const payment = (await PaymentModel.findOne({
+      $or: [
+        { razorpayOrderId: rzpOrderId },
+        { providerPaymentId: rzpOrderId },
+      ],
+    })) as (IPayment & { _id: mongoose.Types.ObjectId }) | null;
+
+    if (!payment) return { received: true }; // not our payment — ignore
+
+    if (eventType === 'payment.captured') {
+      payment.razorpayPaymentId = rzpPaymentId;
+      payment.providerPaymentId = rzpPaymentId;
+      payment.status = 'COMPLETED' as any;
+      payment.verifiedAt = new Date();
+      await payment.save();
+
+      // Mark bill and orders as paid
+      if (payment.sessionId) {
+        await BillingService.verifyPayment(
+          payment.restaurantId.toString(),
+          payment.sessionId.toString(),
+          rzpOrderId,
+        );
+      }
+    }
+
+    if (eventType === 'payment.failed') {
+      payment.status = PaymentStatus.FAILED as any;
+      payment.failureReason = entity.error_description ?? 'Payment failed';
+      await payment.save();
+    }
+
+    return { received: true, event: eventType };
   }
 
   static async markCashPaymentCollected(restaurantId: string, paymentId: string) {

@@ -39,12 +39,12 @@ describe('Auth Contract Schemas', () => {
     expect(
       verifyOtpSchema.parse({
         mobile: '9999999999',
-        otp: '123456',
+        otp: '1234',
         name: 'Aarav',
       }),
     ).toEqual({
       mobile: '9999999999',
-      otp: '123456',
+      otp: '1234',
       name: 'Aarav',
     });
   });

@@ -1,52 +1,17 @@
 import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useCleaningSearch } from './CleaningSearchContext';
 import { useNotifications } from '../../hooks/useNotifications';
-import { Link } from 'react-router-dom';
+import { useCleaning } from '../../hooks/usecleaning';
 
 export default function CleaningTopBar() {
+  const navigate = useNavigate();
   const { searchQuery, setSearchQuery } = useCleaningSearch();
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const location = useLocation();
-  const { notifications, unreadCount, markAsRead } = useNotifications();
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // Determine page title based on path
-  const getPageDetails = () => {
-    switch (location.pathname) {
-      case '/cleaning':
-        return { title: 'Dashboard', subtitle: "Overview of today's cleaning operations." };
-      case '/cleaning/tables':
-        return {
-          title: 'Tables',
-          subtitle: 'View and manage all tables and their cleaning status.',
-        };
-      case '/cleaning/requests':
-        return {
-          title: 'Cleaning Requests',
-          subtitle: 'Manage and track all cleaning requests raised by users.',
-        };
-      case '/cleaning/tasks':
-        return {
-          title: 'Tasks',
-          subtitle: 'View and manage your assigned hygiene and cleaning tasks.',
-        };
-      case '/cleaning/profile':
-        return {
-          title: 'Profile',
-          subtitle: 'Manage your staff profile and review performance metrics.',
-        };
-      case '/cleaning/settings':
-        return {
-          title: 'Settings',
-          subtitle: 'Customize preferences, theme, and notification settings.',
-        };
-      default:
-        return { title: 'CleanServe', subtitle: 'Management Panel' };
-    }
-  };
-
-  const { title, subtitle } = getPageDetails();
+  const { notifications, unreadCount, markAsRead } = useNotifications();
+  const { profile } = useCleaning();
 
   if (mobileSearchOpen) {
     return (
@@ -75,7 +40,7 @@ export default function CleaningTopBar() {
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 hover:text-slate-650"
               >
                 <span className="material-symbols-outlined text-[16px]">close</span>
               </button>
@@ -87,17 +52,7 @@ export default function CleaningTopBar() {
   }
 
   return (
-    <header className="h-[72px] flex items-center justify-between px-4 lg:px-8 bg-white dark:bg-sd-surface-container border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 shrink-0">
-      {/* Left side: Page Name / Dynamic Title */}
-      <div className="flex flex-col">
-        <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 font-sans tracking-tight leading-snug">
-          {title}
-        </h2>
-        <p className="text-[11px] text-slate-400 dark:text-slate-400 font-sans leading-none mt-0.5">
-          {subtitle}
-        </p>
-      </div>
-
+    <header className="h-[72px] flex items-center justify-end px-4 lg:px-8 bg-white dark:bg-sd-surface-container border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 shrink-0">
       {/* Right side: Search, Notifications, Profile (all grouped at top right) */}
       <div className="flex items-center gap-4">
         {/* Desktop Search Box */}
@@ -148,7 +103,7 @@ export default function CleaningTopBar() {
               </h3>
               <div className="max-h-60 overflow-y-auto">
                 {notifications.length > 0 ? (
-                  notifications.map((n) => (
+                  notifications.map((n: any) => (
                     <div
                       key={n.id}
                       className={`p-3 rounded-xl mb-2 border ${n.read ? 'bg-slate-50' : 'bg-orange-50'}`}
@@ -179,20 +134,24 @@ export default function CleaningTopBar() {
         <div className="w-px h-6 bg-slate-200 dark:bg-slate-700" />
 
         {/* Profile Card & Avatar */}
-        <Link to="/cleaning/profile" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+        <button
+          onClick={() => navigate('/cleaning/profile')}
+          className="flex items-center gap-3 text-left hover:opacity-85 transition-opacity focus:outline-none cursor-pointer"
+          aria-label="View Profile"
+        >
           <div className="text-right hidden sm:block">
-            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 font-sans leading-none">Priya Sharma</p>
-            <p className="text-[10px] text-slate-400 font-sans leading-none mt-1">CS-1024</p>
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 font-sans leading-none">{profile.name}</p>
+            <p className="text-[10px] text-slate-400 font-sans leading-none mt-1">{profile.id}</p>
           </div>
           <div className="relative shrink-0">
             <img
-              alt="Priya Sharma"
+              alt={profile.name}
               className="w-10 h-10 rounded-full object-cover border border-slate-150 dark:border-slate-700 shadow-sm"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuDa2YAJKAFQ_1YcbCXr9gWlXaoH1A_IQEjTEvJow9XOiXzf7N3kKDctQGwB_KXYqfHi5PGPLS2I4O9fkKOEGiWdsildQg5Vfmz05wcp_WiN4rZKyxzhEspK03vL9BZsmY_SdVZj9jBt5lCmAfSkMUlzuHsIslYMMEX5Q0WjP3tzo_dJkKtNCBmGtgdDixcta81A9KxtOnzWftBuUDgJv8HOjUm_KQMlyHP7JMggbPxQp6Ewa-AVQYMO3uYRKs2vlrtM8QQdTQx4QhY"
+              src={profile.avatar}
             />
             <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-sd-surface-container rounded-full" />
           </div>
-        </Link>
+        </button>
       </div>
     </header>
   );

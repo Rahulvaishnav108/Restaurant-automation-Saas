@@ -14,6 +14,7 @@ const DEFAULT_LIMIT = 20;
 export async function listAuditLogs(filters: AuditLogFilters) {
   const {
     restaurantId,
+    actorId,
     actorRole,
     action,
     entityType,
@@ -27,6 +28,7 @@ export async function listAuditLogs(filters: AuditLogFilters) {
   const query: FilterQuery<IAuditLog> = {};
 
   if (restaurantId) query.restaurantId = restaurantId;
+  if (actorId)      query.actorId      = actorId;
   if (actorRole)    query.actorRole    = actorRole;
   if (action)       query.action       = action;
   if (entityType)   query.entityType   = entityType;

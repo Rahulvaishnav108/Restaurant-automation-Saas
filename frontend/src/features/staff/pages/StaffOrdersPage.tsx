@@ -1,85 +1,15 @@
 import React, { useState } from 'react';
 import { useStaffSearch } from '../components/dashboard/StaffSearchContext';
-
-interface OrderItem {
-  name: string;
-  qty: number;
-  price: number;
-}
-
-interface Order {
-  id: string;
-  table: string;
-  items: OrderItem[];
-  status: 'Pending' | 'Preparing' | 'Ready' | 'Served' | 'Completed' | 'Cancelled';
-  time: string;
-  total: number;
-}
+import { useStaffDashboard } from '../hooks/useStaffDashboard';
+import type { Order } from '../store/staff.store';
 
 export default function StaffOrdersPage() {
   const { query } = useStaffSearch();
   const [activeTab, setActiveTab] = useState<'All' | 'Active' | 'Completed' | 'Cancelled'>('Active');
-  const [orders, setOrders] = useState<Order[]>([
-    {
-      id: 'ORD-8271',
-      table: 'Table 1',
-      items: [
-        { name: 'Paneer Tikka Masala', qty: 1, price: 340 },
-        { name: 'Butter Naan', qty: 3, price: 60 },
-        { name: 'Dal Makhani', qty: 1, price: 280 }
-      ],
-      status: 'Preparing',
-      time: '20 mins ago',
-      total: 800
-    },
-    {
-      id: 'ORD-8272',
-      table: 'Table 2',
-      items: [
-        { name: 'Chicken Biryani', qty: 2, price: 420 },
-        { name: 'Raita', qty: 2, price: 50 },
-        { name: 'Garlic Naan', qty: 2, price: 70 }
-      ],
-      status: 'Ready',
-      time: '12 mins ago',
-      total: 1080
-    },
-    {
-      id: 'ORD-8273',
-      table: 'Table 3',
-      items: [
-        { name: 'Veg Hakka Noodles', qty: 1, price: 220 },
-        { name: 'Chilli Paneer Dry', qty: 1, price: 290 }
-      ],
-      status: 'Served',
-      time: '45 mins ago',
-      total: 510
-    },
-    {
-      id: 'ORD-8268',
-      table: 'Table 5',
-      items: [
-        { name: 'Masala Dosa', qty: 2, price: 180 },
-        { name: 'Filter Coffee', qty: 2, price: 60 }
-      ],
-      status: 'Completed',
-      time: '2 hours ago',
-      total: 480
-    },
-    {
-      id: 'ORD-8269',
-      table: 'Table 4',
-      items: [
-        { name: 'Spring Rolls', qty: 1, price: 180 }
-      ],
-      status: 'Cancelled',
-      time: '3 hours ago',
-      total: 180
-    }
-  ]);
+  const { orders, setOrders } = useStaffDashboard();
 
   const updateOrderStatus = (id: string, newStatus: Order['status']) => {
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, status: newStatus } : o));
+    setOrders(orders.map(o => o.id === id ? { ...o, status: newStatus } : o));
   };
 
   // Filter orders by tab

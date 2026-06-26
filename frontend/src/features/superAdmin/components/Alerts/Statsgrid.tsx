@@ -87,7 +87,7 @@ export default function StatsGrid({ stats, darkMode }: StatsGridProps) {
             className={cx(
               'relative p-4 rounded-2xl border transition-all duration-200 hover:-translate-y-0.5',
               darkMode
-                ? 'bg-[#0b132b] border-slate-800 hover:border-slate-700 hover:shadow-lg hover:shadow-slate-950/60'
+                ? 'bg-slate-900 border-slate-800 hover:border-slate-700 hover:shadow-lg hover:shadow-slate-950/60'
                 : 'bg-white border-gray-100 hover:border-gray-200 hover:shadow-md'
             )}
           >

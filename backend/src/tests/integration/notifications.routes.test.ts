@@ -29,7 +29,6 @@ describe('Notifications routes', () => {
   let restaurantId: mongoose.Types.ObjectId;
   let otherRestaurantId: mongoose.Types.ObjectId;
   let serviceUnreadId: mongoose.Types.ObjectId;
-  let serviceReadId: mongoose.Types.ObjectId;
   let cleaningUnreadId: mongoose.Types.ObjectId;
 
   let serviceToken: string;
@@ -61,7 +60,7 @@ describe('Notifications routes', () => {
       },
     ]);
 
-    const [serviceUnread, serviceRead, cleaningUnread] = await Notification.create([
+    const [serviceUnread, , cleaningUnread] = await Notification.create([
       {
         restaurantId,
         recipientRole: UserRole.SERVICE_STAFF,
@@ -98,7 +97,6 @@ describe('Notifications routes', () => {
     ]);
 
     serviceUnreadId = serviceUnread._id as mongoose.Types.ObjectId;
-    serviceReadId = serviceRead._id as mongoose.Types.ObjectId;
     cleaningUnreadId = cleaningUnread._id as mongoose.Types.ObjectId;
 
     await Notification.create([

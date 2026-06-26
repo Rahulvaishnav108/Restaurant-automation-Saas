@@ -12,6 +12,8 @@ import { UserRole } from '../../constants/roles';
 import { NotificationCategory, NotificationPriority } from '../notifications/notifications.schema';
 import { TableSessionModel } from '../tableSessions/tableSessions.model';
 import { socketService } from '../../sockets/socket.service';
+import { creditPoints } from '../loyalty/loyalty.service';
+import { InventoryService } from '../inventory/inventory.service';
 
 const ORDER_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus[]>> = {
   [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED, OrderStatus.REJECTED],
@@ -81,7 +83,7 @@ export class OrdersService {
 
     try {
       // 2. Fetch Cart
-      const cart = await Cart.findOne({ restaurantId, sessionId }).populate('items.menuItem');
+      const cart = await Cart.findOne({ restaurantId, sessionId });
 
       if (!cart) {
         throw new AppError('Cart not found', 404, ErrorCode.NOT_FOUND);
@@ -91,18 +93,38 @@ export class OrdersService {
         throw new AppError('Cannot place order with an empty cart', 400, ErrorCode.VALIDATION_ERROR);
       }
 
+      // 2.5 Explicitly fetch MenuItems to bypass Mongoose populate caching issues
+      const menuItemIds = cart.items.map(i => i.menuItem);
+      const menuItems = await mongoose.model('MenuItem').find({
+        _id: { $in: menuItemIds },
+        restaurantId
+      }).populate('ingredients.inventoryItemId');
+      
+      const menuItemMap = new Map(menuItems.map(m => [m._id.toString(), m]));
+
       // 3. Map CartItems to OrderItems
       const orderItems = cart.items.map((item: any) => {
-        if (!item.menuItem) {
+        const menuItemIdStr = item.menuItem.toString();
+        const fullMenuItem = menuItemMap.get(menuItemIdStr);
+        
+        if (!fullMenuItem) {
           throw new AppError('Invalid menu item in cart', 400, ErrorCode.VALIDATION_ERROR);
         }
+
+        const ingredientsSnapshot = fullMenuItem.ingredients ? fullMenuItem.ingredients.map((ing: any) => ({
+          inventoryItemId: ing.inventoryItemId && ing.inventoryItemId._id ? ing.inventoryItemId._id : ing.inventoryItemId,
+          inventoryItemName: (ing.inventoryItemId && ing.inventoryItemId.name) || 'Unknown Item',
+          quantity: ing.quantity
+        })) : [];
+
         return {
-          menuItemId: item.menuItem._id,
-          name: item.menuItem.name,
+          menuItemId: fullMenuItem._id,
+          name: fullMenuItem.name,
           quantity: item.quantity,
           price: item.unitPrice,
           totalPrice: item.subtotal,
           notes: item.notes || '',
+          ingredients: ingredientsSnapshot,
         };
       });
 
@@ -234,6 +256,12 @@ export class OrdersService {
 
     order.status = OrderStatus.CANCELLED;
     order.cancelledAt = new Date();
+
+    if (order.stockDeducted) {
+      await InventoryService.restoreStock(restaurantId, order.items);
+      order.stockDeducted = false;
+    }
+
     await order.save();
 
     return order;
@@ -342,6 +370,12 @@ export class OrdersService {
     order.status = OrderStatus.PREPARING;
     order.preparingStartedAt = new Date();
     order.kitchenStaffId = toNullableObjectId(actorId);
+
+    if (!order.stockDeducted) {
+      await InventoryService.deductStock(restaurantId, order.items, order._id, actorId || undefined);
+      order.stockDeducted = true;
+    }
+
     await order.save();
     return order;
   }
@@ -391,6 +425,12 @@ export class OrdersService {
     order.rejectedAt = new Date();
     order.kitchenStaffId = toNullableObjectId(actorId);
     order.rejectionReason = reason;
+
+    if (order.stockDeducted) {
+      await InventoryService.restoreStock(restaurantId, order.items, order._id, actorId || undefined);
+      order.stockDeducted = false;
+    }
+
     await order.save();
     return order;
   }
@@ -468,6 +508,7 @@ export class OrdersService {
     order.completedAt = new Date();
     order.serviceStaffId = toNullableObjectId(actorId);
     await order.save();
+    await creditPoints(order);
     return order;
   }
 }

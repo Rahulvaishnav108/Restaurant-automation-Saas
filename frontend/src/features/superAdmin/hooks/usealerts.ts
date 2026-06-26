@@ -2,24 +2,51 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Alert, AlertStatus, FilterType, SortOrder } from '../components/Alerts/index';
 import { INITIAL_ALERTS } from '../store/Alerts';
+import { useRestaurantRequestsStore } from '../store/RestaurantRequests';
 
 export function useAlerts() {
   const [alerts, setAlerts] = useState<Alert[]>(INITIAL_ALERTS);
+  const requests = useRestaurantRequestsStore((state) => state.requests);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
   const [searchQuery, setSearchQuery] = useState('');
+  const [baseTime] = useState(() => Date.now());
+
+  const linkedAlerts = useMemo<Alert[]>(() => {
+    const existingEntities = new Set(
+      alerts.map((alert) => alert.entity?.toLowerCase()).filter(Boolean)
+    );
+
+    const requestAlerts = requests
+      .filter((request) => !existingEntities.has(request.name.toLowerCase()))
+      .map<Alert>((request, index) => ({
+        id: `request-${request.id}`,
+        title: 'New Restaurant Signup',
+        description: `${request.name} requested ${request.plan} onboarding. Review this request from the Super Admin dashboard.`,
+        type: 'info',
+        status: 'new',
+        entity: request.name,
+        entityType: 'restaurant',
+        timestamp: new Date(baseTime - index * 60_000).toISOString(),
+        actionLabel: 'Review Request',
+        actionHref: '/superadmin?requests=new',
+        tags: ['onboarding', 'new-request', 'placeholder'],
+      }));
+
+    return [...requestAlerts, ...alerts];
+  }, [alerts, requests, baseTime]);
 
   const stats = useMemo(() => ({
-    total: alerts.length,
-    new: alerts.filter(a => a.status === 'new').length,
-    critical: alerts.filter(a => a.type === 'critical').length,
-    warning: alerts.filter(a => a.type === 'warning').length,
-    info: alerts.filter(a => a.type === 'info').length,
-    resolved: alerts.filter(a => a.status === 'resolved').length,
-  }), [alerts]);
+    total: linkedAlerts.length,
+    new: linkedAlerts.filter(a => a.status === 'new').length,
+    critical: linkedAlerts.filter(a => a.type === 'critical').length,
+    warning: linkedAlerts.filter(a => a.type === 'warning').length,
+    info: linkedAlerts.filter(a => a.type === 'info').length,
+    resolved: linkedAlerts.filter(a => a.status === 'resolved').length,
+  }), [linkedAlerts]);
 
   const filteredAlerts = useMemo(() => {
-    let result = [...alerts];
+    let result = [...linkedAlerts];
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -48,7 +75,7 @@ export function useAlerts() {
     });
 
     return result;
-  }, [alerts, activeFilter, sortOrder, searchQuery]);
+  }, [linkedAlerts, activeFilter, sortOrder, searchQuery]);
 
   const dismissAlert = useCallback((id: string) => {
     setAlerts(prev => prev.filter(a => a.id !== id));
@@ -78,7 +105,7 @@ export function useAlerts() {
   }, [activeFilter]);
 
   return {
-    alerts,
+    alerts: linkedAlerts,
     filteredAlerts,
     stats,
     activeFilter,

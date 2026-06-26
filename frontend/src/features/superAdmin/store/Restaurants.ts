@@ -21,7 +21,7 @@ export const restaurantData: RestaurantsRow[] = [
     location: "Mumbai, Maharashtra",
     plan: "Premium",
     status: "Active",
-    revenue: "$128,450",
+    revenue: "₹128,450",
     branches: 3,
   },
   {
@@ -33,7 +33,7 @@ export const restaurantData: RestaurantsRow[] = [
     location: "Delhi, NCR",
     plan: "Standard",
     status: "Active",
-    revenue: "$115,280",
+    revenue: "₹115,280",
     branches: 2,
   },
   {
@@ -45,7 +45,7 @@ export const restaurantData: RestaurantsRow[] = [
     location: "Bangalore, Karnataka",
     plan: "Premium",
     status: "Trial",
-    revenue: "$98,760",
+    revenue: "₹98,760",
     branches: 1,
   },
   {
@@ -57,7 +57,7 @@ export const restaurantData: RestaurantsRow[] = [
     location: "Pune, Maharashtra",
     plan: "Basic",
     status: "Active",
-    revenue: "$89,450",
+    revenue: "₹89,450",
     branches: 2,
   },
   {
@@ -69,7 +69,7 @@ export const restaurantData: RestaurantsRow[] = [
     location: "Chennai, Tamil Nadu",
     plan: "Standard",
     status: "Inactive",
-    revenue: "$82,340",
+    revenue: "₹82,340",
     branches: 1,
   },
 ];

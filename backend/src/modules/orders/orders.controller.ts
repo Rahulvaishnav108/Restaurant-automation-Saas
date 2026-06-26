@@ -8,6 +8,7 @@ import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
 import { logAudit, logAuditRaw } from '../auditLogs/auditLogs.helper';
 import { AuditAction, AuditEntity } from '../auditLogs/auditLogs.types';
+import * as LoyaltyService from '../loyalty/loyalty.service';
 
 export class OrdersController {
   private static getRequiredSession(req: Request) {
@@ -367,9 +368,15 @@ export class OrdersController {
       const restaurantId = OrdersController.getRequiredRestaurantId(req);
 
       const { id } = req.params;
-      const order = await OrdersService.markCompleted(restaurantId, id, req.user?.id);
+      const order = await OrdersService.markCompleted(
+      restaurantId,
+      id,
+      req.user?.id,
+    );
+// Credit loyalty points automatically
+await LoyaltyService.creditPoints(order);
 
-      void logAudit(req, {
+void logAudit(req, {
       entityType: AuditEntity.ORDER,
       entityId:   order._id.toString(),
       action:     AuditAction.ORDER_COMPLETED,
@@ -384,5 +391,6 @@ export class OrdersController {
     } catch (error) {
       next(error);
     }
+    
   }
 }

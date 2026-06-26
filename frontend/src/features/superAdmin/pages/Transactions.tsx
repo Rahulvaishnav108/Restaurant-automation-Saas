@@ -7,6 +7,7 @@ import TransactionControls from "../components/Transactions/Transactioncontrols"
 import TransactionTable from "../components/Transactions/Transactiontable";
 import TransactionSummaryBar from "../components/Transactions/Transactionsummarybar";
 import { transactionData } from "../store/Transactions";
+import { useRestaurantRequestsStore } from "../store/RestaurantRequests";
 
 interface LayoutContextType {
   darkMode: boolean;
@@ -14,6 +15,7 @@ interface LayoutContextType {
 
 export default function Transactions() {
   const { darkMode } = useOutletContext<LayoutContextType>();
+  const approvedRestaurants = useRestaurantRequestsStore((state) => state.restaurants);
 
   useEffect(() => {
     const handleThemeSync = (e: Event) => {
@@ -53,7 +55,37 @@ export default function Transactions() {
     setDateRange("all");
   };
 
-  const dateFiltered = useMemo(() => filterByDateRange(transactionData, dateRange), [dateRange]);
+  const linkedTransactions = useMemo(() => {
+    const existingRestaurantNames = new Set(
+      transactionData.map((transaction) => transaction.restaurant.toLowerCase())
+    );
+
+    const placeholderTransactions = approvedRestaurants
+      .filter(
+        (restaurant) => !existingRestaurantNames.has(restaurant.name.toLowerCase())
+      )
+      .map((restaurant, index) => ({
+        id: `ONB-${restaurant.id}`,
+        restaurant: restaurant.name,
+        restaurantId: restaurant.id,
+        amount: 0,
+        commission: 0,
+        commissionRate: 0,
+        paymentMethod: "UPI / Wallet" as const,
+        status: "Pending" as const,
+        timestamp: `2026-05-19 18:${String(30 + index).padStart(2, "0")}:00`,
+        city: restaurant.location.split(",")[0] || "Onboarding",
+        ordersCount: 0,
+        note: "Placeholder onboarding transaction until backend order data is connected",
+      }));
+
+    return [...placeholderTransactions, ...transactionData];
+  }, [approvedRestaurants]);
+
+  const dateFiltered = useMemo(
+    () => filterByDateRange(linkedTransactions, dateRange),
+    [linkedTransactions, dateRange]
+  );
 
   const filteredTransactions = useMemo(() => {
     const q = searchTerm.toLowerCase();
@@ -93,7 +125,7 @@ export default function Transactions() {
   return (
     // px-4 on mobile → px-6 on desktop, slightly tighter top padding on mobile
     <div className={`min-h-screen px-4 sm:px-6 py-5 sm:py-8 transition-colors duration-300 ${
-      darkMode ? "bg-[#020817] text-slate-100" : "bg-[#F8FAFC] text-slate-800"
+      darkMode ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-800"
     }`}>
       <TransactionMetrics metrics={metrics} darkMode={darkMode} />
       <TransactionControls
@@ -102,7 +134,7 @@ export default function Transactions() {
         paymentFilter={paymentFilter}
         dateRange={dateRange}
         darkMode={darkMode}
-        totalCount={transactionData.length}
+        totalCount={linkedTransactions.length}
         filteredCount={filteredTransactions.length}
         onSearchChange={setSearchTerm}
         onStatusChange={setStatusFilter}

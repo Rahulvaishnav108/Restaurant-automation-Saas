@@ -6,7 +6,8 @@ import { OrderModel } from '../orders/orders.model';
 import { BatchStatus } from '../../constants/statuses';
 import { OrderStatus } from '../orders/orders.schema';
 import { UserModel } from '../users/users.model';
-import { UserRole } from '../../constants/roles';
+import { UserRole, KitchenRole } from '../../constants/roles';
+import { requireKitchenRole } from '../../middleware/requireAuth';
 import {
   createKitchenBatchBodySchema,
   kitchenBatchParamsSchema,
@@ -22,6 +23,8 @@ import {
 } from '../orders/orders.schema';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
+import { inventoryQuerySchema } from '../inventory/inventory.schema';
+import { listInventoryController, getInventoryAlertsController } from '../inventory/inventory.controller';
 
 export const kitchenRouter = Router();
 
@@ -168,7 +171,7 @@ kitchenRouter.patch(
   }
 });
 
-kitchenRouter.get('/load', async (req, res, next) => {
+kitchenRouter.get('/load', requireKitchenRole([KitchenRole.HEAD_CHEF, KitchenRole.KITCHEN_SUPERVISOR]), async (req, res, next) => {
   try {
     const batches = await KitchenBatchModel.find({
       restaurantId: req.user?.restaurantId,
@@ -193,7 +196,7 @@ kitchenRouter.get('/load', async (req, res, next) => {
   }
 });
 
-kitchenRouter.get('/performance', async (req, res, next) => {
+kitchenRouter.get('/performance', requireKitchenRole([KitchenRole.HEAD_CHEF, KitchenRole.KITCHEN_SUPERVISOR]), async (req, res, next) => {
   try {
     const restaurantId = req.user?.restaurantId;
     const [kitchenUsers, handledOrders] = await Promise.all([
@@ -320,4 +323,17 @@ kitchenRouter.patch(
   '/orders/:id/reject',
   validate({ params: orderIdParamsSchema, body: rejectOrderBodySchema }),
   OrdersController.rejectOrder
+);
+
+// ── Kitchen Inventory Access (Read-Only) ────────────────────────────────────────
+kitchenRouter.get(
+  '/inventory',
+  validate({ query: inventoryQuerySchema }),
+  listInventoryController
+);
+
+kitchenRouter.get(
+  '/inventory/alerts',
+  validate({ query: inventoryQuerySchema }),
+  getInventoryAlertsController
 );
