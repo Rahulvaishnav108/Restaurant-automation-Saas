@@ -32,6 +32,7 @@ export interface CleaningRequest {
   status: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled' | 'Scheduled';
   requestedOn: string;
   requestedTime: string;
+  notes?: string;
 }
 
 class CleaningStore {
@@ -146,11 +147,16 @@ class CleaningStore {
     },
   ];
 
+  public tasks: any[] = [];
+  public addTask(newTask: any) {
+    this.tasks = [newTask, ...this.tasks];
+    this.notify();
+  }
+
   public addCleaningRequest(newRequest: CleaningRequest) {
     this.requests = [newRequest, ...this.requests];
     this.notify();
   }
-
   private listeners: Set<() => void> = new Set();
 
   constructor() {
@@ -172,13 +178,15 @@ class CleaningStore {
   public startCleaning(id: string) {
     this.tables = this.tables.map((t) => {
       if (t.id === id) {
+        this.requests = this.requests.map((r) =>
+          r.location.includes(id) ? { ...r, status: 'In Progress' } : r
+        );
         return { ...t, status: 'In Progress', progress: 10, timeAgo: 'Started Just Now' };
       }
       return t;
     });
     this.notify();
   }
-
   public updateProgress(id: string) {
     this.tables = this.tables.map((t) => {
       if (t.id === id && t.status === 'In Progress') {
@@ -196,6 +204,9 @@ class CleaningStore {
   public completeInspection(id: string) {
     this.tables = this.tables.map((t) => {
       if (t.id === id) {
+        this.requests = this.requests.map((r) =>
+          r.location.includes(id) ? { ...r, status: 'Completed' } : r
+        );
         return { ...t, status: 'Available', progress: undefined, timeAgo: 'Just Now' };
       }
       return t;

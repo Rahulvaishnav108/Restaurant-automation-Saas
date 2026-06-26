@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useCleaningSearch } from './CleaningSearchContext';
 import { useNotifications } from '../../hooks/useNotifications';
+import { Link } from 'react-router-dom';
 
 export default function CleaningTopBar() {
   const { searchQuery, setSearchQuery } = useCleaningSearch();
@@ -178,11 +179,9 @@ export default function CleaningTopBar() {
         <div className="w-px h-6 bg-slate-200 dark:bg-slate-700" />
 
         {/* Profile Card & Avatar */}
-        <div className="flex items-center gap-3">
+        <Link to="/cleaning/profile" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <div className="text-right hidden sm:block">
-            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 font-sans leading-none">
-              Priya Sharma
-            </p>
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 font-sans leading-none">Priya Sharma</p>
             <p className="text-[10px] text-slate-400 font-sans leading-none mt-1">CS-1024</p>
           </div>
           <div className="relative shrink-0">
@@ -193,7 +192,7 @@ export default function CleaningTopBar() {
             />
             <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-sd-surface-container rounded-full" />
           </div>
-        </div>
+        </Link>
       </div>
     </header>
   );

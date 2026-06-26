@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useCleaning } from '../hooks/usecleaning';
 import { useCleaningSearch } from '../components/dashboard/CleaningSearchContext';
+import { cleaningStore } from '../store/cleaning.store';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 interface TableRow {
@@ -34,10 +35,19 @@ export default function CleaningTablesPage() {
   const [newTablePriority, setNewTablePriority] = useState<'High' | 'Medium' | 'Low'>('Medium');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
+  const [tableList, setTableList] = useState(cleaningStore.tables);
+  useEffect(() => {
+    const unsubscribe = cleaningStore.subscribe(() => {
+      setTableList([...cleaningStore.tables]);
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   const handleViewTableDetails = (row: TableRow) => {
     setSelectedTable(row); // Ye table ka data modal mein bhej dega
   };
-  // 1. Modal ke liye state
   const [selectedTable, setSelectedTable] = useState<TableRow | null>(null);
 
   const handleActionClick = (row: TableRow, action: 'start' | 'complete' | 'verify') => {
@@ -134,7 +144,24 @@ export default function CleaningTablesPage() {
   const handleAddTable = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTableNumber) return;
+
+    cleaningStore.addTable({
+      id: newTableNumber.toUpperCase().startsWith('T')
+        ? newTableNumber.toUpperCase()
+        : `T${newTableNumber}`,
+      area: newTableArea,
+      seats: newTableSeats,
+      status: 'Available',
+      priority: newTablePriority,
+      timeAgo: 'Just Now',
+      assignedTo: null,
+    });
+
+    // Reset form and close modal
     setNewTableNumber('');
+    setNewTableArea('Dining Area A');
+    setNewTableSeats(4);
+    setNewTablePriority('Medium');
     setShowAddModal(false);
   };
 
