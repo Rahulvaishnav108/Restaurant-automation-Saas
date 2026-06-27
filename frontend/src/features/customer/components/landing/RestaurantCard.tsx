@@ -109,7 +109,7 @@ export default function RestaurantCard({ restaurant, onLoginOpen }: RestaurantCa
       <div className="p-5 flex-1 flex flex-col">
         {/* Name + Rating */}
         <div className="flex items-start justify-between gap-2">
-          <h3 className="text-[18px] sm:text-[20px] font-semibold leading-tight truncate" style={{ color: '#222222' }}>
+          <h3 className="text-[18px] sm:text-[20px] font-semibold leading-tight truncate landing-font-hero" style={{ color: '#222222' }}>
             {restaurant.name}
           </h3>
           <div

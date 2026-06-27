@@ -29,25 +29,25 @@ const RESTAURANTS: Restaurant[] = [
   },
   {
     id: 5, name: 'Bella Italia', cuisine: 'Italian, Pizza',
-    location: 'Powai, Mumbai', image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format',
+    location: 'Powai, Mumbai', image: '/images/landing/restaurant-1.png',
     rating: 4.3, reviewCount: 156, priceLevel: '₹₹', distance: '4.2 km',
     waitTime: '12 min', availableTables: 5, currentOffer: '15% OFF weekdays', isOpen: true,
   },
   {
     id: 6, name: 'Dragon Palace', cuisine: 'Chinese, Thai',
-    location: 'Colaba, Mumbai', image: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800&auto=format',
+    location: 'Colaba, Mumbai', image: '/images/landing/restaurant-3.png',
     rating: 4.5, reviewCount: 312, priceLevel: '₹₹₹', distance: '5.0 km',
     waitTime: '25 min', availableTables: 3, isOpen: true,
   },
   {
     id: 7, name: 'The Coffee House', cuisine: 'Cafe, Bakery',
-    location: 'Dadar, Mumbai', image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format',
+    location: 'Dadar, Mumbai', image: '/images/landing/restaurant-4.png',
     rating: 4.2, reviewCount: 89, priceLevel: '₹', distance: '1.5 km',
     waitTime: '0 min', availableTables: 12, isOpen: true,
   },
   {
     id: 8, name: 'Royal Biryani House', cuisine: 'Hyderabadi, Mughlai',
-    location: 'Kurla, Mumbai', image: 'https://images.unsplash.com/photo-1585938338996-b6ae4c4db58a?w=800&auto=format',
+    location: 'Kurla, Mumbai', image: '/images/landing/restaurant-2.png',
     rating: 4.8, reviewCount: 678, priceLevel: '₹₹', distance: '2.0 km',
     waitTime: '30 min', availableTables: 1, currentOffer: 'Flat ₹100 OFF', isOpen: true,
   },
@@ -129,7 +129,7 @@ export default function TrendingRestaurants({ onLoginOpen }: TrendingRestaurants
         <div className="flex items-end justify-between mb-8">
           <div>
             <h2
-              className="text-[28px] sm:text-[32px] lg:text-[40px] font-bold"
+              className="text-[28px] sm:text-[32px] lg:text-[40px] font-bold landing-font-hero"
               style={{ color: '#222222' }}
             >
               Trending <span style={{ color: '#FF6B1A' }}>Restaurants</span>

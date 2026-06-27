@@ -143,9 +143,12 @@
   h1,
   h2,
   h3,
+  h4,
+  h5,
+  h6,
   .font-display {
-    font-family: "Inter", "Segoe UI", sans-serif;
-    letter-spacing: -0.01em;
+    font-family: "Playfair Display", "Georgia", serif;
+    letter-spacing: normal;
   }
 
   /* Override kitchen, staff, cleaning, admin and superadmin panel headers to use Inter only */
