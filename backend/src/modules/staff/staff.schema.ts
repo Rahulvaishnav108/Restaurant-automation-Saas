@@ -82,7 +82,7 @@ export const createStaffBodySchema = z.object({
   name: z.string().trim().min(2).max(100),
   email: z.string().email('Invalid email address').toLowerCase().trim(),
   mobile: z.string().trim().min(10).max(15),
-  password: passwordSchema,
+  password: passwordSchema.optional(),
   role: staffRoleSchema,
   status: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED', 'BLOCKED']).optional(),
   kitchen_role: z.nativeEnum(KitchenRole).optional(),

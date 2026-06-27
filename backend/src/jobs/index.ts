@@ -1,4 +1,6 @@
 import { startExpireSessionsJob } from './expireSessions.job';
+import { startDailySalesReportJob } from './dailySalesReport.job';
+import { startReservationReminderJob } from './reservationReminder.job';
 import { logger } from '../config/logger';
 
 /**
@@ -8,6 +10,8 @@ import { logger } from '../config/logger';
 export function startBackgroundJobs(): void {
   try {
     startExpireSessionsJob();
+    startDailySalesReportJob();
+    startReservationReminderJob();
     logger.info('All background cron jobs successfully initialized');
   } catch (error) {
     logger.error('Failed to initialize background cron jobs', { error });

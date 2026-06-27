@@ -363,7 +363,7 @@ export default function CleaningProfilePage() {
                   <span className="material-symbols-outlined text-slate-450 group-hover:translate-x-0.5 transition-transform text-sm">chevron_right</span>
                 </button>
               ))}
-              
+
               <button
                 onClick={() => navigate('/cleaning/settings')}
                 className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group font-sans text-xs text-left cursor-pointer"
@@ -659,7 +659,11 @@ export default function CleaningProfilePage() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
                   required
+                  onPaste={(e) => e.preventDefault()}
+                  onDrop={(e) => e.preventDefault()}
+                  autoComplete="new-password"
                 />
+                <p className="text-[10px] mt-1 text-slate-500 dark:text-slate-400">Please re-enter your password manually.</p>
               </div>
               <div className="flex gap-3 pt-2">
                 <button

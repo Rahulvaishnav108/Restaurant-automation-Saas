@@ -7,6 +7,7 @@ import { seedDevelopmentData } from './config/seed';
 import { logger } from './config/logger';
 import { createSocketServer } from './sockets';
 import { startBackgroundJobs } from './jobs';
+import { verifySmtpConnection } from './services/mail.service';
 
 
 const server = createServer(app);
@@ -25,6 +26,7 @@ async function bootstrap(): Promise<void> {
         await seedDevelopmentData();
       }
       startBackgroundJobs();
+      await verifySmtpConnection();
     } catch (error) {
       if (!env.allowNoDb) {
         throw error;

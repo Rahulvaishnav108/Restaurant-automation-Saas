@@ -12,6 +12,11 @@ import { UserModel } from '../users/users.model';
 import { StaffShiftAssignmentModel } from './staff.model';
 import { logAudit } from '../auditLogs/auditLogs.helper';
 import { AuditAction, AuditEntity } from '../auditLogs/auditLogs.types';
+import { RestaurantModel } from '../restaurants/restaurants.model';
+import { sendStaffInvitationEmail } from '../../services/mail.service';
+import { env } from '../../config/env';
+import logger from '../../config/logger';
+import crypto from 'crypto';
 
 type StaffRole = (typeof STAFF_ROLES)[number];
 
@@ -205,12 +210,16 @@ export async function createStaffController(req: Request, res: Response, next: N
       throw new AppError('Mobile is already in use', 409, ErrorCode.CONFLICT);
     }
 
+    // Generate secure temporary password if not provided
+    const temporaryPassword = req.body.password || crypto.randomBytes(4).toString('hex');
+
     const created = await UserModel.create({
       restaurantId,
       name: req.body.name,
       email: req.body.email,
       mobile: req.body.mobile,
-      password: await hashPassword(req.body.password),
+      password: await hashPassword(temporaryPassword),
+      mustChangePassword: true,
       role: req.body.role,
       status: req.body.status ?? UserStatus.ACTIVE,
       kitchen_role: req.body.kitchen_role ?? null,
@@ -223,6 +232,26 @@ export async function createStaffController(req: Request, res: Response, next: N
     const staff = await UserModel.findById(created._id).lean();
 
     ok(res, { staff }, 201);
+
+    // Async task: Send invitation email
+    (async () => {
+      try {
+        const restaurant = await RestaurantModel.findById(restaurantId).lean();
+        const restaurantName = restaurant?.name || 'our restaurant';
+        const loginUrl = `${env.CLIENT_URL}/login`;
+
+        await sendStaffInvitationEmail(
+          req.body.email,
+          req.body.name,
+          temporaryPassword,
+          loginUrl,
+          restaurantName
+        );
+      } catch (err) {
+        logger.error('Failed to send staff invitation email', { error: err, email: req.body.email });
+      }
+    })();
+
     void logAudit(req, {
       entityType:   AuditEntity.STAFF,
       entityId:     created._id.toString(),

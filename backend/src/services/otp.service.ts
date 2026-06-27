@@ -4,6 +4,7 @@ import logger from '../config/logger';
 import { ErrorCode } from '../constants/errors';
 import { AppError } from '../utils/AppError';
 import { comparePassword, generateOTP, hashPassword } from '../utils/crypto';
+import { sendOTPEmail } from './mail.service';
 
 interface IOtp extends Document {
   identifier: string;
@@ -12,6 +13,7 @@ interface IOtp extends Document {
   attempts: number;
   blockedUntil?: Date | null;
   expiresAt: Date;
+  otpVerifiedAt?: Date | null;
   createdAt: Date;
 }
 
@@ -22,6 +24,7 @@ const otpSchema = new Schema<IOtp>({
   attempts: { type: Number, default: 0 },
   blockedUntil: { type: Date, default: null },
   expiresAt: { type: Date, required: true, index: { expires: 0 } },
+  otpVerifiedAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now },
 });
 
@@ -29,12 +32,12 @@ otpSchema.index({ identifier: 1, type: 1 });
 
 const OtpModel = mongoose.model<IOtp>('Otp', otpSchema);
 
-const OTP_EXPIRY_MINUTES = 5;
+export const OTP_EXPIRY_MINUTES = 2;
 const MAX_OTP_ATTEMPTS = 5;
 const OTP_COOLDOWN_SECONDS = 60;
 const OTP_BLOCK_MINUTES = 15;
 
-export async function createOTP(identifier: string, type: 'email' | 'mobile'): Promise<string> {
+export async function createOTP(identifier: string, type: 'email' | 'mobile'): Promise<{ otp: string; expiresAt: Date }> {
   const now = new Date();
   const existing = await OtpModel.findOne({ identifier, type }).sort({ createdAt: -1 });
 
@@ -61,8 +64,17 @@ export async function createOTP(identifier: string, type: 'email' | 'mobile'): P
     otpHash,
     expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000),
   });
+  const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
   logger.info(`OTP generated for ${type}: ${identifier}`);
+
+  if (type === 'email') {
+    const emailSent = await sendOTPEmail(identifier, plainOtp, OTP_EXPIRY_MINUTES);
+    if (!emailSent) {
+      logger.error(`Failed to send OTP email to ${identifier}`);
+    }
+  }
+
   if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'production') {
     logger.warn(`[DEV ONLY] OTP for ${identifier}: ${plainOtp}`);
     try {
@@ -78,14 +90,18 @@ export async function createOTP(identifier: string, type: 'email' | 'mobile'): P
     }
   }
 
-  return plainOtp;
+  return { otp: plainOtp, expiresAt };
 }
 
 export async function verifyOTP(identifier: string, type: 'email' | 'mobile', otp: string): Promise<boolean> {
   const record = await OtpModel.findOne({ identifier, type }).sort({ createdAt: -1 });
 
   if (!record) {
-    throw new AppError('OTP not found or expired', 400, ErrorCode.OTP_EXPIRED);
+    throw new AppError('Invalid OTP', 400, ErrorCode.INVALID_OTP);
+  }
+
+  if (record.otpVerifiedAt) {
+    throw new AppError('This OTP has already been used.', 400, ErrorCode.OTP_ALREADY_USED);
   }
 
   if (record.blockedUntil && record.blockedUntil > new Date()) {
@@ -93,8 +109,7 @@ export async function verifyOTP(identifier: string, type: 'email' | 'mobile', ot
   }
 
   if (record.expiresAt <= new Date()) {
-    await OtpModel.deleteOne({ _id: record._id });
-    throw new AppError('OTP expired. Please request a new OTP', 400, ErrorCode.OTP_EXPIRED);
+    throw new AppError('This OTP has expired. Please request a new OTP.', 400, ErrorCode.OTP_EXPIRED);
   }
 
   const isValid = await comparePassword(otp, record.otpHash);
@@ -116,7 +131,8 @@ export async function verifyOTP(identifier: string, type: 'email' | 'mobile', ot
     throw new AppError(`Invalid OTP. ${MAX_OTP_ATTEMPTS - record.attempts} attempts remaining`, 400, ErrorCode.INVALID_OTP);
   }
 
-  await OtpModel.deleteOne({ _id: record._id });
+  record.otpVerifiedAt = new Date();
+  await record.save();
 
   return true;
 }

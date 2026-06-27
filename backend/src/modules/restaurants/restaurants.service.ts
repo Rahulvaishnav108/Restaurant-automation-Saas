@@ -78,7 +78,23 @@ export async function updateRestaurantSettings(
   restaurant.settings = {
     ...restaurant.settings,
     ...input,
-  };
+    ...(input.emailPreferences && {
+      emailPreferences: {
+        dailySalesReports: input.emailPreferences.dailySalesReports ?? restaurant.settings.emailPreferences.dailySalesReports,
+        inventoryAlerts: input.emailPreferences.inventoryAlerts ?? restaurant.settings.emailPreferences.inventoryAlerts,
+        staffNotifications: input.emailPreferences.staffNotifications ?? restaurant.settings.emailPreferences.staffNotifications,
+      },
+    }),
+    ...(input.branding && {
+      branding: {
+        ...restaurant.settings.branding,
+        ...input.branding,
+      },
+    }),
+    ...(input.timezone && { timezone: input.timezone }),
+    ...(input.dateFormat && { dateFormat: input.dateFormat }),
+    ...(input.timeFormat && { timeFormat: input.timeFormat }),
+  } as typeof restaurant.settings;
 
   await restaurant.save();
 

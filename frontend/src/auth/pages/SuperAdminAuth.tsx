@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthProvider';
 import { Shield, User, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Mail, KeyRound } from 'lucide-react';
@@ -27,6 +27,58 @@ const SuperAdminAuth: React.FC = () => {
   const [resetToken, setResetToken] = useState('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  const [otpExpiresAt, setOtpExpiresAt] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(0);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('otpExpiresAt');
+    if (saved) {
+      const remaining = Math.max(0, Math.floor((new Date(saved).getTime() - Date.now()) / 1000));
+      if (remaining > 0) {
+        setOtpExpiresAt(saved);
+        setCountdown(remaining);
+      } else {
+        localStorage.removeItem('otpExpiresAt');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (otpExpiresAt) {
+      timer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [otpExpiresAt]);
+
+  const handleResendOtp = async () => {
+    setLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const response = await apiClient.post('/auth/forgot-password', { email: forgotEmail.trim().toLowerCase() });
+      setSuccessMessage('OTP sent successfully to your email');
+      if (response.data.data.otpExpiresAt) {
+        const expiresAt = response.data.data.otpExpiresAt;
+        setOtpExpiresAt(expiresAt);
+        localStorage.setItem('otpExpiresAt', expiresAt);
+        setCountdown(Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000)));
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to resend OTP. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!forgotEmail.trim()) {
@@ -37,8 +89,14 @@ const SuperAdminAuth: React.FC = () => {
     setError(null);
     setSuccessMessage(null);
     try {
-      await apiClient.post('/auth/forgot-password', { email: forgotEmail.trim().toLowerCase() });
+      const response = await apiClient.post('/auth/forgot-password', { email: forgotEmail.trim().toLowerCase() });
       setSuccessMessage('OTP sent successfully to your email');
+      if (response.data.data.otpExpiresAt) {
+        const expiresAt = response.data.data.otpExpiresAt;
+        setOtpExpiresAt(expiresAt);
+        localStorage.setItem('otpExpiresAt', expiresAt);
+        setCountdown(Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000)));
+      }
       setAuthMode('verify-otp');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to send OTP. Please try again.');
@@ -65,6 +123,9 @@ const SuperAdminAuth: React.FC = () => {
       setResetToken(token);
       setSuccessMessage('OTP verified successfully! Please enter your new password.');
       setAuthMode('reset-password');
+      setCountdown(0);
+      setOtpExpiresAt(null);
+      localStorage.removeItem('otpExpiresAt');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Invalid OTP code. Please try again.');
     } finally {
@@ -126,7 +187,7 @@ const SuperAdminAuth: React.FC = () => {
         : { mobile: adminId.trim(), password };
 
       const user = await signIn(payload);
-      
+
       if (user.role !== 'super-admin') {
         setError('Unauthorized: Only platform administrators are permitted to access this area.');
         return;
@@ -360,6 +421,15 @@ const SuperAdminAuth: React.FC = () => {
                 required
               />
             </div>
+            {countdown > 0 ? (
+              <p className="text-sm font-medium text-slate-600 dark:text-zinc-400 mt-2">
+                OTP expires in: {String(Math.floor(countdown / 60)).padStart(2, '0')}:{String(countdown % 60).padStart(2, '0')}
+              </p>
+            ) : (
+              <p className="text-sm font-medium text-red-500 mt-2">
+                OTP expired.
+              </p>
+            )}
           </div>
 
           {error && (
@@ -377,12 +447,25 @@ const SuperAdminAuth: React.FC = () => {
           <div className="space-y-3">
             <button
               type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center space-x-2 py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-2xl shadow-soft hover:shadow-md transition-all active:scale-[0.98]"
+              disabled={loading || countdown <= 0}
+              className={`w-full flex items-center justify-center space-x-2 py-3.5 text-white font-semibold rounded-2xl shadow-soft hover:shadow-md transition-all active:scale-[0.98] ${
+                countdown <= 0 ? 'bg-slate-400 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-700'
+              }`}
             >
               <span>{loading ? 'Verifying OTP...' : 'Verify OTP'}</span>
               <ArrowRight className="w-5 h-5" />
             </button>
+
+            {countdown <= 0 && (
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                disabled={loading}
+                className="w-full flex items-center justify-center space-x-2 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-2xl shadow-soft hover:shadow-md transition-all active:scale-[0.98]"
+              >
+                <span>{loading ? 'Sending...' : 'Resend OTP'}</span>
+              </button>
+            )}
 
             <button
               type="button"
@@ -439,6 +522,9 @@ const SuperAdminAuth: React.FC = () => {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="flex-1 w-full bg-transparent border-0 outline-none text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-600 focus:ring-0 text-sm"
                 required
+                onPaste={(e) => e.preventDefault()}
+                onDrop={(e) => e.preventDefault()}
+                autoComplete="new-password"
               />
               <button
                 type="button"
@@ -448,6 +534,7 @@ const SuperAdminAuth: React.FC = () => {
                 {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
+            <p className="text-[10px] mt-1 text-slate-500 dark:text-slate-400">Please re-enter your password manually.</p>
           </div>
 
           {error && (

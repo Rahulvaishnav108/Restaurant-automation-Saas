@@ -11,6 +11,10 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { UserRole } from '../../constants/roles';
 import { NotificationCategory, NotificationPriority } from '../notifications/notifications.schema';
 import { PaymentModel } from '../payments/payments.model';
+import { InvoiceCounterModel } from './invoice-counter.model';
+import { sendReceiptEmail } from '../../services/mail.service';
+import { TableSessionModel } from '../tableSessions/tableSessions.model';
+import logger from "../../config/logger";
 
 export class BillingService {
   /**
@@ -63,7 +67,7 @@ export class BillingService {
   /**
    * Requests the final bill. Creates or updates the Bill document.
    */
-  static async requestFinalBill(restaurantId: string, sessionId: string) {
+  static async requestFinalBill(restaurantId: string, sessionId: string, customerEmail?: string, wantsReceipt?: boolean) {
     // Transition all active/served orders to BILLED
     const activeOrders = await OrderModel.find({
       restaurantId,
@@ -93,23 +97,31 @@ export class BillingService {
     const orderIds = liveBill.orders.map(o => o._id as mongoose.Types.ObjectId);
 
     let bill = await BillingModel.findOne({ restaurantId, sessionId });
+    const session = await TableSessionModel.findById(sessionId);
 
     if (bill) {
       if (bill.status === BillStatus.PAID || bill.status === BillStatus.PENDING_PAYMENT) {
         throw new AppError('Bill is already finalized or paid.', 400, ErrorCode.INVALID_REQUEST);
       }
-      
+
       bill.subtotal = liveBill.subtotal;
       bill.taxAmount = liveBill.taxAmount;
       bill.serviceCharge = liveBill.serviceCharge;
-      
+
       const couponDiscount = bill.appliedCoupons.reduce((sum, c) => sum + c.discountAmount, 0);
       bill.discountAmount = liveBill.discountAmount + couponDiscount;
       bill.finalAmount = bill.subtotal + bill.taxAmount + bill.serviceCharge - bill.discountAmount;
-      
+
       bill.orderIds = orderIds;
       bill.status = BillStatus.GENERATED;
       bill.requestedAt = new Date();
+
+      if (customerEmail) bill.customerEmail = customerEmail;
+      if (session) {
+        bill.customerName = session.customerName;
+        bill.customerPhone = session.mobile;
+      }
+
       await bill.save();
     } else {
       bill = await BillingModel.create({
@@ -123,6 +135,10 @@ export class BillingService {
         finalAmount: liveBill.finalAmount,
         status: BillStatus.GENERATED,
         requestedAt: new Date(),
+        customerEmail,
+        wantsReceipt: wantsReceipt || false,
+        customerName: session?.customerName,
+        customerPhone: session?.mobile,
       });
     }
 
@@ -193,10 +209,19 @@ export class BillingService {
     return bill;
   }
 
-  static async createPayment(restaurantId: string, sessionId: string, paymentMethod: PaymentMethod) {
+  static async createPayment(restaurantId: string, sessionId: string, paymentMethod: PaymentMethod, customerEmail?: string) {
     let bill = await BillingModel.findOne({ restaurantId, sessionId });
     if (!bill) {
-      bill = await this.requestFinalBill(restaurantId, sessionId);
+      bill = await this.requestFinalBill(restaurantId, sessionId, customerEmail);
+    } else {
+      // Update customer details if they are finalizing payment directly
+      if (customerEmail) bill.customerEmail = customerEmail;
+      const session = await TableSessionModel.findById(sessionId);
+      if (session) {
+        bill.customerName = session.customerName;
+        bill.customerPhone = session.mobile;
+      }
+      await bill.save();
     }
 
     if (bill.status === BillStatus.PAID) {
@@ -204,7 +229,7 @@ export class BillingService {
     }
 
     const intentId = `pay_mock_${restaurantId}_${Date.now()}`;
-    
+
     bill.paymentId = intentId;
     bill.paymentMethod = paymentMethod;
     bill.status = BillStatus.PENDING_PAYMENT;
@@ -301,6 +326,20 @@ export class BillingService {
     bill.status = BillStatus.PAID;
     bill.paymentStatus = PaymentStatus.PAID;
     bill.paidAt = new Date();
+
+    // Idempotent Invoice Number Generation
+    if (!bill.invoiceNumber) {
+      const currentYear = new Date().getFullYear();
+      const counter = await InvoiceCounterModel.findOneAndUpdate(
+        { year: currentYear },
+        { $inc: { sequence: 1 } },
+        { new: true, upsert: true }
+      );
+      const sequenceStr = String(counter.sequence).padStart(6, '0');
+      // Using global INV-YYYY-SEQUENCE since restaurant codes are missing
+      bill.invoiceNumber = `INV-${currentYear}-${sequenceStr}`;
+    }
+
     await bill.save();
 
     if (payment) {
@@ -320,6 +359,33 @@ export class BillingService {
       order.status = OrderStatus.PAID;
       order.paymentStatus = 'PAID' as any;
       await order.save();
+    }
+
+    // Send HTML Receipt Email
+    if (bill.customerEmail && bill.wantsReceipt) {
+      try {
+        const restaurant = await RestaurantModel.findById(restaurantId).lean();
+        const restaurantName = restaurant?.name || 'Our Restaurant';
+        const orderItems = billedOrders.flatMap(o => o.items);
+
+        await sendReceiptEmail(bill.customerEmail, {
+          restaurantName,
+          invoiceNumber: bill.invoiceNumber || '',
+          customerName: bill.customerName || 'Guest',
+          customerPhone: bill.customerPhone || '',
+          orderItems,
+          subtotal: bill.subtotal,
+          taxAmount: bill.taxAmount + (bill.serviceCharge || 0),
+          totalAmount: bill.finalAmount,
+          paymentMethod: bill.paymentMethod || 'ONLINE',
+          paymentDate: bill.paidAt.toISOString().split('T')[0]
+        });
+
+        bill.receiptEmailedAt = new Date();
+        await bill.save();
+      } catch (error) {
+        logger.error('Failed to send receipt email', { error, billId: bill._id });
+      }
     }
 
     // Trigger persistent notification targeting CUSTOMER

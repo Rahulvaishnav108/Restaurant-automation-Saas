@@ -6,6 +6,23 @@ type RestaurantSettings = {
   taxRate: number;
   serviceChargeEnabled: boolean;
   sessionDurationMinutes: number;
+  emailPreferences: {
+    dailySalesReports: boolean;
+    inventoryAlerts: boolean;
+    staffNotifications: boolean;
+  };
+  branding?: {
+    logo?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    footerText?: string;
+    website?: string;
+    supportEmail?: string;
+    supportPhone?: string;
+  };
+  timezone: string;
+  dateFormat: string;
+  timeFormat: string;
 };
 
 export interface IRestaurant extends Document {
@@ -27,6 +44,33 @@ const restaurantSettingsSchema = new Schema<RestaurantSettings>(
     taxRate: { type: Number, default: 0.05, min: 0 },
     serviceChargeEnabled: { type: Boolean, default: true },
     sessionDurationMinutes: { type: Number, default: 90, min: 15 },
+    emailPreferences: {
+      type: {
+        dailySalesReports: { type: Boolean, default: true },
+        inventoryAlerts: { type: Boolean, default: true },
+        staffNotifications: { type: Boolean, default: true },
+      },
+      default: () => ({
+        dailySalesReports: true,
+        inventoryAlerts: true,
+        staffNotifications: true,
+      }),
+    },
+    branding: {
+      type: {
+        logo: { type: String, trim: true },
+        primaryColor: { type: String, trim: true },
+        secondaryColor: { type: String, trim: true },
+        footerText: { type: String, trim: true },
+        website: { type: String, trim: true },
+        supportEmail: { type: String, trim: true },
+        supportPhone: { type: String, trim: true },
+      },
+      default: null,
+    },
+    timezone: { type: String, default: 'UTC' },
+    dateFormat: { type: String, default: 'YYYY-MM-DD' },
+    timeFormat: { type: String, default: 'HH:mm' },
   },
   { _id: false },
 );
@@ -51,6 +95,15 @@ const restaurantSchema = new Schema<IRestaurant>(
         taxRate: 0.05,
         serviceChargeEnabled: true,
         sessionDurationMinutes: 90,
+        emailPreferences: {
+          dailySalesReports: true,
+          inventoryAlerts: true,
+          staffNotifications: true,
+        },
+        branding: undefined,
+        timezone: 'UTC',
+        dateFormat: 'YYYY-MM-DD',
+        timeFormat: 'HH:mm',
       }),
     },
   },

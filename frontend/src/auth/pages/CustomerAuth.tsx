@@ -21,7 +21,8 @@ const CustomerAuth: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [otpSent, setOtpSent] = useState(false);
-  const [countdown, setCountdown] = useState(45);
+  const [otpExpiresAt, setOtpExpiresAt] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(0);
   const [showNamePrompt, setShowNamePrompt] = useState(false);
 
   const otpRefs = [
@@ -32,14 +33,34 @@ const CustomerAuth: React.FC = () => {
   ];
 
   useEffect(() => {
+    const saved = localStorage.getItem('customerOtpExpiresAt');
+    if (saved) {
+      const remaining = Math.max(0, Math.floor((new Date(saved).getTime() - Date.now()) / 1000));
+      if (remaining > 0) {
+        setOtpExpiresAt(saved);
+        setCountdown(remaining);
+        setOtpSent(true);
+      } else {
+        localStorage.removeItem('customerOtpExpiresAt');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (otpSent && countdown > 0) {
+    if (otpExpiresAt) {
       timer = setInterval(() => {
-        setCountdown((prev) => prev - 1);
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [otpSent, countdown]);
+  }, [otpExpiresAt]);
 
   const handleMobileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '').slice(0, 10);
@@ -79,7 +100,12 @@ const CustomerAuth: React.FC = () => {
       const payload = response.data.data;
       setUserExists(Boolean(payload.exists));
       setOtpSent(true);
-      setCountdown(45);
+      if (payload.otpExpiresAt) {
+        const expiresAt = payload.otpExpiresAt;
+        setOtpExpiresAt(expiresAt);
+        localStorage.setItem('customerOtpExpiresAt', expiresAt);
+        setCountdown(Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000)));
+      }
       setSuccess('OTP sent successfully!');
       setTimeout(() => setSuccess(null), 3000);
       // Focus first OTP field
@@ -107,15 +133,16 @@ const CustomerAuth: React.FC = () => {
       });
 
       const data = response.data.data;
-      
+
       // Save tokens using tokenStore helpers
       setAccessToken('customer', data.accessToken);
       setStoredRole('customer', 'customer');
-      
+
       if (setAccessTokenState) {
         setAccessTokenState(data.accessToken);
       }
       localStorage.setItem('refreshToken', data.refreshToken);
+      localStorage.removeItem('customerOtpExpiresAt');
 
       if (userExists) {
         // Fetch profile to get correct name
@@ -154,7 +181,7 @@ const CustomerAuth: React.FC = () => {
             setUser(userPayload);
           }
         }
-        
+
         setSuccess('Logged in successfully!');
         setTimeout(() => {
           navigate(from, { replace: true });
@@ -366,7 +393,11 @@ const CustomerAuth: React.FC = () => {
 
                   <div className="flex justify-between items-center text-xs mt-2 px-1 font-sans">
                     <span className="text-slate-400 dark:text-zinc-500">
-                      Resend OTP in <span className="text-orange-500 font-medium">{formatCountdown(countdown)}</span>
+                      {countdown > 0 ? (
+                        <>OTP expires in <span className="text-orange-500 font-medium">{formatCountdown(countdown)}</span></>
+                      ) : (
+                        <span className="text-red-500 font-medium">OTP expired.</span>
+                      )}
                     </span>
                     <button
                       type="button"
@@ -402,8 +433,10 @@ const CustomerAuth: React.FC = () => {
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={loading || (otpSent && !showNamePrompt && otp.some((d) => !d)) || (showNamePrompt && !name.trim())}
-          className="w-full flex items-center justify-center space-x-2 py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-2xl shadow-soft hover:shadow-md transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none font-sans"
+          disabled={loading || (otpSent && !showNamePrompt && (otp.some((d) => !d) || countdown <= 0)) || (showNamePrompt && !name.trim())}
+          className={`w-full flex items-center justify-center space-x-2 py-3.5 text-white font-semibold rounded-2xl shadow-soft transition-all active:scale-[0.98] disabled:pointer-events-none font-sans ${
+            (otpSent && !showNamePrompt && countdown <= 0) ? 'bg-slate-400 cursor-not-allowed opacity-100' : 'bg-orange-600 hover:bg-orange-700 hover:shadow-md disabled:opacity-50'
+          }`}
         >
           <span>
             {showNamePrompt ? 'Continue' : !otpSent ? 'Get OTP' : 'Verify & Login'}

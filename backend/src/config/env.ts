@@ -81,6 +81,11 @@ const envSchema = z.object({
   DOCKER_ENV: z.string().optional(),
   SUPER_ADMIN_EMAIL: z.string().email().optional(),
   SUPER_ADMIN_PASSWORD: z.string().min(8).optional(),
+  CRON_SALES_REPORT_ENABLED: z
+    .union([z.boolean(), z.string()])
+    .transform((value) => value === true || value === 'true')
+    .default(true),
+  CRON_SALES_REPORT_TIME: z.string().default('5 0 * * *'),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

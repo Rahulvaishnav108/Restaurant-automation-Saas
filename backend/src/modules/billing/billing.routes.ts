@@ -15,6 +15,12 @@ const router = Router();
 
 router.get("/customer/bill", requireSession, BillingController.getLiveBill);
 
+router.get("/customer/bill/:id/receipt", BillingController.getReceiptJson);
+
+router.get("/customer/bill/:id/receipt/pdf", BillingController.getReceiptPdf);
+
+router.get("/customer/bill/:id/share", BillingController.shareReceipt);
+
 router.post("/customer/bill/request", requireSession, BillingController.requestFinalBill);
 
 router.post("/customer/bill/coupon", requireSession, BillingController.applyCoupon);

@@ -4,6 +4,7 @@ import { AnalyticsService } from './analytics.service';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
 import type { AnalyticsQueryInput } from './analytics.schema';
+import mongoose from 'mongoose';
 
 function getRestaurantId(req: Request): string {
   const restaurantId = req.user?.restaurantId || req.query.restaurantId;
@@ -102,6 +103,46 @@ export async function getInventoryAnalytics(req: Request, res: Response, next: N
     ok(res, { inventoryAnalytics: data });
   } catch (error) {
     logger.error('[DEBUG] getInventoryAnalytics ERROR', { error });
+    next(error);
+  }
+}
+
+import { BillingModel } from '../billing/billing.model';
+
+export async function getReceiptAnalytics(req: Request, res: Response, next: NextFunction) {
+  try {
+    const restaurantId = getRestaurantId(req);
+
+    // Using aggregation to count all non-null fields
+    const stats = await BillingModel.aggregate([
+      { $match: { restaurantId: new mongoose.Types.ObjectId(restaurantId) } },
+      { $group: {
+          _id: null,
+          viewedReceipts: { $sum: { $cond: [{ $ne: ['$receiptViewedAt', null] }, 1, 0] } },
+          downloadedReceipts: { $sum: { $cond: [{ $ne: ['$receiptDownloadedAt', null] }, 1, 0] } },
+          sharedReceipts: { $sum: { $cond: [{ $ne: ['$receiptSharedAt', null] }, 1, 0] } },
+          emailedReceipts: { $sum: { $cond: [{ $ne: ['$receiptEmailedAt', null] }, 1, 0] } },
+          totalReceiptsRequested: { $sum: { $cond: ['$wantsReceipt', 1, 0] } },
+          totalBills: { $sum: 1 }
+      }}
+    ]);
+
+    const result = stats[0] || {
+      viewedReceipts: 0,
+      downloadedReceipts: 0,
+      sharedReceipts: 0,
+      emailedReceipts: 0,
+      totalReceiptsRequested: 0,
+      totalBills: 0
+    };
+
+    const emailReceiptRate = result.totalBills > 0 ? (result.emailedReceipts / result.totalBills) * 100 : 0;
+
+    ok(res, {
+      ...result,
+      emailReceiptRate: Math.round(emailReceiptRate * 100) / 100
+    });
+  } catch (error) {
     next(error);
   }
 }

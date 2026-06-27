@@ -20,6 +20,7 @@ import { superAdminRouter } from './routes/superAdmin.routes';
 import { sharedRouter } from './routes/shared.routes';
 import usersRouter from './users/users.routes';
 import { tenantGuard } from '../middleware/tenantGuard';
+import { requirePasswordChange } from '../middleware/requirePasswordChange';
 import menuRouter from './menu/menu.routes';
 import ordersRouter from './orders/orders.routes';
 import cartRouter from './cart/cart.routes';
@@ -29,6 +30,8 @@ import loyaltyRouter from './loyalty/loyalty.routes';
 import paymentsRouter from './payments/payments.routes';
 
 export const apiRouter = Router();
+
+apiRouter.use(requirePasswordChange);
 
 apiRouter.use('/auth', authRouter);
 apiRouter.use('/users', usersRouter);

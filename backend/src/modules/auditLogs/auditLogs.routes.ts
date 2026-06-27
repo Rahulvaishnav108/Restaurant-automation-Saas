@@ -7,6 +7,7 @@ import { roleGuard }    from '../../middleware/roleGuard';
 import { validate }     from '../../middleware/validate';
 import { UserRole }     from '../../constants/roles';
 import { listAuditLogs, getAuditLog } from './auditLogs.controller';
+import { listEmailLogs } from './emailLogs.controller';
 import {
   auditLogListQuerySchema,
   auditLogIdParamSchema,
@@ -24,6 +25,14 @@ router.get(
   roleGuard(...adminRoles),
   validate({ query: auditLogListQuerySchema }),
   listAuditLogs,
+);
+
+// GET /admin/audit-logs/email-logs/all
+router.get(
+  '/emails/logs',
+  requireAuth,
+  roleGuard(...adminRoles),
+  listEmailLogs,
 );
 
 // GET /admin/audit-logs/:id
