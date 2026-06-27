@@ -17,15 +17,6 @@ import {
 } from '../components/landing';
 import '../components/landing/landing.css';
 
-// Simple SectionDivider component
-const SectionDivider = ({ label }: { label: string }) => (
-  <div className="w-full flex items-center justify-center py-12 bg-white">
-    <div className="h-px bg-gray-200 flex-1 max-w-[150px]"></div>
-    <span className="mx-6 text-xs font-bold uppercase tracking-widest text-gray-400">{label}</span>
-    <div className="h-px bg-gray-200 flex-1 max-w-[150px]"></div>
-  </div>
-);
-
 export default function LandingPage() {
   const navigate = useNavigate();
 
@@ -51,7 +42,7 @@ export default function LandingPage() {
 
       <TrendingDishes onLoginOpen={openLogin} />
       
-      <SectionDivider label="offers" />
+
       
       <OffersDeals />
       
@@ -61,7 +52,7 @@ export default function LandingPage() {
       
       <WhyChooseSection />
       
-      <SectionDivider label="blog" />
+
       
       <div style={{ backgroundColor: '#FFFFFF' }}>
         <BlogSection />
