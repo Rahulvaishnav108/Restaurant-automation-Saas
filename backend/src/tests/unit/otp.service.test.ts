@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import { createOTP, verifyOTP } from '../../services/otp.service';
-import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
 
 jest.mock('../../services/mail.service', () => ({

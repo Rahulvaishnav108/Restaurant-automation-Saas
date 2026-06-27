@@ -44,7 +44,7 @@ describe('Staff Routes', () => {
   });
 
   it('creates staff and sends an invitation email with generated password', async () => {
-    const { token, restaurantId } = await seedAdminContext();
+    const { token } = await seedAdminContext();
 
     const createResponse = await request(app)
       .post('/api/v1/admin/staff')

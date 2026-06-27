@@ -8,7 +8,6 @@ import { CustomerProfileModel } from '../analytics/customerProfile.model';
 import { ReservationStatus, SessionStatus, TableStatus } from '../../constants/statuses';
 import { generateSecureToken } from '../../utils/crypto';
 import { RestaurantModel } from '../restaurants/restaurants.model';
-import { sendReservationConfirmationEmail } from '../../services/mail.service';
 import logger from '../../config/logger';
 import { MessagingService } from '../../services/messaging.service';
 import { NotificationPreference } from './reservations.model';

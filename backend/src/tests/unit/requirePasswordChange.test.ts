@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import { requirePasswordChange } from '../../middleware/requirePasswordChange';
 import { ErrorCode } from '../../constants/errors';
 

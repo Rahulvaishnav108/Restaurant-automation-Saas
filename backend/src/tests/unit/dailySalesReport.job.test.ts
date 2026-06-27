@@ -7,7 +7,6 @@ import mongoose from 'mongoose';
 import { sendDailySalesReportEmail } from '../../services/mail.service';
 import { UserRole } from '../../constants/roles';
 import { OrderStatus } from '../../modules/orders/orders.schema';
-import { BillStatus } from '../../modules/billing/billing.schema';
 
 // Mock dependencies
 jest.mock('../../modules/restaurants/restaurants.model');

@@ -35,7 +35,7 @@ const CustomerAuth: React.FC = () => {
   useEffect(() => {
     const saved = localStorage.getItem('customerOtpExpiresAt');
     if (saved) {
-      const remaining = Math.max(0, Math.floor((new Date(saved).getTime() - Date.now()) / 1000));
+      const remaining = Math.max(0, Math.floor((new Date(saved).getTime() - new Date().getTime()) / 1000));
       if (remaining > 0) {
         setOtpExpiresAt(saved);
         setCountdown(remaining);
@@ -104,7 +104,8 @@ const CustomerAuth: React.FC = () => {
         const expiresAt = payload.otpExpiresAt;
         setOtpExpiresAt(expiresAt);
         localStorage.setItem('customerOtpExpiresAt', expiresAt);
-        setCountdown(Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000)));
+        const remaining = Math.max(0, Math.floor((new Date(expiresAt).getTime() - new Date().getTime()) / 1000));
+        setCountdown(remaining);
       }
       setSuccess('OTP sent successfully!');
       setTimeout(() => setSuccess(null), 3000);

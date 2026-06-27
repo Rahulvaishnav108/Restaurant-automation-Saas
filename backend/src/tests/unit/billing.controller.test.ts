@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import { BillingController } from '../../modules/billing/billing.controller';
 import { BillingService } from '../../modules/billing/billing.service';
 import { AppError } from '../../utils/AppError';

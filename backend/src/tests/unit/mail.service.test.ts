@@ -19,8 +19,8 @@ import {
   verifySmtpConnection,
   resetTransporterForTests,
 } from '../../services/mail.service';
-import fs from 'fs';
-import path from 'path';
+
+
 
 const mockSendMail = jest.fn();
 const mockVerify = jest.fn();
@@ -154,7 +154,7 @@ describe('mail service', () => {
 
     it('renders templates correctly even if placeholders are missing in the template (graceful degradation)', async () => {
       // Create a temporary broken template
-      const tempPath = path.join(__dirname, '..', '..', 'templates', 'emails', 'staff-invitation-broken.html');
+
       // If we could mock fs it would be easier, but testing placeholder behavior is mostly testing String.replace
       // String.replace doesn't throw if the target is missing.
       const html = 'Just some text without placeholders';
