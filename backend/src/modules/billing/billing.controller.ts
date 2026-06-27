@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from "express";
 import { BillingService } from "./billing.service";
 import { AppError } from "../../utils/AppError";
 import { ErrorCode } from "../../constants/errors";
+import { ReceiptService } from "../../services/receipt.service";
+import { BillingModel } from "./billing.model";
 
 export class BillingController {
   static async getLiveBill(req: Request, res: Response, next: NextFunction) {
@@ -20,12 +22,93 @@ export class BillingController {
     }
   }
 
+  static async getReceiptJson(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const bill = await BillingModel.findById(id).lean();
+      if (!bill) throw new AppError("Bill not found", 404, ErrorCode.NOT_FOUND);
+
+      const receipt = await ReceiptService.generateReceiptJson(bill as any);
+
+      // Track that it was viewed (non-blocking)
+      BillingModel.updateOne({ _id: id }, { receiptViewedAt: new Date() }).catch(() => {});
+
+      return res.status(200).json({
+        success: true,
+        data: receipt
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getReceiptPdf(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const bill = await BillingModel.findById(id).lean();
+      if (!bill) throw new AppError("Bill not found", 404, ErrorCode.NOT_FOUND);
+
+      const pdfBuffer = await ReceiptService.generateReceiptPdf(bill as any);
+
+      // Track that it was downloaded (non-blocking)
+      BillingModel.updateOne({ _id: id }, { receiptDownloadedAt: new Date() }).catch(() => {});
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="Receipt-${bill.invoiceNumber || id}.pdf"`);
+      return res.send(pdfBuffer);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async shareReceipt(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const bill = await BillingModel.findById(id).lean();
+      if (!bill) throw new AppError("Bill not found", 404, ErrorCode.NOT_FOUND);
+
+      const receiptUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/receipts/${id}`;
+      const pdfUrl = `${process.env.API_URL || 'http://localhost:8080/api/v1'}/customer/bill/${id}/receipt/pdf`;
+      const shareText = `Here is your receipt from ${bill.customerName ? bill.customerName + "'s visit" : "your recent visit"}.`;
+
+      // Track that it was shared (non-blocking)
+      BillingModel.updateOne({ _id: id }, { receiptSharedAt: new Date() }).catch(() => {});
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          receiptUrl,
+          pdfUrl,
+          shareText
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async requestFinalBill(req: Request, res: Response, next: NextFunction) {
     try {
       const session = req.tableSession;
       if (!session) throw new AppError("Session required", 401, ErrorCode.UNAUTHORIZED);
 
-      const data = await BillingService.requestFinalBill(session.restaurantId.toString(), session._id.toString());
+      let customerEmail = req.body.customerEmail as string | undefined;
+      if (customerEmail) {
+        customerEmail = customerEmail.trim().toLowerCase();
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(customerEmail)) {
+          throw new AppError("Invalid email format", 400, ErrorCode.VALIDATION_ERROR);
+        }
+      }
+
+      const wantsReceipt = Boolean(req.body.wantsReceipt);
+
+      const data = await BillingService.requestFinalBill(
+        session.restaurantId.toString(),
+        session._id.toString(),
+        customerEmail,
+        wantsReceipt
+      );
 
 
       return res.status(200).json({
@@ -84,7 +167,16 @@ export class BillingController {
       const paymentMethod = req.body.paymentMethod || req.body.method;
       if (!paymentMethod) throw new AppError("Payment method is required", 400, ErrorCode.VALIDATION_ERROR);
 
-      const data = await BillingService.createPayment(session.restaurantId.toString(), session._id.toString(), paymentMethod);
+      let customerEmail = req.body.customerEmail as string | undefined;
+      if (customerEmail) {
+        customerEmail = customerEmail.trim().toLowerCase();
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(customerEmail)) {
+          throw new AppError("Invalid email format", 400, ErrorCode.VALIDATION_ERROR);
+        }
+      }
+
+      const data = await BillingService.createPayment(session.restaurantId.toString(), session._id.toString(), paymentMethod, customerEmail);
 
       return res.status(201).json({
         success: true,

@@ -1,4 +1,11 @@
 // src/tests/setup.ts
+process.env.NODE_ENV = 'test';
+process.env.SMTP_HOST = 'localhost';
+process.env.SMTP_PORT = '587';
+process.env.SMTP_USER = 'testuser';
+process.env.SMTP_PASS = 'testpass';
+process.env.SMTP_FROM = 'noreply@restaurant-saas.com';
+process.env.CLIENT_URL = 'http://localhost:3000';
 import { env } from '../config/env';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
@@ -25,7 +32,11 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.connection.close();
+  }
   await disconnectDB();
+  await mongoose.disconnect();
   if (mongoServer) {
     await mongoServer.stop();
   }
@@ -40,4 +51,3 @@ afterEach(async () => {
     }
   }
 });
-

@@ -25,3 +25,6 @@ Thumbs.db
 # IDE files
 .vscode/
 .idea/
+
+# test files
+otp.txt

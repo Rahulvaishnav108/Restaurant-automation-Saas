@@ -13,6 +13,7 @@ export interface JwtPayload {
   panel: Panel;
   /** Internal sub-role within the panel (e.g. 'HEAD_CHEF', 'FLOOR_SUPERVISOR') */
   internal_role?: string;
+  mustChangePassword?: boolean;
 }
 
 export interface TokenPair {
@@ -41,4 +42,3 @@ export interface RefreshTokenDoc {
   expiresAt: Date;
   createdAt: Date;
 }
-

@@ -13,6 +13,7 @@ declare global {
         restaurantId?: string;
         panel?: Panel;
         internal_role?: string;
+        mustChangePassword?: boolean;
       };
       tableSession?: {
         _id: string;
@@ -26,4 +27,3 @@ declare global {
 }
 
 export {};
-

@@ -10,6 +10,9 @@ import { UserRole } from '../../constants/roles';
 import { NotificationCategory, NotificationPriority } from '../notifications/notifications.schema';
 import { InventoryTransactionService } from './inventoryTransaction.service';
 import { InventoryTransactionModel, TransactionAction, TransactionSource } from './inventoryTransaction.model';
+import { sendLowStockAlertEmail } from '../../services/mail.service';
+import { RestaurantModel } from '../restaurants/restaurants.model';
+import { UserModel } from '../users/users.model';
 
 export class InventoryService {
   static async createInventoryItem(restaurantId: string, data: any, actor: { id: string; role: string }) {
@@ -203,9 +206,33 @@ export class InventoryService {
     if (data.imageEmoji !== undefined) item.imageEmoji = data.imageEmoji;
     if (data.description !== undefined) item.description = data.description;
 
+    const wasLowStock = item.isLowStock;
     item.isLowStock = item.stock <= item.threshold;
 
     await item.save();
+
+    // Trigger email if it just became low stock
+    if (!wasLowStock && item.isLowStock) {
+      (async () => {
+        try {
+          const restaurant = await RestaurantModel.findById(restaurantId).lean();
+          if (!restaurant) return;
+          const admins = await UserModel.find({ restaurantId, role: UserRole.RESTAURANT_ADMIN }).lean();
+          for (const admin of admins) {
+            await sendLowStockAlertEmail(
+              admin.email,
+              restaurant.name,
+              item.name,
+              item.stock,
+              item.threshold,
+              item.unit
+            );
+          }
+        } catch (err) {
+          logger.error('Failed to trigger low stock email', { error: err });
+        }
+      })();
+    }
 
     if (data.stock !== undefined && previousStock !== data.stock) {
       await InventoryTransactionService.recordTransaction({
@@ -358,7 +385,7 @@ export class InventoryService {
 
     const result = await InventoryItemModel.aggregate(pipeline);
     const facetData = result[0];
-    
+
     const stats = (facetData.overview && facetData.overview[0]) || {
       totalItems: 0,
       activeItems: 0,
@@ -414,8 +441,8 @@ export class InventoryService {
 
       for (const [id, deductAmt] of ingredientMap.entries()) {
         const item = await InventoryItemModel.findOneAndUpdate(
-          { 
-            _id: new Types.ObjectId(id), 
+          {
+            _id: new Types.ObjectId(id),
             restaurantId: new Types.ObjectId(restaurantId),
             stock: { $gte: deductAmt }
           },
@@ -450,7 +477,7 @@ export class InventoryService {
       }
 
       await InventoryTransactionModel.insertMany(transactions, { session });
-      
+
       await session.commitTransaction();
       session.endSession();
 
@@ -467,6 +494,27 @@ export class InventoryService {
         }).catch(err => {
           logger.error(`Failed to generate low stock alert for ${item.name}: ${err.message}`);
         });
+
+        // Trigger email alert
+        (async () => {
+          try {
+            const restaurant = await RestaurantModel.findById(restaurantId).lean();
+            if (!restaurant) return;
+            const admins = await UserModel.find({ restaurantId, role: UserRole.RESTAURANT_ADMIN }).lean();
+            for (const admin of admins) {
+              await sendLowStockAlertEmail(
+                admin.email,
+                restaurant.name,
+                item.name,
+                item.stock,
+                item.threshold,
+                item.unit
+              );
+            }
+          } catch (err) {
+            logger.error('Failed to trigger low stock email in deductStock', { error: err });
+          }
+        })();
       }
 
       return true;
@@ -504,8 +552,8 @@ export class InventoryService {
 
       for (const [id, restoreAmt] of ingredientMap.entries()) {
         const item = await InventoryItemModel.findOneAndUpdate(
-          { 
-            _id: new Types.ObjectId(id), 
+          {
+            _id: new Types.ObjectId(id),
             restaurantId: new Types.ObjectId(restaurantId)
           },
           { $inc: { stock: restoreAmt } },
@@ -535,7 +583,7 @@ export class InventoryService {
       }
 
       await InventoryTransactionModel.insertMany(transactions, { session });
-      
+
       await session.commitTransaction();
       session.endSession();
 

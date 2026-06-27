@@ -23,7 +23,7 @@ export enum PaymentMethod {
   UPI = "UPI",
   WALLET = "WALLET",
   ONLINE = "ONLINE",
-} 
+}
 
 export interface IAppliedCoupon {
   couponId: mongoose.Types.ObjectId;
@@ -35,6 +35,9 @@ export interface IBill extends Document {
   restaurantId: mongoose.Types.ObjectId;
 
   customerId?: mongoose.Types.ObjectId;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
 
   orderIds: mongoose.Types.ObjectId[];
 
@@ -61,6 +64,14 @@ export interface IBill extends Document {
   paymentStatus?: PaymentStatus;
 
   status: BillStatus;
+
+  invoiceNumber?: string;
+
+  wantsReceipt?: boolean;
+  receiptDownloadedAt?: Date;
+  receiptEmailedAt?: Date;
+  receiptViewedAt?: Date;
+  receiptSharedAt?: Date;
 
   requestedAt?: Date;
 
@@ -110,9 +121,27 @@ export const billingSchema = new Schema<IBill>(
       default: null,
     },
 
+    customerName: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    customerEmail: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    customerPhone: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
     orderIds: [
       {
-        type: Schema.Types.ObjectId,  
+        type: Schema.Types.ObjectId,
         ref: "Order",
         required: true,
       },
@@ -186,6 +215,37 @@ export const billingSchema = new Schema<IBill>(
       type: String,
       enum: Object.values(BillStatus),
       default: BillStatus.DRAFT,
+    },
+
+    invoiceNumber: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    wantsReceipt: {
+      type: Boolean,
+      default: false,
+    },
+
+    receiptDownloadedAt: {
+      type: Date,
+      default: null,
+    },
+
+    receiptEmailedAt: {
+      type: Date,
+      default: null,
+    },
+
+    receiptViewedAt: {
+      type: Date,
+      default: null,
+    },
+
+    receiptSharedAt: {
+      type: Date,
+      default: null,
     },
 
     requestedAt: {
