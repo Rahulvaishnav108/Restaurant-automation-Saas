@@ -11,6 +11,8 @@ import { ProtectedRoute } from './guards/ProtectedRoute';
 import { RoleGuard } from './guards/RoleGuard';
 import { appRoutes } from '../shared/constants/routes';
 import LandingPage from '../features/customer/pages/LandingPage';
+import RestaurantsPage from '../features/customer/pages/RestaurantsPage';
+import OffersPage from '../features/customer/pages/OffersPage';
 import RootErrorBoundary from './RootErrorBoundary';
 
 function AppRouter(): JSX.Element {
@@ -23,6 +25,16 @@ function AppRouter(): JSX.Element {
         {
           path: appRoutes.home,
           element: <LandingPage />,
+        },
+
+        // ── Public: Restaurants & Offers pages ────────────────────
+        {
+          path: '/customer/restaurants',
+          element: <RestaurantsPage />,
+        },
+        {
+          path: '/customer/offers',
+          element: <OffersPage />,
         },
 
         // ── Public: Auth pages ────────────────────────────────────
