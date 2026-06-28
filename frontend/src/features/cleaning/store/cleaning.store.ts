@@ -37,9 +37,68 @@ export interface CleaningRequest {
   rawId?: string;
 }
 
+export interface StaffProfile {
+  name: string;
+  id: string;
+  email: string;
+  phone: string;
+  role: string;
+  department: string;
+  joinedOn: string;
+  status: string;
+  avatar: string;
+  preferredArea: string;
+  preferredShift: string;
+  daysAvailable: string;
+  breakPreference: string;
+  preferredTaskTypes: string;
+}
+
 class CleaningStore {
   private static instance: CleaningStore;
+  
+  public profile: StaffProfile = this.loadProfile();
 
+  private loadProfile(): StaffProfile {
+    const defaultProfile: StaffProfile = {
+      name: 'Priya Sharma',
+      id: 'CS-1024',
+      email: 'priya.sharma@cleanserve.com',
+      phone: '+91 98765 43210',
+      role: 'Cleaning Staff',
+      department: 'Housekeeping',
+      joinedOn: 'Feb 12, 2024',
+      status: 'Active',
+      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDa2YAJKAFQ_1YcbCXr9gWlXaoH1A_IQEjTEvJow9XOiXzf7N3kKDctQGwB_KXYqfHi5PGPLS2I4O9fkKOEGiWdsildQg5Vfmz05wcp_WiN4rZKyxzhEspK03vL9BZsmY_SdVZj9jBt5lCmAfSkMUlzuHsIslYMMEX5Q0WjP3tzo_dJkKtNCBmGtgdDixcta81A9KxtOnzWftBuUDgJv8HOjUm_KQMlyHP7JMggbPxQp6Ewa-AVQYMO3uYRKs2vlrtM8QQdTQx4QhY',
+      preferredArea: 'Dining Area A',
+      preferredShift: 'Morning (6 AM - 2 PM)',
+      daysAvailable: 'Mon, Tue, Wed, Thu, Fri, Sat',
+      breakPreference: '1:00 PM - 1:30 PM',
+      preferredTaskTypes: 'Table Cleaning, Restroom Cleaning, Floor Cleaning'
+    };
+
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('cleanserve-profile');
+      if (saved) {
+        try {
+          return { ...defaultProfile, ...JSON.parse(saved) };
+        } catch (e) {
+          return defaultProfile;
+        }
+      }
+    }
+    return defaultProfile;
+  }
+
+  public updateProfile(updated: Partial<StaffProfile>) {
+    this.profile = { ...this.profile, ...updated };
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cleanserve-profile', JSON.stringify(this.profile));
+    }
+    this.notify();
+  }
+
+  // Hardcoded real state templates matching our dashboard mocks
   public tables: TableItem[] = [
     {
       id: 'T07',

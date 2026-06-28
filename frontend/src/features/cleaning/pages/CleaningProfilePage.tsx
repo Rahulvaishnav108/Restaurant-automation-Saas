@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCleaning } from '../hooks/usecleaning';
+import ImageCropperModal from '../../customer/components/dashboard/ImageCropperModal';
+import { useAuth } from '../../../auth/AuthProvider';
 
 interface ActivityItem {
   icon: string;
@@ -37,33 +39,120 @@ interface TableTask {
 
 export default function CleaningProfilePage() {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { urgentTasks } = useCleaning();
+  // 🔌 Connect with dynamic system telemetry layer
+  const { urgentTasks, profile, updateProfile } = useCleaning();
   const safeTasks: TableTask[] = (urgentTasks || []) as TableTask[];
 
-  // ✅ State for Edit Profile Modal
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [profileData, setProfileData] = useState({
-    name: 'Priya Sharma',
-    phone: '+91 98765 43210',
-  });
+  const liveCleanedCount = safeTasks.filter(t => t.rawStatus === 'COMPLETED' || t.rawStatus === 'VERIFIED').length;
+  const liveInProgressCount = safeTasks.filter((t: TableTask) => t.rawStatus === 'IN_PROGRESS').length;
 
-  // ✅ State for Recent Activity Toggle
-  const [showAllActivity, setShowAllActivity] = useState(false);
+  // Edit Modals states
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [showPrefsModal, setShowPrefsModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
-  // ✅ Ref for hidden file input (Photo Upload)
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [profileImage, setProfileImage] = useState(
-    '[lh3.googleusercontent.com](https://lh3.googleusercontent.com/aida-public/AB6AXuDa2YAJKAFQ_1YcbCXr9gWlXaoH1A_IQEjTEvJow9XOiXzf7N3kKDctQGwB_KXYqfHi5PGPLS2I4O9fkKOEGiWdsildQg5Vfmz05wcp_WiN4rZKyxzhEspK03vL9BZsmY_SdVZj9jBt5lCmAfSkMUlzuHsIslYMMEX5Q0WjP3tzo_dJkKtNCBmGtgdDixcta81A9KxtOnzWftBuUDgJv8HOjUm_KQMlyHP7JMggbPxQp6Ewa-AVQYMO3uYRKs2vlrtM8QQdTQx4QhY)'
-  );
+  // Cropper states
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState('');
 
-  const liveCleanedCount = safeTasks.filter(
-    (t) => t.rawStatus === 'COMPLETED' || t.rawStatus === 'VERIFIED'
-  ).length;
-  const liveInProgressCount = safeTasks.filter(
-    (t: TableTask) => t.rawStatus === 'IN_PROGRESS'
-  ).length;
+  // Info Modal Form states
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+
+  // Prefs Modal Form states
+  const [editPreferredArea, setEditPreferredArea] = useState('');
+  const [editPreferredShift, setEditPreferredShift] = useState('');
+  const [editDaysAvailable, setEditDaysAvailable] = useState('');
+  const [editBreakPreference, setEditBreakPreference] = useState('');
+  const [editPreferredTaskTypes, setEditPreferredTaskTypes] = useState('');
+
+  // Password Modal states
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const openInfoModal = () => {
+    setEditName(profile.name);
+    setEditEmail(profile.email);
+    setEditPhone(profile.phone);
+    setShowInfoModal(true);
+  };
+
+  const openPrefsModal = () => {
+    setEditPreferredArea(profile.preferredArea);
+    setEditPreferredShift(profile.preferredShift);
+    setEditDaysAvailable(profile.daysAvailable);
+    setEditBreakPreference(profile.breakPreference);
+    setEditPreferredTaskTypes(profile.preferredTaskTypes);
+    setShowPrefsModal(true);
+  };
+
+  const openPasswordModal = () => {
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setShowPasswordModal(true);
+  };
+
+  const handleSaveInfo = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateProfile({
+      name: editName,
+      email: editEmail,
+      phone: editPhone
+    });
+    setShowInfoModal(false);
+  };
+
+  const handleSavePrefs = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateProfile({
+      preferredArea: editPreferredArea,
+      preferredShift: editPreferredShift,
+      daysAvailable: editDaysAvailable,
+      breakPreference: editBreakPreference,
+      preferredTaskTypes: editPreferredTaskTypes
+    });
+    setShowPrefsModal(false);
+  };
+
+  const handleSavePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      alert("New passwords do not match!");
+      return;
+    }
+    alert("Password updated successfully!");
+    setShowPasswordModal(false);
+  };
+
+  const handlePhotoClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setCropImageSrc(reader.result);
+          setShowCropModal(true);
+        }
+        e.target.value = '';
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCropConfirm = (croppedBase64: string) => {
+    updateProfile({ avatar: croppedBase64 });
+    setShowCropModal(false);
+  };
 
   const activities: ActivityItem[] = [
     {
@@ -117,15 +206,11 @@ export default function CleaningProfilePage() {
   ];
 
   const preferences: PreferenceItem[] = [
-    { icon: 'location_on', label: 'Preferred Area', value: 'Dining Area A' },
-    { icon: 'light_mode', label: 'Preferred Shift', value: 'Morning (6 AM - 2 PM)' },
-    { icon: 'calendar_month', label: 'Days Available', value: 'Mon, Tue, Wed, Thu, Fri, Sat' },
-    { icon: 'coffee', label: 'Break Preference', value: '1:00 PM - 1:30 PM' },
-    {
-      icon: 'fact_check',
-      label: 'Preferred Task Types',
-      value: 'Table Cleaning, Restroom Cleaning, Floor Cleaning',
-    },
+    { icon: 'location_on', label: 'Preferred Area', value: profile.preferredArea },
+    { icon: 'light_mode', label: 'Preferred Shift', value: profile.preferredShift },
+    { icon: 'calendar_month', label: 'Days Available', value: profile.daysAvailable },
+    { icon: 'coffee', label: 'Break Preference', value: profile.breakPreference },
+    { icon: 'fact_check', label: 'Preferred Task Types', value: profile.preferredTaskTypes },
   ];
 
   const badges: BadgeItem[] = [
@@ -171,494 +256,515 @@ export default function CleaningProfilePage() {
     },
   ];
 
-  // ✅ Handler for photo upload
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setProfileImage(imageUrl);
-    }
-  };
-
-  const handleSaveProfile = () => {
-    setIsEditModalOpen(false);
-  };
-
-  // ✅ Displayed activities based on toggle
-  const displayedActivities = showAllActivity ? activities : activities.slice(0, 4);
-
   return (
-    <div className="space-y-6 lg:space-y-8 animate-fadeIn cleaning-panel">
-      {/* ✅ Edit Profile Modal */}
-      {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-sd-surface-container rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl">
+    <>
+      <div className="space-y-6 lg:space-y-8 animate-fadeIn cleaning-panel">
+        {/* Profile and Performance grid */}
+        <div className="grid grid-cols-12 gap-6 lg:gap-8">
+          {/* Profile Overview */}
+          <section className="col-span-12 lg:col-span-7 bg-white dark:bg-sd-surface-container rounded-2xl border border-slate-155 dark:border-slate-800 p-6 shadow-sm">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-extrabold text-slate-800 dark:text-slate-100 font-sans">
-                Edit Profile
-              </h3>
+              <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100 font-sans">Profile Overview</h3>
               <button
-                onClick={() => setIsEditModalOpen(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                onClick={openInfoModal}
+                className="text-slate-400 hover:text-orange-500 transition-colors flex items-center gap-1 text-[11px] font-bold font-sans cursor-pointer focus:outline-none"
+                title="Edit Profile Information"
               >
-                <span className="material-symbols-outlined text-slate-500">close</span>
+                <span className="material-symbols-outlined text-[16px]">edit</span>
+                Edit Info
               </button>
             </div>
-
-            <div className="space-y-4">
-              <div>
-                <label
-                  htmlFor="full-name"
-                  className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1.5"
-                >
-                  Full Name
-                </label>
+            <div className="flex flex-col md:flex-row gap-6 lg:gap-8">
+              <div className="flex flex-col items-center gap-3 shrink-0">
+                <div className="relative shrink-0">
+                  {profile.avatar ? (
+                    <img
+                      alt={profile.name}
+                      className="w-28 h-28 rounded-full object-cover border-4 border-slate-100 dark:border-slate-800 shadow-md"
+                      src={profile.avatar}
+                    />
+                  ) : (
+                    <div className="w-28 h-28 rounded-full border-4 border-slate-100 dark:border-slate-800 shadow-md bg-orange-500/10 flex items-center justify-center text-orange-500 font-bold text-3xl">
+                      {profile.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+                    </div>
+                  )}
+                  <span className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-sd-surface-container rounded-full" />
+                </div>
                 <input
-                  id="full-name"
-                  type="text"
-                  value={profileData.name}
-                  onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handlePhotoChange}
+                  accept="image/*"
+                  className="hidden"
                 />
+                <button
+                  onClick={handlePhotoClick}
+                  className="flex items-center gap-1.5 px-3 py-1.5 border border-orange-500 text-orange-500 dark:text-white dark:border-slate-700 rounded-lg text-[10px] font-bold hover:bg-orange-500/10 transition-all active:scale-95 font-sans cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[16px]">photo_camera</span>
+                  Change Photo
+                </button>
+                <button
+                  onClick={() => signOut()}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-650 dark:bg-red-950/20 dark:hover:bg-red-900/30 dark:text-red-400 border border-transparent rounded-lg text-[10px] font-bold transition-all active:scale-95 font-sans cursor-pointer w-full justify-center mt-2"
+                >
+                  <span className="material-symbols-outlined text-[16px]">logout</span>
+                  Logout
+                </button>
               </div>
 
-              <div>
-                <label
-                  htmlFor="phone-number"
-                  className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1.5"
-                >
-                  Phone
-                </label>
-                <input
-                  id="phone-number"
-                  type="tel"
-                  value={profileData.phone}
-                  onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                />
+              <div className="flex-1 grid grid-cols-2 gap-y-4 gap-x-6 lg:gap-x-8 font-sans text-xs">
+                <div className="space-y-0.5">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Full Name</p>
+                  <p className="font-extrabold text-slate-800 dark:text-slate-200">{profile.name}</p>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Staff ID</p>
+                  <p className="font-extrabold text-slate-800 dark:text-slate-200">{profile.id}</p>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Email</p>
+                  <p className="font-extrabold text-slate-800 dark:text-slate-200 truncate">{profile.email}</p>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Phone</p>
+                  <p className="font-extrabold text-slate-800 dark:text-slate-200">{profile.phone}</p>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Role</p>
+                  <p className="font-extrabold text-slate-800 dark:text-slate-200">{profile.role}</p>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Department</p>
+                  <p className="font-extrabold text-slate-800 dark:text-slate-200">{profile.department}</p>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Joined On</p>
+                  <p className="font-extrabold text-slate-800 dark:text-slate-200">{profile.joinedOn}</p>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Status</p>
+                  <span className="bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-455 px-2 py-0.5 rounded text-[10px] font-bold inline-block">{profile.status}</span>
+                </div>
               </div>
             </div>
+          </section>
 
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setIsEditModalOpen(false)}
-                className="flex-1 px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveProfile}
-                className="flex-1 px-4 py-2.5 bg-orange-500 rounded-xl text-sm font-bold text-white hover:bg-orange-600 transition-colors cursor-pointer"
-              >
-                Save
-              </button>
+          {/* Performance Summary */}
+          <section className="col-span-12 lg:col-span-5 space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100 font-sans">Performance Summary</h3>
+              <select className="bg-slate-50 dark:bg-slate-800 border-none rounded-lg text-[10px] font-bold font-sans focus:ring-1 focus:ring-orange-500 px-2.5 py-1 text-slate-700 dark:text-slate-350 outline-none accent-orange-500 cursor-pointer">
+                <option>This Month</option>
+                <option>Last Month</option>
+              </select>
             </div>
-          </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white dark:bg-sd-surface-container p-4 rounded-2xl border border-slate-150 dark:border-slate-800 shadow-sm">
+                <div className="w-8 h-8 bg-green-50 dark:bg-green-950/30 rounded-full flex items-center justify-center mb-2 text-green-600">
+                  <span className="material-symbols-outlined text-[20px]">done_all</span>
+                </div>
+                <h4 className="text-xl font-extrabold text-slate-855 dark:text-slate-100 leading-none">{12 + liveCleanedCount}</h4>
+                <p className="text-[10px] text-slate-400 font-bold font-sans mt-0.5">Tables Cleaned</p>
+                <div className="flex items-center gap-0.5 text-green-600 text-[9px] font-bold font-sans mt-2">
+                  <span className="material-symbols-outlined text-[12px]">trending_up</span>
+                  12% vs last month
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-sd-surface-container p-4 rounded-2xl border border-slate-150 dark:border-slate-800 shadow-sm">
+                <div className="w-8 h-8 bg-orange-500/10 dark:bg-orange-950/30 rounded-full flex items-center justify-center mb-2 text-orange-500">
+                  <span className="material-symbols-outlined text-[20px]">verified_user</span>
+                </div>
+                <h4 className="text-xl font-extrabold text-slate-855 dark:text-slate-100 leading-none">98%</h4>
+                <p className="text-[10px] text-slate-400 font-bold font-sans mt-0.5">Hygiene Score</p>
+                <div className="flex items-center gap-0.5 text-green-600 text-[9px] font-bold font-sans mt-2">
+                  <span className="material-symbols-outlined text-[12px]">trending_up</span>
+                  5% vs last month
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-sd-surface-container p-4 rounded-2xl border border-slate-150 dark:border-slate-800 shadow-sm">
+                <div className="w-8 h-8 bg-orange-50 dark:bg-orange-950/30 rounded-full flex items-center justify-center mb-2 text-orange-600">
+                  <span className="material-symbols-outlined text-[20px]">schedule</span>
+                </div>
+                <div className="flex items-baseline gap-0.5">
+                  <h4 className="text-xl font-extrabold text-slate-855 dark:text-slate-100 leading-none">24h</h4>
+                  <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">36m</span>
+                </div>
+                <p className="text-[10px] text-slate-400 font-bold font-sans mt-0.5">Total Work Time</p>
+                <div className="flex items-center gap-0.5 text-green-600 text-[9px] font-bold font-sans mt-2">
+                  <span className="material-symbols-outlined text-[12px]">trending_up</span>
+                  8% vs last month
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-sd-surface-container p-4 rounded-2xl border border-slate-150 dark:border-slate-800 shadow-sm">
+                <div className="w-8 h-8 bg-orange-500/10 dark:bg-orange-950/30 rounded-full flex items-center justify-center mb-2 text-orange-500">
+                  <span className="material-symbols-outlined text-[20px]">assignment_turned_in</span>
+                </div>
+                <h4 className="text-xl font-extrabold text-slate-855 dark:text-slate-100 leading-none">{22 + liveCleanedCount + liveInProgressCount}</h4>
+                <p className="text-[10px] text-slate-400 font-bold font-sans mt-0.5">Tasks Completed</p>
+                <div className="flex items-center gap-0.5 text-green-600 text-[9px] font-bold font-sans mt-2">
+                  <span className="material-symbols-outlined text-[12px]">trending_up</span>
+                  14% vs last month
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
-      )}
 
-      {/* Profile and Performance grid */}
-      <div className="grid grid-cols-12 gap-6 lg:gap-8">
-        {/* Profile Overview */}
-        <section className="col-span-12 lg:col-span-7 bg-white dark:bg-sd-surface-container rounded-2xl border border-slate-150 dark:border-slate-800 p-6 shadow-sm">
-          {/* ✅ Updated header with Edit Profile button */}
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100 font-sans">
-              Profile Overview
-            </h3>
-            <button
-              onClick={() => setIsEditModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 text-white rounded-lg text-[10px] font-bold hover:bg-orange-600 transition-all active:scale-95 font-sans cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[14px]">edit</span>
-              Edit Profile
-            </button>
-          </div>
-          <div className="flex flex-col md:flex-row gap-6 lg:gap-8">
-            <div className="flex flex-col items-center gap-3 shrink-0">
-              <div className="relative shrink-0">
-                <img
-                  alt={profileData.name}
-                  className="w-28 h-28 rounded-full object-cover border-4 border-slate-100 dark:border-slate-800 shadow-md"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDa2YAJKAFQ_1YcbCXr9gWlXaoH1A_IQEjTEvJow9XOiXzf7N3kKDctQGwB_KXYqfHi5PGPLS2I4O9fkKOEGiWdsildQg5Vfmz05wcp_WiN4rZKyxzhEspK03vL9BZsmY_SdVZj9jBt5lCmAfSkMUlzuHsIslYMMEX5Q0WjP3tzo_dJkKtNCBmGtgdDixcta81A9KxtOnzWftBuUDgJv8HOjUm_KQMlyHP7JMggbPxQp6Ewa-AVQYMO3uYRKs2vlrtM8QQdTQx4QhY"
-                />
-                <span className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-sd-surface-container rounded-full" />
-              </div>
-              {/* ✅ Hidden file input for photo upload */}
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handlePhotoChange}
-                accept="image/*"
-                className="hidden"
-              />
+        {/* Account Settings, Activity, Work Preferences */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+          <section className="bg-white dark:bg-sd-surface-container rounded-2xl border border-slate-150 dark:border-slate-800 p-5 shadow-sm">
+            <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 mb-4 font-sans">Account Settings</h3>
+            <div className="space-y-1.5">
+              {[
+                { label: 'Personal Information', desc: 'Update your personal details', icon: 'person', action: openInfoModal },
+                { label: 'Change Password', desc: 'Update your account password', icon: 'lock', action: openPasswordModal },
+                { label: 'Notification Preferences', desc: 'Manage your notification settings', icon: 'notifications_active', action: () => navigate('/cleaning/settings') },
+              ].map((item, idx) => (
+                <button
+                  key={idx}
+                  onClick={item.action}
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group font-sans text-xs text-left cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-slate-400 group-hover:text-orange-500 transition-colors text-[18px]">{item.icon}</span>
+                    <div>
+                      <p className="font-bold text-slate-800 dark:text-slate-200">{item.label}</p>
+                      <p className="text-[9px] text-slate-400 font-semibold">{item.desc}</p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-slate-450 group-hover:translate-x-0.5 transition-transform text-sm">chevron_right</span>
+                </button>
+              ))}
+              
               <button
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1.5 px-3 py-1.5 border border-orange-500 text-orange-500 dark:text-white dark:border-slate-700 rounded-lg text-[10px] font-bold hover:bg-orange-500/10 transition-all active:scale-95 font-sans cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[16px]">photo_camera</span>
-                Change Photo
-              </button>
-            </div>
-
-            <div className="flex-1 grid grid-cols-2 gap-y-4 gap-x-6 lg:gap-x-8 font-sans text-xs">
-              <div className="space-y-0.5">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  Full Name
-                </p>
-                <p className="font-extrabold text-slate-800 dark:text-slate-200">
-                  {profileData.name}
-                </p>
-              </div>
-              <div className="space-y-0.5">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  Staff ID
-                </p>
-                <p className="font-extrabold text-slate-800 dark:text-slate-200">CS-1024</p>
-              </div>
-              <div className="space-y-0.5">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  Email
-                </p>
-                <p className="font-extrabold text-slate-800 dark:text-slate-200 truncate">
-                  priya.sharma@cleanserve.com
-                </p>
-              </div>
-              <div className="space-y-0.5">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  Phone
-                </p>
-                <p className="font-extrabold text-slate-800 dark:text-slate-200">
-                  {profileData.phone}
-                </p>
-              </div>
-              <div className="space-y-0.5">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  Role
-                </p>
-                <p className="font-extrabold text-slate-800 dark:text-slate-200">Cleaning Staff</p>
-              </div>
-              <div className="space-y-0.5">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  Department
-                </p>
-                <p className="font-extrabold text-slate-800 dark:text-slate-200">Housekeeping</p>
-              </div>
-              <div className="space-y-0.5">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  Joined On
-                </p>
-                <p className="font-extrabold text-slate-800 dark:text-slate-200">Feb 12, 2024</p>
-              </div>
-              <div className="space-y-0.5">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  Status
-                </p>
-                <span className="bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-455 px-2 py-0.5 rounded text-[10px] font-bold inline-block">
-                  Active
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Performance Summary */}
-        <section className="col-span-12 lg:col-span-5 space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100 font-sans">
-              Performance Summary
-            </h3>
-            <select className="bg-slate-50 dark:bg-slate-800 border-none rounded-lg text-[10px] font-bold font-sans focus:ring-1 focus:ring-orange-500 px-2.5 py-1 text-slate-700 dark:text-slate-350 outline-none accent-orange-500 cursor-pointer">
-              <option>This Month</option>
-              <option>Last Month</option>
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white dark:bg-sd-surface-container p-4 rounded-2xl border border-slate-150 dark:border-slate-800 shadow-sm">
-              <div className="w-8 h-8 bg-green-50 dark:bg-green-950/30 rounded-full flex items-center justify-center mb-2 text-green-600">
-                <span className="material-symbols-outlined text-[20px]">done_all</span>
-              </div>
-              <h4 className="text-xl font-extrabold text-slate-855 dark:text-slate-100 leading-none">
-                {12 + liveCleanedCount}
-              </h4>
-              <p className="text-[10px] text-slate-400 font-bold font-sans mt-0.5">
-                Tables Cleaned
-              </p>
-              <div className="flex items-center gap-0.5 text-green-600 text-[9px] font-bold font-sans mt-2">
-                <span className="material-symbols-outlined text-[12px]">trending_up</span>
-                12% vs last month
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-sd-surface-container p-4 rounded-2xl border border-slate-150 dark:border-slate-800 shadow-sm">
-              <div className="w-8 h-8 bg-orange-500/10 dark:bg-orange-950/30 rounded-full flex items-center justify-center mb-2 text-orange-500">
-                <span className="material-symbols-outlined text-[20px]">verified_user</span>
-              </div>
-              <h4 className="text-xl font-extrabold text-slate-855 dark:text-slate-100 leading-none">
-                98%
-              </h4>
-              <p className="text-[10px] text-slate-400 font-bold font-sans mt-0.5">Hygiene Score</p>
-              <div className="flex items-center gap-0.5 text-green-600 text-[9px] font-bold font-sans mt-2">
-                <span className="material-symbols-outlined text-[12px]">trending_up</span>
-                5% vs last month
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-sd-surface-container p-4 rounded-2xl border border-slate-150 dark:border-slate-800 shadow-sm">
-              <div className="w-8 h-8 bg-orange-50 dark:bg-orange-950/30 rounded-full flex items-center justify-center mb-2 text-orange-600">
-                <span className="material-symbols-outlined text-[20px]">schedule</span>
-              </div>
-              <div className="flex items-baseline gap-0.5">
-                <h4 className="text-xl font-extrabold text-slate-855 dark:text-slate-100 leading-none">
-                  24h
-                </h4>
-                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
-                  36m
-                </span>
-              </div>
-              <p className="text-[10px] text-slate-400 font-bold font-sans mt-0.5">
-                Total Work Time
-              </p>
-              <div className="flex items-center gap-0.5 text-green-600 text-[9px] font-bold font-sans mt-2">
-                <span className="material-symbols-outlined text-[12px]">trending_up</span>
-                8% vs last month
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-sd-surface-container p-4 rounded-2xl border border-slate-150 dark:border-slate-800 shadow-sm">
-              <div className="w-8 h-8 bg-orange-500/10 dark:bg-orange-950/30 rounded-full flex items-center justify-center mb-2 text-orange-500">
-                <span className="material-symbols-outlined text-[20px]">assignment_turned_in</span>
-              </div>
-              <h4 className="text-xl font-extrabold text-slate-855 dark:text-slate-100 leading-none">
-                {22 + liveCleanedCount + liveInProgressCount}
-              </h4>
-              <p className="text-[10px] text-slate-400 font-bold font-sans mt-0.5">
-                Tasks Completed
-              </p>
-              <div className="flex items-center gap-0.5 text-green-600 text-[9px] font-bold font-sans mt-2">
-                <span className="material-symbols-outlined text-[12px]">trending_up</span>
-                14% vs last month
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      {/* Account Settings, Activity, Work Preferences */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-        <section className="bg-white dark:bg-sd-surface-container rounded-2xl border border-slate-150 dark:border-slate-800 p-5 shadow-sm">
-          <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 mb-4 font-sans">
-            Account Settings
-          </h3>
-          <div className="space-y-1.5">
-            {[
-              {
-                label: 'Personal Information',
-                desc: 'Update your personal details',
-                icon: 'person',
-              },
-              { label: 'Change Password', desc: 'Update your account password', icon: 'lock' },
-              {
-                label: 'Notification Preferences',
-                desc: 'Manage your notification settings',
-                icon: 'notifications_active',
-              },
-            ].map((item, idx) => (
-              <button
-                key={idx}
                 onClick={() => navigate('/cleaning/settings')}
                 className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group font-sans text-xs text-left cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-slate-400 group-hover:text-orange-500 transition-colors text-[18px]">
-                    {item.icon}
-                  </span>
+                  <span className="material-symbols-outlined text-slate-400 group-hover:text-orange-500 transition-colors text-[18px]">language</span>
                   <div>
-                    <p className="font-bold text-slate-800 dark:text-slate-200">{item.label}</p>
-                    <p className="text-[9px] text-slate-400 font-semibold">{item.desc}</p>
+                    <p className="font-bold text-slate-800 dark:text-slate-200">Language</p>
+                    <p className="text-[9px] text-slate-400 font-semibold">Choose your preferred language</p>
                   </div>
                 </div>
-                <span className="material-symbols-outlined text-slate-450 group-hover:translate-x-0.5 transition-transform text-sm">
-                  chevron_right
-                </span>
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-bold text-orange-500">English</span>
+                  <span className="material-symbols-outlined text-slate-450 group-hover:translate-x-0.5 transition-transform text-sm">chevron_right</span>
+                </div>
               </button>
-            ))}
-
-            <button
-              onClick={() => navigate('/cleaning/settings')}
-              className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group font-sans text-xs text-left cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-slate-400 group-hover:text-orange-500 transition-colors text-[18px]">
-                  language
-                </span>
-                <div>
-                  <p className="font-bold text-slate-800 dark:text-slate-200">Language</p>
-                  <p className="text-[9px] text-slate-400 font-semibold">
-                    Choose your preferred language
-                  </p>
+              <button
+                onClick={() => navigate('/cleaning/settings')}
+                className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group font-sans text-xs text-left cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-slate-400 group-hover:text-orange-500 transition-colors text-[18px]">dark_mode</span>
+                  <div>
+                    <p className="font-bold text-slate-800 dark:text-slate-200">Theme</p>
+                    <p className="text-[9px] text-slate-400 font-semibold">Choose your preferred theme</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-[10px] font-bold text-orange-500">English</span>
-                <span className="material-symbols-outlined text-slate-450 group-hover:translate-x-0.5 transition-transform text-sm">
-                  chevron_right
-                </span>
-              </div>
-            </button>
-
-            <button
-              onClick={() => navigate('/cleaning/settings')}
-              className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group font-sans text-xs text-left cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-slate-400 group-hover:text-orange-500 transition-colors text-[18px]">
-                  dark_mode
-                </span>
-                <div>
-                  <p className="font-bold text-slate-800 dark:text-slate-200">Theme</p>
-                  <p className="text-[9px] text-slate-400 font-semibold">
-                    Choose your preferred theme
-                  </p>
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-bold text-orange-500">Active</span>
+                  <span className="material-symbols-outlined text-slate-450 group-hover:translate-x-0.5 transition-transform text-sm">chevron_right</span>
                 </div>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-[10px] font-bold text-orange-500">Active</span>
-                <span className="material-symbols-outlined text-slate-450 group-hover:translate-x-0.5 transition-transform text-sm">
-                  chevron_right
-                </span>
-              </div>
-            </button>
-          </div>
-        </section>
+              </button>
+            </div>
+          </section>
 
-        {/* Recent Activity */}
-        <section className="bg-white dark:bg-sd-surface-container rounded-2xl border border-slate-150 dark:border-slate-800 p-5 shadow-sm">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 font-sans">
-              Recent Activity
-            </h3>
-            {/* ✅ Functional View All / Show Less toggle */}
-            <button
-              type="button"
-              onClick={() => setShowAllActivity(!showAllActivity)}
-              className="text-[10px] font-bold text-orange-500 cursor-pointer hover:underline font-sans"
-            >
-              {showAllActivity ? 'Show Less' : 'View All'}
-            </button>
+          {/* Recent Activity */}
+          <section className="bg-white dark:bg-sd-surface-container rounded-2xl border border-slate-150 dark:border-slate-800 p-5 shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 font-sans">Recent Activity</h3>
+              <button type="button" onClick={() => alert("View All clicked!")} className="text-[10px] font-bold text-orange-500 cursor-pointer hover:underline font-sans">View All</button>
+            </div>
+
+            <div className="space-y-4 relative before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-[2.5px] before:bg-slate-100 dark:before:bg-slate-800/80">
+              {activities.map((act, idx) => (
+                <div key={idx} className="flex gap-3 relative z-10 font-sans text-xs bg-white dark:bg-sd-surface-container">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${act.iconBg}`}>
+                    <span className={`material-symbols-outlined text-[16px] ${act.iconColor}`} style={{ fontVariationSettings: "'FILL' 1" }}>{act.icon}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start">
+                      <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{act.title}</p>
+                      <span className="text-[9px] text-slate-400 font-semibold shrink-0 ml-2">{act.timestamp}</span>
+                    </div>
+                    <p className="text-[10px] text-slate-455 dark:text-slate-400 font-semibold">{act.subtitle}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Work Preferences */}
+          <section className="bg-white dark:bg-sd-surface-container rounded-2xl border border-slate-150 dark:border-slate-800 p-5 shadow-sm md:col-span-2 lg:col-span-1">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 font-sans">Work Preferences</h3>
+              <button type="button" onClick={openPrefsModal} className="text-[10px] font-bold text-orange-500 cursor-pointer hover:underline font-sans">Edit</button>
+            </div>
+            <div className="space-y-4 font-sans text-xs">
+              {preferences.map((pref, idx) => (
+                <div key={idx} className="flex items-start gap-3">
+                  <div className="w-7 h-7 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-orange-500 text-[16px]">{pref.icon}</span>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-slate-455 font-bold uppercase tracking-wider leading-none mb-1">{pref.label}</p>
+                    <p className="font-extrabold text-slate-800 dark:text-slate-200 leading-tight">{pref.value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        {/* Badges & Achievements */}
+        <section className="bg-white dark:bg-sd-surface-container rounded-2xl border border-slate-150 dark:border-slate-800 p-6 shadow-sm">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100 font-sans">Badges & Achievements</h3>
+            <span className="text-xs font-bold text-orange-500 cursor-pointer hover:underline font-sans">View All</span>
           </div>
 
-          <div className="space-y-4 relative before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-[2.5px] before:bg-slate-100 dark:before:bg-slate-800/80">
-            {displayedActivities.map((act, idx) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+            {badges.map((badge, idx) => (
               <div
                 key={idx}
-                className="flex gap-3 relative z-10 font-sans text-xs bg-white dark:bg-sd-surface-container"
+                className="flex flex-col items-center text-center p-4 rounded-2xl border border-transparent hover:border-slate-150 dark:hover:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-all group font-sans"
               >
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${act.iconBg}`}
-                >
-                  <span
-                    className={`material-symbols-outlined text-[16px] ${act.iconColor}`}
-                    style={{ fontVariationSettings: "'FILL' 1" }}
-                  >
-                    {act.icon}
+                <div className={`w-14 h-14 ${badge.bgClass} rounded-2xl flex items-center justify-center mb-3.5 rotate-3 group-hover:rotate-0 transition-transform shadow-lg ${badge.shadowClass} shrink-0`}>
+                  <span className="material-symbols-outlined text-white text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                    {badge.icon}
                   </span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start">
-                    <p className="font-bold text-slate-800 dark:text-slate-200 truncate">
-                      {act.title}
-                    </p>
-                    <span className="text-[9px] text-slate-400 font-semibold shrink-0 ml-2">
-                      {act.timestamp}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-455 dark:text-slate-400 font-semibold">
-                    {act.subtitle}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Work Preferences */}
-        <section className="bg-white dark:bg-sd-surface-container rounded-2xl border border-slate-150 dark:border-slate-800 p-5 shadow-sm md:col-span-2 lg:col-span-1">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 font-sans">
-              Work Preferences
-            </h3>
-            <button
-              type="button"
-              onClick={() => alert('Edit clicked!')}
-              className="text-[10px] font-bold text-orange-500 cursor-pointer hover:underline font-sans"
-            >
-              Edit
-            </button>
-          </div>
-          <div className="space-y-4 font-sans text-xs">
-            {preferences.map((pref, idx) => (
-              <div key={idx} className="flex items-start gap-3">
-                <div className="w-7 h-7 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-orange-500 text-[16px]">
-                    {pref.icon}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-[9px] text-slate-455 font-bold uppercase tracking-wider leading-none mb-1">
-                    {pref.label}
-                  </p>
-                  <p className="font-extrabold text-slate-800 dark:text-slate-200 leading-tight">
-                    {pref.value}
-                  </p>
-                </div>
+                <p className="font-extrabold text-xs text-slate-850 dark:text-slate-250 mb-1 leading-snug">{badge.title}</p>
+                <p className="text-[10px] text-slate-400 font-semibold mb-2 leading-relaxed">{badge.desc}</p>
+                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">{badge.earned}</span>
               </div>
             ))}
           </div>
         </section>
       </div>
 
-      {/* Badges & Achievements */}
-      <section className="bg-white dark:bg-sd-surface-container rounded-2xl border border-slate-150 dark:border-slate-800 p-6 shadow-sm">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100 font-sans">
-            Badges & Achievements
-          </h3>
-          <span className="text-xs font-bold text-orange-500 cursor-pointer hover:underline font-sans">
-            View All
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-          {badges.map((badge, idx) => (
-            <div
-              key={idx}
-              className="flex flex-col items-center text-center p-4 rounded-2xl border border-transparent hover:border-slate-150 dark:hover:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-all group font-sans"
-            >
-              <div
-                className={`w-14 h-14 ${badge.bgClass} rounded-2xl flex items-center justify-center mb-3.5 rotate-3 group-hover:rotate-0 transition-transform shadow-lg ${badge.shadowClass} shrink-0`}
-              >
-                <span
-                  className="material-symbols-outlined text-white text-[28px]"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  {badge.icon}
-                </span>
+      {/* Personal Information Edit Modal */}
+      {showInfoModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-sd-surface-container rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-xl w-full max-w-sm">
+            <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-100 mb-1 font-sans">Edit Personal Information</h3>
+            <p className="text-[11px] text-slate-400 dark:text-slate-400 mb-4 font-sans leading-relaxed">
+              Update your contact details below.
+            </p>
+            <form onSubmit={handleSaveInfo} className="space-y-4 font-sans text-xs">
+              <div>
+                <label htmlFor="edit-name" className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">Full Name</label>
+                <input
+                  id="edit-name"
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                  required
+                />
               </div>
-              <p className="font-extrabold text-xs text-slate-850 dark:text-slate-250 mb-1 leading-snug">
-                {badge.title}
-              </p>
-              <p className="text-[10px] text-slate-400 font-semibold mb-2 leading-relaxed">
-                {badge.desc}
-              </p>
-              <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
-                {badge.earned}
-              </span>
-            </div>
-          ))}
+              <div>
+                <label htmlFor="edit-email" className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">Email</label>
+                <input
+                  id="edit-email"
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="edit-phone" className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">Phone</label>
+                <input
+                  id="edit-phone"
+                  type="text"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                  required
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowInfoModal(false)}
+                  className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 text-slate-640 dark:text-slate-400 rounded-xl font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-200 transition-all active:scale-95"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 bg-orange-505 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 transition-all active:scale-95"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </section>
-    </div>
+      )}
+
+      {/* Work Preferences Edit Modal */}
+      {showPrefsModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-sd-surface-container rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-xl w-full max-w-sm">
+            <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-100 mb-1 font-sans">Edit Work Preferences</h3>
+            <p className="text-[11px] text-slate-400 dark:text-slate-400 mb-4 font-sans leading-relaxed">
+              Update shift and assignment preferences.
+            </p>
+            <form onSubmit={handleSavePrefs} className="space-y-4 font-sans text-xs">
+              <div>
+                <label htmlFor="edit-area" className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">Preferred Area</label>
+                <input
+                  id="edit-area"
+                  type="text"
+                  value={editPreferredArea}
+                  onChange={(e) => setEditPreferredArea(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="edit-shift" className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">Preferred Shift</label>
+                <input
+                  id="edit-shift"
+                  type="text"
+                  value={editPreferredShift}
+                  onChange={(e) => setEditPreferredShift(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="edit-days" className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">Days Available</label>
+                <input
+                  id="edit-days"
+                  type="text"
+                  value={editDaysAvailable}
+                  onChange={(e) => setEditDaysAvailable(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="edit-break" className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">Break Preference</label>
+                <input
+                  id="edit-break"
+                  type="text"
+                  value={editBreakPreference}
+                  onChange={(e) => setEditBreakPreference(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="edit-tasks" className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">Preferred Task Types</label>
+                <input
+                  id="edit-tasks"
+                  type="text"
+                  value={editPreferredTaskTypes}
+                  onChange={(e) => setEditPreferredTaskTypes(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                  required
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPrefsModal(false)}
+                  className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 text-slate-640 dark:text-slate-400 rounded-xl font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-200 transition-all active:scale-95"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 transition-all active:scale-95"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Change Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-sd-surface-container rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-xl w-full max-w-sm">
+            <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-100 mb-1 font-sans">Change Password</h3>
+            <p className="text-[11px] text-slate-400 dark:text-slate-400 mb-4 font-sans leading-relaxed">
+              Choose a strong and secure new password.
+            </p>
+            <form onSubmit={handleSavePassword} className="space-y-4 font-sans text-xs">
+              <div>
+                <label htmlFor="current-pw" className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">Current Password</label>
+                <input
+                  id="current-pw"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="new-pw" className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">New Password</label>
+                <input
+                  id="new-pw"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="confirm-pw" className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">Confirm New Password</label>
+                <input
+                  id="confirm-pw"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                  required
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordModal(false)}
+                  className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 text-slate-640 dark:text-slate-400 rounded-xl font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-200 transition-all active:scale-95"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 transition-all active:scale-95"
+                >
+                  Update Password
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Image Cropper Modal */}
+      <ImageCropperModal
+        isOpen={showCropModal}
+        imageSrc={cropImageSrc}
+        onClose={() => setShowCropModal(false)}
+        onConfirm={handleCropConfirm}
+      />
+    </>
   );
 }

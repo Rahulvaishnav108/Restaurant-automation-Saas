@@ -2,7 +2,7 @@
 // Mongoose schema and model for User collection
 
 import mongoose, { Document, Schema } from 'mongoose';
-import { UserRole } from '../../constants/roles';
+import { UserRole, KitchenRole, StaffInternalRole, CleaningRole } from '../../constants/roles';
 import { UserStatus } from '../../constants/statuses';
 
 export interface IUser extends Document {
@@ -13,6 +13,11 @@ export interface IUser extends Document {
 
   role: UserRole;
   status: UserStatus;
+
+  // Internal sub-roles within operational panels
+  kitchen_role?: KitchenRole;
+  staff_role?: StaffInternalRole;
+  cleaning_role?: CleaningRole;
 
   restaurantId?: mongoose.Types.ObjectId;
 
@@ -40,6 +45,7 @@ export interface IUser extends Document {
   isDeleted: boolean;
   deletedAt?: Date;
 
+  avatar?: string | null;
   lastLoginAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -98,6 +104,25 @@ const userSchema = new Schema<IUser>(
       default: UserStatus.ACTIVE,
     },
 
+    // Internal sub-roles within operational panels
+    kitchen_role: {
+      type: String,
+      enum: [...Object.values(KitchenRole), null],
+      default: null,
+    },
+
+    staff_role: {
+      type: String,
+      enum: [...Object.values(StaffInternalRole), null],
+      default: null,
+    },
+
+    cleaning_role: {
+      type: String,
+      enum: [...Object.values(CleaningRole), null],
+      default: null,
+    },
+
     restaurantId: {
       type: Schema.Types.ObjectId,
       ref: 'Restaurant',
@@ -150,6 +175,10 @@ const userSchema = new Schema<IUser>(
       default: null,
     },
 
+    avatar: {
+      type: String,
+      default: null,
+    },
     lastLoginAt: {
       type: Date,
       default: null,

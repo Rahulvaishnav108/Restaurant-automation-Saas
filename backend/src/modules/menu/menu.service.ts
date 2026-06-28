@@ -267,14 +267,18 @@ export class MenuService {
     data: Partial<IMenuItem>,
     userId: string | Types.ObjectId
   ): Promise<IMenuItem> {
+    console.log('[DEBUG] MenuService.updateItem received data:', JSON.stringify(data, null, 2));
     if (data.categoryId) {
       // Validate category exists if it's being updated
       await this.getCategoryById(restaurantId, data.categoryId as Types.ObjectId);
     }
 
+    const updatePayload = { $set: { ...data, updatedBy: userId } };
+    console.log('[DEBUG] MenuService.updateItem MongoDB updatePayload:', JSON.stringify(updatePayload, null, 2));
+
     const item = await MenuItem.findOneAndUpdate(
       { _id: itemId, restaurantId },
-      { $set: { ...data, updatedBy: userId } },
+      updatePayload,
       { new: true, runValidators: true }
     );
 

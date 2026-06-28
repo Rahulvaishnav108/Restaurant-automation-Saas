@@ -35,7 +35,7 @@ export const ORDERS: KitchenOrder[] = [
   { id: 'ORD-12581', items: [{ name: 'Butter Chicken', qty: 1 }, { name: 'Garlic Naan', qty: 2 }], table: 'T02', type: 'dine-in', status: 'preparing', time: '08:35 AM', timeAgo: '2h ago', progress: 60, chef: 'Chef Meena' },
   { id: 'ORD-12582', items: [{ name: 'Veg Fried Rice', qty: 1 }, { name: 'Honey Chilli Potato', qty: 1 }], table: 'T09', type: 'take-away', status: 'preparing', time: '08:33 AM', timeAgo: '2h ago', progress: 40, chef: 'Chef Ravi' },
   { id: 'ORD-12583', items: [{ name: 'Chicken Biryani', qty: 3 }, { name: 'Raita', qty: 1 }], table: 'T01', type: 'dine-in', status: 'preparing', time: '08:30 AM', timeAgo: '2h ago', progress: 75, priority: 'vip', chef: 'Chef Arjun' },
-  { id: 'ORD-12584', items: [{ name: 'Fish Curry', qty: 1 }, { name: 'Steamed Rice', qty: 2 }], table: 'T06', type: 'dine-in', status: 'preparing', time: '08:28 AM', timeAgo: '2h ago', progress: 85, chef: 'Chef Priya' },
+  { id: 'ORD-12584', items: [{ name: 'Fish Curry', qty: 1 }, { name: 'Steamed Rice', qty: 2 }], table: 'T07', type: 'dine-in', status: 'preparing', time: '08:28 AM', timeAgo: '2h ago', progress: 85, chef: 'Chef Priya' },
   { id: 'ORD-12580', items: [{ name: 'Chole Bhature', qty: 2 }], table: 'T13', type: 'dine-in', status: 'preparing', time: '08:25 AM', timeAgo: '2h ago', progress: 30, chef: 'Chef Meena' },
   { id: 'ORD-12579', items: [{ name: 'Egg Biryani', qty: 1 }, { name: 'Mirchi Ka Salan', qty: 1 }], table: 'T04', type: 'take-away', status: 'preparing', time: '08:22 AM', timeAgo: '2h ago', progress: 50, chef: 'Chef Ravi' },
   { id: 'ORD-12575', items: [{ name: 'Paneer Lababdar', qty: 1 }, { name: 'Jeera Rice', qty: 1 }], table: 'T11', type: 'dine-in', status: 'preparing', time: '08:18 AM', timeAgo: '2h ago', progress: 90, chef: 'Chef Arjun' },
@@ -47,7 +47,7 @@ export const ORDERS: KitchenOrder[] = [
   { id: 'ORD-12573', items: [{ name: 'Samosa', qty: 4 }, { name: 'Green Chutney', qty: 1 }], table: 'T16', type: 'dine-in', status: 'ready', time: '08:24 AM', timeAgo: '2h ago' },
   { id: 'ORD-12572', items: [{ name: 'Aloo Paratha', qty: 2 }, { name: 'Curd', qty: 1 }], table: 'T07', type: 'take-away', status: 'ready', time: '08:22 AM', timeAgo: '2h ago' },
   // DELAYED
-  { id: 'ORD-12570', items: [{ name: 'Mutton Rogan Josh', qty: 1 }, { name: 'Jeera Rice', qty: 2 }], table: 'T06', type: 'dine-in', status: 'delayed', time: '08:15 AM', timeAgo: '2h ago', delayMins: 10 },
+  { id: 'ORD-12570', items: [{ name: 'Mutton Rogan Josh', qty: 1 }, { name: 'Jeera Rice', qty: 2 }], table: 'T07', type: 'dine-in', status: 'delayed', time: '08:15 AM', timeAgo: '2h ago', delayMins: 10 },
   { id: 'ORD-12571', items: [{ name: 'Chicken Curry', qty: 1 }, { name: 'Paratha', qty: 2 }], table: 'T14', type: 'dine-in', status: 'delayed', time: '08:10 AM', timeAgo: '2h ago', delayMins: 15 },
   { id: 'ORD-12569', items: [{ name: 'Lamb Kebab', qty: 2 }], table: 'T03', type: 'delivery', status: 'delayed', time: '08:05 AM', timeAgo: '2h ago', delayMins: 20 },
   // COMPLETED
@@ -91,6 +91,8 @@ export interface KitchenStaff {
   avgPrepTime: string;
   rating: number;
   avatar: string;
+  phone?: string;
+  email?: string;
 }
 
 export const STAFF: KitchenStaff[] = [
@@ -163,36 +165,103 @@ export interface DailyMetric {
   unit: string;
 }
 
-export const DAILY_METRICS: DailyMetric[] = [
-  { label: 'Total Orders', value: 186, change: 12, unit: '' },
-  { label: 'Avg. Prep Time', value: 14, change: -2, unit: 'min' },
-  { label: 'Completion Rate', value: 96.5, change: 1.2, unit: '%' },
-  { label: 'Revenue', value: 48500, change: 8, unit: '₹' },
-];
+export interface AnalyticsTimeframeData {
+  metrics: DailyMetric[];
+  chartData: { label: string; orders: number }[];
+  popularItems: { name: string; count: number; pct: number }[];
+  stationEfficiency: { station: string; efficiency: number }[];
+}
 
-export const HOURLY_ORDERS = [
-  { hour: '6AM', orders: 5 }, { hour: '7AM', orders: 12 }, { hour: '8AM', orders: 22 },
-  { hour: '9AM', orders: 35 }, { hour: '10AM', orders: 28 }, { hour: '11AM', orders: 42 },
-  { hour: '12PM', orders: 55 }, { hour: '1PM', orders: 48 }, { hour: '2PM', orders: 30 },
-  { hour: '3PM', orders: 18 }, { hour: '4PM', orders: 15 }, { hour: '5PM', orders: 20 },
-];
+export const ANALYTICS_DATA: Record<'today' | 'yesterday' | 'weekly', AnalyticsTimeframeData> = {
+  today: {
+    metrics: [
+      { label: 'Total Orders', value: 186, change: 12, unit: '' },
+      { label: 'Avg. Prep Time', value: 14, change: -2, unit: 'min' },
+      { label: 'Completion Rate', value: 96.5, change: 1.2, unit: '%' },
+    ],
+    chartData: [
+      { label: '6AM', orders: 5 }, { label: '7AM', orders: 12 }, { label: '8AM', orders: 22 },
+      { label: '9AM', orders: 35 }, { label: '10AM', orders: 28 }, { label: '11AM', orders: 42 },
+      { label: '12PM', orders: 55 }, { label: '1PM', orders: 48 }, { label: '2PM', orders: 30 },
+      { label: '3PM', orders: 18 }, { label: '4PM', orders: 15 }, { label: '5PM', orders: 20 },
+    ],
+    popularItems: [
+      { name: 'Veg Biryani', count: 32, pct: 85 },
+      { name: 'Paneer Tikka', count: 28, pct: 75 },
+      { name: 'Butter Chicken', count: 24, pct: 65 },
+      { name: 'Chicken Burger', count: 18, pct: 50 },
+      { name: 'Masala Dosa', count: 16, pct: 45 },
+    ],
+    stationEfficiency: [
+      { station: 'Grill', efficiency: 92 },
+      { station: 'Curry', efficiency: 88 },
+      { station: 'Fry', efficiency: 95 },
+      { station: 'Biryani', efficiency: 82 },
+      { station: 'Dessert', efficiency: 90 },
+      { station: 'Beverage', efficiency: 97 },
+    ]
+  },
+  yesterday: {
+    metrics: [
+      { label: 'Total Orders', value: 165, change: -5, unit: '' },
+      { label: 'Avg. Prep Time', value: 16, change: 5, unit: 'min' },
+      { label: 'Completion Rate', value: 94.2, change: -0.8, unit: '%' },
+    ],
+    chartData: [
+      { label: '6AM', orders: 3 }, { label: '7AM', orders: 10 }, { label: '8AM', orders: 18 },
+      { label: '9AM', orders: 30 }, { label: '10AM', orders: 25 }, { label: '11AM', orders: 38 },
+      { label: '12PM', orders: 50 }, { label: '1PM', orders: 42 }, { label: '2PM', orders: 28 },
+      { label: '3PM', orders: 15 }, { label: '4PM', orders: 12 }, { label: '5PM', orders: 18 },
+    ],
+    popularItems: [
+      { name: 'Butter Chicken', count: 30, pct: 80 },
+      { name: 'Veg Biryani', count: 25, pct: 68 },
+      { name: 'Paneer Tikka', count: 22, pct: 60 },
+      { name: 'Masala Dosa', count: 20, pct: 54 },
+      { name: 'Chicken Burger', count: 15, pct: 40 },
+    ],
+    stationEfficiency: [
+      { station: 'Grill', efficiency: 88 },
+      { station: 'Curry', efficiency: 85 },
+      { station: 'Fry', efficiency: 92 },
+      { station: 'Biryani', efficiency: 80 },
+      { station: 'Dessert', efficiency: 85 },
+      { station: 'Beverage', efficiency: 94 },
+    ]
+  },
+  weekly: {
+    metrics: [
+      { label: 'Total Orders', value: 1120, change: 15, unit: '' },
+      { label: 'Avg. Prep Time', value: 15, change: -1, unit: 'min' },
+      { label: 'Completion Rate', value: 95.8, change: 0.5, unit: '%' },
+    ],
+    chartData: [
+      { label: 'Mon', orders: 140 }, { label: 'Tue', orders: 155 }, { label: 'Wed', orders: 160 },
+      { label: 'Thu', orders: 145 }, { label: 'Fri', orders: 180 }, { label: 'Sat', orders: 210 },
+      { label: 'Sun', orders: 130 }
+    ],
+    popularItems: [
+      { name: 'Veg Biryani', count: 210, pct: 90 },
+      { name: 'Butter Chicken', count: 180, pct: 77 },
+      { name: 'Paneer Tikka', count: 165, pct: 70 },
+      { name: 'Chicken Burger', count: 130, pct: 55 },
+      { name: 'Masala Dosa', count: 110, pct: 47 },
+    ],
+    stationEfficiency: [
+      { station: 'Grill', efficiency: 90 },
+      { station: 'Curry', efficiency: 86 },
+      { station: 'Fry', efficiency: 94 },
+      { station: 'Biryani', efficiency: 81 },
+      { station: 'Dessert', efficiency: 88 },
+      { station: 'Beverage', efficiency: 95 },
+    ]
+  }
+};
 
-export const POPULAR_ITEMS = [
-  { name: 'Veg Biryani', count: 32, pct: 85 },
-  { name: 'Paneer Tikka', count: 28, pct: 75 },
-  { name: 'Butter Chicken', count: 24, pct: 65 },
-  { name: 'Chicken Burger', count: 18, pct: 50 },
-  { name: 'Masala Dosa', count: 16, pct: 45 },
-];
-
-export const STATION_EFFICIENCY = [
-  { station: 'Grill', efficiency: 92 },
-  { station: 'Curry', efficiency: 88 },
-  { station: 'Fry', efficiency: 95 },
-  { station: 'Biryani', efficiency: 82 },
-  { station: 'Dessert', efficiency: 90 },
-  { station: 'Beverage', efficiency: 97 },
-];
+export const DAILY_METRICS = ANALYTICS_DATA.today.metrics;
+export const HOURLY_ORDERS = ANALYTICS_DATA.today.chartData;
+export const POPULAR_ITEMS = ANALYTICS_DATA.today.popularItems;
+export const STATION_EFFICIENCY = ANALYTICS_DATA.today.stationEfficiency;
 
 // ── Reports ───────────────────────────────────────────────────
 export interface ReportTemplate {
@@ -223,7 +292,7 @@ export interface LiveAlert {
 }
 
 export const LIVE_ALERTS: LiveAlert[] = [
-  { id: 'ALT-01', icon: '🚨', message: 'Table T06 order delayed by 10 mins', time: '2 mins ago', type: 'critical' },
+  { id: 'ALT-01', icon: '🚨', message: 'Table T07 order delayed by 10 mins', time: '2 mins ago', type: 'critical' },
   { id: 'ALT-02', icon: '⭐', message: 'VIP Order from Table T01', time: '5 mins ago', type: 'warning' },
   { id: 'ALT-03', icon: '🚩', message: 'High priority order from Table T03', time: '8 mins ago', type: 'critical' },
   { id: 'ALT-04', icon: '📦', message: 'Paneer stock critically low — 3 kg remaining', time: '12 mins ago', type: 'critical' },

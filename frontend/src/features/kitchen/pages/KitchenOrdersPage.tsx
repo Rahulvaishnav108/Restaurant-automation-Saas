@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ORDERS, type KitchenOrder, type OrderStatus, type OrderType } from '../store/kitchenData';
 import { useKitchenSearch } from '../components/dashboard/KitchenSearchContext';
 
@@ -29,9 +29,50 @@ const STATUS_BADGE: Record<string, string> = {
 
 export default function KitchenOrdersPage() {
   const { query } = useKitchenSearch();
-  const [orders, setOrders] = useState<KitchenOrder[]>(ORDERS);
-  const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
-  const [typeFilter, setTypeFilter] = useState<OrderType | 'all'>('all');
+
+  const [orders, setOrders] = useState<KitchenOrder[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('kitchen_orders');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch (e) {
+          console.error("Failed to parse stored kitchen orders", e);
+        }
+      }
+    }
+    return ORDERS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('kitchen_orders', JSON.stringify(orders));
+  }, [orders]);
+
+  const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('kitchen_orders_status_filter');
+      if (stored) return stored as OrderStatus | 'all';
+    }
+    return 'all';
+  });
+
+  const [typeFilter, setTypeFilter] = useState<OrderType | 'all'>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('kitchen_orders_type_filter');
+      if (stored) return stored as OrderType | 'all';
+    }
+    return 'all';
+  });
+
+  const handleStatusFilterChange = (filter: OrderStatus | 'all') => {
+    setStatusFilter(filter);
+    localStorage.setItem('kitchen_orders_status_filter', filter);
+  };
+
+  const handleTypeFilterChange = (filter: OrderType | 'all') => {
+    setTypeFilter(filter);
+    localStorage.setItem('kitchen_orders_type_filter', filter);
+  };
 
   const filtered = orders.filter(o => {
     if (statusFilter !== 'all' && o.status !== statusFilter) return false;
@@ -65,7 +106,7 @@ export default function KitchenOrdersPage() {
         {/* Status Tabs */}
         <div className="flex gap-1 flex-wrap">
           {STATUS_TABS.map(({ label, value }) => (
-            <button key={value} onClick={() => setStatusFilter(value)}
+            <button key={value} onClick={() => handleStatusFilterChange(value)}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold font-sans transition-colors ${statusFilter === value ? 'bg-orange-100 text-orange-600' : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'}`}>
               {label}
             </button>
@@ -74,7 +115,7 @@ export default function KitchenOrdersPage() {
         {/* Type Tabs */}
         <div className="flex gap-1 flex-wrap">
           {TYPE_TABS.map(({ label, value }) => (
-            <button key={value} onClick={() => setTypeFilter(value)}
+            <button key={value} onClick={() => handleTypeFilterChange(value)}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold font-sans transition-colors ${typeFilter === value ? 'bg-blue-100 text-blue-600' : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'}`}>
               {label}
             </button>

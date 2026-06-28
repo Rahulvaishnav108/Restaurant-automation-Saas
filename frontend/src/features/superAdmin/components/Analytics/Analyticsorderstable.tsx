@@ -101,7 +101,7 @@ function MobileOrderCard({
           >
             Gross Vol
           </p>
-          <p className="font-bold">${order.grossAmount.toLocaleString()}</p>
+          <p className="font-bold">₹{order.grossAmount.toLocaleString()}</p>
         </div>
         <div>
           <p
@@ -111,7 +111,7 @@ function MobileOrderCard({
           >
             Commission
           </p>
-          <p className="font-bold text-orange-500">+${order.commission}</p>
+          <p className="font-bold text-orange-500">+₹{order.commission}</p>
         </div>
         <div>
           <p
@@ -356,12 +356,12 @@ export default function AnalyticsOrdersTable({
 
                   {/* Gross vol */}
                   <td className="py-3.5 px-4 font-bold text-right whitespace-nowrap tabular-nums">
-                    ${order.grossAmount.toLocaleString()}
+                    ₹{order.grossAmount.toLocaleString()}
                   </td>
 
                   {/* Commission */}
                   <td className="py-3.5 px-4 font-bold text-right text-orange-500 whitespace-nowrap tabular-nums">
-                    +${order.commission}
+                    +₹{order.commission}
                   </td>
 
                   {/* Status */}

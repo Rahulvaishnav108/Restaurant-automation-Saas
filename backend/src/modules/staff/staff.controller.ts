@@ -213,6 +213,9 @@ export async function createStaffController(req: Request, res: Response, next: N
       password: await hashPassword(req.body.password),
       role: req.body.role,
       status: req.body.status ?? UserStatus.ACTIVE,
+      kitchen_role: req.body.kitchen_role ?? null,
+      staff_role: req.body.staff_role ?? null,
+      cleaning_role: req.body.cleaning_role ?? null,
       isEmailVerified: true,
       isMobileVerified: true,
     });
@@ -468,6 +471,9 @@ export async function updateStaffController(req: Request, res: Response, next: N
       mobile: req.body.mobile,
       role: req.body.role,
       status: req.body.status,
+      kitchen_role: req.body.kitchen_role,
+      staff_role: req.body.staff_role,
+      cleaning_role: req.body.cleaning_role,
     };
 
     if (req.body.password) {

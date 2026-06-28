@@ -1,6 +1,7 @@
 import { env } from '../../config/env';
 import logger from '../../config/logger';
 import { ErrorCode } from '../../constants/errors';
+import { USER_ROLE_TO_PANEL, UserRole } from '../../constants/roles';
 import { sendPasswordResetEmail } from '../../services/mail.service';
 import { generateTokenPair } from '../../services/jwt.service';
 import type { JwtPayload } from '../../types/auth.types';
@@ -11,11 +12,26 @@ import { UserModel, type IUser } from '../users/users.model';
 import * as userService from '../users/users.service';
 import type { LoginInput, RegisterInput } from './auth.schema';
 
+function getInternalRole(user: IUser): string | undefined {
+  switch (user.role) {
+    case UserRole.KITCHEN_STAFF:
+      return user.kitchen_role ?? undefined;
+    case UserRole.SERVICE_STAFF:
+      return user.staff_role ?? undefined;
+    case UserRole.CLEANING_STAFF:
+      return user.cleaning_role ?? undefined;
+    default:
+      return undefined;
+  }
+}
+
 function buildPayload(user: IUser): JwtPayload {
   return {
     _id: user._id.toString(),
     email: user.email,
     role: user.role,
+    panel: USER_ROLE_TO_PANEL[user.role],
+    internal_role: getInternalRole(user),
     ...(user.restaurantId && { restaurantId: user.restaurantId.toString() }),
   };
 }

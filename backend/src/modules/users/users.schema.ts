@@ -51,7 +51,7 @@ export const requestOtpSchema = z.object({
 
 export const verifyOtpSchema = z.object({
   mobile: z.string().min(10).max(15).trim(),
-  otp: z.string().length(6, 'OTP must be 6 digits'),
+  otp: z.string().length(4, 'OTP must be 4 digits'),
   name: z.string().trim().min(2).max(100).optional(),
 });
 
@@ -63,6 +63,7 @@ export const verifyResetOtpSchema = z.object({
 export const updateProfileSchema = z.object({
   name: z.string().min(2).max(100).trim().optional(),
   mobile: z.string().min(10).max(15).trim().optional(),
+  avatar: z.string().optional(),
 });
 
 export const changePasswordSchema = z.object({

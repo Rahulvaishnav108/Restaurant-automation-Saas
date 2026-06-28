@@ -1,11 +1,121 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../components/dashboard/CartContext';
+import { useCustomerStore } from '../store/customer.store';
 
 export default function CustomerCheckoutPage() {
-  const { items, updateQuantity, removeItem, subtotal, resCharges, discount, total } = useCart();
+  const {
+    items,
+    updateQuantity,
+    removeItem,
+    subtotal,
+    resCharges,
+    discount,
+    total,
+    clearCart,
+    appliedCoupon,
+    setAppliedCoupon,
+  } = useCart();
   const [paymentMethod, setPaymentMethod] = useState('upi');
-  const [coupon, setCoupon] = useState('');
+  const [coupon, setCoupon] = useState(appliedCoupon ? appliedCoupon.code : '');
+  const [couponError, setCouponError] = useState('');
+  const [couponSuccess, setCouponSuccess] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  const navigate = useNavigate();
+  const { addNotification, tableCode, offers, loyaltyPoints, claimOffer, addOrder } = useCustomerStore();
+
+  const handlePlaceOrder = () => {
+    if (items.length === 0) return;
+
+    const orderId = `#ORD-${Math.floor(3000 + Math.random() * 6000)}`;
+    const itemsStr = items.map((i) => `${i.name} x${i.quantity}`).join(', ');
+    
+    const newOrder = {
+      id: orderId,
+      items: itemsStr,
+      total: total,
+      status: 'Placed' as const,
+      eta: '15 min'
+    };
+
+    addOrder(newOrder);
+
+    addNotification(
+      'Order Placed! 🍽️',
+      `Your order for ${itemsStr} has been placed. Total: ₹${total}`,
+      'order',
+      '/customer/orders'
+    );
+    clearCart();
+    navigate('/customer/orders');
+  };
+
+  const handleApplyCoupon = (codeStr: string) => {
+    const code = codeStr.trim().toUpperCase();
+    if (!code) {
+      setCouponError('Please enter a coupon code.');
+      setCouponSuccess('');
+      return;
+    }
+
+    const offer = offers.find((o) => o.code.toUpperCase() === code);
+    if (!offer) {
+      setCouponError('Invalid coupon code.');
+      setCouponSuccess('');
+      return;
+    }
+
+    if (!offer.claimed) {
+      setCouponError('This coupon is not yet unlocked. Redeem it first using your points!');
+      setCouponSuccess('');
+      return;
+    }
+
+    if (offer.minOrderAmount && subtotal < offer.minOrderAmount) {
+      setCouponError(`Min order amount of ₹${offer.minOrderAmount} required.`);
+      setCouponSuccess('');
+      return;
+    }
+
+    // Free item / BOGO checks
+    if (code === 'FREEBEV') {
+      const hasLassi = items.some(i => i.name.toLowerCase().includes('mango lassi'));
+      if (!hasLassi) {
+        setCouponError('This coupon requires a Mango Lassi in your cart.');
+        setCouponSuccess('');
+        return;
+      }
+    }
+    if (code === 'DESSERT80') {
+      const hasJamun = items.some(i => i.name.toLowerCase().includes('gulab jamun'));
+      if (!hasJamun) {
+        setCouponError('This coupon requires a Gulab Jamun in your cart.');
+        setCouponSuccess('');
+        return;
+      }
+    }
+    if (code === 'BURGERBOGO') {
+      const burger = items.find(i => i.name.toLowerCase().includes('smash burger'));
+      if (!burger || burger.quantity < 2) {
+        setCouponError('Buy 1 Get 1 Burger requires at least 2 Smash Burgers in your cart.');
+        setCouponSuccess('');
+        return;
+      }
+    }
+
+    setAppliedCoupon(offer);
+    setCouponError('');
+    setCouponSuccess(`Coupon "${offer.code}" applied successfully!`);
+    setCoupon(offer.code);
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCoupon('');
+    setCouponSuccess('');
+    setCouponError('');
+  };
 
   const PAYMENT_OPTIONS = [
     { id: 'upi', icon: 'account_balance_wallet', label: 'UPI', desc: 'Google Pay, PhonePe, Paytm & more' },
@@ -19,11 +129,11 @@ export default function CustomerCheckoutPage() {
         <h2 className="text-2xl font-bold text-sd-on-surface font-sans">Checkout</h2>
         <div className="flex items-center gap-2 mt-1">
           <span className="material-symbols-outlined text-sd-primary text-[18px]">location_on</span>
-          <span className="text-sm text-sd-on-surface-variant font-sans">Table T07</span>
+          <span className="text-sm text-sd-on-surface-variant font-sans">Table {tableCode}</span>
           <span className="mx-1 text-sd-surface-variant">|</span>
-          <div className="flex items-center gap-1 bg-sd-secondary-container/20 px-2 py-0.5 rounded-full">
-            <span className="material-symbols-outlined text-sd-secondary text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
-            <span className="text-[11px] text-sd-secondary font-sans">Secure Checkout</span>
+          <div className="flex items-center gap-1 bg-sd-secondary-container/10 dark:bg-sd-secondary-container/20 px-2 py-0.5 rounded-full">
+            <span className="material-symbols-outlined text-sd-secondary dark:text-sd-secondary-container text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
+            <span className="text-[11px] text-sd-secondary dark:text-sd-secondary-container font-sans">Secure Checkout</span>
           </div>
         </div>
       </div>
@@ -121,14 +231,42 @@ export default function CustomerCheckoutPage() {
                 <p className="text-[11px] text-sd-on-surface-variant font-sans">Get exciting offers & rewards!</p>
               </div>
             </div>
-            <div className="flex w-full md:w-auto gap-2 relative z-10">
-              <input
-                className="flex-1 md:w-56 bg-white border border-sd-surface-variant rounded-xl px-4 h-11 focus:outline-none focus:ring-2 focus:ring-sd-primary-container transition-all text-sm font-sans"
-                placeholder="Enter coupon code"
-                value={coupon}
-                onChange={(e) => setCoupon(e.target.value)}
-              />
-              <button className="bg-sd-primary-container text-white px-5 h-11 rounded-xl font-bold text-sm hover:scale-105 transition-transform font-sans">Apply</button>
+            <div className="flex flex-col w-full md:w-auto gap-1.5 relative z-10 items-stretch md:items-end">
+              <div className="flex gap-2">
+                <input
+                  className="flex-1 md:w-56 bg-white border border-sd-surface-variant rounded-xl px-4 h-11 focus:outline-none focus:ring-2 focus:ring-sd-primary-container transition-all text-sm font-sans"
+                  placeholder="Enter coupon code"
+                  value={coupon}
+                  disabled={!!appliedCoupon}
+                  onChange={(e) => setCoupon(e.target.value)}
+                />
+                {appliedCoupon ? (
+                  <button 
+                    onClick={handleRemoveCoupon}
+                    className="bg-sd-error text-white px-5 h-11 rounded-xl font-bold text-sm hover:scale-105 transition-transform font-sans"
+                  >
+                    Remove
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => handleApplyCoupon(coupon)}
+                    className="bg-sd-primary-container text-white px-5 h-11 rounded-xl font-bold text-sm hover:scale-105 transition-transform font-sans"
+                  >
+                    Apply
+                  </button>
+                )}
+              </div>
+              
+              {couponError && <p className="text-xs text-red-500 font-bold font-sans mt-0.5">{couponError}</p>}
+              {couponSuccess && <p className="text-xs text-green-600 font-bold font-sans mt-0.5">{couponSuccess}</p>}
+              
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="text-sd-primary font-bold text-xs hover:underline flex items-center justify-center md:justify-start gap-1 font-sans mt-1.5 cursor-pointer self-center md:self-start"
+              >
+                <span className="material-symbols-outlined text-[16px]">local_offer</span>
+                View Available Coupons
+              </button>
             </div>
           </section>
         </div>
@@ -146,7 +284,11 @@ export default function CustomerCheckoutPage() {
                 <span className="text-lg font-bold text-sd-primary font-sans">₹{total}</span>
               </div>
             </div>
-            <button className="w-full bg-sd-primary-container text-white h-13 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 hover:shadow-xl hover:shadow-sd-primary-container/20 transition-all active:scale-95 font-sans">
+            <button
+              onClick={handlePlaceOrder}
+              disabled={items.length === 0}
+              className="w-full bg-sd-primary-container text-white h-13 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 hover:shadow-xl hover:shadow-sd-primary-container/20 transition-all active:scale-95 font-sans disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               Pay ₹{total}
               <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
             </button>
@@ -160,6 +302,187 @@ export default function CustomerCheckoutPage() {
           </div>
         </aside>
       </div>
+
+      {/* Coupon Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl animate-scaleUp flex flex-col max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="p-6 border-b border-sd-surface-variant flex justify-between items-center bg-sd-surface-container-low shrink-0">
+              <div>
+                <h3 className="text-lg font-bold text-sd-on-surface font-sans">Coupons & Offers</h3>
+                <p className="text-xs text-sd-on-surface-variant font-sans mt-0.5">Redeem points or apply unlocked coupons</p>
+              </div>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="p-1.5 hover:bg-sd-surface-container rounded-lg text-sd-on-surface-variant transition-colors"
+                title="Close"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            {/* Points Balance Card */}
+            <div className="px-6 py-4 bg-sd-primary-fixed/10 border-b border-sd-surface-variant/50 shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sd-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>stars</span>
+                  <span className="text-sm font-bold text-sd-on-surface font-sans">Your Reward Points</span>
+                </div>
+                <span className="text-base font-black text-sd-primary font-sans">{loyaltyPoints} Points</span>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 sd-custom-scrollbar">
+              
+              {/* Unlocked Coupons Section */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-sd-on-surface-variant/80 font-sans">
+                  Your Available Coupons
+                </h4>
+                
+                {offers.filter(o => o.claimed).length === 0 ? (
+                  <p className="text-xs text-sd-on-surface-variant italic font-sans py-2">No coupons available. Redeem some below!</p>
+                ) : (
+                  <div className="space-y-3">
+                    {offers.filter(o => o.claimed).map((offer) => {
+                      const isCurrent = appliedCoupon?.id === offer.id;
+                      return (
+                        <div 
+                          key={offer.id}
+                          className={`relative border-2 rounded-2xl p-4 flex items-center justify-between gap-4 transition-all overflow-hidden ${
+                            isCurrent 
+                              ? 'border-green-500 bg-green-50/20' 
+                              : 'border-sd-surface-variant hover:border-sd-primary-container/40 bg-white'
+                          }`}
+                        >
+                          {/* Left Decorative Coupon Notch */}
+                          <div className="absolute -left-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-sd-surface border-r-2 border-sd-surface-variant z-10" />
+                          {/* Right Decorative Coupon Notch */}
+                          <div className="absolute -right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-sd-surface border-l-2 border-sd-surface-variant z-10" />
+                          
+                          <div className="flex-1 pl-2 pr-2">
+                            <div className="flex items-center gap-2">
+                              <span className="bg-sd-primary/10 text-sd-primary text-[10px] font-bold px-2 py-0.5 rounded font-mono">
+                                {offer.code}
+                              </span>
+                              {isCurrent && (
+                                <span className="bg-green-500/10 text-green-600 text-[10px] font-bold px-2 py-0.5 rounded font-sans flex items-center gap-0.5">
+                                  <span className="material-symbols-outlined text-[12px]">check_circle</span> Active
+                                </span>
+                              )}
+                            </div>
+                            <h5 className="font-bold text-sm text-sd-on-surface mt-1.5 font-sans">{offer.title}</h5>
+                            <p className="text-xs text-sd-on-surface-variant mt-1 font-sans leading-relaxed">{offer.desc}</p>
+                            <p className="text-[10px] text-sd-on-surface-variant/60 mt-2 font-sans">Expires: {offer.expiryDate}</p>
+                          </div>
+                          
+                          <div>
+                            {isCurrent ? (
+                              <button
+                                onClick={handleRemoveCoupon}
+                                className="px-4 py-2 bg-sd-error/10 hover:bg-sd-error/20 text-sd-error font-bold text-xs rounded-xl transition-all font-sans"
+                              >
+                                Remove
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  handleApplyCoupon(offer.code);
+                                  setIsModalOpen(false);
+                                }}
+                                className="px-4 py-2 bg-sd-primary-container text-white hover:scale-105 font-bold text-xs rounded-xl transition-transform font-sans"
+                              >
+                                Apply
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Redeem with Points Section */}
+              <div className="space-y-3 pt-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-sd-on-surface-variant/80 font-sans">
+                  Redeem Points for Coupons
+                </h4>
+                
+                {offers.filter(o => !o.claimed).length === 0 ? (
+                  <p className="text-xs text-sd-on-surface-variant italic font-sans py-2">All offers redeemed!</p>
+                ) : (
+                  <div className="space-y-3">
+                    {offers.filter(o => !o.claimed).map((offer) => {
+                      const canAfford = loyaltyPoints >= offer.requiredPoints;
+                      return (
+                        <div 
+                          key={offer.id}
+                          className="relative border border-dashed border-sd-surface-variant bg-sd-surface-container-lowest rounded-2xl p-4 flex items-center justify-between gap-4 overflow-hidden"
+                        >
+                          {/* Left Decorative Coupon Notch */}
+                          <div className="absolute -left-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-sd-surface border-r border-sd-surface-variant z-10" />
+                          {/* Right Decorative Coupon Notch */}
+                          <div className="absolute -right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-sd-surface border-l border-sd-surface-variant z-10" />
+                          
+                          <div className="flex-1 pl-2 pr-2">
+                            <div className="flex items-center gap-2">
+                              <span className="bg-sd-secondary-container/10 dark:bg-sd-secondary-container/20 text-sd-secondary dark:text-sd-secondary-container text-[10px] font-bold px-2 py-0.5 rounded font-mono">
+                                {offer.code}
+                              </span>
+                              <span className="bg-sd-primary-fixed/20 text-sd-primary-container text-[10px] font-bold px-2 py-0.5 rounded font-sans">
+                                Costs: {offer.requiredPoints} pts
+                              </span>
+                            </div>
+                            <h5 className="font-bold text-sm text-sd-on-surface mt-1.5 font-sans">{offer.title}</h5>
+                            <p className="text-xs text-sd-on-surface-variant mt-1 font-sans leading-relaxed">{offer.desc}</p>
+                            <p className="text-[10px] text-sd-on-surface-variant/60 mt-2 font-sans">Expiry: {offer.expiryDate}</p>
+                          </div>
+                          
+                          <div>
+                            <button
+                              onClick={() => {
+                                if (canAfford) {
+                                  const ok = claimOffer(offer.id);
+                                  if (ok) {
+                                    setCouponSuccess(`Successfully unlocked "${offer.title}"!`);
+                                    setCouponError('');
+                                  }
+                                }
+                              }}
+                              disabled={!canAfford}
+                              className={`px-4 py-2 font-bold text-xs rounded-xl transition-all font-sans whitespace-nowrap ${
+                                canAfford 
+                                  ? 'bg-sd-secondary text-white hover:scale-105 transition-transform' 
+                                  : 'bg-sd-surface-variant text-sd-on-surface-variant/40 cursor-not-allowed'
+                              }`}
+                            >
+                              Redeem
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="p-4 bg-sd-surface-container-low border-t border-sd-surface-variant text-center shrink-0">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="px-6 py-2 bg-sd-outline-variant/30 hover:bg-sd-outline-variant/50 text-sd-on-surface font-bold text-sm rounded-xl transition-all font-sans"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

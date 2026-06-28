@@ -1,20 +1,59 @@
 import { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
+import { useTheme } from "../app/providers/ThemeProvider";
 import Navbar from "../features/superAdmin/components/dashboard/Navbar";
 import Sidebar from "../features/superAdmin/components/Sidebar";
 
 export default function SuperAdminLayout() {
-  const { signOut } = useAuth();
+  // Removed unused signOut variable
+  useAuth();
 
-  // ── Theme state (persisted) ──────────────────────────────────────────────
-  const [darkMode, setDarkMode] = useState(() => {
+  const { theme: themePreference, setTheme: setThemePreference } = useTheme();
+
+  const [isSystemDark, setIsSystemDark] = useState(() => {
     if (typeof window !== "undefined") {
-      const savedTheme = localStorage.getItem("theme");
-      return savedTheme ? savedTheme === "dark" : true;
+      return window.matchMedia("(prefers-color-scheme: dark)").matches;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (themePreference !== "system") return;
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const listener = (e: MediaQueryListEvent) => {
+      setIsSystemDark(e.matches);
+    };
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  }, [themePreference]);
+
+  const darkMode = themePreference === "dark" || (themePreference === "system" && isSystemDark);
+
+  // Sync state changes with the custom event for any sub-components
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("theme", darkMode ? "dark" : "light");
+    }
+    window.dispatchEvent(
+      new CustomEvent("sync-app-theme", { detail: { darkMode } })
+    );
+  }, [darkMode]);
+
+  // ── Sidebar collapsed state (persisted) ──────────────────────────────────
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("superadmin-sidebar-collapsed");
+      return saved !== null ? saved === "true" : true;
     }
     return true;
   });
+
+  const handleToggleSidebar = () => {
+    const next = !sidebarCollapsed;
+    setSidebarCollapsed(next);
+    localStorage.setItem("superadmin-sidebar-collapsed", String(next));
+  };
 
   // ── Mobile sidebar drawer state ──────────────────────────────────────────
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -40,71 +79,46 @@ export default function SuperAdminLayout() {
     };
   }, [mobileSidebarOpen]);
 
-  // ── Theme sync listener (from dashboard / child pages) ───────────────────
-  useEffect(() => {
-    const handleThemeSync = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      if (customEvent.detail !== undefined) {
-        setDarkMode(customEvent.detail.darkMode);
-      }
-    };
-    window.addEventListener("sync-app-theme", handleThemeSync);
-    return () => window.removeEventListener("sync-app-theme", handleThemeSync);
-  }, []);
-
   // ── Theme toggle ─────────────────────────────────────────────────────────
   const toggleTheme = () => {
-    const nextMode = !darkMode;
-    setDarkMode(nextMode);
-    if (nextMode) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-    window.dispatchEvent(
-      new CustomEvent("sync-app-theme", { detail: { darkMode: nextMode } })
-    );
+    const nextPref = themePreference === "dark" ? "light" : "dark";
+    setThemePreference(nextPref);
   };
 
   return (
     <div
-      className={`flex min-h-screen font-sans antialiased transition-colors duration-300 ${
-        darkMode ? "bg-[#020817]" : "bg-[#F8FAFC]"
+      className={`flex min-h-screen font-sans antialiased transition-colors duration-300 superadmin-panel ${
+        darkMode ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-900"
       }`}
     >
       {/* ── SIDEBAR ─────────────────────────────────────────────────────── */}
-      {/*
-        Desktop: renders as a fixed left panel (lg:w-[260px]).
-        Mobile:  renders as a slide-in drawer controlled by mobileSidebarOpen.
-      */}
       <Sidebar
         darkMode={darkMode}
         toggleTheme={toggleTheme}
-        signOut={signOut}
         mobileOpen={mobileSidebarOpen}
         onMobileClose={() => setMobileSidebarOpen(false)}
+        collapsed={sidebarCollapsed}
+        onToggle={handleToggleSidebar}
       />
 
       {/* ── MAIN CONTENT AREA ───────────────────────────────────────────── */}
-      {/*
-        lg:ml-[260px]  → offset for fixed desktop sidebar.
-        pt-16          → offset for fixed navbar height.
-        On mobile, no left margin (sidebar is an overlay drawer).
-      */}
-      <main className="flex-1 min-w-0 flex flex-col overflow-y-auto lg:ml-[260px] pt-16 h-screen">
+      <main
+        className={`flex-1 min-w-0 flex flex-col overflow-y-auto pt-16 h-screen transition-all duration-300 ${
+          sidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-[260px]"
+        }`}
+      >
         {/* ── NAVBAR ────────────────────────────────────────────────────── */}
         <Navbar
           darkMode={darkMode}
           onThemeToggle={toggleTheme}
           onMobileMenuToggle={() => setMobileSidebarOpen((v) => !v)}
           mobileMenuOpen={mobileSidebarOpen}
+          sidebarCollapsed={sidebarCollapsed}
         />
 
         {/* ── PAGE CONTENT ──────────────────────────────────────────────── */}
         <div className="flex-1">
-          <Outlet context={{ darkMode }} />
+          <Outlet context={{ darkMode, themePreference, setThemePreference }} />
         </div>
       </main>
     </div>

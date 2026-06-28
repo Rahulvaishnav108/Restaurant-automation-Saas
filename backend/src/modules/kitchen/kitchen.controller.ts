@@ -5,6 +5,7 @@ import { ok } from '../../utils/responses';
 import { logAudit } from '../auditLogs/auditLogs.helper';
 import { AuditAction, AuditEntity } from '../auditLogs/auditLogs.types';
 import { OrdersService } from '../orders/orders.service';
+import { InventoryService } from '../inventory/inventory.service';
 import { KitchenService } from './kitchen.service';
 
 export class KitchenController {
@@ -23,6 +24,44 @@ export class KitchenController {
       const metrics = await KitchenService.getDashboard(restaurantId);
 
       ok(res, { metrics });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getInventory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const restaurantId = KitchenController.getRequiredRestaurantId(req);
+      const search = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+      const active = typeof req.query.active === 'boolean' ? req.query.active : undefined;
+
+      const items = await InventoryService.listInventoryItems(restaurantId, search, active);
+
+      ok(res, {
+        items,
+        meta: {
+          count: items.length,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getInventoryAlerts(req: Request, res: Response, next: NextFunction) {
+    try {
+      const restaurantId = KitchenController.getRequiredRestaurantId(req);
+      const items = await InventoryService.getInventoryAlerts(restaurantId);
+
+      ok(res, {
+        alerts: items.map((item) => ({
+          ...item,
+          shortage: Math.max(0, item.threshold - item.stock),
+        })),
+        meta: {
+          count: items.length,
+        },
+      });
     } catch (error) {
       next(error);
     }

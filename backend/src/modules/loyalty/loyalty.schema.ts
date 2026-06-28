@@ -1,17 +1,46 @@
+import mongoose from 'mongoose';
 import { z } from 'zod';
 
-export const createLoyaltyRuleBodySchema = z
-  .object({
-    name: z.string().trim().min(2).max(100),
-    pointsPerVisit: z.coerce.number().int().min(1).max(10_000),
-    silverThreshold: z.coerce.number().int().min(1).max(1_000_000),
-    goldThreshold: z.coerce.number().int().min(1).max(1_000_000),
-    notes: z.string().trim().max(500).optional(),
-    active: z.boolean().optional(),
-  })
-  .refine((value) => value.goldThreshold > value.silverThreshold, {
-    message: 'Gold threshold must be greater than silver threshold',
-    path: ['goldThreshold'],
-  });
+export const createLoyaltyRuleSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, 'Rule name is required')
+    .max(100, 'Rule name cannot exceed 100 characters'),
 
-export type CreateLoyaltyRuleInput = z.infer<typeof createLoyaltyRuleBodySchema>;
+  pointsPerAmount: z
+    .number()
+    .int()
+    .positive('Points per amount must be greater than 0'),
+
+  minimumOrderAmount: z
+    .number()
+    .min(0, 'Minimum order amount cannot be negative')
+    .default(0),
+});
+
+export type CreateLoyaltyRuleInput =
+  z.infer<typeof createLoyaltyRuleSchema>;
+
+export const walletQuerySchema = z.object({
+  mobile: z
+    .string()
+    .trim()
+    .min(10, 'Valid mobile number is required')
+    .max(15),
+});
+
+export type WalletQueryInput =
+  z.infer<typeof walletQuerySchema>;
+
+export const redeemOfferParamsSchema = z.object({
+  offerId: z.string().refine(
+    (value) => mongoose.Types.ObjectId.isValid(value),
+    {
+      message: 'Invalid offer id',
+    },
+  ),
+});
+
+export type RedeemOfferParamsInput =
+  z.infer<typeof redeemOfferParamsSchema>;

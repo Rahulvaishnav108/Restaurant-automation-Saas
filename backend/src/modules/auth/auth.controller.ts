@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { env } from '../../config/env';
-import { UserRole } from '../../constants/roles';
+import { UserRole, USER_ROLE_TO_PANEL, type Panel } from '../../constants/roles';
 import { ErrorCode } from '../../constants/errors';
 import { sendOTPEmail } from '../../services/mail.service';
 import * as otpService from '../../services/otp.service';
@@ -19,16 +19,24 @@ import { AuditAction, AuditEntity } from '../auditLogs/auditLogs.types';
 import { generateSecureToken } from '../../utils/crypto';
 import logger from '../../config/logger';
 
-function setRefreshCookie(res: Response, refreshToken: string): void {
-  res.cookie(env.REFRESH_COOKIE_NAME, refreshToken, {
+// ── Panel-aware cookie helpers ────────────────────────────────────────
+
+function panelRefreshCookieName(panel: Panel): string {
+  return `ra_${panel}_refresh_token`;
+}
+
+function setRefreshCookie(res: Response, refreshToken: string, panel?: Panel): void {
+  const cookieName = panel ? panelRefreshCookieName(panel) : env.REFRESH_COOKIE_NAME;
+  res.cookie(cookieName, refreshToken, {
     ...COOKIE_OPTIONS,
     domain: env.COOKIE_DOMAIN,
     maxAge: parseExpiry(env.JWT_REFRESH_EXPIRES_IN),
   });
 }
 
-function clearRefreshCookie(res: Response): void {
-  res.clearCookie(env.REFRESH_COOKIE_NAME, {
+function clearRefreshCookie(res: Response, panel?: Panel): void {
+  const cookieName = panel ? panelRefreshCookieName(panel) : env.REFRESH_COOKIE_NAME;
+  res.clearCookie(cookieName, {
     ...COOKIE_OPTIONS,
     domain: env.COOKIE_DOMAIN,
   });
@@ -38,8 +46,9 @@ export { getMe };
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
   const result = await authService.register(req.body, req.user);
+  const panel = USER_ROLE_TO_PANEL[(result.user as any).role as UserRole] ?? undefined;
 
-  setRefreshCookie(res, result.refreshToken);
+  setRefreshCookie(res, result.refreshToken, panel);
 
   sendSuccess(
     res,
@@ -69,12 +78,15 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     ip: req.ip,
   });
 
-  setRefreshCookie(res, result.refreshToken);
+  const panel = USER_ROLE_TO_PANEL[(result.user as any).role as UserRole] ?? undefined;
+
+  setRefreshCookie(res, result.refreshToken, panel);
 
   sendSuccess(res, {
     user: result.user,
     accessToken: result.accessToken,
     refreshToken: result.refreshToken,
+    panel,
   });
 
   void logAuditRaw({
@@ -83,14 +95,31 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     entityType: AuditEntity.USER,
     entityId: result.user._id.toString(),
     action: AuditAction.AUTH_LOGIN,
-    metadata: { email: result.user.email },
+    metadata: { email: result.user.email, panel },
     ipAddress: req.ip,
     userAgent: req.headers['user-agent'],
   });
 });
 
+const ALL_PANELS: Panel[] = ['customer', 'kitchen', 'staff', 'cleaning', 'admin', 'superadmin'];
+
 export const refresh = asyncHandler(async (req: Request, res: Response) => {
-  const oldToken = req.cookies?.[env.REFRESH_COOKIE_NAME] || req.body?.refreshToken;
+  // Try panel-specific cookies first, then legacy cookie, then body
+  let oldToken: string | undefined;
+  let sourcePanel: Panel | undefined;
+
+  for (const p of ALL_PANELS) {
+    const cookieVal = req.cookies?.[panelRefreshCookieName(p)];
+    if (cookieVal) {
+      oldToken = cookieVal;
+      sourcePanel = p;
+      break;
+    }
+  }
+
+  if (!oldToken) {
+    oldToken = req.cookies?.[env.REFRESH_COOKIE_NAME] || req.body?.refreshToken;
+  }
 
   if (!oldToken) {
     throw new AppError('Refresh token not found', 401, ErrorCode.REFRESH_TOKEN_INVALID);
@@ -98,7 +127,10 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
 
   const result = await authService.refresh(oldToken);
 
-  setRefreshCookie(res, result.refreshToken);
+  // Determine panel from the refreshed user if we don't already know
+  const panel = sourcePanel ?? USER_ROLE_TO_PANEL[(result.user as any).role as UserRole] ?? undefined;
+
+  setRefreshCookie(res, result.refreshToken, panel);
 
   sendSuccess(res, {
     accessToken: result.accessToken,
@@ -110,18 +142,28 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
       entityType: AuditEntity.USER,
       entityId: req.user._id.toString(),
       action: AuditAction.AUTH_REFRESH,
-      metadata: {},
+      metadata: { panel },
     });
   }
 });
 
 export const logout = asyncHandler(async (req: Request, res: Response) => {
-  const refreshToken = req.cookies?.[env.REFRESH_COOKIE_NAME] || req.body?.refreshToken;
+  const panel = req.user?.panel;
+
+  // Try panel-specific cookie first, then legacy
+  const refreshToken = (panel ? req.cookies?.[panelRefreshCookieName(panel)] : null)
+    || req.cookies?.[env.REFRESH_COOKIE_NAME]
+    || req.body?.refreshToken;
 
   if (req.user && refreshToken) {
     await authService.logout(req.user._id, refreshToken);
   }
 
+  // Clear the panel-specific cookie
+  if (panel) {
+    clearRefreshCookie(res, panel);
+  }
+  // Also clear legacy cookie for backwards compatibility
   clearRefreshCookie(res);
 
   sendSuccess(res, { message: 'Logged out successfully' });
@@ -131,7 +173,7 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
       entityType: AuditEntity.USER,
       entityId: req.user._id.toString(),
       action: AuditAction.AUTH_LOGOUT,
-      metadata: {},
+      metadata: { panel },
     });
   }
 });
@@ -237,7 +279,8 @@ export const requestOtp = asyncHandler(async (req: Request, res: Response) => {
 
   await otpService.createOTP(mobile, 'mobile');
 
-  sendSuccess(res, { otpSent: true });
+  const userExists = await UserModel.exists({ mobile });
+  sendSuccess(res, { otpSent: true, exists: !!userExists });
 });
 
 export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {

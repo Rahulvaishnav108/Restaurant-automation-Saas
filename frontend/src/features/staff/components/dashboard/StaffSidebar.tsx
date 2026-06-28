@@ -1,20 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-
-const NAV_ITEMS = [
-  { to: '/staff', icon: 'dashboard', label: 'Dashboard', end: true },
-  { to: '/staff/tables', icon: 'table_restaurant', label: 'Tables' },
-  { to: '/staff/orders', icon: 'receipt_long', label: 'Orders', badge: 12 },
-  { to: '/staff/food-ready', icon: 'restaurant', label: 'Food Ready', badge: 3 },
-  { to: '/staff/requests', icon: 'notifications_active', label: 'Requests', badge: 5 },
-  { to: '/staff/reservations', icon: 'book_online', label: 'Reservations & Queue' },
-  { to: '/staff/table-turnover', icon: 'hourglass_empty', label: 'Table Turnover' },
-  { to: '/staff/menu', icon: 'menu_book', label: 'Menu' },
-  { to: '/staff/reports', icon: 'bar_chart', label: 'Reports' },
-  { to: '/staff/alerts', icon: 'warning', label: 'Alerts', badge: 2 },
-  { to: '/staff/profile', icon: 'person', label: 'Profile' },
-  { to: '/staff/settings', icon: 'settings', label: 'Settings' },
-];
+import { useStaffProfile } from '../../hooks/useStaffProfile';
+import { useStaffDashboard } from '../../hooks/useStaffDashboard';
 
 interface Props {
   collapsed: boolean;
@@ -23,6 +10,28 @@ interface Props {
 }
 
 export default function StaffSidebar({ collapsed, onToggle, onItemClick }: Props) {
+  const { profile } = useStaffProfile();
+  const { orders, readyItems, requests, alerts } = useStaffDashboard();
+
+  const activeOrdersCount = orders.filter(o => ['Pending', 'Preparing', 'Ready', 'Served'].includes(o.status)).length;
+  const readyCount = readyItems.length;
+  const requestsCount = requests.filter(r => r.status !== 'Resolved').length;
+  const alertsCount = alerts.length;
+
+  const navItems = [
+    { to: '/staff', icon: 'dashboard', label: 'Dashboard', end: true },
+    { to: '/staff/tables', icon: 'table_restaurant', label: 'Tables' },
+    { to: '/staff/orders', icon: 'receipt_long', label: 'Orders', badge: activeOrdersCount },
+    { to: '/staff/food-ready', icon: 'restaurant', label: 'Food Ready', badge: readyCount },
+    { to: '/staff/requests', icon: 'notifications_active', label: 'Requests', badge: requestsCount },
+    { to: '/staff/reservations', icon: 'book_online', label: 'Reservations & Queue' },
+    { to: '/staff/table-turnover', icon: 'hourglass_empty', label: 'Table Turnover' },
+    { to: '/staff/menu', icon: 'menu_book', label: 'Menu' },
+    { to: '/staff/reports', icon: 'bar_chart', label: 'Reports' },
+    { to: '/staff/alerts', icon: 'warning', label: 'Alerts', badge: alertsCount },
+    { to: '/staff/profile', icon: 'person', label: 'Profile' },
+    { to: '/staff/settings', icon: 'settings', label: 'Settings' },
+  ];
   return (
     <aside
       className={`flex flex-col h-screen fixed left-0 top-0 bg-white border-r border-slate-200 z-50 transition-all duration-300 ${
@@ -53,7 +62,7 @@ export default function StaffSidebar({ collapsed, onToggle, onItemClick }: Props
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto sd-no-scrollbar">
-        {NAV_ITEMS.map(({ to, icon, label, badge, end }) => (
+        {navItems.map(({ to, icon, label, badge, end }) => (
           <NavLink
             key={to}
             to={to}
@@ -112,16 +121,20 @@ export default function StaffSidebar({ collapsed, onToggle, onItemClick }: Props
       {/* Staff Profile Card */}
       <div className="border-t border-slate-100 dark:border-sd-outline-variant/40 px-3 py-3 shrink-0">
         <div className={`bg-slate-50 dark:bg-sd-surface-container rounded-2xl border border-slate-100 dark:border-sd-outline-variant/40 flex items-center gap-3 ${collapsed ? 'p-2 justify-center' : 'p-3'}`}>
-          <div className="w-10 h-10 rounded-full bg-dine-orange/15 flex items-center justify-center shrink-0 text-dine-orange font-bold text-sm">
-            RS
+          <div className="w-10 h-10 rounded-full bg-dine-orange/15 flex items-center justify-center shrink-0 text-dine-orange font-bold text-sm overflow-hidden">
+            {profile.avatar ? (
+              <img src={profile.avatar} alt={profile.name} className="w-full h-full object-cover" />
+            ) : (
+              profile.name.split(' ').map(n => n[0]).join('').toUpperCase()
+            )}
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm truncate font-sans text-slate-800 dark:text-slate-200">Rahul Sharma</p>
-              <p className="text-[10px] text-slate-400 font-sans">Senior Waiter</p>
+              <p className="font-bold text-sm truncate font-sans text-slate-800 dark:text-slate-200">{profile.name}</p>
+              <p className="text-[10px] text-slate-400 font-sans">{profile.role}</p>
               <div className="flex items-center gap-1 mt-0.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400 uppercase font-sans">On Duty</span>
+                <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400 uppercase font-sans">{profile.status}</span>
               </div>
             </div>
           )}

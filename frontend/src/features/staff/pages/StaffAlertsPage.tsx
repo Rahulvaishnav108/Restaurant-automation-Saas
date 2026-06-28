@@ -1,23 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useStaffSearch } from '../components/dashboard/StaffSearchContext';
+import { useStaffDashboard } from '../hooks/useStaffDashboard';
+import type { AlertItem } from '../store/staff.store';
 
-interface Alert {
-  id: number;
-  message: string;
-  type: 'Delayed' | 'Cleaning' | 'Reassigned' | 'Kitchen' | 'System';
-  severity: 'Critical' | 'Warning' | 'Info';
-  time: string;
-}
+type Alert = AlertItem;
 
 export default function StaffAlertsPage() {
   const { query } = useStaffSearch();
-  const [alerts, setAlerts] = useState<Alert[]>([
-    { id: 1, message: 'Serving Delayed: Order ORD-8271 at Table 1 is 10 mins over target prep time.', type: 'Delayed', severity: 'Critical', time: '2 mins ago' },
-    { id: 2, message: 'Cleaning Pending: Table 4 needs sanitization before next walk-in seating.', type: 'Cleaning', severity: 'Warning', time: '6 mins ago' },
-    { id: 3, message: 'Table Reassigned: Table 8 has been added to Zone A for this shift.', type: 'Reassigned', severity: 'Info', time: '15 mins ago' },
-    { id: 4, message: 'Kitchen Alert: Dessert station is reporting out of stock for Mango Pannacotta.', type: 'Kitchen', severity: 'Warning', time: '25 mins ago' },
-    { id: 5, message: 'System Update: Sync active. Shift log reports generated.', type: 'System', severity: 'Info', time: '1 hour ago' },
-  ]);
+  const { alerts, setAlerts } = useStaffDashboard();
 
   const dismissAlert = (id: number) => {
     setAlerts(prev => prev.filter(a => a.id !== id));

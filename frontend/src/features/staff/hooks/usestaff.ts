@@ -107,7 +107,7 @@ const PH_TABLES: Table[] = [
   { id: 3,  tableNumber: 'T03', status: 'food_ready',     section: 'Outdoor', guestCount: 2 },
   { id: 4,  tableNumber: 'T04', status: 'needs_cleaning', section: 'Indoor'                 },
   { id: 5,  tableNumber: 'T05', status: 'order_placed',   section: 'Indoor',  guestCount: 3 },
-  { id: 6,  tableNumber: 'T06', status: 'served',         section: 'Outdoor', guestCount: 5 },
+  { id: 6,  tableNumber: 'T07', status: 'served',         section: 'Outdoor', guestCount: 5 },
   { id: 7,  tableNumber: 'T07', status: 'available',      section: 'Indoor'                 },
   { id: 8,  tableNumber: 'T08', status: 'occupied',       section: 'Indoor',  guestCount: 2 },
   { id: 9,  tableNumber: 'T09', status: 'order_placed',   section: 'Outdoor', guestCount: 6 },
@@ -122,7 +122,7 @@ const PH_REQUESTS: CustomerRequest[] = [
 
 const PH_FOOD_ALERTS: FoodAlert[] = [
   { id: 1, tableNumber: 'T03', items: ['Paneer Butter Masala', 'Naan x2'], readyAt: '3 mins ago' },
-  { id: 2, tableNumber: 'T06', items: ['Dal Tadka', 'Jeera Rice'],         readyAt: '1 min ago'  },
+  { id: 2, tableNumber: 'T07', items: ['Dal Tadka', 'Jeera Rice'],         readyAt: '1 min ago'  },
 ];
 
 const PH_STAFF: StaffMember[] = [

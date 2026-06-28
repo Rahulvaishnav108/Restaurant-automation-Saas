@@ -1,4 +1,5 @@
 import type { AppRole } from '../constants/roles';
+import type { Panel } from '../constants/roles';
 
 // src/types/auth.types.ts
 // Authentication-related type definitions
@@ -8,6 +9,10 @@ export interface JwtPayload {
   email: string;
   role: AppRole;
   restaurantId?: string;
+  /** The panel this token was issued for (e.g. 'kitchen', 'staff', 'admin') */
+  panel: Panel;
+  /** Internal sub-role within the panel (e.g. 'HEAD_CHEF', 'FLOOR_SUPERVISOR') */
+  internal_role?: string;
 }
 
 export interface TokenPair {
@@ -36,3 +41,4 @@ export interface RefreshTokenDoc {
   expiresAt: Date;
   createdAt: Date;
 }
+

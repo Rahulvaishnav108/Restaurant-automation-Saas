@@ -10,7 +10,8 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts",
-    "verify:phase1": "npm run build && node scripts/verify-phase1.mjs"
+    "verify:phase1": "npm run build && node scripts/verify-phase1.mjs",
+    "verify:analytics": "npm run build && node scripts/verify-analytics.mjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -26,6 +27,7 @@
     "morgan": "^1.10.0",
     "node-cron": "^3.0.3",
     "nodemailer": "^8.0.7",
+    "razorpay": "^2.9.6",
     "socket.io": "^4.7.5",
     "winston": "^3.12.0",
     "zod": "^3.22.4"

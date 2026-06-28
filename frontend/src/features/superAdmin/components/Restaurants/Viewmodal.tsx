@@ -1,6 +1,6 @@
 // components/ViewModal.tsx
 
-import { X, Mail, Phone, MapPin, DollarSign, Building2 } from "lucide-react";
+import { X, Mail, Phone, MapPin, IndianRupee, Building2 } from "lucide-react";
 import type { RestaurantsRow } from "./Restauranttypes";
 
 interface ViewModalProps {
@@ -98,10 +98,12 @@ export default function ViewModal({ restaurant, darkMode, onClose }: ViewModalPr
             </div>
             <div className="text-center border-x border-slate-200 dark:border-slate-800 px-1">
               <p className="text-[10px] font-bold text-slate-400 uppercase">Gross ARR</p>
-              <p className="text-xs font-extrabold text-blue-500 mt-0.5 flex items-center justify-center gap-0.5">
-                <DollarSign size={11} className="-mr-0.5" />
-                {restaurant.revenue ? restaurant.revenue.replace("$", "") : "0"}
-              </p>
+              <div className="flex items-baseline gap-0.5 mt-0.5">
+                <IndianRupee size={11} className="-mr-0.5" />
+                <span className="font-extrabold text-sm sm:text-base leading-none text-emerald-500">
+                  {restaurant.revenue ? restaurant.revenue.replace("$", "").replace("₹", "") : "0"}
+                </span>
+              </div>
             </div>
             <div className="text-center">
               <p className="text-[10px] font-bold text-slate-400 uppercase">Branches</p>

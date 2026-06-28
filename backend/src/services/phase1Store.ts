@@ -112,7 +112,7 @@ export const phase1Store = {
   users: [
     {
       id: 'usr_admin_1',
-      name: 'Neha Admin',
+      name: 'Admin',
       email: 'admin@ambertable.com',
       mobile: '5555555555',
       role: roles.restaurantAdmin,

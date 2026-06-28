@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useStaffSearch } from './StaffSearchContext';
+import { useStaffProfile } from '../../hooks/useStaffProfile';
 
 export default function StaffTopBar() {
   const { query, setQuery } = useStaffSearch();
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const { profile } = useStaffProfile();
+  const navigate = useNavigate();
 
   const now = new Date();
   const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -99,9 +103,17 @@ export default function StaffTopBar() {
         </button>
 
         {/* Profile Avatar (placed on top-right) */}
-        <div className="w-9 h-9 rounded-full bg-dine-orange/15 hover:bg-dine-orange/20 flex items-center justify-center text-dine-orange font-bold text-xs cursor-pointer hover:ring-2 hover:ring-dine-orange transition-all">
-          RS
-        </div>
+        <button
+          onClick={() => navigate('/staff/profile')}
+          className="w-9 h-9 rounded-full bg-dine-orange/15 hover:bg-dine-orange/20 flex items-center justify-center text-dine-orange font-bold text-xs cursor-pointer hover:ring-2 hover:ring-dine-orange transition-all overflow-hidden focus:outline-none"
+          title="View Profile"
+        >
+          {profile.avatar ? (
+            <img src={profile.avatar} alt={profile.name} className="w-full h-full object-cover" />
+          ) : (
+            profile.name.split(' ').map(n => n[0]).join('').toUpperCase()
+          )}
+        </button>
       </div>
     </header>
   );

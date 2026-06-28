@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import { OfferCoupon } from '../../store/customer.store';
 
 export interface CartItem {
   id: string;
@@ -22,6 +23,8 @@ interface CartContextType {
   total: number;
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
+  appliedCoupon: OfferCoupon | null;
+  setAppliedCoupon: (coupon: OfferCoupon | null) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -29,6 +32,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<OfferCoupon | null>(null);
 
   const addItem = useCallback((item: Omit<CartItem, 'quantity'>) => {
     setItems((prev) => {
@@ -52,13 +56,47 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const clearCart = useCallback(() => setItems([]), []);
+  const clearCart = useCallback(() => {
+    setItems([]);
+    setAppliedCoupon(null);
+  }, []);
 
   const itemCount = useMemo(() => items.length, [items]);
   const subtotal = useMemo(() => items.reduce((sum, i) => sum + i.price * i.quantity, 0), [items]);
   const resCharges = 30;
-  const discount = useMemo(() => Math.round(subtotal * 0.1), [subtotal]);
-  const total = useMemo(() => subtotal + resCharges - discount, [subtotal, resCharges, discount]);
+  const discount = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    
+    // Check min order amount
+    if (appliedCoupon.minOrderAmount && subtotal < appliedCoupon.minOrderAmount) {
+      return 0;
+    }
+
+    const code = appliedCoupon.code.toUpperCase();
+    if (code === 'FREEBEV') {
+      const hasLassi = items.some(i => i.name.toLowerCase().includes('mango lassi'));
+      if (!hasLassi) return 0;
+    }
+    if (code === 'DESSERT80') {
+      const hasJamun = items.some(i => i.name.toLowerCase().includes('gulab jamun'));
+      if (!hasJamun) return 0;
+    }
+    if (code === 'BURGERBOGO') {
+      const burger = items.find(i => i.name.toLowerCase().includes('smash burger'));
+      if (!burger || burger.quantity < 2) return 0;
+      return burger.price;
+    }
+    
+    if (appliedCoupon.discountType === 'percentage') {
+      return Math.round(subtotal * (appliedCoupon.discountValue / 100));
+    }
+    if (appliedCoupon.discountType === 'fixed' || appliedCoupon.discountType === 'free_item') {
+      return appliedCoupon.discountValue;
+    }
+    
+    return 0;
+  }, [appliedCoupon, subtotal, items]);
+  const total = useMemo(() => Math.max(0, subtotal + resCharges - discount), [subtotal, resCharges, discount]);
 
   const value = useMemo(
     () => ({
@@ -74,8 +112,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       total,
       isCartOpen,
       setIsCartOpen,
+      appliedCoupon,
+      setAppliedCoupon,
     }),
-    [items, addItem, removeItem, updateQuantity, clearCart, itemCount, subtotal, resCharges, discount, total, isCartOpen]
+    [items, addItem, removeItem, updateQuantity, clearCart, itemCount, subtotal, resCharges, discount, total, isCartOpen, appliedCoupon]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

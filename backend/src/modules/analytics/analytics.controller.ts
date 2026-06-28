@@ -16,7 +16,8 @@ function getRestaurantId(req: Request): string {
 export async function getOverviewAnalytics(req: Request, res: Response, next: NextFunction) {
   try {
     const restaurantId = getRestaurantId(req);
-    const data = await AnalyticsService.getAdminOverview(restaurantId);
+    const query = req.query as unknown as AnalyticsQueryInput;
+    const data = await AnalyticsService.getAdminOverview(restaurantId, query);
     ok(res, data);
   } catch (error) {
     next(error);
@@ -37,8 +38,9 @@ export async function getRevenueAnalytics(req: Request, res: Response, next: Nex
 export async function getPeakHoursAnalytics(req: Request, res: Response, next: NextFunction) {
   try {
     const restaurantId = getRestaurantId(req);
-    const data = await AnalyticsService.getPeakHours(restaurantId);
-    ok(res, { peakHours: data });
+    const query = req.query as unknown as AnalyticsQueryInput;
+    const data = await AnalyticsService.getPeakHours(restaurantId, query);
+    ok(res, data);
   } catch (error) {
     next(error);
   }
@@ -47,8 +49,9 @@ export async function getPeakHoursAnalytics(req: Request, res: Response, next: N
 export async function getRepeatCustomersAnalytics(req: Request, res: Response, next: NextFunction) {
   try {
     const restaurantId = getRestaurantId(req);
-    const data = await AnalyticsService.getRepeatCustomers(restaurantId);
-    ok(res, { repeatCustomers: data });
+    const query = req.query as unknown as AnalyticsQueryInput;
+    const data = await AnalyticsService.getRepeatCustomers(restaurantId, query);
+    ok(res, data);
   } catch (error) {
     next(error);
   }
@@ -57,8 +60,9 @@ export async function getRepeatCustomersAnalytics(req: Request, res: Response, n
 export async function getKitchenPerformanceAnalytics(req: Request, res: Response, next: NextFunction) {
   try {
     const restaurantId = getRestaurantId(req);
-    const data = await AnalyticsService.getKitchenPerformance(restaurantId);
-    ok(res, { kitchenPerformance: data });
+    const query = req.query as unknown as AnalyticsQueryInput;
+    const data = await AnalyticsService.getKitchenPerformance(restaurantId, query);
+    ok(res, data);
   } catch (error) {
     next(error);
   }
@@ -67,8 +71,9 @@ export async function getKitchenPerformanceAnalytics(req: Request, res: Response
 export async function getTableUtilizationAnalytics(req: Request, res: Response, next: NextFunction) {
   try {
     const restaurantId = getRestaurantId(req);
-    const data = await AnalyticsService.getTableUtilization(restaurantId);
-    ok(res, { tableUtilization: data });
+    const query = req.query as unknown as AnalyticsQueryInput;
+    const data = await AnalyticsService.getTableUtilization(restaurantId, query);
+    ok(res, data);
   } catch (error) {
     next(error);
   }
@@ -81,6 +86,22 @@ export async function getCustomerRetentionAnalytics(req: Request, res: Response,
     const data = await AnalyticsService.getCustomerRetention(restaurantId, query);
     ok(res, { customerRetention: data });
   } catch (error) {
+    next(error);
+  }
+}
+
+import logger from '../../config/logger';
+
+export async function getInventoryAnalytics(req: Request, res: Response, next: NextFunction) {
+  try {
+    const restaurantId = getRestaurantId(req);
+    const query = req.query as unknown as AnalyticsQueryInput;
+    logger.info('[DEBUG] getInventoryAnalytics req.query', { query });
+    const data = await AnalyticsService.getInventoryAnalytics(restaurantId, query);
+    logger.info('[DEBUG] getInventoryAnalytics data', { data });
+    ok(res, { inventoryAnalytics: data });
+  } catch (error) {
+    logger.error('[DEBUG] getInventoryAnalytics ERROR', { error });
     next(error);
   }
 }

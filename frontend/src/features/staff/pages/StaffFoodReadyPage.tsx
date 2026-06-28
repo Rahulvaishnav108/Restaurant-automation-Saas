@@ -1,25 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { useStaffSearch } from '../components/dashboard/StaffSearchContext';
-
-interface ReadyItem {
-  id: number;
-  table: string;
-  item: string;
-  qty: number;
-  station: 'Main Kitchen' | 'Bar' | 'Dessert Station';
-  readySince: string;
-  elapsedSec: number;
-}
+import { useStaffDashboard } from '../hooks/useStaffDashboard';
 
 export default function StaffFoodReadyPage() {
   const { query } = useStaffSearch();
-  const [items, setItems] = useState<ReadyItem[]>([
-    { id: 1, table: 'Table 3', item: 'Paneer Tikka Masala', qty: 1, station: 'Main Kitchen', readySince: '2 mins ago', elapsedSec: 120 },
-    { id: 2, table: 'Table 1', item: 'Butter Naan', qty: 3, station: 'Main Kitchen', readySince: '1 min ago', elapsedSec: 60 },
-    { id: 3, table: 'Table 2', item: 'Virgin Mojito', qty: 2, station: 'Bar', readySince: '4 mins ago', elapsedSec: 240 },
-    { id: 4, table: 'Table 5', item: 'Chocolate Lava Cake', qty: 1, station: 'Dessert Station', readySince: '5 mins ago', elapsedSec: 300 },
-  ]);
+  const { readyItems: items, setReadyItems: setItems } = useStaffDashboard();
 
   const markServed = (id: number) => {
     setItems(prev => prev.filter(item => item.id !== id));

@@ -14,30 +14,20 @@ export default function CartSidebar({ isOpen, onClose, isPersistent = false }: P
 
   return (
     <>
-      {/* Backdrop for mobile / overlays */}
+      {/* Backdrop */}
       {isOpen && (
         <button
           onClick={onClose}
           type="button"
           aria-label="Close cart"
-          className={`fixed inset-0 w-full h-full bg-black/40 z-40 transition-opacity duration-300 border-none outline-none cursor-default ${
-            isPersistent ? 'lg:hidden' : ''
-          }`}
+          className="fixed inset-0 w-full h-full bg-black/40 z-40 transition-opacity duration-300 border-none outline-none cursor-default"
         />
       )}
 
       <aside
-        className={
-          isPersistent
-            ? `fixed inset-y-0 right-0 bg-white z-50 flex flex-col h-screen transition-all duration-300 shadow-2xl lg:shadow-none lg:border-sd-surface-variant lg:z-40 ${
-                isOpen
-                  ? 'w-full sm:w-[380px] translate-x-0 lg:w-[380px] lg:translate-x-0 lg:border-l'
-                  : 'w-full sm:w-[380px] translate-x-full lg:w-0 lg:translate-x-0 lg:overflow-hidden lg:border-0'
-              }`
-            : `fixed inset-y-0 right-0 bg-white z-50 flex flex-col h-screen transition-transform duration-300 shadow-2xl ${
-                isOpen ? 'w-full sm:w-[380px] translate-x-0' : 'w-full sm:w-[380px] translate-x-full'
-              }`
-        }
+        className={`fixed inset-y-0 right-0 bg-white z-50 flex flex-col h-screen transition-transform duration-300 shadow-2xl ${
+          isOpen ? 'w-full sm:w-[380px] translate-x-0' : 'w-full sm:w-[380px] translate-x-full'
+        }`}
       >
       {/* Toggle tab (visible on closed state edge) */}
       {!isOpen && (

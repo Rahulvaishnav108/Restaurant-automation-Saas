@@ -131,7 +131,9 @@ export class MenuController {
   });
 
   static updateItem = asyncHandler(async (req: Request, res: Response) => {
+    console.log('[DEBUG] MenuController.updateItem req.body:', JSON.stringify(req.body, null, 2));
     const item = await MenuService.updateItem(req.user!.restaurantId!, req.params.id, req.body, req.user!._id);
+    console.log('[DEBUG] MenuController.updateItem returned item:', JSON.stringify(item, null, 2));
     res.status(200).json({ success: true, data: item });
     void logAudit(req, {
       entityType: AuditEntity.MENU_ITEM,

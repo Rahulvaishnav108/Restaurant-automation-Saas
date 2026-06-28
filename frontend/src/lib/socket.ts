@@ -1,6 +1,12 @@
 import { io } from 'socket.io-client';
 import { env } from './env';
-import { getAccessToken } from '../auth/tokenStore';
+import { getAccessToken, type Panel } from '../auth/tokenStore';
+
+const ACTIVE_PANEL_KEY = 'ra/active-panel';
+
+function getActivePanel(): Panel {
+  return (localStorage.getItem(ACTIVE_PANEL_KEY) as Panel) ?? 'customer';
+}
 
 export const socket = io(env.socketUrl, {
   autoConnect: false,
@@ -17,7 +23,7 @@ export function connectSocket(): void {
   }
 
   socket.auth = {
-    token: getAccessToken(),
+    token: getAccessToken(getActivePanel()),
   };
   socket.connect();
 }
@@ -29,3 +35,4 @@ export function disconnectSocket(): void {
 
   socket.disconnect();
 }
+

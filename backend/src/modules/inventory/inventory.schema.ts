@@ -25,6 +25,11 @@ export const createInventoryItemBodySchema = z.object({
   unit: z.string().trim().min(1).max(30),
   threshold: z.coerce.number().min(0),
   active: z.boolean().optional(),
+  category: z.string().trim().min(1).max(50).optional(),
+  pricePerUnit: z.coerce.number().min(0).optional(),
+  supplierId: objectIdSchema.optional(),
+  imageEmoji: z.string().trim().max(10).optional(),
+  description: z.string().trim().max(500).optional(),
 });
 
 export const updateInventoryItemBodySchema = z
@@ -34,7 +39,14 @@ export const updateInventoryItemBodySchema = z
     unit: z.string().trim().min(1).max(30).optional(),
     threshold: z.coerce.number().min(0).optional(),
     active: z.boolean().optional(),
+    category: z.string().trim().min(1).max(50).optional(),
+    pricePerUnit: z.coerce.number().min(0).optional(),
+    supplierId: objectIdSchema.optional(),
+    imageEmoji: z.string().trim().max(10).optional(),
+    description: z.string().trim().max(500).optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: 'At least one field is required',
   });
+
+export const bulkImportInventoryBodySchema = z.array(createInventoryItemBodySchema).min(1).max(500);
