@@ -58,6 +58,7 @@ app.use(
   }),
 );
 
+app.use(`${env.API_PREFIX}/payments/webhook/razorpay`, express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(env.COOKIE_SECRET));
