@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useCleaning } from '../hooks/usecleaning';
 import { useCleaningSearch } from '../components/dashboard/CleaningSearchContext';
+import { cleaningStore } from '../store/cleaning.store';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 interface CleanTask {
@@ -20,8 +21,13 @@ interface CleanTask {
 
 interface TableTask {
   id: string;
-  rawStatus?: 'PENDING' | 'REQUESTED' | 'IN_PROGRESS' | 'COMPLETED' | 'VERIFIED';
-  rawPriority?: 'High' | 'Medium' | 'Low';
+  status:
+    | 'Needs Cleaning'
+    | 'Cleaning Requested'
+    | 'In Progress'
+    | 'Ready for Inspection'
+    | 'Available';
+  priority: 'High' | 'Medium' | 'Low';
   timeAgo?: string;
   progress?: number;
   notes?: string;
@@ -49,7 +55,16 @@ export default function CleaningTasksPage() {
   // Pagination Engine States
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [allTasks, setAllTasks] = useState(cleaningStore.tables);
 
+  useEffect(() => {
+    const unsubscribe = cleaningStore.subscribe(() => {
+      setAllTasks([...cleaningStore.tables]);
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, []);
   const { urgentTasks, startTask, completeTask, verifyTask, reportIssue } = useCleaning();
   const safeTasks: TableTask[] = (urgentTasks || []) as unknown as TableTask[];
 
@@ -63,10 +78,10 @@ export default function CleaningTasksPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const tasks: CleanTask[] = safeTasks.map((t, index) => {
+  const tasks: CleanTask[] = allTasks.map((t, index) => {
     let displayStatus: 'Pending' | 'In Progress' | 'Completed' = 'Pending';
-    if (t.rawStatus === 'IN_PROGRESS') displayStatus = 'In Progress';
-    if (t.rawStatus === 'COMPLETED' || t.rawStatus === 'VERIFIED') displayStatus = 'Completed';
+    if (t.status === 'In Progress') displayStatus = 'In Progress';
+    if (t.status === 'Ready for Inspection') displayStatus = 'Completed';
 
     let icon = 'table_restaurant';
     let iconColor = 'text-blue-500';
@@ -86,9 +101,9 @@ export default function CleaningTasksPage() {
       iconColor = 'text-purple-500';
     }
 
-    const isHigh = t.rawPriority === 'High' || t.rawStatus === 'REQUESTED';
-    const isLow = t.rawPriority === 'Low';
-    const finalPriority = (isHigh ? 'High' : isLow ? 'Low' : 'Medium') as 'High' | 'Medium' | 'Low';
+    const isHigh = t.priority === 'High';
+    const isLow = t.priority === 'Low';
+    const finalPriority = t.priority;
 
     let borderClass = 'border-l-orange-500';
     if (finalPriority === 'High') borderClass = 'border-l-red-500';
@@ -96,19 +111,16 @@ export default function CleaningTasksPage() {
 
     return {
       id: `TSK-2026-0${10 + index}`,
-      name:
-        t.id === 'T12' || t.id === 'T05'
-          ? `Restroom Sanitization (${t.id})`
-          : `Clean Dining Table ${t.id}`,
-      location: t.id === 'T15' ? 'Terrace Area' : t.id === 'T05' ? 'Floor 1' : 'Dining Area A',
-      type: type,
-      icon: icon,
-      iconColor: iconColor,
-      priority: finalPriority,
+      name: `Clean Table ${t.id}`,
+      location: t.area,
+      type: 'Table Cleaning',
+      icon: 'table_restaurant',
+      iconColor: 'text-blue-500',
+      priority: t.priority,
       status: displayStatus,
-      dueTime: t.rawStatus === 'REQUESTED' ? 'Today, Just Now' : 'Today, 11:00 AM',
-      overdue: isHigh && displayStatus !== 'Completed',
-      borderClass: borderClass,
+      dueTime: t.timeAgo || 'Now',
+      overdue: t.priority === 'High' && displayStatus !== 'Completed',
+      borderClass: t.priority === 'High' ? 'border-l-red-500' : 'border-l-orange-500',
       rawId: t.id,
     };
   });
@@ -123,19 +135,30 @@ export default function CleaningTasksPage() {
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskName.trim()) return;
-    reportIssue(newTaskLocation.toUpperCase(), newTaskName);
+    const newTask = {
+      id: `T${Math.floor(Math.random() * 999)}`,
+      area: newTaskLocation,
+      seats: 4,
+      status: 'Needs Cleaning' as const,
+      priority: newTaskPriority,
+      timeAgo: 'Just Now',
+      assignedTo: null,
+    };
+    cleaningStore.addTable(newTask);
     setNewTaskName('');
     setShowAddModal(false);
   };
 
-  // Toggle state triggers connecting seamlessly with global wire controls channels
-  const handleToggleTaskStatus = (rawId: string, currentStatus: string) => {
+  const handleToggleTaskStatus = (rawId: string | undefined, currentStatus: string) => {
+    const id = rawId || '';
+    if (!id) return;
+
     if (currentStatus === 'Pending') {
-      startTask(rawId);
+      cleaningStore.startCleaning(id); // Store method
     } else if (currentStatus === 'In Progress') {
-      completeTask(rawId);
-    } else if (currentStatus === 'Completed') {
-      verifyTask(rawId);
+      cleaningStore.updateProgress(id); // Ya completeInspection
+    } else if (currentStatus === 'Ready for Inspection') {
+      cleaningStore.completeInspection(id);
     }
   };
 
@@ -143,12 +166,17 @@ export default function CleaningTasksPage() {
     setSelectedTask(row); // Modal khulega
   };
   const handleActionClick = (row: CleanTask, action: 'start' | 'complete' | 'verify') => {
-    if (action === 'start') startTask(row.rawId);
-    else if (action === 'complete') completeTask(row.rawId);
-    else if (action === 'verify') verifyTask(row.rawId);
+    const id = row.rawId;
+
+    if (action === 'start') {
+      cleaningStore.startCleaning(id);
+    } else if (action === 'complete') {
+      cleaningStore.completeInspection(id);
+    } else if (action === 'verify') {
+      cleaningStore.verifyInspection(id);
+    }
     setOpenMenuId(null);
   };
-
   const handleOpenTaskMenuConfig = (row: CleanTask) => {
     const confirmation = window.confirm(
       `[Task Master Operations Override]\n\nClick OK to register a manual high efficiency audit schedule reset vector to Table ${row.rawId},\nor Cancel to ignore.`
@@ -212,9 +240,12 @@ export default function CleaningTasksPage() {
       t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.id.toLowerCase().includes(searchQuery.toLowerCase());
+
     const matchesStatus = statusFilter === 'All Status' || t.status === statusFilter;
+
     const matchesPriority = priorityFilter === 'All Priority' || t.priority === priorityFilter;
     const matchesArea = areaFilter === 'All Area' || t.location.includes(areaFilter);
+
     return matchesSearch && matchesStatus && matchesPriority && matchesArea;
   });
 
@@ -440,7 +471,7 @@ export default function CleaningTasksPage() {
                     </td>
                     <td className="px-6 py-4">
                       <button
-                        onClick={() => handleToggleTaskStatus(row.rawId, row.status)}
+                        onClick={() => handleToggleTaskStatus(row.rawId!, row.status)}
                         className={`px-3 py-0.5 rounded-full text-[10px] font-bold border cursor-pointer transition-colors ${
                           row.status === 'Completed'
                             ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-950/20 dark:text-green-400 dark:border-green-900/30'

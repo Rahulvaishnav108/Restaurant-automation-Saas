@@ -34,6 +34,15 @@ export default function CleaningDashboard() {
   const [showSpecialModal, setShowSpecialModal] = useState(false);
   const [specialNotes, setSpecialNotes] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<CleaningRequest | null>(null);
+  const [tables, setTables] = useState(cleaningStore.tables);
+  useEffect(() => {
+  const unsubscribe = cleaningStore.subscribe(() => {
+    setTables([...cleaningStore.tables]);
+  });
+  return () => {
+    unsubscribe();
+  };
+}, []);
 
   const { unreadCount, addNotification } = useNotifications();
   useEffect(() => {
@@ -52,53 +61,37 @@ export default function CleaningDashboard() {
   const requestCount =
     (urgentTasks as unknown as TableTask[])?.filter((t) => t.rawStatus === 'REQUESTED').length || 0;
 
-  const tablesToClean = safeTasks
-    .filter((t) => t.rawStatus === 'PENDING' || t.rawStatus === 'REQUESTED')
-    .map((t: TableTask) => {
-      const isHigh = t.rawPriority === 'High' || t.rawStatus === 'REQUESTED';
-      const isLow = t.rawPriority === 'Low';
-      return {
-        id: t.id,
-        seats: t.id === 'T03' ? 6 : t.id === 'T12' ? 2 : t.id === 'T15' ? 3 : 4,
-        timeAgo: t.waiting || 'Just Now',
-        priority: (isHigh ? 'High' : isLow ? 'Low' : 'Medium') as 'High' | 'Medium' | 'Low',
-        priorityClass: isHigh
-          ? 'bg-red-50 text-red-600 dark:bg-red-950/20 dark:text-red-400'
-          : isLow
-            ? 'bg-green-50 text-green-600 dark:bg-green-950/20 dark:text-green-400'
-            : 'bg-orange-50 text-orange-600 dark:bg-orange-950/20 dark:text-orange-400',
-        priorityTextClass: isHigh
-          ? 'text-red-650 dark:text-red-400'
-          : isLow
-            ? 'text-green-650 dark:text-green-400'
-            : 'text-orange-600 dark:text-orange-400',
-        iconColor: isHigh
-          ? 'text-red-500 dark:text-red-400'
-          : isLow
-            ? 'text-green-500 dark:text-green-400'
-            : 'text-orange-500 dark:text-orange-400',
-        rawId: t.id,
-      };
-    });
+  const tablesToClean = tables
+  .filter((t) => t.status === 'Needs Cleaning' || t.status === 'Cleaning Requested')
+  .map((t) => ({
+    id: t.id,
+    seats: t.seats,
+    timeAgo: t.timeAgo,
+    priority: t.priority,
+    priorityClass: t.priority === 'High' ? 'bg-red-50 text-red-600' : 'bg-orange-50 text-orange-600',
+    iconColor: t.priority === 'High' ? 'text-red-500' : 'text-orange-500',
+    rawId: t.id,
+  }));
 
-  const inProgress = safeTasks
-    .filter((t) => t.rawStatus === 'IN_PROGRESS')
-    .map((t) => ({
-      id: t.id,
-      progress: t.progress || 45,
-      timeAgo: t.waiting || 'Started Just Now',
-      rawId: t.id,
-    }));
-
-  const completedToday = safeTasks
-    .filter((t) => t.rawStatus === 'COMPLETED' || t.rawStatus === 'VERIFIED')
-    .map((t) => ({
-      id: t.id,
-      time: t.rawStatus === 'VERIFIED' ? '10:30 AM' : 'Just Now',
-      seats: t.id === 'T03' ? 6 : t.id === 'T12' ? 2 : t.id === 'T15' ? 3 : 4,
-      rawStatus: t.rawStatus,
-      rawId: t.id,
-    }));
+ const inProgress = tables
+  .filter((t) => t.status === 'In Progress')
+  .map((t) => ({
+    id: t.id,
+    progress: t.progress || 45,
+    timeAgo: t.timeAgo,
+    rawId: t.id,
+  }));
+  
+  // Mapping mein fix kar (Dashboard ke completedToday logic mein)
+const completedToday = safeTasks
+  .filter((t) => t.rawStatus === 'COMPLETED' || t.rawStatus === 'VERIFIED')
+  .map((t) => ({
+    id: t.id,
+    time: t.rawStatus === 'VERIFIED' ? '10:30 AM' : 'Just Now',
+    seats: t.id === 'T03' ? 6 : t.id === 'T12' ? 2 : t.id === 'T15' ? 3 : 4,
+    rawStatus: t.rawStatus, // <--- Yeh property add kar
+    rawId: t.id,
+  }));
 
   // Maintain original static array context for Hygiene checklist items
   const [hygieneTasks, setHygieneTasks] = useState<HygieneTask[]>([
@@ -158,14 +151,12 @@ export default function CleaningDashboard() {
     );
   };
 
-  const handleCreateRequest = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newRequestTable.trim()) return;
-    const tableId = newRequestTable.toUpperCase().startsWith('T')
-      ? newRequestTable.toUpperCase()
-      : `T${newRequestTable}`;
-
-    reportIssue(tableId, 'Customer direct cleaning request');
+ const handleCreateRequest = (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!newRequestTable.trim()) return;
+  const tableId = newRequestTable.toUpperCase().startsWith('T')
+    ? newRequestTable.toUpperCase()
+    : `T${newRequestTable}`;
 
     cleaningStore.addCleaningRequest({
       id: `CR-2026-${Math.floor(Math.random() * 999)}`,
@@ -183,6 +174,15 @@ export default function CleaningDashboard() {
       requestedOn: new Date().toLocaleDateString(),
       requestedTime: new Date().toLocaleTimeString(),
     });
+    cleaningStore.addTable({
+    id: tableId,
+    area: 'Dining Area A',
+    seats: 4,
+    status: 'Needs Cleaning',
+    priority: 'High',
+    timeAgo: 'Just Now',
+    assignedTo: null
+  });
 
     window.dispatchEvent(
       new CustomEvent('new-cleaning-request', {
@@ -401,7 +401,9 @@ export default function CleaningDashboard() {
                     <span className="text-slate-450 dark:text-slate-400 font-bold">
                       {item.rawStatus === 'COMPLETED' ? (
                         <button
-                          onClick={() => verifyTask(item.rawId)}
+                         onClick={() => {
+       cleaningStore.verifyInspection(item.rawId);
+    }}
                           className="bg-purple-600 hover:bg-purple-700 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all duration-150 active:scale-95 cursor-pointer"
                         >
                           Verify Audit

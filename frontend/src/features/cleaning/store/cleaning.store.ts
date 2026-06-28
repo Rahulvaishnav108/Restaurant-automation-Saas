@@ -33,6 +33,8 @@ export interface CleaningRequest {
   requestedOn: string;
   requestedTime: string;
   notes?: string;
+  assignedTo?: { name: string; avatar: string } | null;
+  rawId?: string;
 }
 
 class CleaningStore {
@@ -204,10 +206,7 @@ class CleaningStore {
   public completeInspection(id: string) {
     this.tables = this.tables.map((t) => {
       if (t.id === id) {
-        this.requests = this.requests.map((r) =>
-          r.location.includes(id) ? { ...r, status: 'Completed' } : r
-        );
-        return { ...t, status: 'Available', progress: undefined, timeAgo: 'Just Now' };
+        return { ...t, status: 'Ready for Inspection', progress: 100, timeAgo: 'Just Now' };
       }
       return t;
     });
@@ -225,7 +224,26 @@ class CleaningStore {
   }
 
   public addTable(newTable: TableItem) {
-    this.tables = [newTable, ...this.tables];
+    this.tables = [...this.tables, newTable];
+    this.notify();
+  }
+  public completeRequest(id: string) {
+    this.requests = this.requests.map((r) => (r.id === id ? { ...r, status: 'Completed' } : r));
+    this.notify();
+  }
+  public verifyInspection(id: string) {
+    this.tables = this.tables.filter((t) => t.id !== id);
+    this.notify();
+  }
+  public updateRequestStatus(
+    id: string,
+    newStatus: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled' | 'Scheduled'
+  ) {
+    this.requests = this.requests.map((r) => (r.id === id ? { ...r, status: newStatus } : r));
+    this.notify();
+  }
+  public verifyRequest(id: string) {
+    this.requests = this.requests.filter((r) => r.id !== id);
     this.notify();
   }
 }

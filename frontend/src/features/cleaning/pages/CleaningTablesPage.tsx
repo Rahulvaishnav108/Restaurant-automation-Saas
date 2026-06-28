@@ -46,15 +46,15 @@ export default function CleaningTablesPage() {
   }, []);
 
   const handleViewTableDetails = (row: TableRow) => {
-    setSelectedTable(row); // Ye table ka data modal mein bhej dega
+    setSelectedTable(row);
   };
   const [selectedTable, setSelectedTable] = useState<TableRow | null>(null);
 
   const handleActionClick = (row: TableRow, action: 'start' | 'complete' | 'verify') => {
-    if (action === 'start') startTask(row.rawId);
-    if (action === 'complete') completeTask(row.rawId);
-    if (action === 'verify') verifyTask(row.rawId);
-    setOpenMenuId(null);
+    const id = row.rawId;
+    if (action === 'start') cleaningStore.startCleaning(id);
+    if (action === 'complete') cleaningStore.completeInspection(id);
+    if (action === 'verify') cleaningStore.verifyInspection(id);
   };
 
   const [isStatusOpen, setIsStatusOpen] = useState(false);
@@ -82,11 +82,11 @@ export default function CleaningTablesPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const tables: TableRow[] = safeTasks.map((t: TableTask) => {
+  const tables: TableRow[] = tableList.map((t, index) => {
     let displayStatus: 'Pending' | 'In Progress' | 'Completed' = 'Pending';
-    if (t.rawStatus === 'IN_PROGRESS') displayStatus = 'In Progress';
-    if (t.rawStatus === 'COMPLETED' || t.rawStatus === 'VERIFIED') displayStatus = 'Completed';
-
+    if (t.status === 'Needs Cleaning') displayStatus = 'Pending';
+    if (t.status === 'In Progress') displayStatus = 'In Progress';
+    if (t.status === 'Ready for Inspection') displayStatus = 'Completed';
     let assignedStaff = null;
     if (t.id === 'T12' || t.id === 'T05') {
       assignedStaff = {
@@ -110,28 +110,12 @@ export default function CleaningTablesPage() {
 
     return {
       id: t.id,
-      area: t.id === 'T15' ? 'Terrace Area' : t.id === 'T05' ? 'Floor 1' : 'Dining Area A',
-      seats:
-        t.id === 'T03' || t.id === 'T05'
-          ? 6
-          : t.id === 'T15'
-            ? 3
-            : t.id === 'T12' || t.id === 'T02'
-              ? 2
-              : 4,
+      area: t.area,
+      seats: t.seats,
       status: displayStatus,
-      priority: (t.rawPriority === 'High' || t.rawStatus === 'REQUESTED'
-        ? 'High'
-        : t.rawPriority === 'Low'
-          ? 'Low'
-          : 'Medium') as 'High' | 'Medium' | 'Low',
-      lastCleaned:
-        t.rawStatus === 'VERIFIED'
-          ? '10:30 AM'
-          : t.rawStatus === 'COMPLETED'
-            ? 'Just Now'
-            : t.waiting || '',
-      assignedTo: assignedStaff,
+      priority: t.priority,
+      lastCleaned: t.timeAgo,
+      assignedTo: t.assignedTo,
       rawId: t.id,
     };
   });
@@ -151,7 +135,7 @@ export default function CleaningTablesPage() {
         : `T${newTableNumber}`,
       area: newTableArea,
       seats: newTableSeats,
-      status: 'Available',
+      status: 'Needs Cleaning',
       priority: newTablePriority,
       timeAgo: 'Just Now',
       assignedTo: null,
@@ -168,11 +152,11 @@ export default function CleaningTablesPage() {
   // Change table status triggered directly from state store pipeline handlers
   const handleToggleStatus = (rawId: string, currentStatus: string) => {
     if (currentStatus === 'Pending') {
-      startTask(rawId);
+      cleaningStore.startCleaning(rawId);
     } else if (currentStatus === 'In Progress') {
-      completeTask(rawId);
+      cleaningStore.updateProgress(rawId);
     } else if (currentStatus === 'Completed') {
-      verifyTask(rawId);
+      cleaningStore.completeInspection(rawId);
     }
   };
 

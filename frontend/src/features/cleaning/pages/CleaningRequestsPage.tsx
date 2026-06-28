@@ -13,11 +13,11 @@ interface CleaningRequest {
   location: string;
   requestedBy: { name: string; avatar: string };
   priority: 'High' | 'Medium' | 'Low';
-  status: 'In Progress' | 'Scheduled' | 'Completed' | 'Cancelled';
+  status: 'In Progress' | 'Scheduled' | 'Completed' | 'Cancelled' | 'Pending';
   requestedOn: string;
   requestedTime: string;
-  assignedTo: { name: string; avatar: string } | null;
-  rawId: string;
+  assignedTo?: { name: string; avatar: string } | null;
+  rawId?: string;
 }
 interface TableTask {
   id: string;
@@ -56,14 +56,19 @@ export default function CleaningRequestsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-
   const { urgentTasks, startTask, completeTask, verifyTask, reportIssue } = useCleaning();
   const safeTasks = (urgentTasks || []) as unknown as TableTask[];
 
-  
-  const [requestList, setRequestList] = useState(cleaningStore.requests);
+  const [allRequests, setAllRequests] = useState(cleaningStore.requests);
 
-  // Close custom drop components sheets cleanly when clicking outside boundaries
+  useEffect(() => {
+    const unsubscribe = cleaningStore.subscribe(() => {
+      setAllRequests([...cleaningStore.requests]);
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, []);
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node;
@@ -145,6 +150,7 @@ export default function CleaningRequestsPage() {
   // Add request via central system trigger
   const handleAddRequest = (e: React.FormEvent) => {
     e.preventDefault();
+    const now = new Date();
     if (!newRequestLocation.trim()) return;
 
     cleaningStore.addCleaningRequest({
@@ -160,8 +166,14 @@ export default function CleaningRequestsPage() {
       },
       priority: newRequestPriority as 'High' | 'Medium' | 'Low',
       status: 'Scheduled',
-      requestedOn: new Date().toLocaleDateString(),
-      requestedTime: new Date().toLocaleTimeString(),
+      requestedOn: now.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }),
+      requestedTime: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      assignedTo: null,
+      rawId: `T-${Date.now()}`,
     });
 
     window.dispatchEvent(
@@ -178,16 +190,15 @@ export default function CleaningRequestsPage() {
     setShowAddModal(false);
   };
   const handleAction = (data: unknown) => {
-  console.log(data);
+    console.log(data);
   };
-  // Toggle status linked directly with state update hooks pipelines
-  const handleToggleRequestStatus = (rawId: string, currentStatus: string) => {
+  const handleToggleRequestStatus = (rawId: string | undefined, currentStatus: string) => {
+    const id = rawId!;
+
     if (currentStatus === 'Scheduled') {
-      startTask(rawId);
+      cleaningStore.updateRequestStatus(id, 'In Progress');
     } else if (currentStatus === 'In Progress') {
-      completeTask(rawId);
-    } else if (currentStatus === 'Completed') {
-      verifyTask(rawId);
+      cleaningStore.updateRequestStatus(id, 'Completed');
     }
   };
 
@@ -196,10 +207,17 @@ export default function CleaningRequestsPage() {
     setSelectedRequest(row);
   };
 
+  // CleaningRequestsPage.tsx
   const handleActionClick = (row: CleaningRequest, action: 'start' | 'complete' | 'verify') => {
-    if (action === 'start') startTask(row.rawId);
-    if (action === 'complete') completeTask(row.rawId);
-    if (action === 'verify') verifyTask(row.rawId);
+    const id = row.id; // Request ka unique ID
+
+    if (action === 'start') {
+      cleaningStore.updateRequestStatus(id, 'In Progress');
+    } else if (action === 'complete') {
+      cleaningStore.updateRequestStatus(id, 'Completed');
+    } else if (action === 'verify') {
+      cleaningStore.verifyRequest(id);
+    }
     setOpenMenuId(null);
   };
 
@@ -253,14 +271,16 @@ export default function CleaningRequestsPage() {
   };
 
   // Filter requests matching parameters
-  const filteredRequests = requests.filter((r) => {
+  const filteredRequests = allRequests.filter((r) => {
     const matchesSearch =
-      r.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.type.toLowerCase().includes(searchQuery.toLowerCase());
+      r.id?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.location?.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.type?.toString().toLowerCase().includes(searchQuery.toLowerCase());
+
     const matchesStatus = statusFilter === 'All Status' || r.status === statusFilter;
     const matchesPriority = priorityFilter === 'All Priority' || r.priority === priorityFilter;
     const matchesType = typeFilter === 'All Type' || r.type === typeFilter;
+
     return matchesSearch && matchesStatus && matchesPriority && matchesType;
   });
 
@@ -591,7 +611,7 @@ export default function CleaningRequestsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <button
-                        onClick={() => handleToggleRequestStatus(row.rawId, row.status)}
+                        onClick={() => handleToggleRequestStatus(row.rawId!, row.status)}
                         className={`px-3 py-0.5 rounded-full text-[10px] font-bold border cursor-pointer transition-colors ${
                           row.status === 'Completed'
                             ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/20 dark:text-green-400 dark:border-green-900/30'
@@ -824,7 +844,9 @@ export default function CleaningRequestsPage() {
                 <select
                   id="new-request-priority"
                   value={newRequestPriority}
-                  onChange={(e) => setNewRequestPriority(e.target.value as 'High' | 'Medium' | 'Low')}
+                  onChange={(e) =>
+                    setNewRequestPriority(e.target.value as 'High' | 'Medium' | 'Low')
+                  }
                   className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 >
                   <option value="High">High Urgency (Red Alert)</option>
