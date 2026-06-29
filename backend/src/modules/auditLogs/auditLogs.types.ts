@@ -11,6 +11,7 @@ export enum AuditEntity {
   TABLE_SESSION = 'TABLE_SESSION',
   TABLE        = 'table',
   MENU_ITEM    = 'MENU_ITEM',
+  QR           = 'QR',
   RESTAURANT   = 'RESTAURANT',
   STAFF        = 'STAFF',
   OFFER        = 'OFFER',
@@ -80,6 +81,12 @@ export enum AuditAction {
   SUPER_RESTAURANT_APPROVED  = 'SUPER_RESTAURANT_APPROVED',
   SUPER_RESTAURANT_SUSPENDED = 'SUPER_RESTAURANT_SUSPENDED',
   SUPER_RESTAURANT_DELETED   = 'SUPER_RESTAURANT_DELETED',
+
+  // QR Events
+  QR_GENERATED               = 'QR_GENERATED',
+  QR_REGENERATED             = 'QR_REGENERATED',
+  QR_SCANNED                 = 'QR_SCANNED',
+  INVALID_QR_ATTEMPT         = 'INVALID_QR_ATTEMPT',
 }
 
 // ── Payload passed to the log helper ─────────────────────────────────

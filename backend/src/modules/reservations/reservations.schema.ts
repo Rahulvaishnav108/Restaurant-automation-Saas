@@ -52,8 +52,7 @@ export const updateReservationBodySchema = z.object({
 }).refine((data) => Object.keys(data).length > 0, {
   message: 'At least one field must be provided to update',
 });
-
 export const checkInReservationBodySchema = z.object({
   restaurantId: objectIdSchema.optional(),
-  tableId: objectIdSchema,
+  tableId: objectIdSchema.optional(),
 });

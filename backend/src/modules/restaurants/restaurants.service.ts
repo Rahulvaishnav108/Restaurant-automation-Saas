@@ -39,7 +39,7 @@ export async function getRestaurantOverview(restaurantId: string) {
   const [totalTables, activeSessions, occupiedTables] = await Promise.all([
     TableModel.countDocuments({ restaurantId }),
     TableSessionModel.countDocuments({ restaurantId, status: SessionStatus.ACTIVE }),
-    TableModel.countDocuments({ restaurantId, status: TableStatus.OCCUPIED }),
+    TableModel.countDocuments({ restaurantId, status: { $in: [TableStatus.OCCUPIED, TableStatus.ORDERING, TableStatus.BILL_PENDING, TableStatus.PAYMENT_PENDING, TableStatus.PAID] } }),
   ]);
 
   return {

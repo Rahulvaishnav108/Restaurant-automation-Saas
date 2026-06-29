@@ -10,11 +10,13 @@ import {
   bulkCreateTablesController,
   createTableController,
   deleteTableController,
-  generateTableQrController,
   getTableController,
-  getTableQrController,
   listTablesController,
   updateTableController,
+  regenerateTableQrController,
+  getTableQrPngController,
+  getTableQrSvgController,
+  getTableQrControllerLegacy,
 } from '../tables/tables.controller';
 import {
   bulkCreateTablesRequestSchema,
@@ -44,8 +46,11 @@ adminRouter.get('/tables/:id', validate({ params: tableIdParamsSchema }), getTab
 adminRouter.patch('/tables/:id', validate(updateTableRequestSchema), updateTableController);
 adminRouter.delete('/tables/:id', validate({ params: tableIdParamsSchema }), deleteTableController);
 adminRouter.post('/tables/bulk', validate(bulkCreateTablesRequestSchema), bulkCreateTablesController);
-adminRouter.post('/tables/:id/qr', validate({ params: tableIdParamsSchema }), generateTableQrController);
-adminRouter.get('/tables/:id/qr', validate({ params: tableIdParamsSchema }), getTableQrController);
+adminRouter.post('/tables/:id/qr/regenerate', validate({ params: tableIdParamsSchema }), regenerateTableQrController);
+adminRouter.get('/tables/:id/qr/png', validate({ params: tableIdParamsSchema }), getTableQrPngController);
+adminRouter.get('/tables/:id/qr/svg', validate({ params: tableIdParamsSchema }), getTableQrSvgController);
+adminRouter.post('/tables/:id/qr', validate({ params: tableIdParamsSchema }), regenerateTableQrController);
+adminRouter.get('/tables/:id/qr', validate({ params: tableIdParamsSchema }), getTableQrControllerLegacy);
 adminRouter.use('/staff', staffManagementRouter);
 adminRouter.use('/offers', offersRouter);
 adminRouter.use('/loyalty', loyaltyRouter);

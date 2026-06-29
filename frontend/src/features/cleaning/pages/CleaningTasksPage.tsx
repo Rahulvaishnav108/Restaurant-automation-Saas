@@ -72,15 +72,17 @@ export default function CleaningTasksPage() {
     let iconColor = 'text-blue-500';
     let type = 'Table Cleaning';
 
-    if (t.id === 'T03') {
+    const tableLabel = (t as any).tableNumber || t.id;
+
+    if (tableLabel === 'T-03' || tableLabel === 'T03') {
       type = 'Inspection';
       icon = 'inventory';
       iconColor = 'text-indigo-500';
-    } else if (t.id === 'T15') {
+    } else if (tableLabel === 'T-15' || tableLabel === 'T15') {
       type = 'Deep Cleaning';
       icon = 'cleaning_bucket';
       iconColor = 'text-cyan-500';
-    } else if (t.id === 'T12' || t.id === 'T05') {
+    } else if (tableLabel === 'T-12' || tableLabel === 'T12' || tableLabel === 'T-05' || tableLabel === 'T05') {
       type = 'Sanitization';
       icon = 'sanitizer';
       iconColor = 'text-purple-500';
@@ -97,10 +99,10 @@ export default function CleaningTasksPage() {
     return {
       id: `TSK-2026-0${10 + index}`,
       name:
-        t.id === 'T12' || t.id === 'T05'
-          ? `Restroom Sanitization (${t.id})`
-          : `Clean Dining Table ${t.id}`,
-      location: t.id === 'T15' ? 'Terrace Area' : t.id === 'T05' ? 'Floor 1' : 'Dining Area A',
+        tableLabel === 'T12' || tableLabel === 'T05'
+          ? `Restroom Sanitization (${tableLabel})`
+          : `Clean Dining Table ${tableLabel}`,
+      location: (t as any).section ? `${(t as any).section} · Floor ${(t as any).floor}` : (tableLabel === 'T15' ? 'Terrace Area' : tableLabel === 'T05' ? 'Floor 1' : 'Dining Area A'),
       type: type,
       icon: icon,
       iconColor: iconColor,

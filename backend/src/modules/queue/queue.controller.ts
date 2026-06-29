@@ -39,14 +39,14 @@ export async function joinQueueController(req: Request, res: Response, next: Nex
     const entry = await QueueService.joinQueue({
       restaurantId,
       customerName: req.body.customerName,
-      mobile: req.body.mobile,
+      mobile: req.body.mobile ?? '0000000000',
       guests: req.body.guests,
       priority: req.body.priority,
       etaMinutes: req.body.etaMinutes,
       notes: req.body.notes,
     });
 
-    ok(res, { queue: mapQueueDto(entry) }, 201);
+    ok(res, { queue: mapQueueDto(entry), queueEntry: entry }, 201);
   } catch (error) {
     next(error);
   }

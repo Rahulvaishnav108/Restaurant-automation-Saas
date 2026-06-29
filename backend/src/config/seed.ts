@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import crypto from 'crypto';
 import logger from './logger';
 import { hashPassword } from '../utils/crypto';
 import { UserRole, KitchenRole, StaffInternalRole, CleaningRole } from '../constants/roles';
@@ -230,7 +231,14 @@ export async function seedDevelopmentData(): Promise<void> {
           capacity: 4,
           status: TableStatus.AVAILABLE,
           qrCode: 'amber-table-t1-seed',
+          floor: 1,
+          section: 'Indoor',
           isActive: true,
+        },
+        $setOnInsert: {
+          qrToken: crypto.randomBytes(16).toString('hex'),
+          qrGeneratedAt: new Date(),
+          qrLastRegeneratedAt: new Date(),
         },
       },
       { new: true, upsert: true, setDefaultsOnInsert: true },
@@ -244,7 +252,14 @@ export async function seedDevelopmentData(): Promise<void> {
           capacity: 6,
           status: TableStatus.OCCUPIED,
           qrCode: 'amber-table-t2-seed',
+          floor: 1,
+          section: 'Indoor',
           isActive: true,
+        },
+        $setOnInsert: {
+          qrToken: crypto.randomBytes(16).toString('hex'),
+          qrGeneratedAt: new Date(),
+          qrLastRegeneratedAt: new Date(),
         },
       },
       { new: true, upsert: true, setDefaultsOnInsert: true },
@@ -258,7 +273,119 @@ export async function seedDevelopmentData(): Promise<void> {
           capacity: 2,
           status: TableStatus.NEEDS_CLEANING,
           qrCode: 'amber-table-t3-seed',
+          floor: 1,
+          section: 'Indoor',
           isActive: true,
+        },
+        $setOnInsert: {
+          qrToken: crypto.randomBytes(16).toString('hex'),
+          qrGeneratedAt: new Date(),
+          qrLastRegeneratedAt: new Date(),
+        },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true },
+    ),
+    TableModel.findOneAndUpdate(
+      { restaurantId: amberTable._id, tableNumber: 'T4' },
+      {
+        $set: {
+          restaurantId: amberTable._id,
+          tableNumber: 'T4',
+          capacity: 8,
+          status: TableStatus.RESERVED,
+          qrCode: 'amber-table-t4-seed',
+          floor: 1,
+          section: 'Private',
+          isActive: true,
+        },
+        $setOnInsert: {
+          qrToken: crypto.randomBytes(16).toString('hex'),
+          qrGeneratedAt: new Date(),
+          qrLastRegeneratedAt: new Date(),
+        },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true },
+    ),
+    TableModel.findOneAndUpdate(
+      { restaurantId: amberTable._id, tableNumber: 'T5' },
+      {
+        $set: {
+          restaurantId: amberTable._id,
+          tableNumber: 'T5',
+          capacity: 4,
+          status: TableStatus.AVAILABLE,
+          qrCode: 'amber-table-t5-seed',
+          floor: 1,
+          section: 'Outdoor',
+          isActive: true,
+        },
+        $setOnInsert: {
+          qrToken: crypto.randomBytes(16).toString('hex'),
+          qrGeneratedAt: new Date(),
+          qrLastRegeneratedAt: new Date(),
+        },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true },
+    ),
+    TableModel.findOneAndUpdate(
+      { restaurantId: amberTable._id, tableNumber: 'B1' },
+      {
+        $set: {
+          restaurantId: amberTable._id,
+          tableNumber: 'B1',
+          capacity: 2,
+          status: TableStatus.OCCUPIED,
+          qrCode: 'amber-table-b1-seed',
+          floor: 1,
+          section: 'Bar',
+          isActive: true,
+        },
+        $setOnInsert: {
+          qrToken: crypto.randomBytes(16).toString('hex'),
+          qrGeneratedAt: new Date(),
+          qrLastRegeneratedAt: new Date(),
+        },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true },
+    ),
+    TableModel.findOneAndUpdate(
+      { restaurantId: amberTable._id, tableNumber: 'T6' },
+      {
+        $set: {
+          restaurantId: amberTable._id,
+          tableNumber: 'T6',
+          capacity: 4,
+          status: TableStatus.AVAILABLE,
+          qrCode: 'amber-table-t6-seed',
+          floor: 2,
+          section: 'Indoor',
+          isActive: true,
+        },
+        $setOnInsert: {
+          qrToken: crypto.randomBytes(16).toString('hex'),
+          qrGeneratedAt: new Date(),
+          qrLastRegeneratedAt: new Date(),
+        },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true },
+    ),
+    TableModel.findOneAndUpdate(
+      { restaurantId: amberTable._id, tableNumber: 'T7' },
+      {
+        $set: {
+          restaurantId: amberTable._id,
+          tableNumber: 'T7',
+          capacity: 6,
+          status: TableStatus.AVAILABLE,
+          qrCode: 'amber-table-t7-seed',
+          floor: 2,
+          section: 'Indoor',
+          isActive: false, // Blocked
+        },
+        $setOnInsert: {
+          qrToken: crypto.randomBytes(16).toString('hex'),
+          qrGeneratedAt: new Date(),
+          qrLastRegeneratedAt: new Date(),
         },
       },
       { new: true, upsert: true, setDefaultsOnInsert: true },
@@ -483,6 +610,7 @@ export async function seedDevelopmentData(): Promise<void> {
         $set: {
           restaurantId: amberTable._id,
           customerName: 'Ishita Shah',
+          mobile: '9876543210',
           guests: 4,
           date: '2026-05-11',
           slot: '20:00',

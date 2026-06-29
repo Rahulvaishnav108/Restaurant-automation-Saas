@@ -6,6 +6,10 @@ import { cleaningAPI, type CleaningMetric, type UrgentTask } from '../api/cleani
 interface ProcessedTask extends UrgentTask {
   rawStatus: string;
   rawPriority: string;
+  seats?: number;
+  area?: string;
+  section?: string;
+  floor?: number;
 }
 
 export function useCleaning() {
@@ -75,7 +79,8 @@ export function useCleaning() {
       }
 
       return {
-        id: task.id,
+        id: (task as any).taskId || task.id,
+        tableNumber: task.id,
         title: `Table ${task.id}`,
         subtitle: task.notes ? task.notes : 'Routine turnover strategy sequence',
         priority: displayStatus,
@@ -84,7 +89,11 @@ export function useCleaning() {
         waiting: task.timeAgo || 'Just Now',
         rawPriority: task.priority || 'Medium',
         rawStatus: rawStatus,
-        progress: task.progress || 0
+        progress: task.progress || 0,
+        seats: task.seats,
+        area: task.area,
+        section: task.section,
+        floor: task.floor,
       } as ProcessedTask;
     });
 
@@ -102,9 +111,12 @@ export function useCleaning() {
   const loadDashboard = useCallback(async () => {
     setLoading(true);
     try {
-      await cleaningAPI.getTasks();
+      const res = await cleaningAPI.getTasks();
+      if (res.success && res.data?.tasks) {
+        cleaningStore.syncTasks(res.data.tasks);
+      }
     } catch (err) {
-      console.warn('[CleanServe Hook] Sync operational.');
+      console.warn('[CleanServe Hook] Sync operational.', err);
     } finally {
       setLoading(false);
     }
@@ -146,10 +158,22 @@ export function useCleaning() {
     error,
     profile,
     updateProfile: (updated: Partial<StaffProfile>) => cleaningStore.updateProfile(updated),
-    assignTask: (taskId: string) => cleaningStore.startCleaning(taskId),
-    startTask: (taskId: string) => cleaningStore.startCleaning(taskId),
-    completeTask: (taskId: string) => cleaningStore.updateProgress(taskId),
-    verifyTask: (taskId: string) => cleaningStore.completeInspection(taskId),
+    assignTask: async (taskId: string) => {
+      await cleaningAPI.startTask(taskId);
+      await loadDashboard();
+    },
+    startTask: async (taskId: string) => {
+      await cleaningAPI.startTask(taskId);
+      await loadDashboard();
+    },
+    completeTask: async (taskId: string) => {
+      await cleaningAPI.completeTask(taskId);
+      await loadDashboard();
+    },
+    verifyTask: async (taskId: string) => {
+      await cleaningAPI.verifyTask(taskId);
+      await loadDashboard();
+    },
     reportIssue: (taskId: string, issue: string) => cleaningStore.reportMaintenance(taskId, issue),
     refresh: loadDashboard,
   };

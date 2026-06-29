@@ -12,9 +12,12 @@ export interface ITable extends Document {
   section: string;
   assignedStaffId?: Types.ObjectId | null;
   status: TableStatus;
-  qrCode: string;
+  qrCode?: string;
+  qrToken: string;
+  qrGeneratedAt: Date;
+  qrLastRegeneratedAt: Date;
   isActive: boolean;
-  currentSessionId?: Types.ObjectId;
+  currentSessionId?: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,10 +26,13 @@ export interface ITable extends Document {
 export const TABLE_TRANSITIONS: Record<TableStatus, TableStatus[]> = {
   [TableStatus.AVAILABLE]: [TableStatus.RESERVED, TableStatus.OCCUPIED],
   [TableStatus.RESERVED]: [TableStatus.AVAILABLE, TableStatus.OCCUPIED],
-  [TableStatus.OCCUPIED]: [TableStatus.PAYMENT_PENDING],
-  [TableStatus.PAYMENT_PENDING]: [TableStatus.NEEDS_CLEANING],
-  [TableStatus.NEEDS_CLEANING]: [TableStatus.CLEANING_IN_PROGRESS],
-  [TableStatus.CLEANING_IN_PROGRESS]: [TableStatus.AVAILABLE],
+  [TableStatus.OCCUPIED]: [TableStatus.AVAILABLE, TableStatus.ORDERING, TableStatus.BILL_PENDING, TableStatus.PAYMENT_PENDING, TableStatus.DIRTY],
+  [TableStatus.ORDERING]: [TableStatus.AVAILABLE, TableStatus.BILL_PENDING, TableStatus.PAYMENT_PENDING, TableStatus.DIRTY],
+  [TableStatus.BILL_PENDING]: [TableStatus.PAID, TableStatus.DIRTY],
+  [TableStatus.PAYMENT_PENDING]: [TableStatus.PAID, TableStatus.DIRTY],
+  [TableStatus.PAID]: [TableStatus.DIRTY],
+  [TableStatus.DIRTY]: [TableStatus.CLEANING],
+  [TableStatus.CLEANING]: [TableStatus.AVAILABLE],
 };
 
 const tableSchema = new Schema<ITable>(
@@ -70,9 +76,23 @@ const tableSchema = new Schema<ITable>(
     },
     qrCode: {
       type: String,
-      required: [true, 'QR code identifier is required'],
+      required: false,
+      trim: true,
+    },
+    qrToken: {
+      type: String,
+      required: [true, 'QR token is required'],
       unique: true,
       trim: true,
+      index: true,
+    },
+    qrGeneratedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    qrLastRegeneratedAt: {
+      type: Date,
+      default: Date.now,
     },
     isActive: {
       type: Boolean,
@@ -86,7 +106,15 @@ const tableSchema = new Schema<ITable>(
   },
   {
     timestamps: true,
-    toJSON: { virtuals: true },
+    toJSON: {
+      virtuals: true,
+      transform: (_doc, ret) => {
+        if (['OCCUPIED', 'ORDERING', 'BILL_PENDING', 'PAYMENT_PENDING', 'PAID'].includes(ret.status)) {
+          ret.status = TableStatus.OCCUPIED;
+        }
+        return ret;
+      }
+    },
     toObject: { virtuals: true },
     collection: 'tables',
   }

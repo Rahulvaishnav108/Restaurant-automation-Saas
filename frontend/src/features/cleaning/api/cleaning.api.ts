@@ -109,6 +109,11 @@ export interface UrgentTask {
   badgeColor: string;
   badgeBg?: string;
   waiting: string;
+  tableNumber?: string;
+  seats?: number;
+  area?: string;
+  section?: string;
+  floor?: number;
 }
 
 export interface CleaningStaffMember {

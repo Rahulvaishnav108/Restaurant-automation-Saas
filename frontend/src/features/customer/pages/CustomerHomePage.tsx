@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useSearch } from '../components/dashboard/SearchContext';
 import FoodCard from '../components/dashboard/FoodCard';
 import CategoryFilter from '../components/dashboard/CategoryFilter';
 import QuickActions from '../components/dashboard/QuickActions';
 import { useCustomerStore } from '../store/customer.store';
+import { apiClient } from '../../../shared/services/apiClient';
+import { useAuth } from '../../../auth/AuthProvider';
 
 const CAROUSEL_SLIDES = [
   {
@@ -44,12 +46,61 @@ const INFINITE_SLIDES = [
 ];
 
 export default function CustomerHomePage() {
+  const { diningSession } = useCustomerStore();
   const { filteredItems, vegOnly, setVegOnly, spicyOnly, setSpicyOnly } = useSearch();
   const { profile } = useCustomerStore();
-  
+
+  const getGreetingText = useCallback(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return 'Good Morning';
+    if (hour >= 12 && hour < 17) return 'Good Afternoon';
+    if (hour >= 17 && hour < 21) return 'Good Evening';
+    return 'Hello';
+  }, []);
+
+  const [greeting, setGreeting] = useState(getGreetingText);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setGreeting(getGreetingText());
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [getGreetingText]);
+
   // Start at index 1 (which is Slide 1)
   const [currentIndex, setCurrentIndex] = useState(1);
   const [isTransitioning, setIsTransitioning] = useState(true);
+
+  // Carousel auto-slide effect
+  const handleNextSlide = useCallback(() => {
+    setCurrentIndex((prev) => prev + 1);
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      handleNextSlide();
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [handleNextSlide]);
+
+  const handleTransitionEnd = () => {
+    if (currentIndex === 0) {
+      setIsTransitioning(false);
+      setCurrentIndex(CAROUSEL_SLIDES.length);
+    } else if (currentIndex === CAROUSEL_SLIDES.length + 1) {
+      setIsTransitioning(false);
+      setCurrentIndex(1);
+    }
+  };
+
+  useEffect(() => {
+    if (!isTransitioning) {
+      const timeout = setTimeout(() => {
+        setIsTransitioning(true);
+      }, 50);
+      return () => clearTimeout(timeout);
+    }
+  }, [isTransitioning]);
 
   const recommended = filteredItems.slice(0, 8);
 
@@ -60,49 +111,13 @@ export default function CustomerHomePage() {
     setCurrentIndex((prev) => prev - 1);
   };
 
-  const handleNextSlide = useCallback((e?: React.MouseEvent) => {
-    if (e) e.preventDefault();
-    if (!isTransitioning) return;
-    if (currentIndex >= INFINITE_SLIDES.length - 1) return;
-    setCurrentIndex((prev) => prev + 1);
-  }, [currentIndex, isTransitioning]);
-
-  // Auto cycle carousel every 5 seconds
-  useEffect(() => {
-    const timer = setInterval(() => {
-      handleNextSlide();
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [handleNextSlide]);
-
-  const handleTransitionEnd = () => {
-    // If we reached the cloned last slide (index 0), jump to real last slide (index 3)
-    if (currentIndex === 0) {
-      setIsTransitioning(false);
-      setCurrentIndex(CAROUSEL_SLIDES.length);
-    } 
-    // If we reached the cloned first slide (index 4), jump to real first slide (index 1)
-    else if (currentIndex === CAROUSEL_SLIDES.length + 1) {
-      setIsTransitioning(false);
-      setCurrentIndex(1);
-    }
-  };
-
-  // Turn transitions back on after index jump finishes
-  useEffect(() => {
-    if (!isTransitioning) {
-      const timeout = setTimeout(() => {
-        setIsTransitioning(true);
-      }, 50);
-      return () => clearTimeout(timeout);
-    }
-  }, [isTransitioning]);
+  if (!diningSession) return null;
 
   return (
     <div className="p-4 md:p-8 pb-24 md:pb-8 overflow-y-auto h-full sd-custom-scrollbar">
       {/* Greeting */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-sd-on-surface font-sans">Good Evening, {profile.name.split(' ')[0]}! 👋</h2>
+        <h2 className="text-2xl font-bold text-sd-on-surface font-sans">{greeting}, {profile.name.split(' ')[0]}! (Table {diningSession.tableNumber}) 👋</h2>
         <p className="text-sm text-sd-on-surface-variant font-sans">What would you like to order today?</p>
       </div>
 

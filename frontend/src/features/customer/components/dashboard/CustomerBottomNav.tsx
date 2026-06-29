@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import QRScannerModal from './QRScannerModal';
+import { useCustomerStore } from '../../store/customer.store';
 
 export default function CustomerBottomNav() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+  const { diningSession } = useCustomerStore();
 
   const handleScanSuccess = (tableId: string) => {
     setScannerOpen(false);
@@ -57,16 +59,18 @@ export default function CustomerBottomNav() {
         ))}
 
         {/* Center: Scan QR Button (Elevated) */}
-        <div className="flex-1 flex flex-col items-center justify-center relative -top-3.5 z-50">
-          <button
-            onClick={() => setScannerOpen(true)}
-            className="w-14 h-14 bg-sd-primary-container text-white rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(255,92,0,0.35)] hover:scale-105 active:scale-95 transition-all border-[4px] border-white dark:border-sd-surface shrink-0"
-            title="Scan QR"
-          >
-            <span className="material-symbols-outlined text-[24px]">qr_code_scanner</span>
-          </button>
-          <span className="text-[10px] font-bold font-sans text-sd-primary mt-1 shrink-0">Scan QR</span>
-        </div>
+        {!diningSession && (
+          <div className="flex-1 flex flex-col items-center justify-center relative -top-3.5 z-50">
+            <button
+              onClick={() => setScannerOpen(true)}
+              className="w-14 h-14 bg-sd-primary-container text-white rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(255,92,0,0.35)] hover:scale-105 active:scale-95 transition-all border-[4px] border-white dark:border-sd-surface shrink-0"
+              title="Scan QR"
+            >
+              <span className="material-symbols-outlined text-[24px]">qr_code_scanner</span>
+            </button>
+            <span className="text-[10px] font-bold font-sans text-sd-primary mt-1 shrink-0">Scan QR</span>
+          </div>
+        )}
 
         {/* Right Nav Items */}
         {rightNav.map(({ to, icon, label }) => (

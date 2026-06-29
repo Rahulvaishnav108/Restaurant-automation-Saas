@@ -1,6 +1,19 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { generateTableCode, getRecommendedItems } from '../utils/customer.utils';
+import { apiClient } from '../../../shared/services/apiClient';
+
+export type DiningSession = {
+  sessionId: string;
+  restaurantId: string;
+  restaurantName: string;
+  tableId: string;
+  tableNumber: string;
+  customerName: string;
+  sessionToken: string;
+  expiresAt: string;
+  status: string;
+} | null;
 
 export type CustomerMenuItem = {
   id: number;
@@ -133,6 +146,10 @@ type CustomerStore = {
   orders: TrackedOrder[];
   serviceRequests: ServiceRequestItem[];
 
+  // Dining Session State
+  diningSession: DiningSession;
+  lastActivity: number | null;
+
   // Profile Features State
   profile: CustomerProfile;
   loyaltyPoints: number;
@@ -159,6 +176,12 @@ type CustomerStore = {
   assignRandomTable: () => void;
   setTableCode: (code: string) => void;
   addOrder: (order: TrackedOrder) => void;
+
+  // Dining Session Actions
+  setDiningSession: (session: DiningSession) => void;
+  clearDiningSession: () => Promise<void>;
+  recordActivity: () => void;
+  checkSessionInactivity: () => Promise<void>;
 
   // Profile Features Actions
   updateProfile: (profile: Partial<CustomerProfile>) => void;
@@ -188,6 +211,8 @@ export const useCustomerStore = create<CustomerStore>()(
         { id: '#ORD-2840', items: 'Smash Burger x2', total: 518, status: 'Served', eta: '-', date: '23 Jun, 08:15 PM' },
       ],
       serviceRequests: [],
+      diningSession: null,
+      lastActivity: null,
 
       // Initializing Profile Features State
       profile: {
@@ -210,24 +235,34 @@ export const useCustomerStore = create<CustomerStore>()(
       setCategory: (category) => set({ category }),
       setSearch: (search) => set({ search }),
       toggleVegOnly: () => set((state) => ({ vegOnly: !state.vegOnly })),
-      addToCart: (id) => set((state) => {
-        const existing = state.cart.find((item) => item.id === id);
-        return {
-          cart: existing
-            ? state.cart.map((item) => item.id === id ? { ...item, qty: item.qty + 1 } : item)
-            : [...state.cart, { id, qty: 1 }],
-        };
-      }),
-      removeFromCart: (id) => set((state) => ({
-        cart: state.cart.map((item) => item.id === id ? { ...item, qty: Math.max(0, item.qty - 1) } : item).filter((item) => item.qty > 0),
-      })),
-      clearCart: () => set({ cart: [] }),
+      addToCart: (id) => {
+        get().recordActivity();
+        set((state) => {
+          const existing = state.cart.find((item) => item.id === id);
+          return {
+            cart: existing
+              ? state.cart.map((item) => item.id === id ? { ...item, qty: item.qty + 1 } : item)
+              : [...state.cart, { id, qty: 1 }],
+          };
+        });
+      },
+      removeFromCart: (id) => {
+        get().recordActivity();
+        set((state) => ({
+          cart: state.cart.map((item) => item.id === id ? { ...item, qty: Math.max(0, item.qty - 1) } : item).filter((item) => item.qty > 0),
+        }));
+      },
+      clearCart: () => {
+        get().recordActivity();
+        set({ cart: [] });
+      },
       toggleFavourite: (id) => set((state) => ({
         favourites: state.favourites.includes(id)
           ? state.favourites.filter((favouriteId) => favouriteId !== id)
           : [...state.favourites, id],
       })),
       placeOrder: () => {
+        get().recordActivity();
         const { cart } = get();
         if (cart.length === 0) return null;
 
@@ -289,6 +324,7 @@ export const useCustomerStore = create<CustomerStore>()(
         return order;
       },
       reorder: (order) => {
+        get().recordActivity();
         const orderId = `#ORD-${Math.floor(3000 + Math.random() * 6000)}`;
         const now = new Date();
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -335,7 +371,10 @@ export const useCustomerStore = create<CustomerStore>()(
           };
         });
       },
-      requestService: (request) => set((state) => ({ serviceRequests: [{ ...request, id: `${request.id}-${Date.now()}` }, ...state.serviceRequests] })),
+      requestService: (request) => {
+        get().recordActivity();
+        set((state) => ({ serviceRequests: [{ ...request, id: `${request.id}-${Date.now()}` }, ...state.serviceRequests] }));
+      },
       getCartQuantity: (id) => get().cart.find((item) => item.id === id)?.qty ?? 0,
       getTotalItems: () => get().cart.reduce((total, item) => total + item.qty, 0),
       getTotalPrice: () => get().cart.reduce((total, cartItem) => {
@@ -355,6 +394,53 @@ export const useCustomerStore = create<CustomerStore>()(
       assignRandomTable: () => set({ tableCode: generateTableCode() }),
       setTableCode: (tableCode) => set({ tableCode }),
       addOrder: (order) => set((state) => ({ orders: [order, ...state.orders] })),
+
+      setDiningSession: (diningSession) => {
+        if (diningSession) {
+          localStorage.setItem('x-session-token', diningSession.sessionToken);
+          set({
+            diningSession,
+            tableCode: diningSession.tableNumber,
+            lastActivity: Date.now(),
+          });
+        } else {
+          localStorage.removeItem('x-session-token');
+          set({
+            diningSession: null,
+            lastActivity: null,
+          });
+        }
+      },
+      clearDiningSession: async () => {
+        const { diningSession } = get();
+        if (diningSession) {
+          try {
+            await apiClient.post('/customer/session/end');
+          } catch (e) {
+            console.error('Failed to end dining session on backend', e);
+          }
+        }
+        localStorage.removeItem('x-session-token');
+        set({
+          diningSession: null,
+          lastActivity: null,
+        });
+      },
+      recordActivity: () => {
+        if (get().diningSession) {
+          set({ lastActivity: Date.now() });
+        }
+      },
+      checkSessionInactivity: async () => {
+        const { diningSession, lastActivity, clearDiningSession } = get();
+        if (diningSession && lastActivity) {
+          const inactiveMs = Date.now() - lastActivity;
+          if (inactiveMs > 20 * 60 * 1000) {
+            console.log('Inactivity timeout reached (20 minutes). Clearing session.');
+            await clearDiningSession();
+          }
+        }
+      },
 
       // Profile features action implementations
       updateProfile: (profileUpdates) => set((state) => ({

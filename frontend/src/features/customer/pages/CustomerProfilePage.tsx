@@ -40,6 +40,7 @@ export default function CustomerProfilePage() {
     claimOffer,
     updateNotificationPreferences,
     updateProfile,
+    clearDiningSession,
   } = useCustomerStore();
 
   const { signOut } = useAuth();
@@ -48,10 +49,42 @@ export default function CustomerProfilePage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // Form & Backend User states
-  const [userData, setUserData] = useState<{ name: string; mobile: string; avatar?: string; role?: string } | null>(null);
-  const [editName, setEditName] = useState('');
-  const [editPhone, setEditPhone] = useState('');
-  const [selectedAvatar, setSelectedAvatar] = useState('person');
+  const [userData, setUserData] = useState<{ name: string; mobile: string; avatar?: string; role?: string } | null>(() => {
+    const stored = localStorage.getItem('ra/customer/user');
+    if (stored) {
+      try {
+        const u = JSON.parse(stored);
+        return {
+          name: u.name || '',
+          mobile: u.mobile || u.phone || '',
+          avatar: u.avatar || 'person',
+          role: u.role || 'customer',
+        };
+      } catch (e) {
+        // Ignore parsing error
+      }
+    }
+    return null;
+  });
+
+  const [editName, setEditName] = useState(() => userData?.name || '');
+  const [countryCode, setCountryCode] = useState(() => {
+    const mob = userData?.mobile || '';
+    if (mob.startsWith('+')) {
+      const match = mob.match(/^(\+\d{1,4})(.*)$/);
+      if (match) return match[1];
+    }
+    return '+91';
+  });
+  const [localPhone, setLocalPhone] = useState(() => {
+    const mob = userData?.mobile || '';
+    if (mob.startsWith('+')) {
+      const match = mob.match(/^(\+\d{1,4})(.*)$/);
+      if (match) return match[2];
+    }
+    return mob;
+  });
+  const [selectedAvatar, setSelectedAvatar] = useState(() => userData?.avatar || 'person');
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const avatarFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -66,8 +99,20 @@ export default function CustomerProfilePage() {
         const user = response.data.data.user;
         setUserData(user);
         setEditName(user.name);
-        setEditPhone(user.mobile);
+        
+        let parsedLocal = user.mobile || '';
+        let parsedCode = '+91';
+        if (parsedLocal.startsWith('+')) {
+          const match = parsedLocal.match(/^(\+\d{1,4})(.*)$/);
+          if (match) {
+            parsedCode = match[1];
+            parsedLocal = match[2];
+          }
+        }
+        setCountryCode(parsedCode);
+        setLocalPhone(parsedLocal);
         setSelectedAvatar(user.avatar || 'person');
+        
         updateProfile({
           name: user.name,
           phone: user.mobile,
@@ -152,15 +197,18 @@ export default function CustomerProfilePage() {
       showToast('Name is required', 'error');
       return;
     }
-    if (!editPhone.trim() || editPhone.length < 10) {
-      showToast('Please enter a valid phone number', 'error');
+    const cleanLocal = localPhone.trim().replace(/\D/g, '');
+    if (cleanLocal.length !== 10) {
+      showToast('Please enter a valid 10-digit phone number', 'error');
       return;
     }
+
+    const fullMobile = countryCode + cleanLocal;
 
     try {
       const response = await apiClient.patch('/users/me', {
         name: editName,
-        mobile: editPhone,
+        mobile: fullMobile,
       });
       const updatedUser = response.data.data.user;
       setUserData(updatedUser);
@@ -168,6 +216,20 @@ export default function CustomerProfilePage() {
         name: updatedUser.name,
         phone: updatedUser.mobile,
       });
+      
+      // Update local storage user details too
+      const stored = localStorage.getItem('ra/customer/user');
+      if (stored) {
+        try {
+          const u = JSON.parse(stored);
+          u.name = updatedUser.name;
+          u.mobile = updatedUser.mobile;
+          localStorage.setItem('ra/customer/user', JSON.stringify(u));
+        } catch (e) {
+          // Ignore parsing error
+        }
+      }
+
       setActiveModal(null);
       showToast('Personal information updated successfully!');
     } catch (err: any) {
@@ -309,7 +371,18 @@ export default function CustomerProfilePage() {
                     <button
                         onClick={() => {
                           setEditName(userData?.name || '');
-                          setEditPhone(userData?.mobile || '');
+                          const mob = userData?.mobile || '';
+                          let parsedLocal = mob;
+                          let parsedCode = '+91';
+                          if (mob.startsWith('+')) {
+                            const match = mob.match(/^(\+\d{1,4})(.*)$/);
+                            if (match) {
+                              parsedCode = match[1];
+                              parsedLocal = match[2];
+                            }
+                          }
+                          setCountryCode(parsedCode);
+                          setLocalPhone(parsedLocal);
                           setActiveModal('profile');
                         }}
                       className="p-1.5 text-sd-on-surface-variant hover:text-sd-primary hover:bg-sd-surface-container rounded-full transition-colors flex items-center justify-center"
@@ -387,7 +460,18 @@ export default function CustomerProfilePage() {
                   onClick={() => {
                     if (key === 'profile') {
                       setEditName(userData?.name || '');
-                      setEditPhone(userData?.mobile || '');
+                      const mob = userData?.mobile || '';
+                      let parsedLocal = mob;
+                      let parsedCode = '+91';
+                      if (mob.startsWith('+')) {
+                        const match = mob.match(/^(\+\d{1,4})(.*)$/);
+                        if (match) {
+                          parsedCode = match[1];
+                          parsedLocal = match[2];
+                        }
+                      }
+                      setCountryCode(parsedCode);
+                      setLocalPhone(parsedLocal);
                       setActiveModal('profile');
                     } else if (key === 'loyalty') {
                       setActiveModal('loyalty');
@@ -529,7 +613,8 @@ export default function CustomerProfilePage() {
 
           {/* Logout */}
           <button
-            onClick={() => {
+            onClick={async () => {
+              await clearDiningSession();
               signOut();
               // Reset profile store
               updateProfile({
@@ -595,15 +680,29 @@ export default function CustomerProfilePage() {
                   </div>
                   <div>
                     <label htmlFor="editPhone" className="block text-xs font-bold text-sd-on-surface-variant uppercase tracking-wider mb-1 font-sans">Mobile Phone</label>
-                    <input 
-                      id="editPhone"
-                      type="tel" 
-                      value={editPhone}
-                      onChange={(e) => setEditPhone(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-sd-surface-variant focus:outline-none focus:ring-2 focus:ring-sd-primary focus:border-sd-primary font-sans text-sm"
-                      placeholder="+91 98765 43210"
-                      required
-                    />
+                    <div className="flex gap-2">
+                      <select
+                        value={countryCode}
+                        onChange={(e) => setCountryCode(e.target.value)}
+                        className="px-3 py-2.5 rounded-xl border border-sd-surface-variant bg-white dark:bg-sd-surface focus:outline-none focus:ring-2 focus:ring-sd-primary text-sm font-sans shrink-0"
+                      >
+                        <option value="+91">🇮🇳 +91</option>
+                        <option value="+1">🇺🇸 +1</option>
+                        <option value="+44">🇬🇧 +44</option>
+                        <option value="+971">🇦🇪 +971</option>
+                        <option value="+65">🇸🇬 +65</option>
+                        <option value="+61">🇦🇺 +61</option>
+                      </select>
+                      <input 
+                        id="editPhone"
+                        type="tel" 
+                        value={localPhone}
+                        onChange={(e) => setLocalPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        className="flex-1 px-4 py-2.5 rounded-xl border border-sd-surface-variant focus:outline-none focus:ring-2 focus:ring-sd-primary focus:border-sd-primary font-sans text-sm"
+                        placeholder="98765 43210"
+                        required
+                      />
+                    </div>
                   </div>
                   <div className="pt-2 flex justify-end gap-3 shrink-0">
                     <button 

@@ -2,6 +2,7 @@ import React from 'react';
 import { Plus, LayoutGrid, Download } from 'lucide-react';
 import { useTablesStore } from '../store/tables.store';
 import { downloadAllQRCodes } from '../utils/downloadAllQRCodes';
+import { useAuth } from '../../../app/providers/AuthProvider';
 
 import {
   TableStatCards,
@@ -15,6 +16,7 @@ import {
 } from '../components/tables';
 
 export function TableManagementPage(): JSX.Element {
+  const { user } = useAuth();
   const {
     tables,
     viewMode,
@@ -25,7 +27,12 @@ export function TableManagementPage(): JSX.Element {
     setFloor,
     setShowAddModal,
     setShowEditModal,
+    fetchTables,
   } = useTablesStore();
+
+  React.useEffect(() => {
+    fetchTables();
+  }, [fetchTables]);
 
   const floors = [1, 2];
 
@@ -62,10 +69,21 @@ export function TableManagementPage(): JSX.Element {
           </div>
 
           {/* Download All QR */}
+          {tables.length === 0 && (
+            <span className="text-xs text-amber-500 font-semibold bg-amber-50 dark:bg-amber-950/20 px-3 py-2 rounded-xl border border-amber-100 dark:border-amber-900/30">
+              ⚠️ Please add a table
+            </span>
+          )}
           <button
             type="button"
-            onClick={() => downloadAllQRCodes(tables)}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition-colors shadow-sm"
+            onClick={() => downloadAllQRCodes(tables, user?.restaurantId)}
+            disabled={tables.length === 0}
+            className={`flex items-center gap-2 px-3 sm:px-4 py-2 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-sm ${
+              tables.length === 0
+                ? 'bg-gray-300 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed border border-gray-200 dark:border-gray-700'
+                : 'bg-blue-600 hover:bg-blue-700'
+            }`}
+            title={tables.length === 0 ? "Please add a table first" : "Download QR codes for all tables"}
           >
             <Download className="w-4 h-4 flex-shrink-0" />
             <span className="hidden sm:inline">Download All QR</span>

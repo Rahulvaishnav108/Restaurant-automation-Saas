@@ -21,6 +21,11 @@ interface TableTask {
   rawPriority?: 'High' | 'Medium' | 'Low';
   progress?: number;
   waiting?: string;
+  tableNumber?: string;
+  seats?: number;
+  area?: string;
+  section?: string;
+  floor?: number;
 }
 
 export default function CleaningTablesPage() {
@@ -77,20 +82,22 @@ export default function CleaningTablesPage() {
     if (t.rawStatus === 'IN_PROGRESS') displayStatus = 'In Progress';
     if (t.rawStatus === 'COMPLETED' || t.rawStatus === 'VERIFIED') displayStatus = 'Completed';
 
+    const tableLabel = t.tableNumber || t.id;
+
     let assignedStaff = null;
-    if (t.id === 'T12' || t.id === 'T05') {
+    if (tableLabel === 'T12' || tableLabel === 'T05') {
       assignedStaff = {
         name: 'Ramesh K.',
         avatar:
           'https://lh3.googleusercontent.com/aida-public/AB6AXuCZ1EeclPIzb65zLML4Z-Ep8QnCj_Ey68uOYKOfFtZuK_k5ILmHPwi-DSDwYreE9ju4D4Z79Hp6UeAKZXSwBOURkmGSQ7hNQ8-lDeQGBfmjcHltnwofvxh67WrZSDukcUkwZiuZjqYa74AhkTFTcLWqysc21n_T9l3J9vkmkj_lFhXuaPU189ige8Tlb5foWMvGnW27LhowBJk4dHeUfzWcmeRluinE4acRYrVtfGNEr0sYCTnJ1sdGsg1NYN3HFCrqzkH0-TJrClE',
       };
-    } else if (t.id === 'T01' || t.id === 'T02') {
+    } else if (tableLabel === 'T01' || tableLabel === 'T02') {
       assignedStaff = {
         name: 'Anita S.',
         avatar:
           'https://lh3.googleusercontent.com/aida-public/AB6AXuANsaeL1qIrdjS8VjlskxOHt17ofWL0mQA8HTEyUyGUmb0WZEoFeVIhAYDxByw8LuxWxFKIdV270hwAPBmZFNJdIOoLB7X4CRStTLzQ66uJ709k9Kvpbt3yDChYZmi0IOgzaKGIARmUFWTp8fiuOG-poilaUus94iK5MEMaPofwxQGipJFvuis9fWEp53IS84fln5N1GSiP7xWII9WnJi1qTw5gFY4eKQQgrXVlslMwV6TbZi4nnm2vGRG3hjoOoFQyNc23SGR4j9U',
       };
-    } else if (t.id === 'T15') {
+    } else if (tableLabel === 'T15') {
       assignedStaff = {
         name: 'Vikram P.',
         avatar:
@@ -99,16 +106,9 @@ export default function CleaningTablesPage() {
     }
 
     return {
-      id: t.id,
-      area: t.id === 'T15' ? 'Terrace Area' : t.id === 'T05' ? 'Floor 1' : 'Dining Area A',
-      seats:
-        t.id === 'T03' || t.id === 'T05'
-          ? 6
-          : t.id === 'T15'
-            ? 3
-            : t.id === 'T12' || t.id === 'T02'
-              ? 2
-              : 4,
+      id: tableLabel,
+      area: t.section ? `${t.section} · Floor ${t.floor}` : (tableLabel === 'T15' ? 'Terrace Area' : tableLabel === 'T05' ? 'Floor 1' : 'Dining Area A'),
+      seats: t.seats || 4,
       status: displayStatus,
       priority: (t.rawPriority === 'High' || t.rawStatus === 'REQUESTED'
         ? 'High'

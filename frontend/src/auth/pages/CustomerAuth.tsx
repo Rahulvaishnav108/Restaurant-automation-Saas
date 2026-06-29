@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useCustomerStore } from '../../features/customer/store/customer.store';
 
 const CustomerAuth: React.FC = () => {
-  const { signInAs, setAccessTokenState, setUser } = useAuth();
+  const { signInAs, setAccessTokenState, setUser, switchPanel } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as any)?.from?.pathname || '/customer';
@@ -138,7 +138,7 @@ const CustomerAuth: React.FC = () => {
       // Save tokens using tokenStore helpers
       setAccessToken('customer', data.accessToken);
       setStoredRole('customer', 'customer');
-
+      
       if (setAccessTokenState) {
         setAccessTokenState(data.accessToken);
       }

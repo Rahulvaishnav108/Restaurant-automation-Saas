@@ -6,6 +6,13 @@ import { ok } from '../../utils/responses';
 import { TableModel } from './tables.model';
 import type { UpdateTableStatusInput } from './tables.schema';
 import * as tablesService from './tables.service';
+import { generateQrPng, generateQrSvg, generateTablesPdf } from '../../services/qr.service';
+import { env } from '../../config/env';
+import { logAudit } from '../auditLogs/auditLogs.helper';
+import { AuditAction, AuditEntity } from '../auditLogs/auditLogs.types';
+import { RestaurantModel } from '../restaurants/restaurants.model';
+import { socketService } from '../../sockets/socket.service';
+import { SocketEvent } from '../../constants/events';
 
 function resolveRestaurantId(
   req: Request,
@@ -136,19 +143,22 @@ export async function getTableController(req: Request, res: Response, next: Next
 
 export async function updateTableController(req: Request, res: Response, next: NextFunction) {
   try {
+    const updateDoc: any = {};
+    if (req.body.tableNumber !== undefined) updateDoc.tableNumber = req.body.tableNumber;
+    else if (req.body.number !== undefined) updateDoc.tableNumber = String(req.body.number);
+    
+    if (req.body.capacity !== undefined) updateDoc.capacity = Number(req.body.capacity);
+    if (req.body.floor !== undefined) updateDoc.floor = Number(req.body.floor);
+    if (req.body.section !== undefined) updateDoc.section = req.body.section;
+    if (req.body.assignedStaffId !== undefined) updateDoc.assignedStaffId = req.body.assignedStaffId;
+    if (req.body.isActive !== undefined) updateDoc.isActive = req.body.isActive;
+
     const table = await TableModel.findOneAndUpdate(
       {
         _id: req.params.id,
         restaurantId: getRestaurantId(req),
       },
-      {
-        tableNumber: req.body.tableNumber ?? (req.body.number ? String(req.body.number) : undefined),
-        capacity: req.body.capacity !== undefined ? Number(req.body.capacity) : undefined,
-        floor: req.body.floor !== undefined ? Number(req.body.floor) : undefined,
-        section: req.body.section,
-        assignedStaffId: req.body.assignedStaffId ?? null,
-        isActive: req.body.isActive,
-      },
+      updateDoc,
       { new: true, runValidators: true },
     );
 
@@ -179,7 +189,7 @@ export async function deleteTableController(req: Request, res: Response, next: N
   }
 }
 
-export async function generateTableQrController(req: Request, res: Response, next: NextFunction) {
+export async function regenerateTableQrController(req: Request, res: Response, next: NextFunction) {
   try {
     const table = await TableModel.findOne({
       _id: req.params.id,
@@ -190,19 +200,116 @@ export async function generateTableQrController(req: Request, res: Response, nex
       throw new AppError('Table not found', 404, ErrorCode.NOT_FOUND);
     }
 
-    table.qrCode = `${table.restaurantId.toString()}-${table.tableNumber}-${crypto.randomBytes(4).toString('hex')}`;
+    const previousToken = table.qrToken;
+    table.qrToken = crypto.randomBytes(16).toString('hex');
+    table.qrLastRegeneratedAt = new Date();
     await table.save();
+
+    void logAudit(req, {
+      entityType: AuditEntity.QR,
+      entityId: table._id.toString(),
+      action: AuditAction.QR_REGENERATED,
+      metadata: {
+        tableId: table._id,
+        tableNumber: table.tableNumber,
+        previousToken,
+      },
+    });
+
+    // Emit qr.regenerated event
+    socketService.emitToRestaurant(table.restaurantId.toString(), SocketEvent.QR_REGENERATED, {
+      tableId: table._id.toString(),
+      tableNumber: table.tableNumber,
+      qrToken: table.qrToken,
+      qrLastRegeneratedAt: table.qrLastRegeneratedAt,
+    });
 
     ok(res, {
       tableId: table._id.toString(),
-      qrToken: table.qrCode,
+      qrToken: table.qrToken,
+      qrLastRegeneratedAt: table.qrLastRegeneratedAt,
     });
   } catch (error) {
     next(error);
   }
 }
 
-export async function getTableQrController(req: Request, res: Response, next: NextFunction) {
+export async function getTableQrPngController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const table = await TableModel.findOne({
+      _id: req.params.id,
+      restaurantId: getRestaurantId(req),
+    });
+
+    if (!table) {
+      throw new AppError('Table not found', 404, ErrorCode.NOT_FOUND);
+    }
+
+    const scanUrl = `${env.CLIENT_URL}/customer/home?qr_token=${table.qrToken}`;
+    const pngBuffer = await generateQrPng(scanUrl);
+
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Disposition', `inline; filename="table-${table.tableNumber}-qr.png"`);
+    res.send(pngBuffer);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getTableQrSvgController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const table = await TableModel.findOne({
+      _id: req.params.id,
+      restaurantId: getRestaurantId(req),
+    });
+
+    if (!table) {
+      throw new AppError('Table not found', 404, ErrorCode.NOT_FOUND);
+    }
+
+    const scanUrl = `${env.CLIENT_URL}/customer/home?qr_token=${table.qrToken}`;
+    const svgString = await generateQrSvg(scanUrl);
+
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('Content-Disposition', `inline; filename="table-${table.tableNumber}-qr.svg"`);
+    res.send(svgString);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getRestaurantTablesPdfController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const restaurantId = req.params.restaurantId || getRestaurantId(req);
+    const restaurant = await RestaurantModel.findById(restaurantId);
+    if (!restaurant) {
+      throw new AppError('Restaurant not found', 404, ErrorCode.NOT_FOUND);
+    }
+
+    const tables = await TableModel.find({ restaurantId, isActive: true }).sort({ tableNumber: 1 });
+    if (tables.length === 0) {
+      throw new AppError('No active tables found to export', 404, ErrorCode.NOT_FOUND);
+    }
+
+    const pdfBuffer = await generateTablesPdf(
+      tables.map((t) => ({
+        tableNumber: t.tableNumber,
+        section: t.section,
+        qrToken: t.qrToken,
+        floor: t.floor,
+      })),
+      restaurant.name
+    );
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${restaurant.name.replace(/\s+/g, '-')}-qr-codes.pdf"`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getTableQrControllerLegacy(req: Request, res: Response, next: NextFunction) {
   try {
     const table = await TableModel.findOne({
       _id: req.params.id,
@@ -215,7 +322,7 @@ export async function getTableQrController(req: Request, res: Response, next: Ne
 
     ok(res, {
       tableId: table._id.toString(),
-      qrToken: table.qrCode,
+      qrToken: table.qrToken,
     });
   } catch (error) {
     next(error);

@@ -2,7 +2,9 @@ import mongoose from 'mongoose';
 import { BillingModel } from './billing.model';
 import { OrderModel } from '../orders/orders.model';
 import { BillStatus, PaymentMethod, PaymentStatus } from './billing.schema';
-import { OrderStatus } from '../../constants/statuses';
+import { TableModel } from '../tables/tables.model';
+import { TableSessionModel } from '../tableSessions/tableSessions.model';
+import { TableStatus, OrderStatus } from '../../constants/statuses';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
 import { OfferModel } from '../offers/offers.model';
@@ -13,7 +15,6 @@ import { NotificationCategory, NotificationPriority } from '../notifications/not
 import { PaymentModel } from '../payments/payments.model';
 import { InvoiceCounterModel } from './invoice-counter.model';
 import { sendReceiptEmail } from '../../services/mail.service';
-import { TableSessionModel } from '../tableSessions/tableSessions.model';
 import logger from "../../config/logger";
 
 export class BillingService {
@@ -139,6 +140,13 @@ export class BillingService {
         wantsReceipt: wantsReceipt || false,
         customerName: session?.customerName,
         customerPhone: session?.mobile,
+      });
+    }
+
+    // Transition table status to BILL_PENDING
+    if (session) {
+      await TableModel.findByIdAndUpdate(session.tableId, {
+        status: TableStatus.BILL_PENDING,
       });
     }
 
@@ -415,6 +423,14 @@ export class BillingService {
       console.error(`Failed to close session ${sessionId} after payment:`, error);
     }
     */
+
+    // Transition table status to PAID
+    const session = await TableSessionModel.findById(sessionId);
+    if (session) {
+      await TableModel.findByIdAndUpdate(session.tableId, {
+        status: TableStatus.PAID,
+      });
+    }
 
     return bill;
   }

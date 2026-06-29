@@ -1,62 +1,40 @@
+// src/modules/tables/tables.schema.ts
+// Zod validation schemas for table operations
+
 import { z } from 'zod';
-import { Types } from 'mongoose';
 import { TableStatus } from '../../constants/statuses';
 
-const objectIdSchema = z.string().refine((value) => Types.ObjectId.isValid(value), {
-  message: 'Invalid id',
+// ── Params schemas ───────────────────────────────────────────────────
+
+export const tableIdParamsSchema = z.object({
+  id: z.string().min(1, 'Table ID is required'),
 });
 
-const tablePayloadSchema = z.object({
-  name: z.string().trim().min(1).optional(),
-  number: z.coerce.number().int().positive().optional(),
-  tableNumber: z.string().trim().min(1).max(20).optional(),
-  floor: z.coerce.number().int().min(0).default(1).optional(),
-  section: z.string().trim().min(1).default('Main').optional(),
-  restaurantId: z.string().trim().min(1).optional(),
-  assignedStaffId: z.string().trim().min(1).nullable().optional(),
-  qrCode: z.string().trim().min(1).optional(),
-  isActive: z.boolean().optional(),
-  capacity: z.coerce.number().int().positive().max(50),
+export const restaurantTablesParamsSchema = z.object({
+  restaurantId: z.string().min(1, 'Restaurant ID is required'),
 });
 
-export const createTableRequestSchema = z.object({
-  body: tablePayloadSchema,
-  params: z.object({}),
-  query: z.object({}),
-});
-
-export const updateTableRequestSchema = z.object({
-  body: tablePayloadSchema.partial(),
-  params: z.object({
-    id: z.string().trim().min(1),
-  }),
-  query: z.object({}),
-});
-
-export const bulkCreateTablesRequestSchema = z.object({
-  body: z.object({
-    tables: z.array(tablePayloadSchema).min(1),
-  }),
-  params: z.object({}),
-  query: z.object({}),
-});
+// ── Body schemas ─────────────────────────────────────────────────────
 
 export const createTableSchema = z.object({
-  restaurantId: z.string().min(1, 'Restaurant ID is required'),
-  tableNumber: z.string().min(1, 'Table number is required').max(20),
-  capacity: z.coerce.number().int().min(1).max(50),
+  restaurantId: z.string().min(1).optional(),
+  tableNumber: z.string().min(1).optional(),
+  name: z.string().trim().min(1).optional(),
+  number: z.coerce.number().int().positive().optional(),
+  capacity: z.coerce.number().int().positive().max(50, 'Capacity cannot exceed 50'),
   floor: z.coerce.number().int().min(0).optional(),
-  section: z.string().min(1).max(50).optional(),
-  assignedStaffId: z.string().min(1).nullable().optional(),
-  qrCode: z.string().min(1, 'QR code identifier is required').optional(),
+  section: z.string().optional(),
+  assignedStaffId: z.string().optional().nullable(),
+  qrCode: z.string().optional(),
+  qrToken: z.string().optional(),
 });
 
 export const updateTableSchema = z.object({
-  tableNumber: z.string().min(1).max(20).optional(),
-  capacity: z.coerce.number().int().min(1).max(50).optional(),
+  tableNumber: z.string().min(1).optional(),
+  capacity: z.coerce.number().int().positive().max(50).optional(),
   floor: z.coerce.number().int().min(0).optional(),
-  section: z.string().min(1).max(50).optional(),
-  assignedStaffId: z.string().min(1).nullable().optional(),
+  section: z.string().optional(),
+  assignedStaffId: z.string().optional().nullable(),
   isActive: z.boolean().optional(),
 });
 
@@ -64,13 +42,24 @@ export const updateTableStatusSchema = z.object({
   status: z.nativeEnum(TableStatus),
 });
 
-export const tableIdParamsSchema = z.object({
-  id: objectIdSchema,
-});
+// ── Request-level schemas (body + params combined) ───────────────────
 
-export const restaurantTablesParamsSchema = z.object({
-  restaurantId: objectIdSchema,
-});
+export const createTableRequestSchema = {
+  body: createTableSchema,
+};
+
+export const updateTableRequestSchema = {
+  params: tableIdParamsSchema,
+  body: updateTableSchema,
+};
+
+export const bulkCreateTablesRequestSchema = {
+  body: z.object({
+    tables: z.array(createTableSchema).min(1, 'At least one table is required'),
+  }),
+};
+
+// ── Exported types ───────────────────────────────────────────────────
 
 export type CreateTableInput = z.infer<typeof createTableSchema>;
 export type UpdateTableInput = z.infer<typeof updateTableSchema>;

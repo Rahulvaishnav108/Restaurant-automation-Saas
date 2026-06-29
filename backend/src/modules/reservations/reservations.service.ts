@@ -182,7 +182,18 @@ export class ReservationsService {
     return reservation;
   }
 
-  static async checkInReservation(restaurantId: string, id: string, tableId: string) {
+  static async checkInReservation(restaurantId: string, id: string, tableId?: string) {
+    try {
+      return await this.checkInReservationWithTransaction(restaurantId, id, tableId);
+    } catch (error: any) {
+      if (error?.message?.includes('Transaction numbers are only allowed') || error?.message?.includes('replica set')) {
+        return await this.checkInReservationNoTransaction(restaurantId, id, tableId);
+      }
+      throw error;
+    }
+  }
+
+  static async checkInReservationWithTransaction(restaurantId: string, id: string, tableId?: string) {
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -200,12 +211,17 @@ export class ReservationsService {
         throw new AppError('Reservation cannot be checked in', 400, ErrorCode.VALIDATION_ERROR);
       }
 
-      const table = await TableModel.findOne({ _id: tableId, restaurantId }).session(session);
+      const resolvedTableId = tableId || reservation.tableId?.toString();
+      if (!resolvedTableId) {
+        throw new AppError('Table ID is required for check-in', 400, ErrorCode.VALIDATION_ERROR);
+      }
+
+      const table = await TableModel.findOne({ _id: resolvedTableId, restaurantId }).session(session);
       if (!table) {
         throw new AppError('Table not found', 404, ErrorCode.NOT_FOUND);
       }
 
-      if (table.status !== TableStatus.AVAILABLE && table.status !== TableStatus.RESERVED) {
+      if (table.status !== TableStatus.AVAILABLE && table.status !== TableStatus.RESERVED && table.status !== TableStatus.OCCUPIED) {
         throw new AppError('Table is not available for check-in', 400, ErrorCode.VALIDATION_ERROR);
       }
 
@@ -224,7 +240,7 @@ export class ReservationsService {
             restaurantId,
             tableId: table._id,
             customerName: reservation.customerName,
-            mobile: reservation.mobile,
+            mobile: reservation.mobile || '0000000000',
             sessionToken,
             sessionStart: new Date(),
             expiresAt,
@@ -242,6 +258,9 @@ export class ReservationsService {
       // 3. Update Reservation
       reservation.status = ReservationStatus.CHECKED_IN;
       reservation.tableId = table._id;
+      if (!reservation.mobile) {
+        reservation.mobile = '0000000000';
+      }
       await reservation.save({ session });
 
       // 4. Update Customer Profile (increment visit)
@@ -265,6 +284,82 @@ export class ReservationsService {
       session.endSession();
       throw error;
     }
+  }
+
+  static async checkInReservationNoTransaction(restaurantId: string, id: string, tableId?: string) {
+    const reservation = await ReservationModel.findOne({ _id: id, restaurantId });
+    if (!reservation) {
+      throw new AppError('Reservation not found', 404, ErrorCode.NOT_FOUND);
+    }
+
+    if (
+      reservation.status === ReservationStatus.CHECKED_IN ||
+      reservation.status === ReservationStatus.CANCELLED ||
+      reservation.status === ReservationStatus.COMPLETED
+    ) {
+      throw new AppError('Reservation cannot be checked in', 400, ErrorCode.VALIDATION_ERROR);
+    }
+
+    const resolvedTableId = tableId || reservation.tableId?.toString();
+    if (!resolvedTableId) {
+      throw new AppError('Table ID is required for check-in', 400, ErrorCode.VALIDATION_ERROR);
+    }
+
+    const table = await TableModel.findOne({ _id: resolvedTableId, restaurantId });
+    if (!table) {
+      throw new AppError('Table not found', 404, ErrorCode.NOT_FOUND);
+    }
+
+    if (table.status !== TableStatus.AVAILABLE && table.status !== TableStatus.RESERVED && table.status !== TableStatus.OCCUPIED) {
+      throw new AppError('Table is not available for check-in', 400, ErrorCode.VALIDATION_ERROR);
+    }
+
+    // 1. Update Table
+    table.status = TableStatus.OCCUPIED;
+    await table.save();
+
+    // 2. Create TableSession
+    const sessionToken = await generateSecureToken();
+    const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000);
+
+    const tableSession = await TableSessionModel.create([
+      {
+        restaurantId,
+        tableId: table._id,
+        customerName: reservation.customerName,
+        mobile: reservation.mobile || '0000000000',
+        sessionToken,
+        sessionStart: new Date(),
+        expiresAt,
+        reservationId: reservation._id,
+        customerProfileId: reservation.customerProfileId,
+        status: SessionStatus.ACTIVE,
+      },
+    ]);
+
+    table.currentSessionId = tableSession[0]._id;
+    await table.save();
+
+    // 3. Update Reservation
+    reservation.status = ReservationStatus.CHECKED_IN;
+    reservation.tableId = table._id;
+    if (!reservation.mobile) {
+      reservation.mobile = '0000000000';
+    }
+    await reservation.save();
+
+    // 4. Update Customer Profile (increment visit)
+    if (reservation.customerProfileId) {
+      await CustomerProfileModel.updateOne(
+        { _id: reservation.customerProfileId },
+        {
+          $inc: { totalVisits: 1 },
+          $set: { lastVisitAt: new Date() },
+        }
+      );
+    }
+
+    return await this.getReservationById(restaurantId, id);
   }
 
   static async getAvailability(restaurantId: string, date: string, guests: number) {

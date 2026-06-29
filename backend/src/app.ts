@@ -17,6 +17,10 @@ import notificationsRoutes from './modules/notifications/notifications.routes';
 import tableSessionRoutes from './modules/tableSessions/tableSessions.routes';
 import tableRoutes from './modules/tables/tables.routes';
 import { healthRouter } from './modules/health/health.routes';
+import { getRestaurantTablesPdfController } from './modules/tables/tables.controller';
+import { requireAuth } from './middleware/requireAuth';
+import { roleGuard } from './middleware/roleGuard';
+import { UserRole } from './constants/roles';
 
 const app = express();
 
@@ -93,6 +97,12 @@ app.get(env.API_PREFIX, (_req, res) => {
 });
 
 app.use(`${env.API_PREFIX}/tables`, tableRoutes);
+app.get(
+  `${env.API_PREFIX}/restaurants/:restaurantId/qrs/pdf`,
+  requireAuth,
+  roleGuard(UserRole.RESTAURANT_ADMIN, UserRole.SUPER_ADMIN),
+  getRestaurantTablesPdfController
+);
 app.use(`${env.API_PREFIX}/sessions`, tableSessionRoutes);
 app.use(`${env.API_PREFIX}/customer/requests`, customerRequestsRoutes);
 app.use(`${env.API_PREFIX}/notifications`, notificationsRoutes);

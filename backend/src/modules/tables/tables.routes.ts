@@ -63,4 +63,35 @@ router.patch(
   tablesController.updateTableStatusController
 );
 
+// Regenerate QR Token
+router.post(
+  '/:id/qr/regenerate',
+  roleGuard(UserRole.RESTAURANT_ADMIN, UserRole.SUPER_ADMIN),
+  validate({ params: tableIdParamsSchema }),
+  tablesController.regenerateTableQrController
+);
+
+// Stream QR as PNG
+router.get(
+  '/:id/qr/png',
+  roleGuard(UserRole.SERVICE_STAFF, UserRole.RESTAURANT_ADMIN, UserRole.SUPER_ADMIN),
+  validate({ params: tableIdParamsSchema }),
+  tablesController.getTableQrPngController
+);
+
+// Stream QR as SVG
+router.get(
+  '/:id/qr/svg',
+  roleGuard(UserRole.SERVICE_STAFF, UserRole.RESTAURANT_ADMIN, UserRole.SUPER_ADMIN),
+  validate({ params: tableIdParamsSchema }),
+  tablesController.getTableQrSvgController
+);
+
+// Stream bulk PDF for a restaurant
+router.get(
+  '/restaurant/:restaurantId/qrs/pdf',
+  roleGuard(UserRole.RESTAURANT_ADMIN, UserRole.SUPER_ADMIN),
+  tablesController.getRestaurantTablesPdfController
+);
+
 export default router;

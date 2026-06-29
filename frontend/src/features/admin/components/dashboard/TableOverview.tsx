@@ -42,7 +42,7 @@ const DROPDOWN_STYLES: Record<TableStatus, string> = {
 };
 
 function TableCard({ tableId, label, seats, status }: {
-  tableId: number;
+  tableId: string;
   label: string;
   seats: number;
   status: TableStatus;

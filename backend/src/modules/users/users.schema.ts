@@ -51,7 +51,7 @@ export const requestOtpSchema = z.object({
 
 export const verifyOtpSchema = z.object({
   mobile: z.string().min(10).max(15).trim(),
-  otp: z.string().length(4, 'OTP must be 4 digits'),
+  otp: z.string().min(4).max(6, 'OTP must be between 4 and 6 digits'),
   name: z.string().trim().min(2).max(100).optional(),
 });
 
