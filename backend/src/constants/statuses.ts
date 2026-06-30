@@ -12,9 +12,18 @@ export enum TableStatus {
   AVAILABLE = 'AVAILABLE',
   RESERVED = 'RESERVED',
   OCCUPIED = 'OCCUPIED',
+  ORDERING = 'ORDERING',
+  BILL_PENDING = 'BILL_PENDING',
+  PAID = 'PAID',
+  DIRTY = 'NEEDS_CLEANING',
+  CLEANING = 'CLEANING_IN_PROGRESS',
+
+  // Backward compatibility aliases
   PAYMENT_PENDING = 'PAYMENT_PENDING',
+  /* eslint-disable @typescript-eslint/no-duplicate-enum-values */
   NEEDS_CLEANING = 'NEEDS_CLEANING',
   CLEANING_IN_PROGRESS = 'CLEANING_IN_PROGRESS',
+  /* eslint-enable @typescript-eslint/no-duplicate-enum-values */
 }
 
 export enum SessionStatus {

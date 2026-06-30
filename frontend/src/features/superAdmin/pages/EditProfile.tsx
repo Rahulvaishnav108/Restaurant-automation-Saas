@@ -412,6 +412,9 @@ export default function EditProfile() {
                   }
                   placeholder="Repeat new password"
                   className="pr-10"
+                  onPaste={(e) => e.preventDefault()}
+                  onDrop={(e) => e.preventDefault()}
+                  autoComplete="new-password"
                 />
                 <button
                   type="button"
@@ -427,6 +430,7 @@ export default function EditProfile() {
                   {showPw.confirm ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
+              <p className={`text-[10px] mt-1 ${darkMode ? "text-slate-500" : "text-slate-400"}`}>Please re-enter your password manually.</p>
             </Field>
           </div>
           {passwords.next && (

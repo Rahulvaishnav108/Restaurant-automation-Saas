@@ -1,71 +1,73 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import { customerRoutes } from '../routes/customer.routes';
+// src/app/router.tsx
+// Central application router — assembles all role-based route modules
+
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
+import RootErrorBoundary from './RootErrorBoundary';
+import { ProtectedRoute } from './guards/ProtectedRoute';
+
+// Route modules
+import { authRoutes } from '../routes/auth.routes';
+import { adminRoutes } from '../routes/admin.routes';
 import { staffRoutes } from '../routes/staff.routes';
 import { kitchenRoutes } from '../routes/kitchen.routes';
 import { cleaningRoutes } from '../routes/cleaning.routes';
-import { adminRoutes } from '../routes/admin.routes';
+import { customerRoutes } from '../routes/customer.routes';
 import { superAdminRoutes } from '../routes/superAdmin.routes';
-import { authRoutes } from '../routes/auth.routes';
 
-import { ProtectedRoute } from './guards/ProtectedRoute';
-import { RoleGuard } from './guards/RoleGuard';
-import { appRoutes } from '../shared/constants/routes';
+// Pages
 import LandingPage from '../features/customer/pages/LandingPage';
-import RootErrorBoundary from './RootErrorBoundary';
+import { lazy, Suspense } from 'react';
 
-function AppRouter(): JSX.Element {
-  const router = createBrowserRouter([
-    {
-      path: '/',
-      errorElement: <RootErrorBoundary />,
-      children: [
-        // ── Public: Landing page ──────────────────────────────────
-        {
-          path: appRoutes.home,
-          element: <LandingPage />,
-        },
+// Lazy-loaded table session page (QR scan entry)
+const TableSessionPage = lazy(() => import('../features/customer/pages/TableSessionPage'));
 
-        // ── Public: Auth pages ────────────────────────────────────
-        {
-          path: '/auth',
-          children: authRoutes,
-        },
+const router = createBrowserRouter([
+  // ── Public landing ─────────────────────────────────────────────────
+  {
+    path: '/',
+    element: <LandingPage />,
+    errorElement: <RootErrorBoundary />,
+  },
 
-        // ── Protected: Role-gated app shells ─────────────────────
-        {
-          element: <ProtectedRoute />,
-          children: [
-            {
-              element: <RoleGuard roles={['customer']} />,
-              children: customerRoutes,
-            },
-            {
-              element: <RoleGuard roles={['kitchen']} />,
-              children: kitchenRoutes,
-            },
-            {
-              element: <RoleGuard roles={['staff']} />,
-              children: staffRoutes,
-            },
-            {
-              element: <RoleGuard roles={['cleaning']} />,
-              children: cleaningRoutes,
-            },
-            {
-              element: <RoleGuard roles={['admin']} />,
-              children: adminRoutes,
-            },
-            {
-              element: <RoleGuard roles={['super-admin']} />,
-              children: superAdminRoutes,
-            },
-          ],
-        },
-      ],
-    },
-  ]);
+  // ── QR scan → table session init ───────────────────────────────────
+  {
+    path: '/table',
+    element: (
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" /></div>}>
+        <TableSessionPage />
+      </Suspense>
+    ),
+    errorElement: <RootErrorBoundary />,
+  },
 
-  return <RouterProvider future={{ v7_startTransition: true }} router={router} />;
+  // ── Auth routes (/auth/customer, /auth/restaurant, etc.) ───────────
+  {
+    path: '/auth',
+    children: authRoutes,
+    errorElement: <RootErrorBoundary />,
+  },
+
+  // ── Protected role-based routes ────────────────────────────────────
+  {
+    element: <ProtectedRoute />,
+    errorElement: <RootErrorBoundary />,
+    children: [
+      ...adminRoutes,
+      ...staffRoutes,
+      ...kitchenRoutes,
+      ...cleaningRoutes,
+      ...customerRoutes,
+      ...superAdminRoutes,
+    ],
+  },
+
+  // ── Catch-all → redirect to landing ────────────────────────────────
+  {
+    path: '*',
+    element: <Navigate to="/" replace />,
+  },
+]);
+
+export default function AppRouter(): JSX.Element {
+  return <RouterProvider router={router} />;
 }
-
-export default AppRouter;

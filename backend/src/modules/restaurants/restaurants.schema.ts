@@ -9,8 +9,8 @@ export const updateRestaurantSettingsSchema = z.object({
   currency: z
     .string()
     .trim()
-    .min(1)
-    .max(10)
+    .length(3, 'Currency must be a 3-letter ISO code')
+    .toUpperCase()
     .optional(),
 
   taxRate: z
@@ -29,6 +29,33 @@ export const updateRestaurantSettingsSchema = z.object({
     .min(15, 'Session duration must be at least 15 minutes')
     .max(480, 'Session duration cannot exceed 480 minutes')
     .optional(),
+
+  emailPreferences: z
+    .object({
+      dailySalesReports: z.boolean().optional(),
+      inventoryAlerts: z.boolean().optional(),
+      staffNotifications: z.boolean().optional(),
+    })
+    .optional(),
+
+  branding: z
+    .object({
+      logo: z.string().trim().optional(),
+      primaryColor: z.string().trim().optional(),
+      secondaryColor: z.string().trim().optional(),
+      footerText: z.string().trim().optional(),
+      website: z.string().trim().optional(),
+      supportEmail: z.string().trim().optional(),
+      supportPhone: z.string().trim().optional(),
+    })
+    .optional(),
+
+  timezone: z.string().trim().optional(),
+  dateFormat: z.string().trim().optional(),
+  timeFormat: z.string().trim().optional(),
+}).refine(data => Object.keys(data).length > 0, {
+  message: 'At least one field is required',
+  path: ['unknown'],
 });
 
 // ── GET /public/restaurants/:slug ─────────────────────────────────────

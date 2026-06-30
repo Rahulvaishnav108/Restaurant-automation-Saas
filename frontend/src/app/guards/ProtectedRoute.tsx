@@ -25,11 +25,15 @@ const PATH_PANEL_MAP: Array<{ prefix: string; panel: Panel; loginPath: string }>
  * time without one session blocking or overwriting the other.
  */
 export function ProtectedRoute(): JSX.Element {
-  const { isPanelAuthenticated, switchPanel } = useAuth();
+  const { isPanelAuthenticated, switchPanel, signInAs } = useAuth();
   const location = useLocation();
 
   // Find the matching panel config for the current path
   const matched = PATH_PANEL_MAP.find(({ prefix }) => location.pathname.startsWith(prefix));
+
+  const searchParams = new URLSearchParams(location.search);
+  const qrToken = searchParams.get('qr_token');
+  const isBypassed = matched?.panel === 'customer' && !!qrToken;
 
   useEffect(() => {
     if (matched && isPanelAuthenticated(matched.panel)) {
@@ -41,7 +45,7 @@ export function ProtectedRoute(): JSX.Element {
     return <Navigate replace state={{ from: location }} to="/auth/restaurant" />;
   }
 
-  if (!isPanelAuthenticated(matched.panel)) {
+  if (!isPanelAuthenticated(matched.panel) && !isBypassed) {
     return <Navigate replace state={{ from: location }} to={matched.loginPath} />;
   }
 

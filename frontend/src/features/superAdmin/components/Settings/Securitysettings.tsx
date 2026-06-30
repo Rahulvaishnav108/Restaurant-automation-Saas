@@ -106,11 +106,12 @@ export default function SecuritySettings({ darkMode }: SecuritySettingsProps) {
           </Field>
           <Field label="Confirm Password" icon={Lock} darkMode={darkMode}>
             <div className="relative">
-              <Input darkMode={darkMode} type={showPw.confirm ? "text" : "password"} value={passwords.confirm} onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })} placeholder="Repeat new password" className="pr-10" />
+              <Input darkMode={darkMode} type={showPw.confirm ? "text" : "password"} value={passwords.confirm} onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })} placeholder="Repeat new password" className="pr-10" onPaste={(e) => e.preventDefault()} onDrop={(e) => e.preventDefault()} autoComplete="new-password" />
               <button type="button" onClick={() => setShowPw((p) => ({ ...p, confirm: !p.confirm }))} className={`absolute right-3 top-1/2 -translate-y-1/2 ${darkMode ? "text-slate-500 hover:text-slate-300" : "text-slate-400 hover:text-slate-600"}`}>
                 {showPw.confirm ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
+            <p className={`text-[10px] mt-1 ${darkMode ? "text-slate-500" : "text-slate-400"}`}>Please re-enter your password manually.</p>
           </Field>
         </div>
 

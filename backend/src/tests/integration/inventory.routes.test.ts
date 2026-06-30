@@ -4,6 +4,13 @@ import { UserRole } from '../../constants/roles';
 import app from '../../app';
 import { RestaurantModel } from '../../modules/restaurants/restaurants.model';
 import { InventoryItemModel } from '../../modules/inventory/inventory.model';
+import { UserModel } from '../../modules/users/users.model';
+
+jest.mock('../../services/mail.service', () => ({
+  sendLowStockAlertEmail: jest.fn().mockResolvedValue(true),
+}));
+
+import { sendLowStockAlertEmail } from '../../services/mail.service';
 
 function createAdminToken(restaurantId: string): string {
   return signAccessToken({
@@ -33,13 +40,24 @@ function createWaitStaffToken(restaurantId: string): string {
 }
 
 async function seedRestaurant() {
-  return RestaurantModel.create({
+  const restaurant = await RestaurantModel.create({
     slug: 'inventory-test-rest',
     name: 'Inventory Test Rest',
     plan: 'PRO',
     cuisine: 'Mixed',
-    city: 'New York',
+    city: 'Mumbai',
   });
+
+  await UserModel.create({
+    restaurantId: restaurant._id,
+    name: 'Admin User',
+    email: 'admin@example.com',
+    mobile: '9999999999',
+    password: 'password',
+    role: UserRole.RESTAURANT_ADMIN,
+  });
+
+  return restaurant;
 }
 
 describe('Inventory Routes Integration', () => {
@@ -143,6 +161,46 @@ describe('Inventory Routes Integration', () => {
         .set('Authorization', `Bearer ${waitStaffToken}`);
 
       expect(response.status).toBe(403);
+    });
+  });
+
+  describe('Low Stock Email Trigger', () => {
+    it('sends an email to the admin when an item falls below its threshold', async () => {
+      (sendLowStockAlertEmail as jest.Mock).mockClear();
+
+      const createResponse = await request(app)
+        .post('/api/v1/admin/inventory')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Cheese',
+          stock: 50,
+          unit: 'kg',
+          threshold: 10,
+          category: 'DAIRY',
+        });
+
+      expect(createResponse.status).toBe(201);
+      const itemId = createResponse.body.data.item._id;
+
+      const updateResponse = await request(app)
+        .patch(`/api/v1/admin/inventory/${itemId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ stock: 5 }); // Falls below threshold of 10
+
+      expect(updateResponse.status).toBe(200);
+
+      // Wait a bit for the async email trigger
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      expect(sendLowStockAlertEmail).toHaveBeenCalledTimes(1);
+      expect(sendLowStockAlertEmail).toHaveBeenCalledWith(
+        'admin@example.com',
+        'Inventory Test Rest',
+        'Cheese',
+        5,
+        10,
+        'kg'
+      );
     });
   });
 });

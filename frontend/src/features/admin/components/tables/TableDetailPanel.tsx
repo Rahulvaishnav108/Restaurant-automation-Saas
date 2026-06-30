@@ -154,6 +154,7 @@ export function TableDetailPanel(): JSX.Element | null {
             tableLabel={table.label}
             floor={table.floor}
             section={table.section}
+            qrToken={table.qr_token}
           />
           <div className="mt-2 text-center">
             <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{table.label}</p>

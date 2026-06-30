@@ -7,7 +7,7 @@ import { TableQRCode } from './TableQRCode';
 
 export function TableList(): JSX.Element {
   const { tables, filter, selectTable, selectedTableId, updateTableStatus } = useTablesStore();
-  const [openMenu, setOpenMenu] = React.useState<number | null>(null);
+  const [openMenu, setOpenMenu] = React.useState<string | null>(null);
 
   const filtered = tables.filter((t) => {
     if (filter.section !== 'All' && t.section !== filter.section) return false;
@@ -94,6 +94,7 @@ export function TableList(): JSX.Element {
                     tableId={table.id}
                     tableLabel={table.label}
                     floor={table.floor}
+                    qrToken={table.qr_token}
                   />
                 </td>
 

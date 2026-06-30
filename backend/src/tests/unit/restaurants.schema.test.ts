@@ -6,9 +6,9 @@ describe('Restaurant Settings Schema', () => {
   it('parses a full settings payload and normalizes currency', () => {
     const result = updateRestaurantSettingsSchema.parse({
       currency: 'inr',
-      taxRate: '0.18',
+      taxRate: 0.18,
       serviceChargeEnabled: true,
-      sessionDurationMinutes: '120',
+      sessionDurationMinutes: 120,
     });
 
     expect(result).toEqual({
@@ -22,7 +22,7 @@ describe('Restaurant Settings Schema', () => {
   it('allows partial updates for restaurant settings', () => {
     const result = updateRestaurantSettingsSchema.parse({
       currency: 'usd',
-      sessionDurationMinutes: '45',
+      sessionDurationMinutes: 45,
     });
 
     expect(result).toEqual({
@@ -44,9 +44,9 @@ describe('Restaurant Settings Schema', () => {
 
   it.each([
     [{ currency: 'rupee' }, 'Currency must be a 3-letter ISO code'],
-    [{ taxRate: -0.01 }, 'Number must be greater than or equal to 0'],
-    [{ taxRate: 1.25 }, 'Number must be less than or equal to 1'],
-    [{ sessionDurationMinutes: 10 }, 'Number must be greater than or equal to 15'],
+    [{ taxRate: -0.01 }, 'Tax rate cannot be negative'],
+    [{ taxRate: 1.25 }, 'Tax rate must be a decimal between 0 and 1 (e.g. 0.05 for 5%)'],
+    [{ sessionDurationMinutes: 10 }, 'Session duration must be at least 15 minutes'],
   ])('rejects invalid payload %j', (payload, expectedMessage) => {
     const result = updateRestaurantSettingsSchema.safeParse(payload);
 

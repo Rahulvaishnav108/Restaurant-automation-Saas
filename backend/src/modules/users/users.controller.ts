@@ -8,6 +8,8 @@ import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
 import * as userService from './users.service';
 import { comparePassword, hashPassword } from '../../utils/crypto';
+import { sendPasswordChangedAlertEmail } from '../../services/mail.service';
+import logger from '../../config/logger';
 
 /**
  * GET /auth/me — Get current authenticated user's profile.
@@ -53,8 +55,20 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
   }
 
   user.password = await hashPassword(newPassword);
+  user.mustChangePassword = false;
   user.refreshTokens = []; // Invalidate all sessions on password change
   await user.save();
+
+  try {
+    await sendPasswordChangedAlertEmail(
+      user.email,
+      user.name,
+      req.ip,
+      req.headers['user-agent']
+    );
+  } catch (err) {
+    logger.error('Failed to send password changed alert', err);
+  }
 
   sendSuccess(res, { message: 'Password changed successfully. Please log in again.' });
 });

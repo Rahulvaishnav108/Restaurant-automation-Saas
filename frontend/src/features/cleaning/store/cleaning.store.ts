@@ -42,6 +42,9 @@ export interface TableItem {
   maintenanceIssue?: string;
   taskType?: string;
   taskName?: string;
+  floor?: number;
+  section?: string;
+  taskId?: string;
 }
 
 export interface CleaningRequest {
@@ -393,6 +396,37 @@ class CleaningStore {
 
   public deleteTable(id: string) {
     this.tables = this.tables.filter((t) => t.id !== id);
+    this.notify();
+  }
+
+  public syncTasks(backendTasks: any[]) {
+    this.tables = backendTasks.map((t: any) => {
+      let priority: PriorityLevel = 'Medium';
+      if (t.priority === 'HIGH') priority = 'High';
+      if (t.priority === 'LOW') priority = 'Low';
+
+      let status: TableStatus = 'Needs Cleaning';
+      if (t.status === 'IN_PROGRESS') status = 'In Progress';
+      else if (t.status === 'COMPLETED') status = 'Ready for Inspection';
+      else if (t.status === 'VERIFIED') status = 'Available';
+
+      const tableObj = t.tableDetails as any;
+      const tableLabel = tableObj?.tableNumber || 'T00';
+
+      return {
+        id: tableLabel,
+        taskId: t._id || t.id,
+        area: tableObj?.section || 'Dining Area A',
+        seats: tableObj?.capacity || 4,
+        floor: tableObj?.floor || 1,
+        section: tableObj?.section || 'Main',
+        status,
+        priority,
+        timeAgo: 'Just Now',
+        assignedTo: t.startedBy ? { name: 'Staff Member', avatar: '' } : null,
+        notes: t.notes || '',
+      };
+    });
     this.notify();
   }
   private listeners: Set<() => void> = new Set();

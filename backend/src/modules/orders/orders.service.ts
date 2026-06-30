@@ -4,7 +4,7 @@ import { Cart } from '../cart/cart.model';
 import { PlaceOrderInput, OrderStatus, PaymentStatus } from './orders.schema';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
-import { Priority, SessionStatus } from '../../constants/statuses';
+import { Priority, SessionStatus, TableStatus } from '../../constants/statuses';
 import { TableModel } from '../tables/tables.model';
 import mongoose from 'mongoose';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -12,6 +12,7 @@ import { UserRole } from '../../constants/roles';
 import { NotificationCategory, NotificationPriority } from '../notifications/notifications.schema';
 import { TableSessionModel } from '../tableSessions/tableSessions.model';
 import { socketService } from '../../sockets/socket.service';
+import { SocketEvent } from '../../constants/events';
 import { creditPoints } from '../loyalty/loyalty.service';
 import { InventoryService } from '../inventory/inventory.service';
 
@@ -150,6 +151,13 @@ export class OrdersService {
         specialInstructions: data.specialInstructions || '',
       });
 
+      // Transition table status to ORDERING if it is currently OCCUPIED
+      const table = await TableModel.findById(tableId);
+      if (table && table.status === TableStatus.OCCUPIED) {
+        table.status = TableStatus.ORDERING;
+        await table.save();
+      }
+
       // 6. Clear Cart
       cart.items = [] as any;
       cart.subtotal = 0;
@@ -159,7 +167,7 @@ export class OrdersService {
       await cart.save();
 
       // 7. Emit Realtime Event for Kitchen
-      socketService.emitToRestaurant(restaurantId.toString(), 'order:new', { orderId: order._id });
+      socketService.emitToRestaurant(restaurantId.toString(), SocketEvent.ORDER_NEW, { orderId: order._id });
 
       return order;
     } finally {
@@ -228,7 +236,7 @@ export class OrdersService {
     const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
     const orderNumber = `ORD-${timestamp}-${randomChars}`;
 
-    return OrderModel.create({
+    const order = await OrderModel.create({
       restaurantId,
       tableId,
       sessionId,
@@ -243,6 +251,14 @@ export class OrdersService {
       priority: original.priority ?? Priority.NORMAL,
       specialInstructions: original.specialInstructions,
     });
+
+    const table = await TableModel.findById(tableId);
+    if (table && table.status === TableStatus.OCCUPIED) {
+      table.status = TableStatus.ORDERING;
+      await table.save();
+    }
+
+    return order;
   }
 
   static async cancelOrder(

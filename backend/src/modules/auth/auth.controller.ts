@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import { env } from '../../config/env';
 import { UserRole, USER_ROLE_TO_PANEL, type Panel } from '../../constants/roles';
 import { ErrorCode } from '../../constants/errors';
-import { sendOTPEmail } from '../../services/mail.service';
+import { sendOTPEmail, sendPasswordChangedAlertEmail } from '../../services/mail.service';
 import * as otpService from '../../services/otp.service';
 import { generateTokenPair } from '../../services/jwt.service';
 import { AppError } from '../../utils/AppError';
@@ -189,11 +189,12 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response) =
     return;
   }
 
-  const otp = await otpService.createOTP(email, 'email');
+  const { otp, expiresAt } = await otpService.createOTP(email, 'email');
   await sendOTPEmail(email, otp);
 
   sendSuccess(res, {
     otpSent: true,
+    otpExpiresAt: expiresAt,
   });
   void logAuditRaw({
     actorId: user._id.toString(),
@@ -271,16 +272,27 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
     userAgent: req.headers['user-agent'],
   });
 
+  try {
+    await sendPasswordChangedAlertEmail(
+      matchedUser.email,
+      matchedUser.name,
+      req.ip,
+      req.headers['user-agent']
+    );
+  } catch (err) {
+    logger.error('Failed to send password changed alert', err);
+  }
+
   sendSuccess(res, {});
 });
 
 export const requestOtp = asyncHandler(async (req: Request, res: Response) => {
   const { mobile } = req.body;
 
-  await otpService.createOTP(mobile, 'mobile');
+  const { expiresAt } = await otpService.createOTP(mobile, 'mobile');
 
   const userExists = await UserModel.exists({ mobile });
-  sendSuccess(res, { otpSent: true, exists: !!userExists });
+  sendSuccess(res, { otpSent: true, exists: !!userExists, otpExpiresAt: expiresAt });
 });
 
 export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {

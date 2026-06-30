@@ -33,6 +33,7 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction): v
       restaurantId: payload.restaurantId,
       panel: payload.panel,
       internal_role: payload.internal_role,
+      mustChangePassword: payload.mustChangePassword,
     };
 
     next();

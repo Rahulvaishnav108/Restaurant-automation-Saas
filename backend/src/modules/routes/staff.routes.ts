@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import mongoose from 'mongoose';
 import { TableModel } from '../tables/tables.model';
 import queueRouter from '../queue/queue.routes';
 import { ReservationModel } from '../reservations/reservations.model';
@@ -37,9 +38,18 @@ staffRouter.get('/tables', validate({ query: staffTablesQuerySchema }), async (r
   try {
     const restaurantId = req.user?.restaurantId;
     const { status, floor, section } = req.query;
-    const query: Record<string, unknown> = { restaurantId };
+    const query: Record<string, unknown> = {};
+    if (restaurantId) {
+      query.restaurantId = new mongoose.Types.ObjectId(restaurantId);
+    }
 
-    if (status) query.status = status;
+    if (status) {
+      if (status === 'OCCUPIED') {
+        query.status = { $in: ['OCCUPIED', 'ORDERING', 'BILL_PENDING', 'PAYMENT_PENDING', 'PAID'] };
+      } else {
+        query.status = status;
+      }
+    }
     if (floor) query.floor = Number(floor);
     if (section) query.section = String(section);
 

@@ -58,9 +58,9 @@ describe('Admin Schema Integration Tests', () => {
     expect(response.body.success).toBe(false);
     expect(response.body.error.code).toBe(ErrorCode.VALIDATION_ERROR);
     expect(response.body.error.fields.currency).toContain('Currency must be a 3-letter ISO code');
-    expect(response.body.error.fields.taxRate).toContain('Number must be less than or equal to 1');
+    expect(response.body.error.fields.taxRate).toContain('Tax rate must be a decimal between 0 and 1 (e.g. 0.05 for 5%)');
     expect(response.body.error.fields.sessionDurationMinutes).toContain(
-      'Number must be greater than or equal to 15',
+      'Session duration must be at least 15 minutes',
     );
   });
 
@@ -80,12 +80,12 @@ describe('Admin Schema Integration Tests', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
-    expect(response.body.data.settings).toEqual({
+    expect(response.body.data.settings).toEqual(expect.objectContaining({
       currency: 'USD',
       taxRate: 0.12,
       serviceChargeEnabled: false,
       sessionDurationMinutes: 60,
-    });
+    }));
 
     const persistedRestaurant = await RestaurantModel.findById(restaurant.id).lean();
 

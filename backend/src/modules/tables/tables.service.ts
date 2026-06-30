@@ -14,13 +14,18 @@ import { ensureCleaningTaskForTable } from '../cleaning/cleaning.service';
 /**
  * Create a new table for a restaurant.
  */
-export async function createTable(input: CreateTableInput): Promise<ITable> {
+export async function createTable(input: CreateTableInput & { qrToken?: string }): Promise<ITable> {
   // Auto-generate qrCode if not provided
   const qrCode = input.qrCode || `${input.restaurantId}-${input.tableNumber}-${crypto.randomBytes(4).toString('hex')}`;
+  const qrToken = input.qrToken || crypto.randomBytes(16).toString('hex');
+  const now = new Date();
 
   const table = await TableModel.create({
     ...input,
     qrCode,
+    qrToken,
+    qrGeneratedAt: now,
+    qrLastRegeneratedAt: now,
     floor: input.floor ?? 1,
     section: input.section ?? 'Main',
     assignedStaffId: input.assignedStaffId ?? null,
@@ -85,6 +90,17 @@ export async function findByQrCode(qrCode: string): Promise<ITable> {
 }
 
 /**
+ * Find a table by its secure QR token.
+ */
+export async function findByQrToken(qrToken: string): Promise<ITable> {
+  const table = await TableModel.findOne({ qrToken, isActive: true });
+  if (!table) {
+    throw new AppError('Table not found or inactive', 404, ErrorCode.NOT_FOUND);
+  }
+  return table;
+}
+
+/**
  * Update table status with lifecycle transition validation.
  * Emits Socket.IO events for real-time updates.
  */
@@ -133,6 +149,7 @@ export async function updateTableStatus(
   // Emit granular lifecycle event
   const eventMap: Record<string, string> = {
     [TableStatus.OCCUPIED]: SocketEvent.TABLE_OCCUPIED,
+    [TableStatus.BILL_PENDING]: SocketEvent.TABLE_PAYMENT_PENDING,
     [TableStatus.PAYMENT_PENDING]: SocketEvent.TABLE_PAYMENT_PENDING,
     [TableStatus.NEEDS_CLEANING]: SocketEvent.TABLE_NEEDS_CLEANING,
     [TableStatus.CLEANING_IN_PROGRESS]: SocketEvent.TABLE_CLEANING_STARTED,

@@ -32,6 +32,7 @@ function buildPayload(user: IUser): JwtPayload {
     role: user.role,
     panel: USER_ROLE_TO_PANEL[user.role],
     internal_role: getInternalRole(user),
+    mustChangePassword: user.mustChangePassword,
     ...(user.restaurantId && { restaurantId: user.restaurantId.toString() }),
   };
 }

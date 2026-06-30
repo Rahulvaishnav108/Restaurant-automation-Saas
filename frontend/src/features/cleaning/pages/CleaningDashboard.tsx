@@ -23,6 +23,11 @@ interface TableTask {
   rawPriority?: 'High' | 'Medium' | 'Low';
   progress?: number;
   waiting?: string;
+  tableNumber?: string;
+  seats?: number;
+  area?: string;
+  section?: string;
+  floor?: number;
 }
 
 export default function CleaningDashboard() {
@@ -71,36 +76,44 @@ export default function CleaningDashboard() {
     (urgentTasks as unknown as TableTask[])?.filter((t) => t.rawStatus === 'REQUESTED').length || 0;
 
   const tablesToClean = tables
-  .filter((t) => t.status === 'Needs Cleaning' || t.status === 'Cleaning Requested')
-  .map((t) => ({
-    id: t.id,
-    seats: t.seats,
-    timeAgo: t.timeAgo,
-    priority: t.priority,
-    priorityClass: t.priority === 'High' ? 'bg-red-50 text-red-600' : 'bg-orange-50 text-orange-600',
-    iconColor: t.priority === 'High' ? 'text-red-500' : 'text-orange-500',
-    rawId: t.id,
-  }));
+    .filter((t) => t.status === 'Needs Cleaning' || t.status === 'Cleaning Requested')
+    .map((t) => ({
+      id: t.id,
+      seats: t.seats,
+      timeAgo: t.timeAgo,
+      priority: t.priority,
+      priorityClass: t.priority === 'High' ? 'bg-red-50 text-red-650' : 'bg-orange-50 text-orange-600',
+      iconColor: t.priority === 'High' ? 'text-red-500' : 'text-orange-500',
+      rawId: t.id,
+      section: t.section || 'Indoor',
+      floor: t.floor || 1,
+    }));
 
- const inProgress = tables
-  .filter((t) => t.status === 'In Progress')
-  .map((t) => ({
-    id: t.id,
-    progress: t.progress || 45,
-    timeAgo: t.timeAgo,
-    rawId: t.id,
-  }));
-  
-  // Mapping mein fix kar (Dashboard ke completedToday logic mein)
-const completedToday = safeTasks
-  .filter((t) => t.rawStatus === 'COMPLETED' || t.rawStatus === 'VERIFIED')
-  .map((t) => ({
-    id: t.id,
-    time: t.rawStatus === 'VERIFIED' ? '10:30 AM' : 'Just Now',
-    seats: t.id === 'T03' ? 6 : t.id === 'T12' ? 2 : t.id === 'T15' ? 3 : 4,
-    rawStatus: t.rawStatus, // <--- Yeh property add kar
-    rawId: t.id,
-  }));
+  const inProgress = tables
+    .filter((t) => t.status === 'In Progress')
+    .map((t) => ({
+      id: t.id,
+      progress: t.progress || 45,
+      timeAgo: t.timeAgo,
+      rawId: t.id,
+      section: t.section || 'Indoor',
+      floor: t.floor || 1,
+    }));
+
+  const completedToday = safeTasks
+    .filter((t) => t.rawStatus === 'COMPLETED' || t.rawStatus === 'VERIFIED')
+    .map((t) => {
+      const tableLabel = t.tableNumber || t.id;
+      return {
+        id: tableLabel,
+        time: t.rawStatus === 'VERIFIED' ? '10:30 AM' : 'Just Now',
+        seats: t.seats || (tableLabel === 'T03' ? 6 : tableLabel === 'T12' ? 2 : tableLabel === 'T15' ? 3 : 4),
+        rawStatus: t.rawStatus,
+        rawId: t.id,
+        section: t.section || t.area || 'Indoor',
+        floor: t.floor || 1,
+      };
+    });
 
   // Maintain original static array context for Hygiene checklist items
   const [hygieneTasks, setHygieneTasks] = useState<HygieneTask[]>([
@@ -331,7 +344,7 @@ const completedToday = safeTasks
                     className="bg-white dark:bg-sd-surface-container p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:border-orange-500/40 transition-all flex flex-col justify-between"
                   >
                     <div>
-                      <div className="flex justify-between items-start mb-4">
+                      <div className="flex justify-between items-start mb-2">
                         <div className="flex items-center gap-2">
                           <span className={`material-symbols-outlined ${table.iconColor}`}>
                             table_restaurant
@@ -345,6 +358,10 @@ const completedToday = safeTasks
                         >
                           {table.priority} Priority
                         </span>
+                      </div>
+                      <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-[11px] mb-3 font-sans font-bold">
+                        <span className="material-symbols-outlined text-[14px] text-slate-400 shrink-0">location_on</span>
+                        <span>{table.section} · Floor {table.floor}</span>
                       </div>
                       <div className="flex items-center justify-between text-slate-450 dark:text-slate-400 text-[10px] mb-4 font-sans font-semibold">
                         <div className="flex items-center gap-1">
@@ -402,6 +419,9 @@ const completedToday = safeTasks
                       </span>
                       <span className="font-bold text-slate-800 dark:text-slate-200">
                         {item.id}
+                      </span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">
+                        ({item.section} · Floor {item.floor})
                       </span>
                     </div>
                     <span className="text-slate-400 dark:text-slate-500 font-semibold">
@@ -484,6 +504,9 @@ const completedToday = safeTasks
 
                     <div className="font-extrabold text-sm text-slate-800 dark:text-slate-200 mb-0.5">
                       {item.id}
+                    </div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-1 font-sans font-semibold">
+                      {item.section} · Floor {item.floor}
                     </div>
                     <p className="text-[10px] text-slate-400 mb-3 font-sans font-semibold">
                       {item.timeAgo}

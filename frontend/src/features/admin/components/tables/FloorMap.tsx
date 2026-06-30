@@ -90,13 +90,13 @@ export function FloorMap(): JSX.Element {
 
   const containerRef = React.useRef<HTMLDivElement>(null);
   const dragRef = React.useRef<{
-    tableId: number;
+    tableId: string;
     startClientX: number;
     startClientY: number;
     startX: number;
     startY: number;
   } | null>(null);
-  const [draggingId, setDraggingId] = React.useState<number | null>(null);
+  const [draggingId, setDraggingId] = React.useState<string | null>(null);
   const [dragPos, setDragPos] = React.useState<{ x: number; y: number } | null>(null);
 
   const floorTables = tables.filter((t) => t.floor === selectedFloor);

@@ -21,7 +21,7 @@ const feedbackSchema = new Schema<IFeedback>(
       type: Schema.Types.ObjectId,
       ref: 'TableSession',
       required: true,
-      index: true,
+      unique: true,
     },
     rating: {
       type: Number,
@@ -44,10 +44,8 @@ const feedbackSchema = new Schema<IFeedback>(
 );
 
 // One feedback per dining session
-feedbackSchema.index({ sessionId: 1 }, { unique: true });
 
 export const FeedbackModel = mongoose.model<IFeedback>(
   'Feedback',
   feedbackSchema
 );
-

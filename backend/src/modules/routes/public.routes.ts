@@ -1,91 +1,102 @@
 import { Router } from 'express';
-import { getPublicRestaurantController } from '../restaurants/restaurants.controller';
-import {
-  createTableSessionController,
-  recoverSession,
-  validateTableSessionController,
-} from '../tableSessions/tableSessions.controller';
-import {
-  createTableSessionRequestSchema,
-  validateTableSessionRequestSchema,
-} from '../tableSessions/tableSessions.schema';
 import { validate } from '../../middleware/validate';
-import { ok } from '../../utils/responses';
-import { ReservationModel } from '../reservations/reservations.model';
-import { TableModel } from '../tables/tables.model';
-import { QueueEntryModel } from '../queue/queue.model';
-import { Priority, QueueStatus, ReservationStatus } from '../../constants/statuses';
+import { sessionLimiter } from '../../middleware/rateLimiters';
+import {
+  initTableSessionController,
+  createTableSessionController,
+  validateTableSessionController,
+  recoverSession,
+} from '../tableSessions/tableSessions.controller';
+import { getAvailabilityController } from '../reservations/reservations.controller';
+import { joinQueueController } from '../queue/queue.controller';
 import { reservationAvailabilityQuerySchema } from '../reservations/reservations.schema';
 import { publicQueueJoinBodySchema } from '../queue/queue.schema';
-import { restaurantSlugParamSchema } from '../restaurants/restaurants.schema';
+import { MenuItem, Category } from '../menu/menu.model';
+import { RestaurantModel } from '../restaurants/restaurants.model';
+import { ok } from '../../utils/responses';
+import { AppError } from '../../utils/AppError';
+import { ErrorCode } from '../../constants/errors';
+import { z } from 'zod';
 
 export const publicRouter = Router();
 
-publicRouter.get('/restaurants/:slug', validate({ params: restaurantSlugParamSchema }), getPublicRestaurantController);
+// ── POST /api/v1/public/table-session/init ───────────────────────────
+// Body: { token: string }
+// Called when a customer scans the QR code on the table
+const initSessionBodySchema = z.object({
+  token: z.string().trim().min(1, 'Token is required'),
+});
 
 publicRouter.post(
-  '/table-session/validate',
-  validate(validateTableSessionRequestSchema),
-  validateTableSessionController,
+  '/table-session/init',
+  sessionLimiter,
+  validate({ body: initSessionBodySchema }),
+  initTableSessionController,
 );
 
 publicRouter.post(
   '/table-session/create',
-  validate(createTableSessionRequestSchema),
+  sessionLimiter,
   createTableSessionController,
 );
 
-publicRouter.get('/table-session/recover', recoverSession);
+publicRouter.post(
+  '/table-session/validate',
+  validateTableSessionController,
+);
 
-publicRouter.get('/reservations/availability', validate({ query: reservationAvailabilityQuerySchema }), async (req, res, next) => {
+publicRouter.get(
+  '/table-session/recover',
+  recoverSession,
+);
+
+publicRouter.get(
+  '/reservations/availability',
+  validate({ query: reservationAvailabilityQuerySchema }),
+  getAvailabilityController,
+);
+
+publicRouter.post(
+  '/queue/join',
+  validate({ body: publicQueueJoinBodySchema }),
+  joinQueueController,
+);
+
+// ── GET /api/v1/public/menu?restaurantId=xxx ─────────────────────────
+// Returns the full menu for a restaurant (public, no auth needed)
+publicRouter.get('/menu', async (req, res, next) => {
   try {
-    const restaurantId = String(req.query.restaurantId);
-    const date = String(req.query.date ?? new Date().toISOString().slice(0, 10));
-    const guests = Number(req.query.guests ?? 2);
-    const baseSlots = ['19:00', '19:30', '20:00', '21:00'];
+    const { restaurantId } = req.query;
+    if (!restaurantId || typeof restaurantId !== 'string') {
+      throw new AppError('restaurantId query parameter is required', 400, ErrorCode.INVALID_REQUEST);
+    }
 
-    const [tableCount, bookedReservations] = await Promise.all([
-      restaurantId ? TableModel.countDocuments({ restaurantId, capacity: { $gte: guests } }) : 0,
-      restaurantId
-        ? ReservationModel.countDocuments({
-            restaurantId,
-            date,
-            status: { $in: [ReservationStatus.PENDING, ReservationStatus.CONFIRMED, ReservationStatus.CHECKED_IN] },
-          })
-        : 0,
-    ]);
+    const restaurant = await RestaurantModel.findById(restaurantId);
+    if (!restaurant) {
+      throw new AppError('Restaurant not found', 404, ErrorCode.NOT_FOUND);
+    }
 
-    const slots = tableCount > bookedReservations ? baseSlots : baseSlots.slice(0, 2);
+    const categories = await Category.find({
+      restaurantId,
+      isActive: true,
+      isHidden: false,
+    }).sort({ displayOrder: 1 });
+
+    const menuItems = await MenuItem.find({
+      restaurantId,
+      isHidden: false,
+    }).sort({ displayOrder: 1 });
 
     ok(res, {
-      restaurantId,
-      date,
-      guests,
-      slots,
-      meta: {
-        count: slots.length,
+      restaurant: {
+        _id: restaurant._id,
+        name: restaurant.name,
+        cuisine: restaurant.cuisine,
+        settings: restaurant.settings,
       },
+      categories,
+      menuItems,
     });
-  } catch (error) {
-    next(error);
-  }
-});
-
-publicRouter.post('/queue/join', validate({ body: publicQueueJoinBodySchema }), async (req, res, next) => {
-  try {
-    const restaurantId = String(req.body.restaurantId);
-    const currentQueueSize = await QueueEntryModel.countDocuments({ restaurantId, status: QueueStatus.WAITING });
-
-    const queueEntry = await QueueEntryModel.create({
-      restaurantId,
-      customerName: req.body?.customerName ?? 'Walk-in Guest',
-      guests: Number(req.body?.guests ?? 2),
-      priority: Priority.NORMAL,
-      status: QueueStatus.WAITING,
-      etaMinutes: 10 + currentQueueSize * 5,
-    });
-
-    ok(res, { queueEntry }, 201);
   } catch (error) {
     next(error);
   }

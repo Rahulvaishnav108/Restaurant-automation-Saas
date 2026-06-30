@@ -1,183 +1,36 @@
 // src/modules/tableSessions/tableSessions.service.ts
-// Session business logic — start, validate, touch, end, expire, recover
+// Table session business logic — lifecycle management for QR-based dining sessions
 
 import crypto from 'crypto';
 import mongoose from 'mongoose';
+import { env } from '../../config/env';
 import { TableSessionModel, ITableSession } from './tableSessions.model';
 import { TableModel } from '../tables/tables.model';
-import { CustomerProfileModel } from '../analytics/customerProfile.model';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
-import { SessionStatus, TableStatus, OrderStatus } from '../../constants/statuses';
+import { SessionStatus, TableStatus, RestaurantStatus } from '../../constants/statuses';
 import { emitSessionEvent } from '../../services/sessionEvents';
 import { SocketEvent } from '../../constants/events';
-import { env } from '../../config/env';
-import { StartSessionInput } from './tableSessions.schema';
-import logger from '../../config/logger';
-import { ensureCleaningTaskForTable } from '../cleaning/cleaning.service';
-import { NotificationsService } from '../notifications/notifications.service';
-import { UserRole } from '../../constants/roles';
-import { NotificationCategory, NotificationPriority } from '../notifications/notifications.schema';
+import { updateTableStatus } from '../tables/tables.service';
 import { RestaurantModel } from '../restaurants/restaurants.model';
-import { OrderModel } from '../orders/orders.model';
+import { logAuditRaw } from '../auditLogs/auditLogs.helper';
+import { AuditAction, AuditEntity } from '../auditLogs/auditLogs.types';
+import type { StartSessionInput } from './tableSessions.schema';
 
-interface SessionMeta {
-  ipAddress?: string;
-  userAgent?: string;
+// ── Helper: generate a cryptographically secure session token ────────
+function generateSessionToken(): string {
+  return crypto.randomBytes(env.TABLE_SESSION_TOKEN_LENGTH).toString('hex');
 }
 
-const ACTIVE_TABLE_SESSION_STATUSES = new Set<TableStatus>([
-  TableStatus.OCCUPIED,
-  TableStatus.PAYMENT_PENDING,
-]);
-
-async function transitionSessionTableToCleaning(
-  session: Pick<ITableSession, '_id' | 'restaurantId' | 'tableId'>
-): Promise<void> {
-  const table = await TableModel.findOne({
-    _id: session.tableId,
-    restaurantId: session.restaurantId,
-  });
-
-  if (!table) {
-    return;
-  }
-
-  const hasLinkedSession = table.currentSessionId?.toString() === session._id.toString();
-  const shouldTransition =
-    ACTIVE_TABLE_SESSION_STATUSES.has(table.status as TableStatus) || hasLinkedSession;
-
-  if (!shouldTransition) {
-    return;
-  }
-
-  table.status = TableStatus.NEEDS_CLEANING;
-  table.currentSessionId = undefined;
-  await table.save();
-
-  await ensureCleaningTaskForTable({
-    restaurantId: session.restaurantId,
-    tableId: session.tableId,
-    sessionId: session._id,
-  });
-
-  emitSessionEvent(session.restaurantId.toString(), SocketEvent.TABLE_NEEDS_CLEANING, {
-    tableId: session.tableId,
-    tableNumber: table.tableNumber,
-    status: TableStatus.NEEDS_CLEANING,
-  });
-
-  // Trigger persistent notification targeting CLEANING_STAFF
-  try {
-    await NotificationsService.createNotification({
-      restaurantId: session.restaurantId,
-      tableSessionId: session._id,
-      recipientRole: UserRole.CLEANING_STAFF,
-      title: 'Cleaning Required',
-      message: `Table ${table.tableNumber} needs cleaning.`,
-      type: 'CLEANING_REQUIRED',
-      category: NotificationCategory.CLEANING,
-      priority: NotificationPriority.HIGH,
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    });
-  } catch (notifError) {
-    logger.warn('Failed to trigger cleaning required notification', notifError);
-  }
-}
-
-/**
- * Start a new dining session.
- * - Invalidates any existing active session for the table
- * - Locks the table (AVAILABLE → OCCUPIED)
- * - Creates/updates customer analytics profile
- */
+// ── Start a brand-new session (classic flow) ─────────────────────────
 export async function startSession(
   input: StartSessionInput,
-  meta: SessionMeta = {}
+  meta: { ipAddress?: string; userAgent?: string },
 ): Promise<{ session: ITableSession; sessionToken: string }> {
-  // 1. Verify table exists and is available
-  const table = await TableModel.findOne({
-    _id: input.tableId,
-    restaurantId: input.restaurantId,
-  });
-  if (!table) {
-    throw new AppError('Table not found', 404, ErrorCode.NOT_FOUND);
-  }
-  if (!table.isActive) {
-    throw new AppError('Table is inactive', 400, ErrorCode.TABLE_INACTIVE);
-  }
-
-  // If table is OCCUPIED, NEEDS_CLEANING, or RESERVED, block unauthorized session creation and throw ErrorCode.TABLE_ALREADY_OCCUPIED
-  if (
-    table.status === TableStatus.OCCUPIED ||
-    table.status === TableStatus.PAYMENT_PENDING ||
-    table.status === TableStatus.NEEDS_CLEANING ||
-    table.status === TableStatus.CLEANING_IN_PROGRESS ||
-    table.status === TableStatus.RESERVED
-  ) {
-    throw new AppError('Table is already occupied', 400, ErrorCode.TABLE_ALREADY_OCCUPIED);
-  }
-
-  // Enforce atomic session checks: query the DB for any existing ACTIVE session for the table
-  const existingActiveSession = await TableSessionModel.findOne({
-    restaurantId: input.restaurantId,
-    tableId: input.tableId,
-    status: SessionStatus.ACTIVE,
-  });
-
-  if (existingActiveSession) {
-    logger.warn(`Suspicious repeated session creation attempt for table ${input.tableId}`);
-    throw new AppError('Table already occupied with an active session', 400, ErrorCode.TABLE_ALREADY_OCCUPIED);
-  }
-
-  // 2. Invalidate any existing active session for this table (single session enforcement)
-  await TableSessionModel.updateMany(
-    { restaurantId: input.restaurantId, tableId: input.tableId, status: SessionStatus.ACTIVE },
-    { $set: { status: SessionStatus.EXPIRED, expiresAt: new Date() } }
-  );
-
-  // 3. Generate session ID and atomically claim the table status AVAILABLE -> OCCUPIED
-  const sessionId = new mongoose.Types.ObjectId();
-
-  const updatedTable = await TableModel.findOneAndUpdate(
-    {
-      _id: table._id,
-      status: TableStatus.AVAILABLE,
-    },
-    {
-      $set: {
-        status: TableStatus.OCCUPIED,
-        currentSessionId: sessionId,
-      },
-    },
-    { new: true }
-  );
-
-  if (!updatedTable) {
-    logger.warn(`Concurrent session creation conflict for table ${input.tableId}`);
-    throw new AppError('Table already occupied', 400, ErrorCode.TABLE_ALREADY_OCCUPIED);
-  }
-
-  // 4. Generate session token
-  const tokenLength = env.TABLE_SESSION_TOKEN_LENGTH || 64;
-  const sessionToken = crypto.randomBytes(tokenLength).toString('hex');
-
-  // 5. Calculate expiry
+  const sessionToken = generateSessionToken();
   const expiresAt = new Date(Date.now() + env.QR_SESSION_EXPIRES_IN_MINUTES * 60_000);
 
-  // 6. Find or create customer analytics profile
-  let customerProfileId: string | undefined;
-  try {
-    const profile = await findOrCreateCustomerProfile(input.mobile, input.customerName, input.restaurantId);
-    customerProfileId = profile._id.toString();
-  } catch (err) {
-    // Non-critical — don't block session creation if analytics fails
-    logger.warn('Failed to create/update customer profile', err);
-  }
-
-  // 7. Create session with pre-generated sessionId
   const session = await TableSessionModel.create({
-    _id: sessionId,
     restaurantId: input.restaurantId,
     tableId: input.tableId,
     customerName: input.customerName,
@@ -186,122 +39,92 @@ export async function startSession(
     sessionStart: new Date(),
     expiresAt,
     lastActivityAt: new Date(),
-    ipAddress: meta.ipAddress || null,
-    userAgent: meta.userAgent || null,
-    reservationId: input.reservationId || null,
-    customerProfileId: customerProfileId || null,
     status: SessionStatus.ACTIVE,
+    ipAddress: meta.ipAddress ?? null,
+    userAgent: meta.userAgent ?? null,
+    reservationId: input.reservationId ?? null,
   });
 
-  // 9. Emit events
+  // Mark table as OCCUPIED
+  await updateTableStatus(input.tableId.toString(), TableStatus.OCCUPIED, input.restaurantId);
+  await TableModel.findByIdAndUpdate(input.tableId, { currentSessionId: session._id });
+
+  // Emit real-time event
   emitSessionEvent(input.restaurantId, SocketEvent.SESSION_STARTED, {
     sessionId: session._id,
     tableId: input.tableId,
     customerName: input.customerName,
   });
-  emitSessionEvent(input.restaurantId, SocketEvent.TABLE_OCCUPIED, {
-    tableId: input.tableId,
-    tableNumber: updatedTable.tableNumber,
-    status: TableStatus.OCCUPIED,
-  });
 
   return { session, sessionToken };
 }
 
-
+// ── Validate an existing session token ───────────────────────────────
 export async function validateSession(token: string): Promise<ITableSession> {
   const session = await TableSessionModel.findOne({ sessionToken: token }).select('+sessionToken');
-
   if (!session) {
     throw new AppError('Invalid session token', 401, ErrorCode.SESSION_INVALID);
   }
 
+  // Check status
   if (session.status !== SessionStatus.ACTIVE) {
-    throw new AppError('Session is no longer active', 401, ErrorCode.TABLE_SESSION_EXPIRED);
+    throw new AppError('Session is no longer active', 401, ErrorCode.SESSION_INVALID);
   }
 
   // Hard expiry check
-  if (new Date() > session.expiresAt) {
-    await expireSession(session._id.toString());
+  if (session.expiresAt.getTime() < Date.now()) {
+    session.status = SessionStatus.EXPIRED;
+    await session.save();
+    await updateTableStatus(session.tableId.toString(), TableStatus.NEEDS_CLEANING, session.restaurantId.toString());
+    await TableModel.findByIdAndUpdate(session.tableId, { currentSessionId: null });
     throw new AppError('Session has expired', 401, ErrorCode.TABLE_SESSION_EXPIRED);
   }
 
-  const idleMs = Date.now() - session.lastActivityAt.getTime();
-  const idleTimeoutMs = env.SESSION_IDLE_TIMEOUT_MINUTES * 60_000;
-  if (idleMs > idleTimeoutMs) {
-    await expireSession(session._id.toString());
-    throw new AppError('Session expired due to inactivity', 401, ErrorCode.SESSION_IDLE_TIMEOUT);
-  }
-
-  // Query TableModel and RestaurantModel to assert table and restaurant existence/ownership
-  const table = await TableModel.findById(session.tableId);
-  if (!table || table.restaurantId.toString() !== session.restaurantId.toString()) {
-    throw new AppError('Unauthorized table session access', 401, ErrorCode.UNAUTHORIZED_TABLE_SESSION);
-  }
-
-  const restaurant = await RestaurantModel.findById(session.restaurantId);
-  if (!restaurant) {
-    throw new AppError('Unauthorized table session access', 401, ErrorCode.UNAUTHORIZED_TABLE_SESSION);
+  // Idle timeout check
+  const idleLimit = env.SESSION_IDLE_TIMEOUT_MINUTES * 60_000;
+  if (Date.now() - session.lastActivityAt.getTime() > idleLimit) {
+    session.status = SessionStatus.EXPIRED;
+    await session.save();
+    await updateTableStatus(session.tableId.toString(), TableStatus.NEEDS_CLEANING, session.restaurantId.toString());
+    await TableModel.findByIdAndUpdate(session.tableId, { currentSessionId: null });
+    throw new AppError('Session idle timeout exceeded', 401, ErrorCode.SESSION_IDLE_TIMEOUT);
   }
 
   return session;
 }
 
-/**
- * Touch session activity — update lastActivityAt.
- * Called by requireSession middleware on every valid request.
- */
+// ── Touch activity timestamp ─────────────────────────────────────────
 export async function touchActivity(sessionId: string): Promise<void> {
   await TableSessionModel.findByIdAndUpdate(sessionId, {
     lastActivityAt: new Date(),
   });
 }
 
-/**
- * End a session (staff action or bill payment).
- */
+// ── Recover a session from a stored token ────────────────────────────
+export async function recoverSession(token: string): Promise<ITableSession> {
+  const session = await validateSession(token);
+  return session;
+}
+
+// ── End a session (staff or customer) ────────────────────────────────
 export async function endSession(
   sessionId: string,
   restaurantId: string,
-  reason: string = 'closed'
+  reason: string,
 ): Promise<ITableSession> {
-  const query = { _id: sessionId, restaurantId };
-
-  const session = await TableSessionModel.findOne(query);
-
+  const session = await TableSessionModel.findOne({ _id: sessionId, restaurantId });
   if (!session) {
     throw new AppError('Session not found', 404, ErrorCode.NOT_FOUND);
-  }
-
-  // Enforce that session can only be closed if all non-cancelled, non-rejected orders associated are in PAID or COMPLETED state OR have paymentStatus as PAID.
-  const activeOrders = await OrderModel.find({
-    sessionId: session._id,
-    status: { $nin: [OrderStatus.PAID, OrderStatus.COMPLETED, OrderStatus.CANCELLED, OrderStatus.REJECTED] },
-    paymentStatus: { $ne: 'PAID' }
-  });
-
-  if (activeOrders.length > 0) {
-    throw new AppError('Cannot end session with active orders', 400, ErrorCode.VALIDATION_ERROR);
-  }
-
-  // Automatically transition all remaining PAID orders for the session to COMPLETED
-  const paidOrders = await OrderModel.find({
-    sessionId: session._id,
-    status: OrderStatus.PAID
-  });
-
-  for (const order of paidOrders) {
-    order.status = OrderStatus.COMPLETED;
-    order.completedAt = new Date();
-    await order.save();
   }
 
   session.status = SessionStatus.CLOSED;
   await session.save();
 
-  await transitionSessionTableToCleaning(session);
+  // Mark table for cleaning
+  await updateTableStatus(session.tableId.toString(), TableStatus.NEEDS_CLEANING, restaurantId);
+  await TableModel.findByIdAndUpdate(session.tableId, { currentSessionId: null });
 
-  emitSessionEvent(session.restaurantId.toString(), SocketEvent.SESSION_CLOSED, {
+  emitSessionEvent(restaurantId, SocketEvent.SESSION_CLOSED, {
     sessionId: session._id,
     tableId: session.tableId,
     reason,
@@ -310,72 +133,34 @@ export async function endSession(
   return session;
 }
 
-/**
- * Expire a session (due to inactivity or hard expiry).
- */
-export async function expireSession(sessionId: string): Promise<void> {
-  const session = await TableSessionModel.findOneAndUpdate(
-    { _id: sessionId },
-    { status: SessionStatus.EXPIRED, expiresAt: new Date() },
-    { new: true }
-  );
+// ── Expire a session (background job) ────────────────────────────────
+export async function expireSession(sessionId: string): Promise<ITableSession> {
+  const session = await TableSessionModel.findById(sessionId);
+  if (!session) {
+    throw new AppError('Session not found', 404, ErrorCode.NOT_FOUND);
+  }
 
-  if (!session) return;
+  if (session.status !== SessionStatus.ACTIVE) {
+    return session; // Already handled
+  }
 
-  await transitionSessionTableToCleaning(session);
+  session.status = SessionStatus.EXPIRED;
+  await session.save();
+
+  // Mark table for cleaning
+  await updateTableStatus(session.tableId.toString(), TableStatus.NEEDS_CLEANING, session.restaurantId.toString());
+  await TableModel.findByIdAndUpdate(session.tableId, { currentSessionId: null });
 
   emitSessionEvent(session.restaurantId.toString(), SocketEvent.SESSION_EXPIRED, {
     sessionId: session._id,
     tableId: session.tableId,
+    reason: 'expired',
   });
-}
-
-/**
- * Recover a session — validate stored token and return session if still active.
- */
-export async function recoverSession(token: string): Promise<ITableSession> {
-  // Same logic as validateSession but without touching activity
-  const session = await TableSessionModel.findOne({ sessionToken: token }).select('+sessionToken');
-
-  if (!session) {
-    throw new AppError('Invalid session token', 401, ErrorCode.SESSION_INVALID);
-  }
-
-  if (session.status !== SessionStatus.ACTIVE) {
-    throw new AppError('Session is no longer active', 401, ErrorCode.TABLE_SESSION_EXPIRED);
-  }
-
-  if (new Date() > session.expiresAt) {
-    await expireSession(session._id.toString());
-    throw new AppError('Session has expired', 401, ErrorCode.TABLE_SESSION_EXPIRED);
-  }
-
-  const idleMs = Date.now() - session.lastActivityAt.getTime();
-  if (idleMs > env.SESSION_IDLE_TIMEOUT_MINUTES * 60_000) {
-    await expireSession(session._id.toString());
-    throw new AppError('Session expired due to inactivity', 401, ErrorCode.SESSION_IDLE_TIMEOUT);
-  }
 
   return session;
 }
 
-/**
- * Get the active session for a specific table.
- */
-export async function getActiveSession(
-  restaurantId: string,
-  tableId: string
-): Promise<ITableSession | null> {
-  return TableSessionModel.findOne({
-    restaurantId,
-    tableId,
-    status: SessionStatus.ACTIVE,
-  });
-}
-
-/**
- * Get session by ID (staff view).
- */
+// ── Get session by ID ────────────────────────────────────────────────
 export async function getSessionById(sessionId: string, restaurantId: string): Promise<ITableSession> {
   const session = await TableSessionModel.findOne({ _id: sessionId, restaurantId });
   if (!session) {
@@ -384,25 +169,199 @@ export async function getSessionById(sessionId: string, restaurantId: string): P
   return session;
 }
 
-/**
- * Find or create a customer analytics profile.
- * Non-authenticated, no JWT — analytics only.
- */
-async function findOrCreateCustomerProfile(
-  mobile: string,
-  name: string,
-  restaurantId: string
-) {
-  const profile = await CustomerProfileModel.findOneAndUpdate(
-    { mobile },
-    {
-      $set: { name, lastVisitAt: new Date() },
-      $inc: { totalVisits: 1 },
-      $addToSet: { restaurantsVisited: restaurantId },
-      $setOnInsert: { firstVisitAt: new Date(), totalSpent: 0 },
-    },
-    { upsert: true, new: true }
-  );
+// ── Init table session from QR token (secure flow) ───────────────────
+// Used by the public endpoint: POST /api/v1/public/table-session/init
+export async function initTableSession(
+  qrToken: string,
+  details?: { name?: string; mobile?: string },
+  meta?: { ipAddress?: string; userAgent?: string },
+  clientSessionToken?: string,
+): Promise<{ session: ITableSession; sessionToken: string; tableNumber: string }> {
+  // 1. Look up table by qrToken (consistently camelCase)
+  let table = await TableModel.findOne({ qrToken });
+  if (!table && mongoose.Types.ObjectId.isValid(qrToken)) {
+    table = await TableModel.findOne({ _id: qrToken });
+  }
+  if (!table) {
+    // Log invalid QR attempt
+    void logAuditRaw({
+      actorId: new mongoose.Types.ObjectId('000000000000000000000000').toString(),
+      actorRole: 'CUSTOMER',
+      entityType: AuditEntity.QR,
+      entityId: new mongoose.Types.ObjectId('000000000000000000000000').toString(),
+      action: AuditAction.INVALID_QR_ATTEMPT,
+      metadata: { qrToken, reason: 'invalid_token' },
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+    throw new AppError('Invalid or regenerated QR code', 404, ErrorCode.SESSION_INVALID);
+  }
 
-  return profile;
+  // 2. Check if table is active
+  if (!table.isActive) {
+    void logAuditRaw({
+      actorId: new mongoose.Types.ObjectId('000000000000000000000000').toString(),
+      actorRole: 'CUSTOMER',
+      restaurantId: table.restaurantId.toString(),
+      entityType: AuditEntity.QR,
+      entityId: table._id.toString(),
+      action: AuditAction.INVALID_QR_ATTEMPT,
+      metadata: { qrToken, tableId: table._id, reason: 'table_inactive' },
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+    throw new AppError('Table is blocked/disabled. Please contact staff.', 400, ErrorCode.TABLE_INACTIVE);
+  }
+
+  // 3. Check if restaurant is active
+  const restaurant = await RestaurantModel.findById(table.restaurantId);
+  if (!restaurant || restaurant.status !== RestaurantStatus.ACTIVE) {
+    void logAuditRaw({
+      actorId: new mongoose.Types.ObjectId('000000000000000000000000').toString(),
+      actorRole: 'CUSTOMER',
+      restaurantId: table.restaurantId.toString(),
+      entityType: AuditEntity.QR,
+      entityId: table._id.toString(),
+      action: AuditAction.INVALID_QR_ATTEMPT,
+      metadata: { qrToken, tableId: table._id, reason: 'restaurant_inactive' },
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+    throw new AppError('Restaurant is disabled', 400, ErrorCode.FORBIDDEN);
+  }
+
+  // 4. Check if there is already an active session for this table
+  const existingSession = await TableSessionModel.findOne({
+    tableId: table._id,
+    restaurantId: table.restaurantId,
+    status: SessionStatus.ACTIVE,
+  }).select('+sessionToken');
+
+  if (existingSession) {
+    // Check if the existing session is expired or idle timed out
+    const isHardExpired = existingSession.expiresAt.getTime() < Date.now();
+    const idleLimit = env.SESSION_IDLE_TIMEOUT_MINUTES * 60_000;
+    const isIdleExpired = Date.now() - existingSession.lastActivityAt.getTime() > idleLimit;
+
+    if (isHardExpired || isIdleExpired) {
+      // Mark session as EXPIRED
+      existingSession.status = SessionStatus.EXPIRED;
+      await existingSession.save();
+
+      // Mark table as Needs Cleaning (DIRTY)
+      table.status = TableStatus.NEEDS_CLEANING;
+      table.currentSessionId = null;
+      await table.save();
+
+      void logAuditRaw({
+        actorId: existingSession._id.toString(),
+        actorRole: 'CUSTOMER',
+        restaurantId: table.restaurantId.toString(),
+        entityType: AuditEntity.TABLE_SESSION,
+        entityId: existingSession._id.toString(),
+        action: AuditAction.SESSION_EXPIRED,
+        metadata: {
+          tableId: table._id,
+          reason: isHardExpired ? 'hard_expiry' : 'idle_timeout',
+        },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+
+      throw new AppError('Dining session has expired. Please rescan.', 401, ErrorCode.TABLE_SESSION_EXPIRED);
+    }
+
+    // Determine ownership to allow rejoining
+    let isOwner = false;
+    if (clientSessionToken && existingSession.sessionToken === clientSessionToken) {
+      isOwner = true;
+    }
+    if (details?.mobile && details.mobile !== '0000000000' && existingSession.mobile === details.mobile) {
+      isOwner = true;
+    }
+
+    if (!isOwner) {
+      void logAuditRaw({
+        actorId: new mongoose.Types.ObjectId('000000000000000000000000').toString(),
+        actorRole: 'CUSTOMER',
+        restaurantId: table.restaurantId.toString(),
+        entityType: AuditEntity.QR,
+        entityId: table._id.toString(),
+        action: AuditAction.INVALID_QR_ATTEMPT,
+        metadata: { qrToken, tableId: table._id, status: table.status, reason: 'table_occupied_by_other' },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+      throw new AppError(`Table ${table.tableNumber} is already occupied by another customer`, 400, ErrorCode.TABLE_ALREADY_OCCUPIED);
+    }
+
+    // Return existing session for rejoining
+    return {
+      session: existingSession,
+      sessionToken: existingSession.sessionToken,
+      tableNumber: table.tableNumber,
+    };
+  }
+
+  // 5. If table is not available (e.g. Needs Cleaning, Cleaning, Reserved, Paid, Blocked), throw specific errors
+  const statusStr = table.status as string;
+  if (statusStr === TableStatus.RESERVED) {
+    throw new AppError('This table is reserved. Please contact staff.', 400, ErrorCode.TABLE_ALREADY_OCCUPIED);
+  }
+  if (
+    statusStr === TableStatus.DIRTY ||
+    statusStr === TableStatus.NEEDS_CLEANING ||
+    statusStr === TableStatus.CLEANING ||
+    statusStr === TableStatus.CLEANING_IN_PROGRESS
+  ) {
+    throw new AppError('This table is currently being cleaned. Please wait or choose another table.', 400, ErrorCode.TABLE_ALREADY_OCCUPIED);
+  }
+  if (
+    statusStr !== TableStatus.AVAILABLE &&
+    statusStr !== TableStatus.OCCUPIED
+  ) {
+    void logAuditRaw({
+      actorId: new mongoose.Types.ObjectId('000000000000000000000000').toString(),
+      actorRole: 'CUSTOMER',
+      restaurantId: table.restaurantId.toString(),
+      entityType: AuditEntity.QR,
+      entityId: table._id.toString(),
+      action: AuditAction.INVALID_QR_ATTEMPT,
+      metadata: { qrToken, tableId: table._id, status: table.status, reason: 'table_occupied' },
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+    throw new AppError(`Table ${table.tableNumber} is not available for seating.`, 400, ErrorCode.TABLE_ALREADY_OCCUPIED);
+  }
+
+  // 6. Create a brand new session
+  const sessionToken = generateSessionToken();
+  const expiresAt = new Date(Date.now() + env.QR_SESSION_EXPIRES_IN_MINUTES * 60_000);
+
+  const session = await TableSessionModel.create({
+    restaurantId: table.restaurantId,
+    tableId: table._id,
+    customerName: details?.name ?? 'Guest',
+    mobile: details?.mobile ?? '0000000000',
+    sessionToken,
+    sessionStart: new Date(),
+    expiresAt,
+    lastActivityAt: new Date(),
+    status: SessionStatus.ACTIVE,
+    ipAddress: meta?.ipAddress ?? null,
+    userAgent: meta?.userAgent ?? null,
+  });
+
+  // Mark table as OCCUPIED
+  table.status = TableStatus.OCCUPIED;
+  table.currentSessionId = session._id;
+  await table.save();
+
+  emitSessionEvent(table.restaurantId.toString(), SocketEvent.SESSION_STARTED, {
+    sessionId: session._id,
+    tableId: table._id,
+    tableNumber: table.tableNumber,
+  });
+
+  return { session, sessionToken, tableNumber: table.tableNumber };
 }

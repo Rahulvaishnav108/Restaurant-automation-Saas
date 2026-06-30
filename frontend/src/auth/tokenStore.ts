@@ -95,6 +95,8 @@ export function clearPanelSession(panel: Panel): void {
   localStorage.removeItem(accessTokenKey(panel));
   localStorage.removeItem(roleKey(panel));
   localStorage.removeItem(userKey(panel));
+  localStorage.removeItem('otpExpiresAt');
+  localStorage.removeItem('customerOtpExpiresAt');
 }
 
 // ── Clear ALL panel sessions ──────────────────────────────────────────
@@ -107,6 +109,8 @@ export function clearAllSessions(): void {
   localStorage.removeItem(LEGACY_ACCESS_TOKEN_KEY);
   localStorage.removeItem(LEGACY_ROLE_KEY);
   localStorage.removeItem(LEGACY_USER_KEY);
+  localStorage.removeItem('otpExpiresAt');
+  localStorage.removeItem('customerOtpExpiresAt');
 }
 
 // ── Migrate legacy session to a panel ─────────────────────────────────

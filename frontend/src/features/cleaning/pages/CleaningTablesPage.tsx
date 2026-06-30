@@ -23,6 +23,11 @@ interface TableTask {
   rawPriority?: 'High' | 'Medium' | 'Low';
   progress?: number;
   waiting?: string;
+  tableNumber?: string;
+  seats?: number;
+  area?: string;
+  section?: string;
+  floor?: number;
 }
 
 export default function CleaningTablesPage() {

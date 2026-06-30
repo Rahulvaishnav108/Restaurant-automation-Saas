@@ -1075,9 +1075,12 @@ async function runSmokeSuite(url, db) {
     const extendedExpiry = new Date(extend.json?.data?.session?.expiresAt ?? 0).getTime();
     assert(extendedExpiry > new Date(beforeExtend.expiresAt).getTime(), 'extend did not move session expiry forward');
 
+    const tableThreeDoc = await tablesCollection.findOne({ tableNumber: 'T3' });
+    const tableThreeToken = tableThreeDoc?.qrToken || 'amber-table-t3-seed';
+
     const blockedNeedsCleaning = await request(url, 'POST', '/api/v1/public/table-session/create', {
       body: {
-        token: 'amber-table-t3-seed',
+        token: tableThreeToken,
         customerName: 'Blocked Guest',
         mobile: '9876543211',
         partySize: 2,
@@ -2239,6 +2242,7 @@ async function main() {
       RATE_LIMIT_MAX: '1000',
       RATE_LIMIT_MAX_REQUESTS: '1000',
       AUTH_RATE_LIMIT_MAX_REQUESTS: '200',
+      SESSION_RATE_LIMIT_MAX_REQUESTS: '1000',
       SMTP_HOST: '',
       SMTP_USER: '',
       SMTP_PASS: '',

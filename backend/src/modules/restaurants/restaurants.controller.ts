@@ -30,7 +30,7 @@ export const getRestaurantOverviewController = asyncHandler(async (req: Request,
   const [totalTables, activeSessions, occupiedTables] = await Promise.all([
     TableModel.countDocuments({ restaurantId }),
     TableSessionModel.countDocuments({ restaurantId, status: SessionStatus.ACTIVE }),
-    TableModel.countDocuments({ restaurantId, status: TableStatus.OCCUPIED }),
+    TableModel.countDocuments({ restaurantId, status: { $in: [TableStatus.OCCUPIED, TableStatus.ORDERING, TableStatus.BILL_PENDING, TableStatus.PAYMENT_PENDING, TableStatus.PAID] } }),
   ]);
 
   ok(res, {
@@ -68,7 +68,22 @@ export const updateRestaurantSettingsController = asyncHandler(async (req: Reque
   restaurant.settings = {
     ...restaurant.settings,
     ...req.body,
-  };
+    ...(req.body.emailPreferences && {
+      emailPreferences: {
+        ...restaurant.settings.emailPreferences,
+        ...req.body.emailPreferences,
+      },
+    }),
+    ...(req.body.branding && {
+      branding: {
+        ...restaurant.settings.branding,
+        ...req.body.branding,
+      },
+    }),
+    ...(req.body.timezone && { timezone: req.body.timezone }),
+    ...(req.body.dateFormat && { dateFormat: req.body.dateFormat }),
+    ...(req.body.timeFormat && { timeFormat: req.body.timeFormat }),
+  } as typeof restaurant.settings;
 
   await restaurant.save();
 
@@ -85,4 +100,3 @@ export const updateRestaurantSettingsController = asyncHandler(async (req: Reque
     },
   });
 });
-

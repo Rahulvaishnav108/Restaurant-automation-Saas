@@ -30,11 +30,20 @@ cleaningRouter.get('/tasks', validate({ query: cleaningTaskQuerySchema }), async
     if (status) query.status = status;
     if (priority) query.priority = priority;
 
-    const tasks = await CleaningTaskModel.find(query).sort({ createdAt: -1 });
+    const tasks = await CleaningTaskModel.find(query).populate('tableId').sort({ createdAt: -1 });
+    const responseTasks = tasks.map((task) => {
+      const taskObj = task.toObject() as any;
+      if (taskObj.tableId && typeof taskObj.tableId === 'object') {
+        taskObj.tableDetails = taskObj.tableId;
+        taskObj.tableId = (taskObj.tableId as any)._id?.toString() || String(taskObj.tableId);
+      }
+      return taskObj;
+    });
+
     ok(res, {
-      tasks,
+      tasks: responseTasks,
       meta: {
-        count: tasks.length,
+        count: responseTasks.length,
         filters: {
           status: status ?? null,
           priority: priority ?? null,
@@ -51,13 +60,19 @@ cleaningRouter.get('/tasks/:id', validate({ params: cleaningTaskParamsSchema }),
     const task = await CleaningTaskModel.findOne({
       _id: req.params.id,
       restaurantId: req.user?.restaurantId,
-    });
+    }).populate('tableId');
 
     if (!task) {
       throw new AppError('Cleaning task not found', 404, ErrorCode.NOT_FOUND);
     }
 
-    ok(res, { task });
+    const taskObj = task.toObject() as any;
+    if (taskObj.tableId && typeof taskObj.tableId === 'object') {
+      taskObj.tableDetails = taskObj.tableId;
+      taskObj.tableId = (taskObj.tableId as any)._id?.toString() || String(taskObj.tableId);
+    }
+
+    ok(res, { task: taskObj });
   } catch (error) {
     next(error);
   }
@@ -124,7 +139,10 @@ cleaningRouter.patch(
 
     await TableModel.findOneAndUpdate(
       { _id: task.tableId, restaurantId: task.restaurantId },
-      { status: TableStatus.NEEDS_CLEANING },
+      {
+        status: TableStatus.AVAILABLE,
+        currentSessionId: null,
+      },
     );
 
     ok(res, { task });
