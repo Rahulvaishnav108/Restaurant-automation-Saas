@@ -16,6 +16,7 @@ import { PaymentModel } from '../payments/payments.model';
 import { InvoiceCounterModel } from './invoice-counter.model';
 import { sendReceiptEmail } from '../../services/mail.service';
 import logger from "../../config/logger";
+import { endSession } from '../tableSessions/tableSessions.service';
 
 export class BillingService {
   /**
@@ -415,21 +416,10 @@ export class BillingService {
 
     // Stock deduction is now handled by OrdersService.startCooking() during the kitchen workflow.
 
-    // End session automatically upon successful payment is disabled to allow subsequent session-linked operations (e.g. feedback, loyalty, reorders) in the PRD lifecycle.
-    /*
     try {
-      await endSession(sessionId, 'Bill paid successfully');
+      await endSession(sessionId, restaurantId, 'Bill paid successfully');
     } catch (error) {
-      console.error(`Failed to close session ${sessionId} after payment:`, error);
-    }
-    */
-
-    // Transition table status to PAID
-    const session = await TableSessionModel.findById(sessionId);
-    if (session) {
-      await TableModel.findByIdAndUpdate(session.tableId, {
-        status: TableStatus.PAID,
-      });
+      logger.error(`Failed to close session ${sessionId} after payment:`, error);
     }
 
     return bill;

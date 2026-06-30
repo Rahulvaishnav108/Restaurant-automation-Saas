@@ -97,6 +97,10 @@ export class PaymentsService {
 
       razorpayOrderId = rzpOrder.id;     // e.g. "order_Abc123XYZ"
       providerPaymentId = rzpOrder.id;   // store Razorpay order ID as provider ref
+
+      await BillingModel.findByIdAndUpdate(result.billId, {
+        paymentId: rzpOrder.id,
+      });
     }
 
     // Step 3: Update the PaymentModel record created by BillingService
@@ -121,6 +125,7 @@ export class PaymentsService {
 
     return {
       ...result,
+      paymentId: razorpayOrderId ?? result.paymentIntentId,
       // Key fields the frontend needs to open Razorpay checkout
       razorpayOrderId,
       razorpayKeyId: isRazorpayEnabled && !isCashPayment ? env.RAZORPAY_KEY_ID : null,

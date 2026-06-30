@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { CleaningSearchProvider } from '../features/cleaning/components/dashboard/CleaningSearchContext';
 import CleaningSidebar from '../features/cleaning/components/dashboard/CleaningSidebar';
 import CleaningTopBar from '../features/cleaning/components/dashboard/CleaningTopBar';
+import { ToastProvider } from '../features/cleaning/components/dashboard/Toast';
 
 export default function CleaningLayout(): JSX.Element {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -24,8 +25,7 @@ export default function CleaningLayout(): JSX.Element {
       case '/cleaning/requests':
         return { 
           title: 'Cleaning Requests', 
-          subtitle: 'Manage and track all cleaning requests raised by users.',
-          badge: <span className="bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold ml-2 inline-flex items-center">New</span>
+          subtitle: 'Manage and track all cleaning requests raised by users.'
         };
       case '/cleaning/tasks':
         return { title: 'Tasks', subtitle: 'View and manage your assigned hygiene and cleaning tasks.' };
@@ -41,6 +41,7 @@ export default function CleaningLayout(): JSX.Element {
   const { title, subtitle, badge } = getPageDetails();
 
   return (
+    <ToastProvider>
     <CleaningSearchProvider>
       <div className="flex min-h-screen bg-sd-surface text-sd-on-surface font-sans cleaning-panel">
         {/* Sidebar */}
@@ -91,5 +92,6 @@ export default function CleaningLayout(): JSX.Element {
         </div>
       </div>
     </CleaningSearchProvider>
+    </ToastProvider>
   );
 }

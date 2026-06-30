@@ -5,8 +5,29 @@ export type TableStatus =
   | 'Cleaning Requested'
   | 'In Progress'
   | 'Ready for Inspection'
-  | 'Available';
+  | 'Available'
+  | 'Done'
+  | '--';
 export type PriorityLevel = 'High' | 'Medium' | 'Low';
+
+export interface CleaningStaffMember {
+  id: string;
+  name: string;
+  role: string;
+  area: string;
+  phone: string;
+  avatar: string;
+}
+
+export interface RoutineChore {
+  id: string;
+  name: string;
+  area: string;
+  frequency: string;
+  assignedTo: string;
+  status: 'Pending' | 'In Progress' | 'Completed';
+  lastDone?: string;
+}
 
 export interface TableItem {
   id: string;
@@ -19,8 +40,11 @@ export interface TableItem {
   progress?: number; // Only for In Progress tables
   notes?: string;
   maintenanceIssue?: string;
+  taskType?: string;
+  taskName?: string;
   floor?: number;
   section?: string;
+  taskId?: string;
 }
 
 export interface CleaningRequest {
@@ -34,6 +58,9 @@ export interface CleaningRequest {
   status: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled' | 'Scheduled';
   requestedOn: string;
   requestedTime: string;
+  notes?: string;
+  assignedTo?: { name: string; avatar: string } | null;
+  rawId?: string;
 }
 
 export interface StaffProfile {
@@ -55,7 +82,7 @@ export interface StaffProfile {
 
 class CleaningStore {
   private static instance: CleaningStore;
-  
+
   public profile: StaffProfile = this.loadProfile();
 
   private loadProfile(): StaffProfile {
@@ -186,8 +213,8 @@ class CleaningStore {
       },
       priority: 'High',
       status: 'In Progress',
-      requestedOn: 'May 15, 2024',
-      requestedTime: '10:32 AM',
+      requestedOn: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      requestedTime: new Date(Date.now() - 5 * 60 * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
     },
     {
       id: 'CR-2024-035',
@@ -202,13 +229,173 @@ class CleaningStore {
       },
       priority: 'Medium',
       status: 'In Progress',
-      requestedOn: 'May 15, 2024',
-      requestedTime: '09:15 AM',
+      requestedOn: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      requestedTime: new Date(Date.now() - 25 * 60 * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
     },
   ];
 
+  public chores: RoutineChore[] = this.loadChores();
+
+  private loadChores(): RoutineChore[] {
+    const defaultChores: RoutineChore[] = [
+      {
+        id: 'CHR-001',
+        name: 'Empty Trash Bins',
+        area: 'Dining Area A',
+        frequency: 'Every 2 Hours',
+        assignedTo: 'Ramesh K.',
+        status: 'Pending',
+      },
+      {
+        id: 'CHR-002',
+        name: 'Sanitize Restrooms',
+        area: 'Restroom',
+        frequency: 'Hourly',
+        assignedTo: 'Anita S.',
+        status: 'In Progress',
+      },
+      {
+        id: 'CHR-003',
+        name: 'Restock Tissues & Napkins',
+        area: 'Dining Area B',
+        frequency: 'Shift Handover',
+        assignedTo: 'Anita S.',
+        status: 'Completed',
+        lastDone: '10:30 AM',
+      },
+      {
+        id: 'CHR-004',
+        name: 'Sweep & Mop Floor',
+        area: 'Terrace Area',
+        frequency: 'Every 4 Hours',
+        assignedTo: 'Vikram P.',
+        status: 'Pending',
+      },
+      {
+        id: 'CHR-005',
+        name: 'Clean Coffee Machine',
+        area: 'Floor 1',
+        frequency: 'Daily',
+        assignedTo: 'Ramesh K.',
+        status: 'Completed',
+        lastDone: '09:15 AM',
+      }
+    ];
+
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('cleanserve-chores');
+      if (saved) {
+        try { return JSON.parse(saved); } catch { return defaultChores; }
+      }
+    }
+    return defaultChores;
+  }
+
+  public addChore(newChore: RoutineChore) {
+    this.chores = [newChore, ...this.chores];
+    this.saveChoresToLocalStorage();
+    this.notify();
+  }
+
+  public updateChoreStatus(id: string, status: 'Pending' | 'In Progress' | 'Completed') {
+    this.chores = this.chores.map((c) =>
+      c.id === id
+        ? {
+            ...c,
+            status,
+            lastDone: status === 'Completed' ? new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : c.lastDone,
+          }
+        : c
+    );
+    this.saveChoresToLocalStorage();
+    this.notify();
+  }
+
+  public deleteChore(id: string) {
+    this.chores = this.chores.filter((c) => c.id !== id);
+    this.saveChoresToLocalStorage();
+    this.notify();
+  }
+
+  private saveChoresToLocalStorage() {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cleanserve-chores', JSON.stringify(this.chores));
+    }
+  }
+
   public addCleaningRequest(newRequest: CleaningRequest) {
     this.requests = [newRequest, ...this.requests];
+    this.notify();
+  }
+
+  public staffMembers: CleaningStaffMember[] = this.loadStaff();
+
+  private loadStaff(): CleaningStaffMember[] {
+    const defaultStaff: CleaningStaffMember[] = [
+      {
+        id: 'STF-001',
+        name: 'Ramesh K.',
+        role: 'Cleaning Staff',
+        area: 'Dining Area A',
+        phone: '+91 98001 11111',
+        avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCZ1EeclPIzb65zLML4Z-Ep8QnCj_Ey68uOYKOfFtZuK_k5ILmHPwi-DSDwYreE9ju4D4Z79Hp6UeAKZXSwBOURkmGSQ7hNQ8-lDeQGBfmjcHltnwofvxh67WrZSDukcUkwZiuZjqYa74AhkTFTcLWqysc21n_T9l3J9vkmkj_lFhXuaPU189ige8Tlb5foWMvGnW27LhowBJk4dHeUfzWcmeRluinE4acRYrVtfGNEr0sYCTnJ1sdGsg1NYN3HFCrqzkH0-TJrClE',
+      },
+      {
+        id: 'STF-002',
+        name: 'Vikram P.',
+        role: 'Senior Cleaner',
+        area: 'Terrace Area',
+        phone: '+91 98001 22222',
+        avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA--L3CSbZtR0isayAQeKWVqEYUnJm50z5jjO9pkKQN7ksNy8Vgt62aZwgUrLRnYBtnpNDDk4IRK7ognEaSVtSVSsdI0zIDiq4N90jHPW5P1ONLpdO51I3sP-vvCRQnQTsfxs1Via1HEmQcJeHVGQ6-nNWKCActOegeFVwkpjBzRiXJlzDX15TkbA-90HDUzdz54FoQmsFcObFCGuXAmvK2KTyMt9nyMhl5nHPEV0d4sIjpe9An60OytiSZxSfYVdBG1nSHlTyW1aA',
+      },
+      {
+        id: 'STF-003',
+        name: 'Anita S.',
+        role: 'Cleaning Staff',
+        area: 'Dining Area B',
+        phone: '+91 98001 33333',
+        avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuANsaeL1qIrdjS8VjlskxOHt17ofWL0mQA8HTEyUyGUmb0WZEoFeVIhAYDxByw8LuxWxFKIdV270hwAPBmZFNJdIOoLB7X4CRStTLzQ66uJ709k9Kvpbt3yDChYZmi0IOgzaKGIARmUFWTp8fiuOG-poilaUus94iK5MEMaPofwxQGipJFvuis9fWEp53IS84fln5N1GSiP7xWII9WnJi1qTw5gFY4eKQQgrXVlslMwV6TbZi4nnm2vGRG3hjoOoFQyNc23SGR4j9U',
+      },
+    ];
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('cleanserve-staff');
+      if (saved) {
+        try { return JSON.parse(saved); } catch { return defaultStaff; }
+      }
+    }
+    return defaultStaff;
+  }
+
+  public addStaffMember(member: CleaningStaffMember) {
+    this.staffMembers = [...this.staffMembers, member];
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cleanserve-staff', JSON.stringify(this.staffMembers));
+    }
+    this.notify();
+  }
+
+  public removeStaffMember(id: string) {
+    this.staffMembers = this.staffMembers.filter((s) => s.id !== id);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cleanserve-staff', JSON.stringify(this.staffMembers));
+    }
+    this.notify();
+  }
+
+  public assignTableStaff(tableId: string, member: { name: string; avatar: string } | null) {
+    this.tables = this.tables.map((t) =>
+      t.id === tableId ? { ...t, assignedTo: member } : t
+    );
+    this.notify();
+  }
+
+  public editTable(id: string, updates: Partial<TableItem>) {
+    this.tables = this.tables.map((t) => (t.id === id ? { ...t, ...updates } : t));
+    this.notify();
+  }
+
+  public deleteTable(id: string) {
+    this.tables = this.tables.filter((t) => t.id !== id);
     this.notify();
   }
 
@@ -242,7 +429,6 @@ class CleaningStore {
     });
     this.notify();
   }
-
   private listeners: Set<() => void> = new Set();
 
   constructor() {
@@ -264,13 +450,15 @@ class CleaningStore {
   public startCleaning(id: string) {
     this.tables = this.tables.map((t) => {
       if (t.id === id) {
+        this.requests = this.requests.map((r) =>
+          r.location.includes(id) ? { ...r, status: 'In Progress' } : r
+        );
         return { ...t, status: 'In Progress', progress: 10, timeAgo: 'Started Just Now' };
       }
       return t;
     });
     this.notify();
   }
-
   public updateProgress(id: string) {
     this.tables = this.tables.map((t) => {
       if (t.id === id && t.status === 'In Progress') {
@@ -288,7 +476,7 @@ class CleaningStore {
   public completeInspection(id: string) {
     this.tables = this.tables.map((t) => {
       if (t.id === id) {
-        return { ...t, status: 'Available', progress: undefined, timeAgo: 'Just Now' };
+        return { ...t, status: 'Ready for Inspection', progress: 100, timeAgo: 'Just Now' };
       }
       return t;
     });
@@ -306,7 +494,63 @@ class CleaningStore {
   }
 
   public addTable(newTable: TableItem) {
-    this.tables = [newTable, ...this.tables];
+    this.tables = [...this.tables, newTable];
+    this.notify();
+  }
+  public completeRequest(id: string) {
+    const req = this.requests.find((r) => r.id === id);
+    if (req && req.rawId) {
+      this.tables = this.tables.map((t) => {
+        if (t.id === req.rawId) {
+          return { ...t, status: 'Done' as TableStatus };
+        }
+        return t;
+      });
+    }
+    this.requests = this.requests.map((r) => (r.id === id ? { ...r, status: 'Completed' as const } : r));
+    this.notify();
+  }
+  public verifyInspection(id: string) {
+    this.tables = this.tables.filter((t) => t.id !== id);
+    this.notify();
+  }
+  public updateRequestStatus(
+    id: string,
+    newStatus: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled' | 'Scheduled'
+  ) {
+    this.requests = this.requests.map((r) => {
+      if (r.id === id) {
+        if (r.rawId) {
+          this.tables = this.tables.map((t) => {
+            if (t.id === r.rawId) {
+              let tableStatus: TableStatus = 'Available';
+              if (newStatus === 'In Progress') {
+                tableStatus = 'In Progress';
+              } else if (newStatus === 'Completed') {
+                tableStatus = 'Done';
+              }
+              return { ...t, status: tableStatus };
+            }
+            return t;
+          });
+        }
+        return { ...r, status: newStatus };
+      }
+      return r;
+    });
+    this.notify();
+  }
+  public verifyRequest(id: string) {
+    const req = this.requests.find((r) => r.id === id);
+    if (req && req.rawId) {
+      this.tables = this.tables.map((t) => {
+        if (t.id === req.rawId) {
+          return { ...t, status: '--' as TableStatus };
+        }
+        return t;
+      });
+    }
+    this.requests = this.requests.filter((r) => r.id !== id);
     this.notify();
   }
 }

@@ -3,8 +3,9 @@ import { CleaningStatus, TableStatus } from '../../constants/statuses';
 import { ErrorCode } from '../../constants/errors';
 import { AppError } from '../../utils/AppError';
 import { ok } from '../../utils/responses';
-import { TableModel } from '../tables/tables.model';
+import { updateTableStatus } from '../tables/tables.service';
 import { CleaningTaskModel } from './cleaning.model';
+import { logger } from '../../config/logger';
 
 function ensureCleaningStatus(currentStatus: CleaningStatus, allowedStatuses: CleaningStatus[], message: string): void {
   if (!allowedStatuses.includes(currentStatus)) {
@@ -87,10 +88,13 @@ export class CleaningController {
       task.verifiedBy = null;
       await task.save();
 
-      await TableModel.findOneAndUpdate(
-        { _id: task.tableId, restaurantId: task.restaurantId },
-        { status: TableStatus.CLEANING_IN_PROGRESS },
+      await updateTableStatus(
+        task.tableId.toString(),
+        TableStatus.CLEANING_IN_PROGRESS,
+        task.restaurantId.toString()
       );
+      
+      logger.info('Cleaning task started', { taskId: task._id, tableId: task.tableId });
 
       ok(res, { task, startedBy });
     } catch (error) {
@@ -111,10 +115,13 @@ export class CleaningController {
       task.verifiedBy = null;
       await task.save();
 
-      await TableModel.findOneAndUpdate(
-        { _id: task.tableId, restaurantId: task.restaurantId },
-        { status: TableStatus.NEEDS_CLEANING },
+      await updateTableStatus(
+        task.tableId.toString(),
+        TableStatus.NEEDS_CLEANING,
+        task.restaurantId.toString()
       );
+
+      logger.info('Cleaning task completed', { taskId: task._id, tableId: task.tableId });
 
       ok(res, { task });
     } catch (error) {
@@ -133,13 +140,13 @@ export class CleaningController {
       task.verifiedBy = req.body?.verifiedBy ?? req.user?.id ?? null;
       await task.save();
 
-      await TableModel.findOneAndUpdate(
-        { _id: task.tableId, restaurantId: task.restaurantId },
-        {
-          status: TableStatus.AVAILABLE,
-          currentSessionId: null,
-        },
+      await updateTableStatus(
+        task.tableId.toString(),
+        TableStatus.AVAILABLE,
+        task.restaurantId.toString()
       );
+
+      logger.info('Cleaning task verified', { taskId: task._id, tableId: task.tableId });
 
       ok(res, { task });
     } catch (error) {

@@ -14,7 +14,7 @@ import { publicRouter } from './routes/public.routes';
 import { customerRouter } from './routes/customer.routes';
 import { staffRouter } from './routes/staff.routes';
 import { kitchenRouter } from './routes/kitchen.routes';
-import { cleaningRouter } from './routes/cleaning.routes';
+import cleaningRouter from './cleaning/cleaning.routes';
 import { adminRouter } from './routes/admin.routes';
 import { superAdminRouter } from './routes/superAdmin.routes';
 import { sharedRouter } from './routes/shared.routes';

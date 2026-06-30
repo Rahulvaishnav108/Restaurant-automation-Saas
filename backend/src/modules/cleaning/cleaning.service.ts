@@ -37,7 +37,11 @@ export async function ensureCleaningTaskForTable(input: EnsureCleaningTaskInput)
     tableId: input.tableId,
   }).sort({ createdAt: -1 });
 
-  if (existingTask && existingTask.status !== CleaningStatus.VERIFIED) {
+  if (
+    existingTask &&
+    existingTask.status !== CleaningStatus.VERIFIED &&
+    existingTask.status !== CleaningStatus.COMPLETED
+  ) {
     existingTask.priority = priority;
     existingTask.status = CleaningStatus.PENDING;
     existingTask.startedBy = null;

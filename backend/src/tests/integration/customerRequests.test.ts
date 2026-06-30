@@ -50,6 +50,7 @@ describe('Customer Requests Integration Tests', () => {
       capacity: 4,
       status: TableStatus.OCCUPIED,
       qrCode: `QR-restaurant-${dummyRestaurantId.toString()}-table-12`,
+      qrToken: `QR-restaurant-${dummyRestaurantId.toString()}-table-12-token`,
       isActive: true,
     });
     dummyTableId = table._id as mongoose.Types.ObjectId;
@@ -111,7 +112,7 @@ describe('Customer Requests Integration Tests', () => {
 
       expect(res.status).toBe(401);
       expect(res.body.success).toBe(false);
-      expect(res.body.error.code).toBe(ErrorCode.TABLE_SESSION_EXPIRED);
+      expect(res.body.error.code).toBe(ErrorCode.SESSION_INVALID);
     });
 
     it('should return 401 and TABLE_SESSION_EXPIRED if session has hit hard expiry', async () => {

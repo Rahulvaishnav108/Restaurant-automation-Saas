@@ -1,8 +1,4 @@
 import { Router } from 'express';
-import { roles } from '../../constants/roles';
-import { requireAuth } from '../../middleware/requireAuth';
-import { roleGuard } from '../../middleware/roleGuard';
-import { tenantGuard } from '../../middleware/tenantGuard';
 import { validate } from '../../middleware/validate';
 import { CleaningController } from './cleaning.controller';
 import {
@@ -14,9 +10,6 @@ import {
 } from './cleaning.schema';
 
 const router = Router();
-const cleaningRoles = [roles.cleaningStaff, roles.restaurantAdmin] as const;
-
-router.use(requireAuth, roleGuard(...cleaningRoles), tenantGuard);
 
 router.get('/tasks', validate({ query: cleaningTaskQuerySchema }), CleaningController.getTasks);
 router.get('/tasks/:id', validate({ params: cleaningTaskParamsSchema }), CleaningController.getTask);
