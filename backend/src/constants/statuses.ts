@@ -17,6 +17,7 @@ export enum TableStatus {
   PAID = 'PAID',
   DIRTY = 'NEEDS_CLEANING',
   CLEANING = 'CLEANING_IN_PROGRESS',
+  MAINTENANCE = 'MAINTENANCE',
 
   // Backward compatibility aliases
   PAYMENT_PENDING = 'PAYMENT_PENDING',

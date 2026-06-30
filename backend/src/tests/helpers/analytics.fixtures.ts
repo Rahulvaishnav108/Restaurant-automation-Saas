@@ -56,6 +56,7 @@ export async function seedAnalyticsContext() {
       section: 'Main',
       status: TableStatus.AVAILABLE,
       qrCode: 'analytics-qr-a1',
+      qrToken: 'analytics-qr-a1-token',
     },
     {
       restaurantId: restaurant._id,
@@ -65,6 +66,7 @@ export async function seedAnalyticsContext() {
       section: 'Main',
       status: TableStatus.RESERVED,
       qrCode: 'analytics-qr-a2',
+      qrToken: 'analytics-qr-a2-token',
     },
     {
       restaurantId: restaurant._id,
@@ -74,6 +76,7 @@ export async function seedAnalyticsContext() {
       section: 'VIP',
       status: TableStatus.OCCUPIED,
       qrCode: 'analytics-qr-b1',
+      qrToken: 'analytics-qr-b1-token',
     },
     {
       restaurantId: restaurant._id,
@@ -83,6 +86,7 @@ export async function seedAnalyticsContext() {
       section: 'VIP',
       status: TableStatus.PAYMENT_PENDING,
       qrCode: 'analytics-qr-b2',
+      qrToken: 'analytics-qr-b2-token',
     },
     {
       restaurantId: restaurant._id,
@@ -92,6 +96,7 @@ export async function seedAnalyticsContext() {
       section: 'Patio',
       status: TableStatus.NEEDS_CLEANING,
       qrCode: 'analytics-qr-c1',
+      qrToken: 'analytics-qr-c1-token',
     },
     {
       restaurantId: restaurant._id,
@@ -101,6 +106,7 @@ export async function seedAnalyticsContext() {
       section: 'Patio',
       status: TableStatus.CLEANING_IN_PROGRESS,
       qrCode: 'analytics-qr-c2',
+      qrToken: 'analytics-qr-c2-token',
     },
     {
       restaurantId: restaurant._id,
@@ -110,6 +116,7 @@ export async function seedAnalyticsContext() {
       section: 'Archive',
       status: TableStatus.AVAILABLE,
       qrCode: 'analytics-qr-z9',
+      qrToken: 'analytics-qr-z9-token',
       isActive: false,
     },
   ]);

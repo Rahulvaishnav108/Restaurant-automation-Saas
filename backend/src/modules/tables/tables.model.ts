@@ -24,15 +24,16 @@ export interface ITable extends Document {
 
 /** Valid state transitions for the table lifecycle */
 export const TABLE_TRANSITIONS: Record<TableStatus, TableStatus[]> = {
-  [TableStatus.AVAILABLE]: [TableStatus.RESERVED, TableStatus.OCCUPIED],
+  [TableStatus.AVAILABLE]: [TableStatus.RESERVED, TableStatus.OCCUPIED, TableStatus.MAINTENANCE],
   [TableStatus.RESERVED]: [TableStatus.AVAILABLE, TableStatus.OCCUPIED],
   [TableStatus.OCCUPIED]: [TableStatus.AVAILABLE, TableStatus.ORDERING, TableStatus.BILL_PENDING, TableStatus.PAYMENT_PENDING, TableStatus.DIRTY],
   [TableStatus.ORDERING]: [TableStatus.AVAILABLE, TableStatus.BILL_PENDING, TableStatus.PAYMENT_PENDING, TableStatus.DIRTY],
   [TableStatus.BILL_PENDING]: [TableStatus.PAID, TableStatus.DIRTY],
   [TableStatus.PAYMENT_PENDING]: [TableStatus.PAID, TableStatus.DIRTY],
   [TableStatus.PAID]: [TableStatus.DIRTY],
-  [TableStatus.DIRTY]: [TableStatus.CLEANING],
-  [TableStatus.CLEANING]: [TableStatus.AVAILABLE],
+  [TableStatus.DIRTY]: [TableStatus.CLEANING, TableStatus.AVAILABLE, TableStatus.MAINTENANCE],
+  [TableStatus.CLEANING]: [TableStatus.DIRTY, TableStatus.AVAILABLE, TableStatus.MAINTENANCE],
+  [TableStatus.MAINTENANCE]: [],
 };
 
 const tableSchema = new Schema<ITable>(
