@@ -1,8 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCleaning } from '../hooks/usecleaning';
 import ImageCropperModal from '../../customer/components/dashboard/ImageCropperModal';
 import { useAuth } from '../../../auth/AuthProvider';
+import { useToast } from '../components/dashboard/Toast';
+import { cleaningStore } from '../store/cleaning.store';
 
 interface ActivityItem {
   icon: string;
@@ -44,10 +46,24 @@ export default function CleaningProfilePage() {
 
   // 🔌 Connect with dynamic system telemetry layer
   const { urgentTasks, profile, updateProfile } = useCleaning();
+  const { showToast } = useToast();
   const safeTasks: TableTask[] = (urgentTasks || []) as TableTask[];
 
-  const liveCleanedCount = safeTasks.filter(t => t.rawStatus === 'COMPLETED' || t.rawStatus === 'VERIFIED').length;
-  const liveInProgressCount = safeTasks.filter((t: TableTask) => t.rawStatus === 'IN_PROGRESS').length;
+  const [tableList, setTableList] = useState(cleaningStore.tables);
+  const [showAllActivities, setShowAllActivities] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+
+  useEffect(() => {
+    const unsubscribe = cleaningStore.subscribe(() => {
+      setTableList([...cleaningStore.tables]);
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  const liveCleanedCount = tableList.filter(t => t.status === 'Available' || t.status === 'Done').length;
+  const liveInProgressCount = tableList.filter(t => t.status === 'In Progress').length;
 
   // Edit Modals states
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -95,6 +111,7 @@ export default function CleaningProfilePage() {
     setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
+    setPasswordError('');
     setShowPasswordModal(true);
   };
 
@@ -123,10 +140,11 @@ export default function CleaningProfilePage() {
   const handleSavePassword = (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      alert("New passwords do not match!");
+      setPasswordError("New passwords do not match!");
       return;
     }
-    alert("Password updated successfully!");
+    setPasswordError('');
+    showToast("Password updated successfully!", "success");
     setShowPasswordModal(false);
   };
 
@@ -155,12 +173,54 @@ export default function CleaningProfilePage() {
   };
 
   const activities: ActivityItem[] = [
-    { icon: 'check_circle', iconBg: 'bg-green-100 dark:bg-green-950/30', iconColor: 'text-green-600 dark:text-green-400', title: 'Completed table T01', timestamp: 'Jun 16, 2026', subtitle: 'Dining Area A • 10:30 AM' },
-    { icon: 'timer', iconBg: 'bg-orange-100 dark:bg-orange-950/30', iconColor: 'text-orange-600 dark:text-orange-400', title: 'Started cleaning table T12', timestamp: 'Jun 16, 2026', subtitle: 'Dining Area A • 10:18 AM' },
-    { icon: 'assignment', iconBg: 'bg-orange-100 dark:bg-orange-950/30', iconColor: 'text-orange-500 dark:text-orange-400', title: 'Completed task', timestamp: 'Jun 16, 2026', subtitle: 'Restroom Sanitization • 09:15 AM' },
-    { icon: 'verified', iconBg: 'bg-purple-100 dark:bg-purple-950/30', iconColor: 'text-purple-600 dark:text-purple-400', title: 'Hygiene score updated', timestamp: 'Jun 15, 2026', subtitle: 'Score: 98% (Excellent)' },
-    { icon: 'check_circle', iconBg: 'bg-green-100 dark:bg-green-950/30', iconColor: 'text-green-600 dark:text-green-400', title: 'Completed table T05', timestamp: 'Jun 15, 2026', subtitle: 'Dining Area B • 03:45 PM' },
-    { icon: 'timer', iconBg: 'bg-orange-100 dark:bg-orange-950/30', iconColor: 'text-orange-600 dark:text-orange-400', title: 'Started cleaning table T08', timestamp: 'Jun 15, 2026', subtitle: 'Dining Area A • 02:30 PM' },
+    {
+      icon: 'check_circle',
+      iconBg: 'bg-green-100 dark:bg-green-950/30',
+      iconColor: 'text-green-600 dark:text-green-400',
+      title: 'Completed table T01',
+      timestamp: 'Jun 16, 2026',
+      subtitle: 'Dining Area A • 10:30 AM',
+    },
+    {
+      icon: 'timer',
+      iconBg: 'bg-orange-100 dark:bg-orange-950/30',
+      iconColor: 'text-orange-600 dark:text-orange-400',
+      title: 'Started cleaning table T12',
+      timestamp: 'Jun 16, 2026',
+      subtitle: 'Dining Area A • 10:18 AM',
+    },
+    {
+      icon: 'assignment',
+      iconBg: 'bg-orange-100 dark:bg-orange-950/30',
+      iconColor: 'text-orange-500 dark:text-orange-400',
+      title: 'Completed task',
+      timestamp: 'Jun 16, 2026',
+      subtitle: 'Restroom Sanitization • 09:15 AM',
+    },
+    {
+      icon: 'verified',
+      iconBg: 'bg-purple-100 dark:bg-purple-950/30',
+      iconColor: 'text-purple-600 dark:text-purple-400',
+      title: 'Hygiene score updated',
+      timestamp: 'Jun 15, 2026',
+      subtitle: 'Score: 98% (Excellent)',
+    },
+    {
+      icon: 'check_circle',
+      iconBg: 'bg-green-100 dark:bg-green-950/30',
+      iconColor: 'text-green-600 dark:text-green-400',
+      title: 'Completed table T05',
+      timestamp: 'Jun 15, 2026',
+      subtitle: 'Dining Area B • 03:45 PM',
+    },
+    {
+      icon: 'timer',
+      iconBg: 'bg-orange-100 dark:bg-orange-950/30',
+      iconColor: 'text-orange-600 dark:text-orange-400',
+      title: 'Started cleaning table T08',
+      timestamp: 'Jun 15, 2026',
+      subtitle: 'Dining Area A • 02:30 PM',
+    },
   ];
 
   const preferences: PreferenceItem[] = [
@@ -172,11 +232,46 @@ export default function CleaningProfilePage() {
   ];
 
   const badges: BadgeItem[] = [
-    { title: 'Consistency Star', desc: 'Completed 20 tasks in a row', earned: 'Earned on Jun 10, 2026', icon: 'star', bgClass: 'bg-green-500', shadowClass: 'shadow-green-250 dark:shadow-none' },
-    { title: 'Hygiene Hero', desc: 'Maintained 95%+ hygiene score for a week', earned: 'Earned on Jun 5, 2026', icon: 'shield', bgClass: 'bg-blue-500', shadowClass: 'shadow-blue-250 dark:shadow-none' },
-    { title: 'Time Keeper', desc: 'Completed tasks on time for 10 days', earned: 'Earned on May 28, 2026', icon: 'schedule', bgClass: 'bg-purple-500', shadowClass: 'shadow-purple-250 dark:shadow-none' },
-    { title: 'Clean Sweep', desc: 'No pending tasks for a full day', earned: 'Earned on May 20, 2026', icon: 'cleaning_services', bgClass: 'bg-orange-500', shadowClass: 'shadow-orange-250 dark:shadow-none' },
-    { title: 'Rising Star', desc: 'Top performer of the month', earned: 'Earned on May 1, 2026', icon: 'workspace_premium', bgClass: 'bg-teal-500', shadowClass: 'shadow-teal-250 dark:shadow-none' },
+    {
+      title: 'Consistency Star',
+      desc: 'Completed 20 tasks in a row',
+      earned: 'Earned on Jun 10, 2026',
+      icon: 'star',
+      bgClass: 'bg-green-500',
+      shadowClass: 'shadow-green-250 dark:shadow-none',
+    },
+    {
+      title: 'Hygiene Hero',
+      desc: 'Maintained 95%+ hygiene score for a week',
+      earned: 'Earned on Jun 5, 2026',
+      icon: 'shield',
+      bgClass: 'bg-blue-500',
+      shadowClass: 'shadow-blue-250 dark:shadow-none',
+    },
+    {
+      title: 'Time Keeper',
+      desc: 'Completed tasks on time for 10 days',
+      earned: 'Earned on May 28, 2026',
+      icon: 'schedule',
+      bgClass: 'bg-purple-500',
+      shadowClass: 'shadow-purple-250 dark:shadow-none',
+    },
+    {
+      title: 'Clean Sweep',
+      desc: 'No pending tasks for a full day',
+      earned: 'Earned on May 20, 2026',
+      icon: 'cleaning_services',
+      bgClass: 'bg-orange-500',
+      shadowClass: 'shadow-orange-250 dark:shadow-none',
+    },
+    {
+      title: 'Rising Star',
+      desc: 'Top performer of the month',
+      earned: 'Earned on May 1, 2026',
+      icon: 'workspace_premium',
+      bgClass: 'bg-teal-500',
+      shadowClass: 'shadow-teal-250 dark:shadow-none',
+    },
   ];
 
   return (
@@ -403,11 +498,13 @@ export default function CleaningProfilePage() {
           <section className="bg-white dark:bg-sd-surface-container rounded-2xl border border-slate-150 dark:border-slate-800 p-5 shadow-sm">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 font-sans">Recent Activity</h3>
-              <button type="button" onClick={() => alert("View All clicked!")} className="text-[10px] font-bold text-orange-500 cursor-pointer hover:underline font-sans">View All</button>
+              <button type="button" onClick={() => setShowAllActivities(!showAllActivities)} className="text-[10px] font-bold text-orange-500 cursor-pointer hover:underline font-sans">
+                {showAllActivities ? "Show Less" : "View All"}
+              </button>
             </div>
 
             <div className="space-y-4 relative before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-[2.5px] before:bg-slate-100 dark:before:bg-slate-800/80">
-              {activities.map((act, idx) => (
+              {(showAllActivities ? activities : activities.slice(0, 3)).map((act, idx) => (
                 <div key={idx} className="flex gap-3 relative z-10 font-sans text-xs bg-white dark:bg-sd-surface-container">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${act.iconBg}`}>
                     <span className={`material-symbols-outlined text-[16px] ${act.iconColor}`} style={{ fontVariationSettings: "'FILL' 1" }}>{act.icon}</span>
@@ -628,6 +725,11 @@ export default function CleaningProfilePage() {
               Choose a strong and secure new password.
             </p>
             <form onSubmit={handleSavePassword} className="space-y-4 font-sans text-xs">
+              {passwordError && (
+                <div className="p-2.5 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-xl text-red-600 dark:text-red-400 font-bold mb-2">
+                  {passwordError}
+                </div>
+              )}
               <div>
                 <label htmlFor="current-pw" className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">Current Password</label>
                 <input
