@@ -1,7 +1,55 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import {
+  createCustomerPayment,
+  verifyCustomerPayment,
+  type CustomerPaymentMethod,
+} from '../api/customer.api';
 import { useCart } from '../components/dashboard/CartContext';
 import { useCustomerStore } from '../store/customer.store';
+
+type RazorpaySuccessResponse = {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+};
+
+type RazorpayCheckoutOptions = {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  handler: (response: RazorpaySuccessResponse) => void;
+  modal?: {
+    ondismiss?: () => void;
+  };
+  theme?: {
+    color?: string;
+  };
+};
+
+declare global {
+  interface Window {
+    Razorpay?: new (options: RazorpayCheckoutOptions) => { open: () => void };
+  }
+}
+
+const loadRazorpayCheckout = () =>
+  new Promise<void>((resolve, reject) => {
+    if (window.Razorpay) {
+      resolve();
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Unable to load Razorpay checkout. Please try again.'));
+    document.body.appendChild(script);
+  });
 
 export default function CustomerCheckoutPage() {
   const {
@@ -21,11 +69,13 @@ export default function CustomerCheckoutPage() {
   const [couponError, setCouponError] = useState('');
   const [couponSuccess, setCouponSuccess] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
   
   const navigate = useNavigate();
   const { addNotification, tableCode, offers, loyaltyPoints, claimOffer, addOrder } = useCustomerStore();
 
-  const handlePlaceOrder = () => {
+  const completeLocalOrder = () => {
     if (items.length === 0) return;
 
     const orderId = `#ORD-${Math.floor(3000 + Math.random() * 6000)}`;
@@ -49,6 +99,79 @@ export default function CustomerCheckoutPage() {
     );
     clearCart();
     navigate('/customer/orders');
+  };
+
+  const handlePlaceOrder = async () => {
+    if (items.length === 0 || isPaying) return;
+
+    const paymentMethodMap: Record<string, CustomerPaymentMethod> = {
+      upi: 'UPI',
+      card: 'CARD',
+      netbanking: 'ONLINE',
+    };
+    const backendPaymentMethod = paymentMethodMap[paymentMethod] ?? 'ONLINE';
+
+    setIsPaying(true);
+    setPaymentError('');
+
+    try {
+      const payment = await createCustomerPayment(backendPaymentMethod);
+      const paymentId = payment.razorpayOrderId ?? payment.paymentId ?? payment.paymentIntentId;
+
+      if (payment.provider === 'razorpay' && payment.razorpayKeyId && payment.razorpayOrderId) {
+        await loadRazorpayCheckout();
+
+        const Checkout = window.Razorpay;
+        if (!Checkout) {
+          throw new Error('Razorpay checkout is unavailable. Please try again.');
+        }
+
+        const checkout = new Checkout({
+          key: payment.razorpayKeyId,
+          amount: Math.round(payment.amount * 100),
+          currency: payment.currency ?? 'INR',
+          name: 'Smart Dining',
+          description: 'Table bill payment',
+          order_id: payment.razorpayOrderId,
+          handler: async (response) => {
+            try {
+              await verifyCustomerPayment({
+                paymentId,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              });
+              completeLocalOrder();
+            } catch (error) {
+              setPaymentError(error instanceof Error ? error.message : 'Payment verification failed.');
+            } finally {
+              setIsPaying(false);
+            }
+          },
+          modal: {
+            ondismiss: () => {
+              setIsPaying(false);
+            },
+          },
+          theme: {
+            color: '#df6b21',
+          },
+        });
+
+        checkout.open();
+        return;
+      }
+
+      await verifyCustomerPayment({
+        paymentId,
+        simulateStatus: 'COMPLETED',
+      });
+      completeLocalOrder();
+      setIsPaying(false);
+    } catch (error) {
+      setPaymentError(error instanceof Error ? error.message : 'Unable to start payment. Please try again.');
+      setIsPaying(false);
+    }
   };
 
   const handleApplyCoupon = (codeStr: string) => {
@@ -286,12 +409,15 @@ export default function CustomerCheckoutPage() {
             </div>
             <button
               onClick={handlePlaceOrder}
-              disabled={items.length === 0}
+              disabled={items.length === 0 || isPaying}
               className="w-full bg-sd-primary-container text-white h-13 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 hover:shadow-xl hover:shadow-sd-primary-container/20 transition-all active:scale-95 font-sans disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Pay ₹{total}
+              {isPaying ? 'Processing...' : `Pay ₹${total}`}
               <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
             </button>
+            {paymentError && (
+              <p className="text-xs text-sd-error font-bold font-sans">{paymentError}</p>
+            )}
             <div className="bg-sd-surface-container-low p-3.5 rounded-xl space-y-2">
               <div className="flex items-center gap-2 text-sd-secondary">
                 <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
