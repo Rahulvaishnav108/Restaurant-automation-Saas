@@ -3,6 +3,7 @@ import { useCleaning } from '../hooks/usecleaning';
 import { useCleaningSearch } from '../components/dashboard/CleaningSearchContext';
 import { useNotifications } from '../hooks/useNotifications';
 import { cleaningStore } from '../store/cleaning.store';
+import { useToast } from '../components/dashboard/Toast';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 interface CleaningRequest {
@@ -30,6 +31,7 @@ interface TableTask {
 
 export default function CleaningRequestsPage() {
   const { searchQuery } = useCleaningSearch();
+  const { showToast } = useToast();
   const [statusFilter, setStatusFilter] = useState('All Status');
   const [priorityFilter, setPriorityFilter] = useState('All Priority');
   const [typeFilter, setTypeFilter] = useState('All Type');
@@ -38,7 +40,7 @@ export default function CleaningRequestsPage() {
 
   // New request form state
   const [newRequestType, setNewRequestType] = useState('Spill Cleanup');
-  const [newRequestLocation, setNewRequestLocation] = useState('Dining Area A');
+  const [newRequestLocation, setNewRequestLocation] = useState(() => cleaningStore.tables[0]?.id || '');
   const [newRequestPriority, setNewRequestPriority] = useState<'High' | 'Medium' | 'Low'>('Medium');
   // 💥 Premium Custom Top Filter Dropdowns Tracking States
   const [isStatusOpen, setIsStatusOpen] = useState(false);
@@ -69,6 +71,11 @@ export default function CleaningRequestsPage() {
       unsubscribe();
     };
   }, []);
+  useEffect(() => {
+    if (showAddModal && cleaningStore.tables.length > 0) {
+      setNewRequestLocation(cleaningStore.tables[0].id);
+    }
+  }, [showAddModal]);
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node;
@@ -141,11 +148,11 @@ export default function CleaningRequestsPage() {
   });
 
   // Dynamic Bento stats calculation driven by store data states lengths
-  const totalCount = requests.length + 32;
-  const inProgressCount = requests.filter((r) => r.status === 'In Progress').length + 10;
-  const completedCount = requests.filter((r) => r.status === 'Completed').length + 17;
-  const scheduledCount = requests.filter((r) => r.status === 'Scheduled').length + 5;
-  const cancelledCount = 2;
+  const totalCount = allRequests.length;
+  const inProgressCount = allRequests.filter((r) => r.status === 'In Progress').length;
+  const completedCount = allRequests.filter((r) => r.status === 'Completed').length;
+  const scheduledCount = allRequests.filter((r) => r.status === 'Scheduled').length;
+  const cancelledCount = allRequests.filter((r) => r.status === 'Cancelled').length;
 
   // Add request via central system trigger
   const handleAddRequest = (e: React.FormEvent) => {
@@ -158,7 +165,7 @@ export default function CleaningRequestsPage() {
       type: newRequestType,
       icon: 'water_drop',
       iconColor: 'text-blue-500',
-      location: newRequestLocation,
+      location: `Table ${newRequestLocation}`,
       requestedBy: {
         name: 'Staff',
         avatar:
@@ -173,7 +180,7 @@ export default function CleaningRequestsPage() {
       }),
       requestedTime: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
       assignedTo: null,
-      rawId: `T-${Date.now()}`,
+      rawId: newRequestLocation,
     });
 
     window.dispatchEvent(
@@ -192,10 +199,8 @@ export default function CleaningRequestsPage() {
   const handleAction = (data: unknown) => {
     console.log(data);
   };
-  const handleToggleRequestStatus = (rawId: string | undefined, currentStatus: string) => {
-    const id = rawId!;
-
-    if (currentStatus === 'Scheduled') {
+  const handleToggleRequestStatus = (id: string, currentStatus: string) => {
+    if (currentStatus === 'Scheduled' || currentStatus === 'Pending') {
       cleaningStore.updateRequestStatus(id, 'In Progress');
     } else if (currentStatus === 'In Progress') {
       cleaningStore.updateRequestStatus(id, 'Completed');
@@ -222,18 +227,14 @@ export default function CleaningRequestsPage() {
   };
 
   const handleOpenRequestActionMenu = (row: CleaningRequest) => {
-    const confirmation = window.confirm(
-      `[Request ${row.id} Housekeeping Core Settings]\n\nClick OK to flag a high priority alert system report for this ticket,\nor Cancel to exit.`
-    );
-    if (confirmation) {
-      alert(`Emergency monitoring dispatched to zone location: ${row.location}`);
-    }
+    cleaningStore.updateRequestStatus(row.id, 'Pending');
+    showToast(`Request ${row.id} flagged as urgent.`, 'warning');
   };
 
   // Fully Functional CSV Export Logic
   const handleExportCSV = () => {
     if (filteredRequests.length === 0) {
-      alert('Export karne ke liye koi data nahi hai!');
+      showToast('No data to export.', 'warning');
       return;
     }
     const headers = [
@@ -288,6 +289,9 @@ export default function CleaningRequestsPage() {
   const indexOfLastRow = currentPage * rowsPerPage;
   const indexOfFirstRow = indexOfLastRow - rowsPerPage;
   const currentPaginatedRequests = filteredRequests.slice(indexOfFirstRow, indexOfLastRow);
+
+  const totalPages = Math.ceil(filteredRequests.length / rowsPerPage) || 1;
+  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   return (
     <div className="space-y-6 lg:space-y-8 animate-fadeIn cleaning-panel">
@@ -598,7 +602,7 @@ export default function CleaningRequestsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <button
-                        onClick={() => handleToggleRequestStatus(row.rawId!, row.status)}
+                        onClick={() => handleToggleRequestStatus(row.id, row.status)}
                         className={`px-3 py-0.5 rounded-full text-[10px] font-bold border cursor-pointer transition-colors ${
                           row.status === 'Completed'
                             ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/20 dark:text-green-400 dark:border-green-900/30'
@@ -683,12 +687,11 @@ export default function CleaningRequestsPage() {
             </tbody>
           </table>
         </div>
-
-        {/* Pagination Panel Footer */}
+            {/* Pagination Panel Footer */}
         <div className="px-6 py-4 bg-white dark:bg-sd-surface-container flex flex-col md:flex-row md:items-center justify-between gap-4 border-t border-slate-100 dark:border-slate-800 relative z-30">
           <p className="text-slate-400 dark:text-slate-455 font-bold">
             Showing {indexOfFirstRow + 1} to {Math.min(indexOfLastRow, filteredRequests.length)} of{' '}
-            {totalCount} requests
+            {filteredRequests.length} requests
           </p>
           <div className="flex items-center gap-6">
             {/* Custom HTML Rows Per Page Menu Block */}
@@ -745,7 +748,7 @@ export default function CleaningRequestsPage() {
               >
                 <span className="material-symbols-outlined text-sm">chevron_left</span>
               </button>
-              {[1, 2].map((page) => (
+              {pageNumbers.map((page) => (
                 <button
                   key={page}
                   type="button"
@@ -753,7 +756,7 @@ export default function CleaningRequestsPage() {
                   className={`w-8 h-8 font-bold rounded-lg transition-all cursor-pointer ${
                     currentPage === page
                       ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
-                      : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-650 dark:text-slate-350'
+                      : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-650 dark:text-slate-355'
                   }`}
                 >
                   {page}
@@ -761,8 +764,8 @@ export default function CleaningRequestsPage() {
               ))}
               <button
                 type="button"
-                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, 2))}
-                disabled={currentPage === 2}
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
                 className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span className="material-symbols-outlined text-sm">chevron_right</span>
@@ -796,10 +799,10 @@ export default function CleaningRequestsPage() {
                   onChange={(e) => setNewRequestType(e.target.value)}
                   className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 >
-                  <option value="Spill Cleanup">Spill Cleanup 💧</option>
-                  <option value="Restroom Cleaning">Restroom Cleaning 🚾</option>
-                  <option value="Waste Overflow">Waste Overflow 🗑️</option>
-                  <option value="Dusting">Dusting 💨</option>
+                  <option className="bg-white dark:bg-slate-850 text-slate-900 dark:text-slate-100" value="Spill Cleanup">Spill Cleanup 💧</option>
+                  <option className="bg-white dark:bg-slate-850 text-slate-900 dark:text-slate-100" value="Restroom Cleaning">Restroom Cleaning 🚾</option>
+                  <option className="bg-white dark:bg-slate-850 text-slate-900 dark:text-slate-100" value="Waste Overflow">Waste Overflow 🗑️</option>
+                  <option className="bg-white dark:bg-slate-850 text-slate-900 dark:text-slate-100" value="Dusting">Dusting 💨</option>
                 </select>
               </div>
 
@@ -810,15 +813,19 @@ export default function CleaningRequestsPage() {
                 >
                   Location / Table ID
                 </label>
-                <input
+                <select
                   id="new-request-location"
-                  type="text"
-                  placeholder="e.g. Dining Area B, Table T09, Lobby"
                   value={newRequestLocation}
                   onChange={(e) => setNewRequestLocation(e.target.value)}
-                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:border-orange-500"
+                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   required
-                />
+                >
+                  {cleaningStore.tables.map((t) => (
+                    <option className="bg-white dark:bg-slate-850 text-slate-900 dark:text-slate-100" key={t.id} value={t.id}>
+                      {t.id} ({t.area})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -836,9 +843,9 @@ export default function CleaningRequestsPage() {
                   }
                   className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 >
-                  <option value="High">High Urgency (Red Alert)</option>
-                  <option value="Medium">Medium Urgency (Normal Flow)</option>
-                  <option value="Low">Low Urgency (Routine Check)</option>
+                  <option className="bg-white dark:bg-slate-850 text-slate-900 dark:text-slate-100" value="High">High Urgency (Red Alert)</option>
+                  <option className="bg-white dark:bg-slate-850 text-slate-900 dark:text-slate-100" value="Medium">Medium Urgency (Normal Flow)</option>
+                  <option className="bg-white dark:bg-slate-850 text-slate-900 dark:text-slate-100" value="Low">Low Urgency (Routine Check)</option>
                 </select>
               </div>
 

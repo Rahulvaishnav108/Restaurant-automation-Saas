@@ -1,10 +1,18 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 
-const NAV_ITEMS = [
+interface NavItem {
+  to: string;
+  icon: string;
+  label: string;
+  end?: boolean;
+  badge?: string;
+}
+
+const NAV_ITEMS: NavItem[] = [
   { to: '/cleaning', icon: 'dashboard', label: 'Dashboard', end: true },
   { to: '/cleaning/tables', icon: 'table_restaurant', label: 'Tables' },
-  { to: '/cleaning/requests', icon: 'notification_important', label: 'Requests', badge: 'New' },
+  { to: '/cleaning/requests', icon: 'notification_important', label: 'Requests' },
   { to: '/cleaning/tasks', icon: 'assignment', label: 'Tasks' },
   { to: '/cleaning/profile', icon: 'person', label: 'Profile' },
   { to: '/cleaning/settings', icon: 'settings', label: 'Settings' },

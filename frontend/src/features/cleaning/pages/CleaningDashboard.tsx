@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react'; // useEffect add kiya
+import React, { useState, useEffect } from 'react';
 import { useCleaning } from '../hooks/usecleaning';
 import { useNotifications } from '../hooks/useNotifications';
 import { useCleaningSearch } from '../components/dashboard/CleaningSearchContext';
-import { cleaningStore, CleaningRequest } from '../store/cleaning.store';
+import { cleaningStore, CleaningRequest, CleaningStaffMember } from '../store/cleaning.store';
+import { useToast } from '../components/dashboard/Toast';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 interface HygieneTask {
@@ -26,6 +27,7 @@ interface TableTask {
 
 export default function CleaningDashboard() {
   const { searchQuery } = useCleaningSearch();
+  const { showToast } = useToast();
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [requests, setRequests] = useState(cleaningStore.requests);
   const [newRequestTable, setNewRequestTable] = useState('');
@@ -35,14 +37,21 @@ export default function CleaningDashboard() {
   const [specialNotes, setSpecialNotes] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<CleaningRequest | null>(null);
   const [tables, setTables] = useState(cleaningStore.tables);
+
+  // Staff Management State
+  const [staffList, setStaffList] = useState<CleaningStaffMember[]>(cleaningStore.staffMembers);
+  const [showAddStaffModal, setShowAddStaffModal] = useState(false);
+  const [newStaffName, setNewStaffName] = useState('');
+  const [newStaffRole, setNewStaffRole] = useState('Cleaning Staff');
+  const [newStaffArea, setNewStaffArea] = useState('Dining Area A');
+  const [newStaffPhone, setNewStaffPhone] = useState('');
   useEffect(() => {
-  const unsubscribe = cleaningStore.subscribe(() => {
-    setTables([...cleaningStore.tables]);
-  });
-  return () => {
-    unsubscribe();
-  };
-}, []);
+    const unsubscribe = cleaningStore.subscribe(() => {
+      setTables([...cleaningStore.tables]);
+      setStaffList([...cleaningStore.staffMembers]);
+    });
+    return () => { unsubscribe(); };
+  }, []);
 
   const { unreadCount, addNotification } = useNotifications();
   useEffect(() => {
@@ -809,6 +818,158 @@ const completedToday = safeTasks
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+      {/* ===== Cleaning Staff Management Panel ===== */}
+      <section className="bg-white dark:bg-sd-surface-container rounded-2xl border border-slate-150 dark:border-slate-800/60 shadow-sm p-6">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h2 className="font-extrabold text-sm text-slate-800 dark:text-slate-100 font-sans">Cleaning Staff</h2>
+            <p className="text-[11px] text-slate-400 dark:text-slate-455 mt-0.5 font-sans">
+              {staffList.length} team member{staffList.length !== 1 ? 's' : ''} registered
+            </p>
+          </div>
+          <button
+            onClick={() => { setNewStaffName(''); setNewStaffPhone(''); setShowAddStaffModal(true); }}
+            className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[16px]">person_add</span>
+            Add Staff
+          </button>
+        </div>
+
+        {staffList.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 text-slate-400 gap-2">
+            <span className="material-symbols-outlined text-4xl">group_off</span>
+            <p className="text-xs font-semibold">No staff added yet. Click "Add Staff" to begin.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {staffList.map((member) => (
+              <div
+                key={member.id}
+                className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40"
+              >
+                <img
+                  src={member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=f97316&color=fff&bold=true`}
+                  alt={member.name}
+                  className="w-10 h-10 rounded-full object-cover border-2 border-orange-200 shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-xs text-slate-800 dark:text-slate-100 truncate">{member.name}</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-455 truncate">{member.role} · {member.area}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    cleaningStore.removeStaffMember(member.id);
+                    showToast(`${member.name} removed from staff.`, 'info');
+                  }}
+                  className="text-slate-400 hover:text-red-500 transition-colors cursor-pointer p-1"
+                  title="Remove staff member"
+                >
+                  <span className="material-symbols-outlined text-[18px]">close</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Add Staff Modal */}
+      {showAddStaffModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-sd-surface-container rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-xl w-full max-w-sm">
+            <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-100 mb-1 font-sans">Add Cleaning Staff</h3>
+            <p className="text-[11px] text-slate-400 dark:text-slate-455 mb-4 font-sans">Register a new team member to assign to tables.</p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newStaffName.trim()) return;
+                const newMember: CleaningStaffMember = {
+                  id: `STF-${Date.now()}`,
+                  name: newStaffName.trim(),
+                  role: newStaffRole,
+                  area: newStaffArea,
+                  phone: newStaffPhone,
+                  avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(newStaffName)}&background=f97316&color=fff&bold=true`,
+                };
+                cleaningStore.addStaffMember(newMember);
+                showToast(`${newMember.name} added to staff!`, 'success');
+                setShowAddStaffModal(false);
+              }}
+              className="space-y-3 font-sans text-xs"
+            >
+              <div>
+                <label htmlFor="staff-name" className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">Full Name</label>
+                <input
+                  id="staff-name"
+                  type="text"
+                  placeholder="e.g. Sunil Kumar"
+                  value={newStaffName}
+                  onChange={(e) => setNewStaffName(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:border-orange-500"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="staff-role" className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">Role</label>
+                  <select
+                    id="staff-role"
+                    value={newStaffRole}
+                    onChange={(e) => setNewStaffRole(e.target.value)}
+                    className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none"
+                  >
+                    <option className="bg-white dark:bg-slate-850 text-slate-900 dark:text-slate-100" value="Cleaning Staff">Cleaning Staff</option>
+                    <option className="bg-white dark:bg-slate-850 text-slate-900 dark:text-slate-100" value="Senior Cleaner">Senior Cleaner</option>
+                    <option className="bg-white dark:bg-slate-850 text-slate-900 dark:text-slate-100" value="Supervisor">Supervisor</option>
+                    <option className="bg-white dark:bg-slate-850 text-slate-900 dark:text-slate-100" value="Janitor">Janitor</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="staff-area" className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">Area</label>
+                  <select
+                    id="staff-area"
+                    value={newStaffArea}
+                    onChange={(e) => setNewStaffArea(e.target.value)}
+                    className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none"
+                  >
+                    <option className="bg-white dark:bg-slate-850 text-slate-900 dark:text-slate-100" value="Dining Area A">Dining Area A</option>
+                    <option className="bg-white dark:bg-slate-850 text-slate-900 dark:text-slate-100" value="Dining Area B">Dining Area B</option>
+                    <option className="bg-white dark:bg-slate-850 text-slate-900 dark:text-slate-100" value="Terrace Area">Terrace Area</option>
+                    <option className="bg-white dark:bg-slate-850 text-slate-900 dark:text-slate-100" value="Floor 1">Floor 1</option>
+                    <option className="bg-white dark:bg-slate-850 text-slate-900 dark:text-slate-100" value="Restroom">Restroom</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label htmlFor="staff-phone" className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">Phone (optional)</label>
+                <input
+                  id="staff-phone"
+                  type="text"
+                  placeholder="+91 XXXXX XXXXX"
+                  value={newStaffPhone}
+                  onChange={(e) => setNewStaffPhone(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:border-orange-500"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddStaffModal(false)}
+                  className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-400 rounded-xl font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 transition-all"
+                >
+                  Add Staff
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

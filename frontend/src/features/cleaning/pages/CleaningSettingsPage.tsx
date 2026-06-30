@@ -5,14 +5,57 @@ export default function CleaningSettingsPage() {
   const { theme, setTheme } = useTheme();
 
   // Notification toggles context controllers
-  const [urgentAlerts, setUrgentAlerts] = useState(true);
-  const [taskReminders, setTaskReminders] = useState(true);
-  const [shiftAlerts, setShiftAlerts] = useState(false);
+  const [urgentAlerts, setUrgentAlerts] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('cleanserve-settings-urgentAlerts');
+      return saved !== null ? saved === 'true' : true;
+    }
+    return true;
+  });
+
+  const [taskReminders, setTaskReminders] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('cleanserve-settings-taskReminders');
+      return saved !== null ? saved === 'true' : true;
+    }
+    return true;
+  });
+
+  const [shiftAlerts, setShiftAlerts] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('cleanserve-settings-shiftAlerts');
+      return saved !== null ? saved === 'true' : false;
+    }
+    return false;
+  });
   
   // Custom Language Dropdown layout trackers
-  const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [selectedLanguage, setSelectedLanguage] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('cleanserve-settings-language');
+      return saved !== null ? saved : 'en';
+    }
+    return 'en';
+  });
+
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem('cleanserve-settings-urgentAlerts', String(urgentAlerts));
+  }, [urgentAlerts]);
+
+  useEffect(() => {
+    localStorage.setItem('cleanserve-settings-taskReminders', String(taskReminders));
+  }, [taskReminders]);
+
+  useEffect(() => {
+    localStorage.setItem('cleanserve-settings-shiftAlerts', String(shiftAlerts));
+  }, [shiftAlerts]);
+
+  useEffect(() => {
+    localStorage.setItem('cleanserve-settings-language', selectedLanguage);
+  }, [selectedLanguage]);
 
   const languages = [
     { code: 'en', label: 'English (US)' },
