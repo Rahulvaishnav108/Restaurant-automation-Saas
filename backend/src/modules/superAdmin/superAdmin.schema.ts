@@ -35,13 +35,41 @@ export const restaurantListQuerySchema = z.object({
 export const createPlanSchema = z.object({
   name:          z.string().trim().min(1, 'Plan name is required'),
   priceMonthly:  z.number().min(0, 'Price cannot be negative'),
+  priceYearly:   z.number().min(0, 'Yearly price cannot be negative').optional().nullable(),
+  description:   z.string().trim().max(1000).optional().nullable(),
   tenantLimit:   z.number().int().min(1, 'Tenant limit must be at least 1'),
+  usageLimit:    z.number().int().min(0, 'Usage limit must be 0 or greater').optional(),
+  tableLimit:    z.number().int().min(0, 'Table limit must be 0 or greater').optional(),
+  dailyOrderLimit: z.number().int().min(0, 'Daily order limit must be 0 or greater').optional(),
+  monthlyOrderLimit: z.number().int().min(0, 'Monthly order limit must be 0 or greater').optional(),
+  reservationAccess: z.boolean().optional(),
+  queueAccess: z.boolean().optional(),
+  advancedAnalytics: z.boolean().optional(),
+  smartAutomation: z.boolean().optional(),
+  dynamicDiscountEngine: z.boolean().optional(),
+  staffLimit:     z.number().int().min(0, 'Staff limit must be 0 or greater').optional(),
+  inventoryLimit: z.number().int().min(0, 'Inventory limit must be 0 or greater').optional(),
+  features:       z.array(z.string().trim().min(1)).optional(),
 });
 
 export const updatePlanSchema = z.object({
   name:          z.string().trim().min(1).optional(),
   priceMonthly:  z.number().min(0).optional(),
+  priceYearly:   z.number().min(0).optional().nullable(),
+  description:   z.string().trim().max(1000).optional().nullable(),
   tenantLimit:   z.number().int().min(1).optional(),
+  usageLimit:    z.number().int().min(0).optional(),
+  tableLimit:    z.number().int().min(0).optional(),
+  dailyOrderLimit: z.number().int().min(0).optional(),
+  monthlyOrderLimit: z.number().int().min(0).optional(),
+  reservationAccess: z.boolean().optional(),
+  queueAccess: z.boolean().optional(),
+  advancedAnalytics: z.boolean().optional(),
+  smartAutomation: z.boolean().optional(),
+  dynamicDiscountEngine: z.boolean().optional(),
+  staffLimit:     z.number().int().min(0).optional(),
+  inventoryLimit: z.number().int().min(0).optional(),
+  features:       z.array(z.string().trim().min(1)).optional(),
 });
 
 export const planIdParamSchema = z.object({

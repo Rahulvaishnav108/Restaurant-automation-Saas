@@ -23,5 +23,10 @@ export const renewSchema = z.object({
   days: z.coerce.number().int().positive().default(30),
 });
 
+export const usageUpdateSchema = z.object({
+  key: z.string().min(1),
+  delta: z.coerce.number().int().positive().default(1),
+});
+
 export type CreateSubscriptionInput = z.infer<typeof createSubscriptionSchema>;
 export type UpdateSubscriptionInput = z.infer<typeof updateSubscriptionSchema>;

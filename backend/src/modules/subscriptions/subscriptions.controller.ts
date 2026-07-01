@@ -45,3 +45,19 @@ export const renew = asyncHandler(async (req: Request, res: Response) => {
   const sub = await service.renew(req.params.id, days);
   ok(res, { subscription: sub });
 });
+
+export const getUsage = asyncHandler(async (req: Request, res: Response) => {
+  const usage = await service.getSubscriptionUsage(req.params.id);
+  ok(res, { usage });
+});
+
+export const getUsageReport = asyncHandler(async (req: Request, res: Response) => {
+  const report = await service.getSubscriptionUsageReport(req.params.id);
+  ok(res, { usageReport: report });
+});
+
+export const incrementUsage = asyncHandler(async (req: Request, res: Response) => {
+  const { key, delta } = req.body;
+  const subscription = await service.incrementUsage(req.params.id, key, delta);
+  ok(res, { subscription });
+});

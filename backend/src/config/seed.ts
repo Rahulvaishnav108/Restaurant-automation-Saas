@@ -196,17 +196,17 @@ export async function seedDevelopmentData(): Promise<void> {
   await Promise.all([
     PlatformPlanModel.findOneAndUpdate(
       { name: 'STARTER' },
-      { $set: { name: 'STARTER', priceMonthly: 4999, tenantLimit: 1 } },
+      { $set: { name: 'STARTER', priceMonthly: 4999, tenantLimit: 1, usageLimit: 100 } },
       { new: true, upsert: true, setDefaultsOnInsert: true },
     ),
     PlatformPlanModel.findOneAndUpdate(
       { name: 'PRO' },
-      { $set: { name: 'PRO', priceMonthly: 12999, tenantLimit: 5 } },
+      { $set: { name: 'PRO', priceMonthly: 12999, tenantLimit: 5, usageLimit: 1000 } },
       { new: true, upsert: true, setDefaultsOnInsert: true },
     ),
     PlatformPlanModel.findOneAndUpdate(
       { name: 'ENTERPRISE' },
-      { $set: { name: 'ENTERPRISE', priceMonthly: 24999, tenantLimit: 20 } },
+      { $set: { name: 'ENTERPRISE', priceMonthly: 24999, tenantLimit: 20, usageLimit: 10000 } },
       { new: true, upsert: true, setDefaultsOnInsert: true },
     ),
     FeatureFlagModel.findOneAndUpdate(

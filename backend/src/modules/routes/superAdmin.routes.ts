@@ -1,9 +1,11 @@
 import mongoose from 'mongoose';
 import { Router } from 'express';
 import { ok } from '../../utils/responses';
+import { validate } from '../../middleware/validate';
 import { RestaurantModel } from '../restaurants/restaurants.model';
 import { AuditLogModel } from '../auditLogs/auditLogs.schema';
 import { FeatureFlagModel, PlatformPlanModel } from '../superAdmin/superAdmin.model';
+import { createPlanSchema, updatePlanSchema } from '../superAdmin/superAdmin.schema';
 import subscriptionRoutes from '../subscriptions/subscriptions.routes';
 import { RestaurantStatus } from '../../constants/statuses';
 

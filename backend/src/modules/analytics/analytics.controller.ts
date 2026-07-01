@@ -91,6 +91,16 @@ export async function getCustomerRetentionAnalytics(req: Request, res: Response,
   }
 }
 
+export async function getSubscriptionUsageAnalytics(req: Request, res: Response, next: NextFunction) {
+  try {
+    const restaurantId = getRestaurantId(req);
+    const data = await AnalyticsService.getSubscriptionUsageAnalytics(restaurantId);
+    ok(res, { subscriptionUsageAnalytics: data });
+  } catch (error) {
+    next(error);
+  }
+}
+
 import logger from '../../config/logger';
 
 export async function getInventoryAnalytics(req: Request, res: Response, next: NextFunction) {
