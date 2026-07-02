@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import * as controller from './subscriptions.controller';
 import { validate } from '../../middleware/validate';
-import { createSubscriptionSchema, updateSubscriptionSchema, subscriptionIdParam, lifecycleActionSchema, renewSchema, usageUpdateSchema } from './subscriptions.schema';
+import { createSubscriptionSchema, updateSubscriptionSchema, subscriptionIdParam, lifecycleActionSchema, renewSchema, usageUpdateSchema, billingOrderSchema } from './subscriptions.schema';
 
 const router = Router();
 
@@ -19,8 +19,28 @@ router.post(
 router.post('/:id/activate', validate({ params: subscriptionIdParam, body: lifecycleActionSchema }), controller.activate);
 router.post('/:id/cancel', validate({ params: subscriptionIdParam, body: lifecycleActionSchema }), controller.cancel);
 router.post('/:id/renew', validate({ params: subscriptionIdParam, body: renewSchema }), controller.renew);
+
+// Upgrade / Downgrade / Expire lifecycle
+router.post(
+  '/:id/upgrade',
+  validate({ params: subscriptionIdParam, body: updateSubscriptionSchema }),
+  controller.upgrade,
+);
+router.post(
+  '/:id/downgrade',
+  validate({ params: subscriptionIdParam, body: updateSubscriptionSchema }),
+  controller.downgrade,
+);
+router.post(
+  '/:id/expire',
+  validate({ params: subscriptionIdParam, body: lifecycleActionSchema }),
+  controller.expire,
+);
+
 router.get('/:id/usage', validate({ params: subscriptionIdParam }), controller.getUsage);
 router.get('/:id/usage/report', validate({ params: subscriptionIdParam }), controller.getUsageReport);
 router.patch('/:id/usage', validate({ params: subscriptionIdParam, body: usageUpdateSchema }), controller.incrementUsage);
+router.get('/:id/history', validate({ params: subscriptionIdParam }), controller.history);
+router.post('/:id/billing/order', validate({ params: subscriptionIdParam, body: billingOrderSchema }), controller.createBillingOrder);
 
 export default router;

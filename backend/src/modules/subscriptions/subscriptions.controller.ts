@@ -61,3 +61,29 @@ export const incrementUsage = asyncHandler(async (req: Request, res: Response) =
   const subscription = await service.incrementUsage(req.params.id, key, delta);
   ok(res, { subscription });
 });
+
+export const upgrade = asyncHandler(async (req: Request, res: Response) => {
+  const sub = await service.upgradeSubscription(req.params.id, req.body);
+  ok(res, { subscription: sub });
+});
+
+export const downgrade = asyncHandler(async (req: Request, res: Response) => {
+  const sub = await service.downgradeSubscription(req.params.id, req.body);
+  ok(res, { subscription: sub });
+});
+
+export const expire = asyncHandler(async (req: Request, res: Response) => {
+  const { immediate } = req.body;
+  const sub = await service.expireSubscription(req.params.id, immediate);
+  ok(res, { subscription: sub });
+});
+
+export const history = asyncHandler(async (req: Request, res: Response) => {
+  const events = await service.getSubscriptionHistory(req.params.id);
+  ok(res, { history: events });
+});
+
+export const createBillingOrder = asyncHandler(async (req: Request, res: Response) => {
+  const result = await service.createBillingOrder(req.params.id, req.body);
+  ok(res, result, 201);
+});

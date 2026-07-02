@@ -175,7 +175,8 @@ export async function createPlan(input: CreatePlanInput) {
     return created[0];
   } catch (error) {
     await session.abortTransaction();
-    if (error?.code === 11000) {
+    const anyErr = error as any;
+    if (anyErr?.code === 11000) {
       throw new AppError('Plan with this name already exists', 409, ErrorCode.CONFLICT);
     }
     throw error;

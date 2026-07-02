@@ -17,6 +17,7 @@ import { sendStaffInvitationEmail } from '../../services/mail.service';
 import { env } from '../../config/env';
 import logger from '../../config/logger';
 import crypto from 'crypto';
+import { assertPlanLimit, recordSubscriptionUsage } from '../subscriptions/subscriptionEnforcement.service';
 
 type StaffRole = (typeof STAFF_ROLES)[number];
 
@@ -196,6 +197,8 @@ function getMetricBucket(map: Map<string, StaffMetrics>, staffId: string): Staff
 export async function createStaffController(req: Request, res: Response, next: NextFunction) {
   try {
     const restaurantId = resolveRestaurantId(req, req.body.restaurantId);
+    const currentStaff = await UserModel.countDocuments({ restaurantId, role: { $in: STAFF_ROLES } });
+    await assertPlanLimit(restaurantId, 'staffLimit', currentStaff + 1, 'staff members');
 
     const [emailConflict, mobileConflict] = await Promise.all([
       UserModel.exists({ email: req.body.email }),
@@ -230,6 +233,7 @@ export async function createStaffController(req: Request, res: Response, next: N
     });
 
     const staff = await UserModel.findById(created._id).lean();
+    await recordSubscriptionUsage(restaurantId, 'staffCount', currentStaff + 1);
 
     ok(res, { staff }, 201);
 

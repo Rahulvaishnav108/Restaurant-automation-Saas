@@ -1,6 +1,8 @@
 import { startExpireSessionsJob } from './expireSessions.job';
 import { startDailySalesReportJob } from './dailySalesReport.job';
 import { startReservationReminderJob } from './reservationReminder.job';
+import { startSubscriptionsLifecycleJob } from './subscriptionsLifecycle.job';
+import { startSubscriptionUsageAggregationJob } from './subscriptionUsageAggregation.job';
 import { logger } from '../config/logger';
 
 /**
@@ -12,6 +14,8 @@ export function startBackgroundJobs(): void {
     startExpireSessionsJob();
     startDailySalesReportJob();
     startReservationReminderJob();
+    startSubscriptionsLifecycleJob();
+    startSubscriptionUsageAggregationJob();
     logger.info('All background cron jobs successfully initialized');
   } catch (error) {
     logger.error('Failed to initialize background cron jobs', { error });

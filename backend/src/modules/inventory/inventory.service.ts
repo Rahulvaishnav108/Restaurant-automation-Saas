@@ -13,9 +13,13 @@ import { InventoryTransactionModel, TransactionAction, TransactionSource } from 
 import { sendLowStockAlertEmail } from '../../services/mail.service';
 import { RestaurantModel } from '../restaurants/restaurants.model';
 import { UserModel } from '../users/users.model';
+import { assertPlanLimit, recordSubscriptionUsage } from '../subscriptions/subscriptionEnforcement.service';
 
 export class InventoryService {
   static async createInventoryItem(restaurantId: string, data: any, actor: { id: string; role: string }) {
+    const currentItems = await InventoryItemModel.countDocuments({ restaurantId, active: { $ne: false } });
+    await assertPlanLimit(restaurantId, 'inventoryLimit', currentItems + 1, 'inventory items');
+
     const existing = await InventoryItemModel.exists({
       restaurantId,
       name: data.name,
@@ -39,6 +43,8 @@ export class InventoryService {
       imageEmoji: data.imageEmoji,
       description: data.description,
     });
+
+    await recordSubscriptionUsage(restaurantId, 'inventoryCount', currentItems + 1);
 
     await InventoryTransactionService.recordTransaction({
       restaurantId,
@@ -93,11 +99,19 @@ export class InventoryService {
       }
     });
 
+    await assertPlanLimit(
+      restaurantId,
+      'inventoryLimit',
+      existingItems.length + toInsert.length,
+      'inventory items',
+    );
+
     let importedCount = 0;
 
     if (toInsert.length > 0) {
       const insertedDocs = await InventoryItemModel.insertMany(toInsert);
       importedCount = insertedDocs.length;
+      await recordSubscriptionUsage(restaurantId, 'inventoryCount', existingItems.length + importedCount);
 
       const transactions = insertedDocs.map(doc => ({
         restaurantId,

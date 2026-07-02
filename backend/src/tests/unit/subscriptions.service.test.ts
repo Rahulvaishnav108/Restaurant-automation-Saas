@@ -8,12 +8,60 @@ import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
 
 jest.mock('../../modules/subscriptions/subscriptions.model', () => ({
+  BillingCycle: {
+    MONTHLY: 'monthly',
+    YEARLY: 'yearly',
+  },
+  SubscriptionEventType: {
+    CREATED: 'CREATED',
+    UPDATED: 'UPDATED',
+    ACTIVATED: 'ACTIVATED',
+    UPGRADED: 'UPGRADED',
+    DOWNGRADED: 'DOWNGRADED',
+    CANCELLED: 'CANCELLED',
+    CANCELLATION_SCHEDULED: 'CANCELLATION_SCHEDULED',
+    RENEWED: 'RENEWED',
+    EXPIRED: 'EXPIRED',
+    USAGE_RECORDED: 'USAGE_RECORDED',
+    LIMIT_WARNING: 'LIMIT_WARNING',
+    LIMIT_EXCEEDED: 'LIMIT_EXCEEDED',
+    FEATURE_BLOCKED: 'FEATURE_BLOCKED',
+    PAYMENT_CREATED: 'PAYMENT_CREATED',
+    PAYMENT_COMPLETED: 'PAYMENT_COMPLETED',
+    PAYMENT_FAILED: 'PAYMENT_FAILED',
+    AUTO_RENEWAL_SKIPPED: 'AUTO_RENEWAL_SKIPPED',
+  },
+  SubscriptionPaymentProvider: {
+    MANUAL: 'manual',
+    MOCK: 'mock',
+    RAZORPAY: 'razorpay',
+    STRIPE: 'stripe',
+  },
+  SubscriptionPaymentStatus: {
+    PENDING: 'pending',
+    COMPLETED: 'completed',
+    FAILED: 'failed',
+    CANCELLED: 'cancelled',
+  },
+  SubscriptionStatus: {
+    ACTIVE: 'active',
+    CANCELLED: 'cancelled',
+    PAST_DUE: 'past_due',
+    SUSPENDED: 'suspended',
+    EXPIRED: 'expired',
+  },
   SubscriptionModel: {
     findOne: jest.fn(),
     findById: jest.fn(),
     create: jest.fn(),
     findByIdAndUpdate: jest.fn(),
     updateOne: jest.fn(),
+  },
+  SubscriptionEventModel: {
+    create: jest.fn(),
+  },
+  SubscriptionPaymentModel: {
+    create: jest.fn(),
   },
 }));
 
@@ -63,7 +111,7 @@ describe('SubscriptionService', () => {
     it('throws when plan tenant limit is exceeded', async () => {
       mockSubscriptionModel.findOne.mockResolvedValueOnce(null);
       const mockLean = jest.fn() as any;
-      mockLean.mockResolvedValueOnce({ name: 'STARTER', tenantLimit: 1 });
+      mockLean.mockResolvedValueOnce({ _id: 'plan_1', name: 'STARTER', tenantLimit: 1 });
       mockPlatformPlanModel.findOne.mockReturnValueOnce({ lean: mockLean });
 
       await expect(
@@ -137,7 +185,7 @@ describe('SubscriptionService', () => {
 
     it('increments usage for active subscription', async () => {
       const existingSubscription = { _id: 'sub_1', status: 'active', plan: 'STARTER', usage: { pages: 2 } };
-      const updatedSubscription = { _id: 'sub_1', status: 'active', plan: 'STARTER', usage: { pages: 3 } };
+      const updatedSubscription = { _id: 'sub_1', restaurantId, status: 'active', plan: 'STARTER', usage: { pages: 3 } };
       const mockLean = jest.fn() as any;
 
       mockSubscriptionModel.findById.mockResolvedValueOnce(existingSubscription);

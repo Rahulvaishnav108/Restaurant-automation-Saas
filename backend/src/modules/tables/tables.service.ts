@@ -10,11 +10,19 @@ import { SocketEvent } from '../../constants/events';
 import { CreateTableInput, UpdateTableInput } from './tables.schema';
 import crypto from 'crypto';
 import { ensureCleaningTaskForTable } from '../cleaning/cleaning.service';
+import { assertPlanLimit, recordSubscriptionUsage } from '../subscriptions/subscriptionEnforcement.service';
 
 /**
  * Create a new table for a restaurant.
  */
 export async function createTable(input: CreateTableInput & { qrToken?: string }): Promise<ITable> {
+  if (!input.restaurantId) {
+    throw new AppError('Restaurant context required', 400, ErrorCode.VALIDATION_ERROR);
+  }
+
+  const currentTables = await TableModel.countDocuments({ restaurantId: input.restaurantId, isActive: true });
+  await assertPlanLimit(input.restaurantId, 'tableLimit', currentTables + 1, 'tables');
+
   // Auto-generate qrCode if not provided
   const qrCode = input.qrCode || `${input.restaurantId}-${input.tableNumber}-${crypto.randomBytes(4).toString('hex')}`;
   const qrToken = input.qrToken || crypto.randomBytes(16).toString('hex');
@@ -32,6 +40,8 @@ export async function createTable(input: CreateTableInput & { qrToken?: string }
     status: TableStatus.AVAILABLE,
     isActive: true,
   });
+
+  await recordSubscriptionUsage(input.restaurantId, 'activeTables', currentTables + 1);
 
   return table;
 }
