@@ -8,6 +8,12 @@ import { RestaurantModel } from '../../modules/restaurants/restaurants.model';
 import { UserModel } from '../../modules/users/users.model';
 import { seedAnalyticsContext } from '../helpers/analytics.fixtures';
 
+jest.mock('../../modules/subscriptions/subscriptionEnforcement.service', () => ({
+  assertFeatureAccess: jest.fn().mockResolvedValue(undefined),
+  assertPlanLimit: jest.fn().mockResolvedValue(undefined),
+  recordSubscriptionUsage: jest.fn().mockResolvedValue(undefined),
+}));
+
 function createOrderItem(name: string, price: number) {
   return {
     menuItemId: new mongoose.Types.ObjectId(),

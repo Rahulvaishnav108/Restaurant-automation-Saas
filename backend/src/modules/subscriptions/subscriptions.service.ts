@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 import {
   SubscriptionModel,
-  SubscriptionEventModel,
   SubscriptionPaymentModel,
   ISubscription,
   BillingCycle,
@@ -39,10 +38,6 @@ async function resolvePlanDetails(plan: string): Promise<PlanDetails> {
   return planDoc as unknown as PlanDetails;
 }
 
-async function resolvePlanTenantLimit(plan: string) {
-  const planDoc = await resolvePlanDetails(plan);
-  return planDoc.tenantLimit;
-}
 
 async function resolvePlanUsageLimit(plan: string) {
   const planDoc = await resolvePlanDetails(plan);
@@ -118,9 +113,6 @@ function shouldNotifyUsageWarning(currentUsage: number, newUsage: number, usageL
   return currentUsage < threshold && newUsage >= threshold && threshold > 0;
 }
 
-function sum(values: number[]) {
-  return values.reduce((total, value) => total + value, 0);
-}
 
 function buildUsageReportEntries(usage: Record<string, number>, usageLimit: number) {
   return Object.entries(usage).map(([key, currentUsage]) => {
@@ -196,9 +188,6 @@ function addDays(date: Date, days: number) {
   return next;
 }
 
-function getBillingCycleDays(cycle: BillingCycle) {
-  return cycle === BillingCycle.YEARLY ? 365 : 30;
-}
 
 function getPlanAmount(plan: PlanDetails, billingCycle: BillingCycle) {
   return billingCycle === BillingCycle.YEARLY
@@ -225,7 +214,18 @@ const existing = await SubscriptionModel.findOne({ restaurantId: input.restauran
   const seats = input.seats ?? 1;
   validateSeatsAgainstPlanLimit(seats, tenantLimit);
   const billingCycle = (input.billingCycle ?? BillingCycle.MONTHLY) as BillingCycle;
-  const periodEnd = new Date(input.currentPeriodEnd);
+  
+  let periodEnd = new Date(input.currentPeriodEnd || Date.now());
+  let isTrial = false;
+  let trialStartsAt: Date | null = null;
+  let trialEndsAt: Date | null = null;
+
+  if (input.isTrial) {
+    isTrial = true;
+    trialStartsAt = new Date();
+    trialEndsAt = new Date(Date.now() + (input.trialDays || 14) * 24 * 60 * 60 * 1000);
+    periodEnd = trialEndsAt;
+  }
 
   const doc = await SubscriptionModel.create({
     restaurantId: input.restaurantId as any,
@@ -243,6 +243,9 @@ const existing = await SubscriptionModel.findOne({ restaurantId: input.restauran
     providerCustomerId: input.providerCustomerId ?? null,
     providerSubscriptionId: input.providerSubscriptionId ?? null,
     lastPaymentReference: input.lastPaymentReference ?? null,
+    isTrial,
+    trialStartsAt,
+    trialEndsAt,
   } as unknown as Partial<ISubscription>);
 
 
@@ -253,6 +256,7 @@ await syncRestaurantPlan(input.restaurantId as any, planDoc.name);
     seats,
     billingCycle,
     autoRenew: input.autoRenew ?? true,
+    isTrial,
   });
   await sendSubscriptionNotification(
     input.restaurantId as any,
@@ -265,7 +269,17 @@ await syncRestaurantPlan(input.restaurantId as any, planDoc.name);
 }
 
 export async function getSubscription(id: string) {
-  return SubscriptionModel.findById(id).lean();
+  const sub = await SubscriptionModel.findById(id).lean();
+  if (!sub) throw new AppError('Subscription not found', 404, ErrorCode.NOT_FOUND);
+  return sub;
+}
+
+export async function getCurrentSubscription(restaurantId: string) {
+  const sub = await SubscriptionModel.findOne({ restaurantId })
+    .sort({ createdAt: -1 })
+    .lean();
+  if (!sub) throw new AppError('No subscription found for this restaurant', 404, ErrorCode.NOT_FOUND);
+  return sub;
 }
 
 export async function getSubscriptionUsage(id: string) {
@@ -436,6 +450,9 @@ export async function renew(id: string, days = 30) {
   sub.nextBillingDate = sub.currentPeriodEnd;
   sub.expiredAt = null;
   sub.cancelledAt = null;
+  sub.isTrial = false;
+  sub.trialEndsAt = null;
+  sub.trialStartsAt = null;
   await sub.save();
   await logSubscriptionEvent(sub._id.toString(), sub.restaurantId.toString(), SubscriptionEventType.RENEWED, {
     days,

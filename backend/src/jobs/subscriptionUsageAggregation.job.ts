@@ -9,6 +9,7 @@ import { TableModel } from '../modules/tables/tables.model';
 import { InventoryItemModel } from '../modules/inventory/inventory.model';
 import { UserModel } from '../modules/users/users.model';
 import { STAFF_ROLES } from '../constants/roles';
+import { withLock } from '../utils/cronLock';
 
 function startOfDay(date = new Date()) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -73,13 +74,18 @@ export async function aggregateSubscriptionUsage() {
   return { processed: subscriptions.length };
 }
 
-export function startSubscriptionUsageAggregationJob(): void {
+export function startSubscriptionUsageAggregationJob() {
+  // TODO: Migrate to BullMQ for robust queueing
+  // Runs every 30 minutes
   cron.schedule('*/30 * * * *', async () => {
+    logger.info('Starting subscription usage aggregation job...');
     try {
-      const result = await aggregateSubscriptionUsage();
-      logger.info('Subscription usage aggregation completed', result);
+      await withLock('subscription-usage-aggregation', 15 * 60, async () => {
+        await aggregateSubscriptionUsage();
+      });
+      logger.info('Finished subscription usage aggregation job.');
     } catch (error) {
-      logger.error('Subscription usage aggregation failed', { error });
+      logger.error('Error during subscription usage aggregation job:', error);
     }
   });
 }

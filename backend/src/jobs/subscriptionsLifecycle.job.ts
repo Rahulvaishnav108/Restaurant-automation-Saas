@@ -12,6 +12,7 @@ import {
   SubscriptionModel,
 } from '../modules/subscriptions/subscriptions.model';
 import { appendSubscriptionHistory } from '../modules/subscriptions/subscriptions.history.service';
+import { withLock } from '../utils/cronLock';
 import { PlatformPlanModel } from '../modules/superAdmin/superAdmin.model';
 import { createBillingOrder, renew } from '../modules/subscriptions/subscriptions.service';
 
@@ -161,9 +162,13 @@ export async function processSubscriptionLifecycle() {
 
 export function startSubscriptionsLifecycleJob(): void {
   cron.schedule('0 * * * *', async () => {
+    logger.info('Starting subscriptions lifecycle job...');
     try {
-      const result = await processSubscriptionLifecycle();
-      logger.info('Subscription lifecycle processing completed', result);
+      await withLock('subscriptions-lifecycle', 30 * 60, async () => {
+        const result = await processSubscriptionLifecycle();
+        logger.info('Subscription lifecycle processing completed', result);
+      });
+      logger.info('Finished subscriptions lifecycle job.');
     } catch (error) {
       logger.error('Subscription lifecycle processing failed', { error });
     }

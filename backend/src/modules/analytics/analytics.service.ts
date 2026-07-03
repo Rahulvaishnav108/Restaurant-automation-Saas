@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import logger from '../../config/logger';
 import { BillingModel } from '../billing/billing.model';
 import { SubscriptionModel } from '../subscriptions/subscriptions.model';
+import { assertFeatureAccess } from '../subscriptions/subscriptionEnforcement.service';
 import { PlatformPlanModel } from '../superAdmin/superAdmin.model';
 import { BillStatus, PaymentMethod } from '../billing/billing.schema';
 import { CustomerProfileModel } from './customerProfile.model';
@@ -158,24 +159,7 @@ function summarizeCustomerMetrics(row?: CustomerSummaryRow) {
   };
 }
 
-type SubscriptionUsageKeyMetrics = {
-  key: string;
-  totalUsage: number;
-  averageUsage: number;
-  peakUsage: number;
-  subscriptionsReporting: number;
-  subscriptionsAboveLimit: number;
-  usageLimit: number;
-  averagePercentUsed: number;
-};
 
-type SubscriptionPlanUsageRow = {
-  plan: string;
-  totalSubscriptions: number;
-  activeSubscriptions: number;
-  subscriptionsAboveLimit: number;
-  usageMetrics: SubscriptionUsageKeyMetrics[];
-};
 
 function getUsageLimitForPlan(plan: string, plans: Array<{ name: string; usageLimit?: number }>) {
   const planDoc = plans.find((item) => item.name === plan);
@@ -275,6 +259,7 @@ function buildSubscriptionUsageAnalytics(
 
 export class AnalyticsService {
   static async getAdminOverview(restaurantId: string, filters: AnalyticsDateRange) {
+    await assertFeatureAccess(restaurantId, 'advancedAnalytics', 'Advanced Analytics');
     const restaurantObjectId = toObjectId(restaurantId);
     const paidBillMatch = {
       restaurantId: restaurantObjectId,

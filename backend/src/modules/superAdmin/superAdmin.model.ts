@@ -17,6 +17,8 @@ export interface IPlatformPlan extends Document {
   dynamicDiscountEngine: boolean;
   staffLimit?: number | null;
   inventoryLimit?: number | null;
+  reservationLimit?: number | null;
+  queueLimit?: number | null;
   features: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -40,6 +42,8 @@ const platformPlanSchema = new Schema<IPlatformPlan>(
     dynamicDiscountEngine: { type: Boolean, default: false },
     staffLimit: { type: Number, min: 0, default: null },
     inventoryLimit: { type: Number, min: 0, default: null },
+    reservationLimit: { type: Number, min: 0, default: null },
+    queueLimit: { type: Number, min: 0, default: null },
     features: [{ type: String, trim: true }],
   },
   {

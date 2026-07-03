@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../../utils/asyncHandler';
 import * as service from './subscriptions.service';
 import { ok } from '../../utils/responses';
+import { AppError } from '../../utils/AppError';
+import { ErrorCode } from '../../constants/errors';
 
 export const create = asyncHandler(async (req: Request, res: Response) => {
   const subscription = await service.createSubscription(req.body);
@@ -15,6 +17,16 @@ export const list = asyncHandler(async (_req: Request, res: Response) => {
 
 export const getOne = asyncHandler(async (req: Request, res: Response) => {
   const sub = await service.getSubscription(req.params.id);
+  ok(res, { subscription: sub });
+});
+
+export const getCurrent = asyncHandler(async (req: Request, res: Response) => {
+  // Try to get from query or body, or user object
+  const restaurantId = req.query.restaurantId || req.body.restaurantId || (req.user as any)?.restaurantId;
+  if (!restaurantId) {
+    throw new AppError('restaurantId is required', 400, ErrorCode.INVALID_REQUEST);
+  }
+  const sub = await service.getCurrentSubscription(restaurantId as string);
   ok(res, { subscription: sub });
 });
 

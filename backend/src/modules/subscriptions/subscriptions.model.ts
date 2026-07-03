@@ -100,6 +100,9 @@ export interface ISubscription extends Document {
   providerSubscriptionId?: string | null;
   lastPaymentId?: Types.ObjectId | null;
   lastPaymentReference?: string | null;
+  isTrial?: boolean;
+  trialStartsAt?: Date | null;
+  trialEndsAt?: Date | null;
   metadata: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
@@ -145,6 +148,9 @@ const subscriptionSchema = new Schema<ISubscription>(
     providerSubscriptionId: { type: String, trim: true, default: null },
     lastPaymentId: { type: Schema.Types.ObjectId, ref: 'SubscriptionPayment', default: null },
     lastPaymentReference: { type: String, trim: true, default: null },
+    isTrial: { type: Boolean, default: false },
+    trialStartsAt: { type: Date, default: null },
+    trialEndsAt: { type: Date, default: null },
     metadata: { type: Schema.Types.Mixed, default: {} },
   },
   { collection: 'subscriptions', timestamps: true },

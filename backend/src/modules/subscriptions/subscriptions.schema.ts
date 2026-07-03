@@ -13,7 +13,9 @@ export const createSubscriptionSchema = z.object({
   providerCustomerId: z.string().trim().optional().nullable(),
   providerSubscriptionId: z.string().trim().optional().nullable(),
   lastPaymentReference: z.string().trim().optional().nullable(),
-  currentPeriodEnd: z.string().refine((s) => !Number.isNaN(Date.parse(s)), { message: 'Invalid date' }),
+  currentPeriodEnd: z.string().refine((s) => !Number.isNaN(Date.parse(s)), { message: 'Invalid date' }).optional(),
+  isTrial: z.boolean().optional(),
+  trialDays: z.number().int().positive().optional(),
 });
 
 export const updateSubscriptionSchema = z.object({

@@ -11,7 +11,7 @@ import { RestaurantModel } from '../restaurants/restaurants.model';
 import logger from '../../config/logger';
 import { MessagingService } from '../../services/messaging.service';
 import { NotificationPreference } from './reservations.model';
-import { assertFeatureAccess, recordSubscriptionUsage } from '../subscriptions/subscriptionEnforcement.service';
+import { assertFeatureAccess, assertPlanLimit, recordSubscriptionUsage } from '../subscriptions/subscriptionEnforcement.service';
 
 export class ReservationsService {
   static async createReservation(data: {
@@ -27,6 +27,9 @@ export class ReservationsService {
     notificationPreference?: NotificationPreference;
   }) {
     await assertFeatureAccess(data.restaurantId, 'reservationAccess', 'Reservations');
+    
+    const currentActivity = await ReservationModel.countDocuments({ restaurantId: data.restaurantId });
+    await assertPlanLimit(data.restaurantId, 'reservationLimit', currentActivity + 1, 'Reservations');
 
     // Upsert Customer Profile
     const customer = await CustomerProfileModel.findOneAndUpdate(
