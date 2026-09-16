@@ -331,7 +331,7 @@ Separate deployment exposure.
 ## Clone Repository
 
 ```bash
-git clone https://github.com/Graphura-India-Private-Limited/Restaurant-automation-Saas.git
+git clone https://github.com/Rahulvaishnav108/Restaurant-automation-Saas.git
 
 cd Restaurant-automation-Saas
 ```
