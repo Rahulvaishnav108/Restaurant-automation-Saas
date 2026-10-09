@@ -3,13 +3,13 @@ process.env.NODE_ENV = 'test';
 process.env.SMTP_HOST = 'localhost';
 process.env.SMTP_PORT = '587';
 process.env.SMTP_USER = 'testuser';
-process.env.SMTP_PASS = 'testpass';
-process.env.SMTP_FROM = 'noreply@restaurant-saas.com';
+process.env.SMTP_PASS = '';
+process.env.SMTP_FROM = 'noreply@example.com';
 process.env.CLIENT_URL = 'http://localhost:3000';
-import { env } from '../config/env';
-import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import { connectDB, disconnectDB } from '../config/db';
+const { env } = require('../config/env') as typeof import('../config/env');
+const mongoose = require('mongoose') as typeof import('mongoose');
+const { MongoMemoryServer } = require('mongodb-memory-server') as typeof import('mongodb-memory-server');
+const { connectDB, disconnectDB } = require('../config/db') as typeof import('../config/db');
 
 // Allow enough time for first-run mongodb-memory-server binary download on fresh machines/CI.
 jest.setTimeout(300000);
@@ -18,7 +18,7 @@ jest.setTimeout(300000);
 process.env.NODE_ENV = 'test';
 env.NODE_ENV = 'test';
 
-let mongoServer: MongoMemoryServer | null = null;
+let mongoServer: import('mongodb-memory-server').MongoMemoryServer | null = null;
 
 beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create({

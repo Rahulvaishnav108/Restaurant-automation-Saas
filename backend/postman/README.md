@@ -16,14 +16,11 @@ Recommended local flow:
 7. Run the public table-session create request to populate `createdSessionToken`
 8. The collection now forwards `createdSessionToken` automatically as the `x-session-token` header for customer session routes
 
-Seeded credentials in the environment:
-
-- Admin: `admin@ambertable.com` / `Admin@123`
-- Customer: `guest@ambertable.com` / `Guest@123`
-- Staff: `staff@ambertable.com` / `Staff@123`
-- Kitchen: `kitchen@ambertable.com` / `Kitchen@123`
-- Cleaning: `cleaning@ambertable.com` / `Cleaning@123`
-- Super Admin: `superadmin@graphura.com` / `Super@123`
+The checked-in Postman environments intentionally leave all login values blank.
+Configure the email and password variables locally using accounts created by your
+development seed; set a private `DEV_SEED_PASSWORD` in `backend/.env` before
+starting the backend if you need repeatable local logins. Do not use this option
+in production or commit populated environment exports.
 
 Notes:
 

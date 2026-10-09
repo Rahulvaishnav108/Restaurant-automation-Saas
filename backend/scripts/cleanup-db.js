@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
+require('dotenv').config();
 
-const uri = 'mongodb://[REDACTED]';
+const uri = process.env.MONGODB_URI;
+if (!uri) {
+  throw new Error('Set MONGODB_URI in the local backend environment before running this script.');
+}
 
 async function cleanup() {
   await mongoose.connect(uri);
@@ -43,4 +47,8 @@ async function cleanup() {
   console.log('Done');
 }
 
-cleanup().catch(console.error);
+cleanup().catch((error) => {
+  const message = error instanceof Error ? error.message.replace(uri, '[REDACTED]') : 'Unknown error';
+  console.error('Database cleanup failed:', message);
+  process.exitCode = 1;
+});

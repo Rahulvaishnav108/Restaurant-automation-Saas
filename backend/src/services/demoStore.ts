@@ -60,7 +60,7 @@ export const store = {
     {
       id: 'usr_customer_1',
       name: 'Aarav Guest',
-      email: 'guest@ambertable.com',
+      email: 'guest@example.com',
       mobile: '9999999999',
       role: roles.customer,
       restaurantId: 'rest_1',
@@ -68,7 +68,7 @@ export const store = {
     {
       id: 'usr_staff_1',
       name: 'Riya Service',
-      email: 'staff@ambertable.com',
+      email: 'staff@example.com',
       mobile: '8888888888',
       role: roles.serviceStaff,
       restaurantId: 'rest_1',
@@ -76,7 +76,7 @@ export const store = {
     {
       id: 'usr_kitchen_1',
       name: 'Kabir Kitchen',
-      email: 'kitchen@ambertable.com',
+      email: 'kitchen@example.com',
       mobile: '7777777777',
       role: roles.kitchenStaff,
       restaurantId: 'rest_1',
@@ -84,7 +84,7 @@ export const store = {
     {
       id: 'usr_cleaning_1',
       name: 'Meera Cleaning',
-      email: 'cleaning@ambertable.com',
+      email: 'cleaning@example.com',
       mobile: '6666666666',
       role: roles.cleaningStaff,
       restaurantId: 'rest_1',
@@ -92,7 +92,7 @@ export const store = {
     {
       id: 'usr_admin_1',
       name: 'Admin',
-      email: 'admin@ambertable.com',
+      email: 'admin@example.com',
       mobile: '5555555555',
       role: roles.restaurantAdmin,
       restaurantId: 'rest_1',
@@ -100,7 +100,7 @@ export const store = {
     {
       id: 'usr_super_1',
       name: 'Platform Owner',
-      email: 'superadmin@graphura.com',
+      email: 'superadmin@example.com',
       mobile: '4444444444',
       role: roles.superAdmin,
     },

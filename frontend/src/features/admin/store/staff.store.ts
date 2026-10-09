@@ -278,7 +278,7 @@ export const useStaffStore = create<StaffStore>()(
             name: m.name,
             email: m.email,
             mobile: m.phone,
-            password: m.password || 'Staff@123',
+            password: m.password,
             role: m.dbRole || 'service-staff',
             status: m.status === 'Active' ? 'ACTIVE' : m.status === 'On Leave' ? 'SUSPENDED' : 'INACTIVE',
             kitchen_role: m.kitchen_role || null,

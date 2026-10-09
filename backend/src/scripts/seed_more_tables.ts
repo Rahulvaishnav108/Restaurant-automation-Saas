@@ -1,12 +1,7 @@
 // backend/src/scripts/seed_more_tables.ts
 import mongoose from 'mongoose';
 import * as tablesService from '../modules/tables/tables.service';
-
-// Load environment variables
-import dotenv from 'dotenv';
-dotenv.config();
-
-const mongoUri = process.env.MONGODB_URI || 'mongodb://[REDACTED]';
+import { env } from '../config/env';
 
 const tablesToSeed = [
   { tableNumber: 'T-02', capacity: 4, floor: 1, section: 'Indoor' },
@@ -17,7 +12,7 @@ const tablesToSeed = [
 
 async function run() {
   console.log('Connecting to MongoDB...');
-  await mongoose.connect(mongoUri);
+  await mongoose.connect(env.MONGODB_URI);
   console.log('Connected!');
 
   const restaurantId = '6a104055418f82b4a570101f';
@@ -34,7 +29,8 @@ async function run() {
       });
       console.log(`Table ${t.tableNumber} created:`, table._id);
     } catch (err: any) {
-      console.error(`Failed to create table ${t.tableNumber}:`, err.message);
+      const message = String(err?.message ?? 'Unknown error').replace(env.MONGODB_URI, '[REDACTED]');
+      console.error(`Failed to create table ${t.tableNumber}:`, message);
     }
   }
 
@@ -42,4 +38,8 @@ async function run() {
   console.log('Done!');
 }
 
-run();
+run().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message.replace(env.MONGODB_URI, '[REDACTED]') : 'Unknown error';
+  console.error('Table seeding failed:', message);
+  process.exitCode = 1;
+});

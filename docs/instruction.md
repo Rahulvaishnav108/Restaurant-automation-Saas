@@ -312,21 +312,20 @@ PORT=5000
 
 
 # ── Database ─────────────────────────────────────────────────────────────
-MONGODB_URI=mongodb://[REDACTED]
-# Production: mongodb://[REDACTED]
+MONGODB_URI=
 
 
 # ── JWT ───────────────────────────────────────────────────────────────────
-# Generate: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
-JWT_ACCESS_SECRET=replace_with_64_char_hex
-JWT_REFRESH_SECRET=replace_with_different_64_char_hex
+# Set unique, random values of at least 32 characters in your local environment.
+JWT_SECRET=
+JWT_REFRESH_SECRET=
 JWT_ACCESS_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
 
 
 # ── Google OAuth (optional — remove if not using) ──────────────────────
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
 GOOGLE_CALLBACK_URL=http://localhost:5000/api/v1/auth/google/callback
 
 
@@ -340,27 +339,24 @@ CORS_ORIGINS=http://localhost:5173,http://localhost:3000
 
 
 # ── Encryption (for storing sensitive third-party tokens) ────────────
-# Generate: openssl rand -hex 32
-ENCRYPTION_KEY=replace_with_64_char_hex
+ENCRYPTION_KEY=
 
 
 # ── Email (Nodemailer) ────────────────────────────────────────────────────
-SMTP_HOST=smtp.resend.com
+SMTP_HOST=
 SMTP_PORT=465
-SMTP_USER=resend
+SMTP_USER=
 SMTP_PASS=[REDACTED]
-EMAIL_FROM=noreply@yourdomain.com
 
 
 # ── Push Notifications (optional) ────────────────────────────────────────
-# Generate: npx web-push generate-vapid-keys
-VAPID_PUBLIC_KEY=your_vapid_public_key
-VAPID_PRIVATE_KEY=your_vapid_private_key
-VAPID_EMAIL=mailto:admin@yourdomain.com
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_EMAIL=
 
 
 # ── Monitoring ────────────────────────────────────────────────────────────
-SENTRY_DSN=https://your_sentry_dsn_here
+SENTRY_DSN=
 ```
 
 
@@ -1575,5 +1571,3 @@ When using this document as context, follow the **⚠️ Version Safety Rule** a
 
 
 *Industry-agnostic. Adapt the domain add-ons in Section 12 for your use case.*
-
-

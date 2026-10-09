@@ -214,7 +214,7 @@ export async function createStaffController(req: Request, res: Response, next: N
     }
 
     // Generate secure temporary password if not provided
-    const temporaryPassword = req.body.password || crypto.randomBytes(4).toString('hex');
+    const temporaryPassword = req.body.password || crypto.randomBytes(32).toString('base64url');
 
     const created = await UserModel.create({
       restaurantId,

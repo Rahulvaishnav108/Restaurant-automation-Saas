@@ -139,7 +139,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     }
 
     const info = await transport.sendMail({
-      from: env.SMTP_FROM || 'noreply@restaurant-saas.com',
+      from: env.SMTP_FROM || 'noreply@example.com',
       to: options.to,
       subject: options.subject,
       html: finalHtml,

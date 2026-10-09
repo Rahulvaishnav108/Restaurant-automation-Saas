@@ -3,8 +3,8 @@ import { env } from '../../config/env';
 
 env.SMTP_HOST = 'localhost';
 env.SMTP_USER = 'testuser';
-env.SMTP_PASS = 'testpass';
-env.SMTP_FROM = 'noreply@restaurant-saas.com';
+env.SMTP_PASS = '';
+env.SMTP_FROM = 'noreply@example.com';
 env.CLIENT_URL = 'http://localhost:3000';
 
 import {
@@ -75,7 +75,7 @@ describe('mail service', () => {
     env.SMTP_HOST = 'smtp.mailtrap.io';
     env.SMTP_PORT = 2525;
     env.SMTP_USER = 'test-user';
-    env.SMTP_PASS = 'test-pass';
+    env.SMTP_PASS = '';
     env.CLIENT_URL = 'http://test.com';
   });
 

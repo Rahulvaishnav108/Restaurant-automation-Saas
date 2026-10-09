@@ -358,6 +358,10 @@ backend/.env
 
 ## Backend Environment Configuration
 
+Keep populated values in an untracked local `.env` file or a deployment secret
+manager. Production startup requires a MongoDB URI, independent random JWT and
+cookie secrets, and configured SMTP credentials; never commit these values.
+
 ```env
 # ======================================================
 # SERVER CONFIG
@@ -375,14 +379,15 @@ CORS_ORIGIN=http://localhost:5173
 # DATABASE
 # ======================================================
 
-MONGODB_URI=your_mongodb_connection_string
+MONGODB_URI=
 
 # ======================================================
 # AUTH
 # ======================================================
 
-JWT_SECRET=your_random_jwt_secret
-JWT_REFRESH_SECRET=your_random_refresh_secret
+# Set unique, random values of at least 32 characters in your local environment.
+JWT_SECRET=
+JWT_REFRESH_SECRET=
 
 JWT_ACCESS_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
@@ -393,7 +398,7 @@ BCRYPT_SALT_ROUNDS=12
 # SESSION & COOKIE
 # ======================================================
 
-COOKIE_SECRET=your_cookie_secret
+COOKIE_SECRET=
 
 COOKIE_DOMAIN=localhost
 
@@ -442,13 +447,11 @@ MAX_FILE_SIZE_MB=10
 # EMAIL / SMTP
 # ======================================================
 
-SMTP_HOST=smtp.mailtrap.io
+SMTP_HOST=
 SMTP_PORT=2525
 
-SMTP_USER=your_mailtrap_user
+SMTP_USER=
 SMTP_PASS=[REDACTED]
-
-SMTP_FROM=noreply@restaurant-saas.com
 
 # ======================================================
 # LOGGING
@@ -502,8 +505,11 @@ DOCKER_ENV=local
 # SUPER ADMIN
 # ======================================================
 
-SUPER_ADMIN_EMAIL=admin@restaurant-saas.com
-SUPER_ADMIN_PASSWORD=change_this_password
+SUPER_ADMIN_EMAIL=
+SUPER_ADMIN_PASSWORD=
+
+# Optional local-only seeded-user password; do not use in production.
+DEV_SEED_PASSWORD=
 ```
 
 ---
@@ -578,4 +584,4 @@ npm run verify:phase1 --workspace backend
 
 # 🤝 Contributors
 
-Built and maintained by the Restaurant Automation SaaS Team in collaboration with Graphura Pvt. Ltd.
+Built and maintained by the Restaurant Automation SaaS team.

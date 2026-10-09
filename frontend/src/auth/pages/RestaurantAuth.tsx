@@ -13,8 +13,6 @@ type RoleConfig = {
   icon: React.ComponentType<any>;
   iconBg: string;
   iconColor: string;
-  seedEmail: string;
-  seedPassword: string;
 };
 
 const ROLES: RoleConfig[] = [
@@ -25,8 +23,6 @@ const ROLES: RoleConfig[] = [
     icon: ChefHat,
     iconBg: 'bg-orange-50 dark:bg-orange-950/20',
     iconColor: 'text-orange-500',
-    seedEmail: 'kitchen@ambertable.com',
-    seedPassword: 'Kitchen@123',
   },
   {
     role: 'staff',
@@ -35,8 +31,6 @@ const ROLES: RoleConfig[] = [
     icon: HandPlatter,
     iconBg: 'bg-emerald-50 dark:bg-emerald-950/20',
     iconColor: 'text-emerald-500',
-    seedEmail: 'staff@ambertable.com',
-    seedPassword: 'Staff@123',
   },
   {
     role: 'cleaning',
@@ -45,8 +39,6 @@ const ROLES: RoleConfig[] = [
     icon: Brush,
     iconBg: 'bg-blue-50 dark:bg-blue-950/20',
     iconColor: 'text-blue-500',
-    seedEmail: 'cleaning@ambertable.com',
-    seedPassword: 'Cleaning@123',
   },
   {
     role: 'admin',
@@ -55,8 +47,6 @@ const ROLES: RoleConfig[] = [
     icon: Shield,
     iconBg: 'bg-amber-50 dark:bg-amber-950/20',
     iconColor: 'text-amber-500',
-    seedEmail: 'admin@ambertable.com',
-    seedPassword: 'Admin@123',
   },
 ];
 
@@ -75,11 +65,8 @@ const RestaurantAuth: React.FC = () => {
 
   const [selectedRole, setSelectedRole] = useState<AppRole>(getRoleFromPath);
 
-  const initialRole = getRoleFromPath();
-  const initialConfig = ROLES.find((r) => r.role === initialRole) || ROLES[0];
-
-  const [identifier, setIdentifier] = useState(initialConfig.seedEmail);
-  const [password, setPassword] = useState(initialConfig.seedPassword);
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -151,9 +138,8 @@ const RestaurantAuth: React.FC = () => {
   useEffect(() => {
     const role = getRoleFromPath();
     setSelectedRole(role);
-    const config = ROLES.find((r) => r.role === role) || ROLES[0];
-    setIdentifier(config.seedEmail);
-    setPassword(config.seedPassword);
+    setIdentifier('');
+    setPassword('');
     setAuthMode('login');
     setError(null);
     setSuccessMessage(null);
@@ -161,8 +147,8 @@ const RestaurantAuth: React.FC = () => {
 
   const handleRoleSelect = (config: RoleConfig) => {
     setSelectedRole(config.role);
-    setIdentifier(config.seedEmail);
-    setPassword(config.seedPassword);
+    setIdentifier('');
+    setPassword('');
     setAuthMode('login');
     setError(null);
     setSuccessMessage(null);
@@ -470,13 +456,15 @@ const RestaurantAuth: React.FC = () => {
               <ArrowRight className="w-5 h-5" />
             </button>
 
-            <button
-              type="button"
-              onClick={handleDemoBypass}
-              className="w-full py-2.5 text-xs text-orange-600 dark:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/15 border border-dashed border-orange-300 dark:border-orange-900/40 font-semibold rounded-xl transition-all"
-            >
-              ⚡ Quick Demo Bypass (Login instantly without API)
-            </button>
+            {import.meta.env.DEV && (
+              <button
+                type="button"
+                onClick={handleDemoBypass}
+                className="w-full py-2.5 text-xs text-orange-600 dark:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/15 border border-dashed border-orange-300 dark:border-orange-900/40 font-semibold rounded-xl transition-all"
+              >
+                ⚡ Quick Demo Bypass (Login instantly without API)
+              </button>
+            )}
           </div>
         </form>
       )}
