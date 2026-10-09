@@ -1,6 +1,9 @@
 import mongoose from 'mongoose';
 import logger from '../../config/logger';
 import { BillingModel } from '../billing/billing.model';
+import { SubscriptionModel } from '../subscriptions/subscriptions.model';
+import { assertFeatureAccess } from '../subscriptions/subscriptionEnforcement.service';
+import { PlatformPlanModel } from '../superAdmin/superAdmin.model';
 import { BillStatus, PaymentMethod } from '../billing/billing.schema';
 import { CustomerProfileModel } from './customerProfile.model';
 import { OrderModel } from '../orders/orders.model';
@@ -156,8 +159,107 @@ function summarizeCustomerMetrics(row?: CustomerSummaryRow) {
   };
 }
 
+
+
+function getUsageLimitForPlan(plan: string, plans: Array<{ name: string; usageLimit?: number }>) {
+  const planDoc = plans.find((item) => item.name === plan);
+  return planDoc?.usageLimit ?? Number.POSITIVE_INFINITY;
+}
+
+function buildSubscriptionUsageAnalytics(
+  subscriptions: Array<Partial<{ plan?: string; status?: string; usage?: Record<string, number> }>>,
+  planDocs: Array<{ name: string; usageLimit?: number }>,
+) {
+  const planBuckets = new Map<
+    string,
+    {
+      totalSubscriptions: number;
+      activeSubscriptions: number;
+      subscriptionsAboveLimit: number;
+      usageKeyMetrics: Map<
+        string,
+        {
+          totalUsage: number;
+          maxUsage: number;
+          sampleCount: number;
+          aboveLimitCount: number;
+          subscriptionCount: number;
+        }
+      >;
+    }
+  >();
+
+  for (const subscription of subscriptions) {
+    const plan = subscription.plan ?? 'UNKNOWN';
+    const usage = subscription.usage ?? {};
+    const usageLimit = getUsageLimitForPlan(plan, planDocs);
+    const bucket = planBuckets.get(plan) ?? {
+      totalSubscriptions: 0,
+      activeSubscriptions: 0,
+      subscriptionsAboveLimit: 0,
+      usageKeyMetrics: new Map(),
+    };
+
+    bucket.totalSubscriptions += 1;
+    if (subscription.status === 'active') {
+      bucket.activeSubscriptions += 1;
+    }
+
+    let subscriptionExceeded = false;
+    Object.entries(usage).forEach(([key, value]) => {
+      const current = bucket.usageKeyMetrics.get(key) ?? {
+        totalUsage: 0,
+        maxUsage: 0,
+        sampleCount: 0,
+        aboveLimitCount: 0,
+        subscriptionCount: 0,
+      };
+
+      current.totalUsage += value;
+      current.maxUsage = Math.max(current.maxUsage, value);
+      current.sampleCount += 1;
+      current.subscriptionCount += 1;
+      if (value > usageLimit) {
+        current.aboveLimitCount += 1;
+        subscriptionExceeded = true;
+      }
+      bucket.usageKeyMetrics.set(key, current);
+    });
+
+    if (subscriptionExceeded) {
+      bucket.subscriptionsAboveLimit += 1;
+    }
+
+    planBuckets.set(plan, bucket);
+  }
+
+  return Array.from(planBuckets.entries()).map(([plan, bucket]) => {
+    const usageLimit = getUsageLimitForPlan(plan, planDocs);
+    const usageMetrics = Array.from(bucket.usageKeyMetrics.entries()).map(([key, metrics]) => ({
+      key,
+      totalUsage: metrics.totalUsage,
+      averageUsage: metrics.sampleCount > 0 ? roundToTwoDecimals(metrics.totalUsage / metrics.sampleCount) : 0,
+      peakUsage: metrics.maxUsage,
+      subscriptionsReporting: metrics.subscriptionCount,
+      subscriptionsAboveLimit: metrics.aboveLimitCount,
+      usageLimit,
+      averagePercentUsed:
+        usageLimit > 0 ? roundToTwoDecimals((metrics.totalUsage / metrics.sampleCount / usageLimit) * 100) : 0,
+    }));
+
+    return {
+      plan,
+      totalSubscriptions: bucket.totalSubscriptions,
+      activeSubscriptions: bucket.activeSubscriptions,
+      subscriptionsAboveLimit: bucket.subscriptionsAboveLimit,
+      usageMetrics,
+    };
+  });
+}
+
 export class AnalyticsService {
   static async getAdminOverview(restaurantId: string, filters: AnalyticsDateRange) {
+    await assertFeatureAccess(restaurantId, 'advancedAnalytics', 'Advanced Analytics');
     const restaurantObjectId = toObjectId(restaurantId);
     const paidBillMatch = {
       restaurantId: restaurantObjectId,
@@ -586,6 +688,21 @@ export class AnalyticsService {
         totalKitchenStaff: kitchenPerformance.length,
       },
       filters: buildFiltersResponse(filters),
+    };
+  }
+
+  static async getSubscriptionUsageAnalytics(restaurantId: string) {
+    const restaurantObjectId = toObjectId(restaurantId);
+    const subscriptions = await SubscriptionModel.find({ restaurantId: restaurantObjectId }).lean();
+    const planNames = Array.from(new Set(subscriptions.map((subscription) => subscription.plan ?? 'UNKNOWN')));
+    const planDocs = await PlatformPlanModel.find({ name: { $in: planNames } }).lean();
+
+    const usageAnalytics = buildSubscriptionUsageAnalytics(subscriptions, planDocs);
+
+    return {
+      planUsageSummary: usageAnalytics,
+      totalPlans: usageAnalytics.length,
+      totalSubscriptions: subscriptions.length,
     };
   }
 

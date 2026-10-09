@@ -28,3 +28,6 @@ Thumbs.db
 
 # test files
 otp.txt
+
+# audit files
+audit_diff.patch

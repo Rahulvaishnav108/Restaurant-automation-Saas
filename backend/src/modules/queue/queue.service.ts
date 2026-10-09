@@ -7,6 +7,7 @@ import { TableSessionModel } from '../tableSessions/tableSessions.model';
 import { CustomerProfileModel } from '../analytics/customerProfile.model';
 import { QueueStatus, SessionStatus, TableStatus, Priority } from '../../constants/statuses';
 import { generateSecureToken } from '../../utils/crypto';
+import { assertFeatureAccess, assertPlanLimit, recordSubscriptionUsage } from '../subscriptions/subscriptionEnforcement.service';
 
 export class QueueService {
   static async joinQueue(data: {
@@ -18,6 +19,11 @@ export class QueueService {
     etaMinutes?: number;
     notes?: string;
   }) {
+    await assertFeatureAccess(data.restaurantId, 'queueAccess', 'Queue management');
+    
+    const currentQueueUsage = await QueueEntryModel.countDocuments({ restaurantId: data.restaurantId });
+    await assertPlanLimit(data.restaurantId, 'queueLimit', currentQueueUsage + 1, 'Queue');
+
     const customer = await CustomerProfileModel.findOneAndUpdate(
       { mobile: data.mobile },
       {
@@ -39,6 +45,9 @@ export class QueueService {
       notes: data.notes || '',
       status: QueueStatus.WAITING,
     });
+
+    const queueUsage = await QueueEntryModel.countDocuments({ restaurantId: data.restaurantId });
+    await recordSubscriptionUsage(data.restaurantId, 'queueUsage', queueUsage);
 
     return queueEntry;
   }

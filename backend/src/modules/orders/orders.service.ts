@@ -15,6 +15,7 @@ import { socketService } from '../../sockets/socket.service';
 import { SocketEvent } from '../../constants/events';
 import { creditPoints } from '../loyalty/loyalty.service';
 import { InventoryService } from '../inventory/inventory.service';
+import { assertPlanLimit, recordSubscriptionUsage } from '../subscriptions/subscriptionEnforcement.service';
 
 const ORDER_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus[]>> = {
   [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED, OrderStatus.REJECTED],
@@ -43,6 +44,27 @@ function toNullableObjectId(value?: string | Types.ObjectId | null): Types.Objec
   return typeof value === 'string' ? new mongoose.Types.ObjectId(value) : value;
 }
 
+function startOfDay(date = new Date()) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function startOfMonth(date = new Date()) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+async function enforceOrderLimits(restaurantId: string | Types.ObjectId) {
+  const now = new Date();
+  const [dailyOrders, monthlyOrders] = await Promise.all([
+    OrderModel.countDocuments({ restaurantId, createdAt: { $gte: startOfDay(now) } }),
+    OrderModel.countDocuments({ restaurantId, createdAt: { $gte: startOfMonth(now) } }),
+  ]);
+
+  await assertPlanLimit(restaurantId, 'dailyOrderLimit', dailyOrders + 1, 'daily orders');
+  await assertPlanLimit(restaurantId, 'monthlyOrderLimit', monthlyOrders + 1, 'monthly orders');
+
+  return { dailyOrderCount: dailyOrders + 1, monthlyOrderCount: monthlyOrders + 1 };
+}
+
 export class OrdersService {
   static async placeOrder(
     restaurantId: string | Types.ObjectId,
@@ -51,6 +73,7 @@ export class OrdersService {
     _customerName: string | undefined,
     data: PlaceOrderInput
   ) {
+    const orderUsage = await enforceOrderLimits(restaurantId);
     const sessionObjectId = typeof sessionId === 'string' ? new mongoose.Types.ObjectId(sessionId) : sessionId;
 
     // 1. Acquire atomic order lock on session
@@ -151,6 +174,11 @@ export class OrdersService {
         specialInstructions: data.specialInstructions || '',
       });
 
+      await Promise.all([
+        recordSubscriptionUsage(restaurantId, 'dailyOrderCount', orderUsage.dailyOrderCount),
+        recordSubscriptionUsage(restaurantId, 'monthlyOrderCount', orderUsage.monthlyOrderCount),
+      ]);
+
       // Transition table status to ORDERING if it is currently OCCUPIED
       const table = await TableModel.findById(tableId);
       if (table && table.status === TableStatus.OCCUPIED) {
@@ -235,6 +263,7 @@ export class OrdersService {
     const timestamp = Date.now().toString().slice(-6);
     const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
     const orderNumber = `ORD-${timestamp}-${randomChars}`;
+    const orderUsage = await enforceOrderLimits(restaurantId);
 
     const order = await OrderModel.create({
       restaurantId,
@@ -251,6 +280,11 @@ export class OrdersService {
       priority: original.priority ?? Priority.NORMAL,
       specialInstructions: original.specialInstructions,
     });
+
+    await Promise.all([
+      recordSubscriptionUsage(restaurantId, 'dailyOrderCount', orderUsage.dailyOrderCount),
+      recordSubscriptionUsage(restaurantId, 'monthlyOrderCount', orderUsage.monthlyOrderCount),
+    ]);
 
     const table = await TableModel.findById(tableId);
     if (table && table.status === TableStatus.OCCUPIED) {

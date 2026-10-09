@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import crypto from 'crypto';
+import { env } from './env';
 import logger from './logger';
 import { hashPassword } from '../utils/crypto';
 import { UserRole, KitchenRole, StaffInternalRole, CleaningRole } from '../constants/roles';
@@ -96,6 +97,10 @@ function buildOrderItem(menuItem: { _id: mongoose.Types.ObjectId; name: string; 
 }
 
 export async function seedDevelopmentData(): Promise<void> {
+  const seedPassword = env.DEV_SEED_PASSWORD ?? crypto.randomBytes(32).toString('base64url');
+  const superAdminEmail = env.SUPER_ADMIN_EMAIL ?? 'superadmin@example.com';
+  const superAdminPassword = env.SUPER_ADMIN_PASSWORD ?? seedPassword;
+
   const amberTable = await RestaurantModel.findOneAndUpdate(
     { slug: 'amber-table' },
     {
@@ -143,52 +148,52 @@ export async function seedDevelopmentData(): Promise<void> {
   const [adminUser, customerUser, staffUser, , , superAdminUser] = await Promise.all([
     upsertUser({
       name: 'Admin',
-      email: 'admin@ambertable.com',
+      email: 'admin@example.com',
       mobile: '5555555555',
-      password: 'Admin@123',
+      password: seedPassword,
       role: UserRole.RESTAURANT_ADMIN,
       restaurantId: amberTable._id,
     }),
     upsertUser({
       name: 'Aarav Guest',
-      email: 'guest@ambertable.com',
+      email: 'guest@example.com',
       mobile: '9999999999',
-      password: 'Guest@123',
+      password: seedPassword,
       role: UserRole.CUSTOMER,
       restaurantId: amberTable._id,
     }),
     upsertUser({
       name: 'Riya Service',
-      email: 'staff@ambertable.com',
+      email: 'staff@example.com',
       mobile: '8888888888',
-      password: 'Staff@123',
+      password: seedPassword,
       role: UserRole.SERVICE_STAFF,
       restaurantId: amberTable._id,
       staff_role: StaffInternalRole.FLOOR_SUPERVISOR,
     }),
     upsertUser({
       name: 'Kabir Kitchen',
-      email: 'kitchen@ambertable.com',
+      email: 'kitchen@example.com',
       mobile: '7777777777',
-      password: 'Kitchen@123',
+      password: seedPassword,
       role: UserRole.KITCHEN_STAFF,
       restaurantId: amberTable._id,
       kitchen_role: KitchenRole.HEAD_CHEF,
     }),
     upsertUser({
       name: 'Meera Cleaning',
-      email: 'cleaning@ambertable.com',
+      email: 'cleaning@example.com',
       mobile: '6666666666',
-      password: 'Cleaning@123',
+      password: seedPassword,
       role: UserRole.CLEANING_STAFF,
       restaurantId: amberTable._id,
       cleaning_role: CleaningRole.CLEANING_SUPERVISOR,
     }),
     upsertUser({
       name: 'Platform Owner',
-      email: 'superadmin@graphura.com',
+      email: superAdminEmail,
       mobile: '4444444444',
-      password: 'Super@123',
+      password: superAdminPassword,
       role: UserRole.SUPER_ADMIN,
     }),
   ]);
@@ -196,17 +201,17 @@ export async function seedDevelopmentData(): Promise<void> {
   await Promise.all([
     PlatformPlanModel.findOneAndUpdate(
       { name: 'STARTER' },
-      { $set: { name: 'STARTER', priceMonthly: 4999, tenantLimit: 1 } },
+      { $set: { name: 'STARTER', priceMonthly: 4999, tenantLimit: 1, usageLimit: 100 } },
       { new: true, upsert: true, setDefaultsOnInsert: true },
     ),
     PlatformPlanModel.findOneAndUpdate(
       { name: 'PRO' },
-      { $set: { name: 'PRO', priceMonthly: 12999, tenantLimit: 5 } },
+      { $set: { name: 'PRO', priceMonthly: 12999, tenantLimit: 5, usageLimit: 1000 } },
       { new: true, upsert: true, setDefaultsOnInsert: true },
     ),
     PlatformPlanModel.findOneAndUpdate(
       { name: 'ENTERPRISE' },
-      { $set: { name: 'ENTERPRISE', priceMonthly: 24999, tenantLimit: 20 } },
+      { $set: { name: 'ENTERPRISE', priceMonthly: 24999, tenantLimit: 20, usageLimit: 10000 } },
       { new: true, upsert: true, setDefaultsOnInsert: true },
     ),
     FeatureFlagModel.findOneAndUpdate(

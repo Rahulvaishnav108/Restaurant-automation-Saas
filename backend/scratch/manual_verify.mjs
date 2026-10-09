@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
@@ -76,7 +77,9 @@ async function main() {
     },
   });
 
-  console.log(`📦 Mongo Memory Server ready: ${mongod.getUri()}`);
+  console.log('📦 Mongo Memory Server ready.');
+  const seedPassword = randomBytes(32).toString('base64url');
+  const replacementPassword = randomBytes(32).toString('base64url');
 
   const server = spawn(process.execPath, [path.join(backendDir, 'dist', 'server.js')], {
     cwd: backendDir,
@@ -87,9 +90,12 @@ async function main() {
       API_PREFIX: '/api/v1',
       MONGODB_URI: mongod.getUri(),
       SEED_ON_STARTUP: 'true',
-      JWT_SECRET: 'manual-verify-secret',
-      JWT_REFRESH_SECRET: 'manual-verify-refresh-secret',
-      COOKIE_SECRET: 'manual-verify-cookie-secret',
+      JWT_SECRET: randomBytes(32).toString('hex'),
+      JWT_REFRESH_SECRET: randomBytes(32).toString('hex'),
+      COOKIE_SECRET: randomBytes(32).toString('hex'),
+      DEV_SEED_PASSWORD: seedPassword,
+      SUPER_ADMIN_EMAIL: 'superadmin@example.com',
+      SUPER_ADMIN_PASSWORD: seedPassword,
       ENABLE_REQUEST_LOGS: 'false',
       HELMET_ENABLED: 'false',
       RATE_LIMIT_MAX: '1000',
@@ -118,7 +124,7 @@ async function main() {
     });
     assert(otpRequest.status === 200, `request-otp returned ${otpRequest.status}`);
     const otp = otpRequest.json?.data?.otp;
-    console.log(`[PASS] OTP successfully requested. Non-production returned OTP: ${otp}`);
+    console.log('[PASS] OTP successfully requested.');
 
     const otpVerify = await request(baseUrl, 'POST', '/api/v1/auth/verify-otp', {
       body: { mobile: mobileNumber, otp, name: 'Manual Customer' }
@@ -126,19 +132,19 @@ async function main() {
     assert(otpVerify.status === 200, `verify-otp returned ${otpVerify.status}`);
     const accessToken = otpVerify.json?.data?.accessToken;
     assert(accessToken, 'accessToken is missing in response');
-    console.log(`[PASS] Customer OTP verified. Received accessToken: ${accessToken.slice(0, 15)}...\n`);
+    console.log('[PASS] Customer OTP verified.');
 
     // ----------------------------------------------------
     // FLOW 2: Staff/Admin password recovery flow
     // ----------------------------------------------------
     console.log('--- 2. Verification of Staff/Admin password recovery flow ---');
-    const staffEmail = 'admin@ambertable.com';
+    const staffEmail = 'admin@example.com';
     const forgotRequest = await request(baseUrl, 'POST', '/api/v1/auth/forgot-password', {
       body: { email: staffEmail }
     });
     assert(forgotRequest.status === 200, `forgot-password returned ${forgotRequest.status}`);
     const resetOtp = forgotRequest.json?.data?.otp;
-    console.log(`[PASS] Password recovery OTP successfully requested for ${staffEmail}. OTP: ${resetOtp}`);
+    console.log('[PASS] Password recovery OTP successfully requested.');
 
     const verifyResetOtp = await request(baseUrl, 'POST', '/api/v1/auth/verify-reset-otp', {
       body: { email: staffEmail, otp: resetOtp }
@@ -146,10 +152,10 @@ async function main() {
     assert(verifyResetOtp.status === 200, `verify-reset-otp returned ${verifyResetOtp.status}`);
     const resetToken = verifyResetOtp.json?.data?.resetToken;
     assert(resetToken, 'resetToken is missing');
-    console.log(`[PASS] Reset OTP verified. Received short-lived resetToken: ${resetToken.slice(0, 15)}...`);
+    console.log('[PASS] Reset OTP verified.');
 
     const resetPass = await request(baseUrl, 'POST', '/api/v1/auth/reset-password', {
-      body: { token: resetToken, password: 'AdminNew@123' }
+      body: { token: resetToken, password: replacementPassword }
     });
     assert(resetPass.status === 200, `reset-password returned ${resetPass.status}`);
     console.log('[PASS] Password successfully updated using OTP-based reset token.\n');
@@ -170,7 +176,7 @@ async function main() {
     console.log('--- 4. Verification of Tenant guard cross-restaurant protection ---');
     // Login as restaurant-admin of Restaurant A
     const adminLogin = await request(baseUrl, 'POST', '/api/v1/auth/login', {
-      body: { email: 'admin@ambertable.com', password: 'AdminNew@123' }
+      body: { email: 'admin@example.com', password: replacementPassword }
     });
     assert(adminLogin.status === 200, `admin login returned ${adminLogin.status}`);
     const adminToken = adminLogin.json?.data?.accessToken;

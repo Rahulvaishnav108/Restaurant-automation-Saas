@@ -9,6 +9,7 @@ import {
   getRepeatCustomersAnalytics,
   getKitchenPerformanceAnalytics,
   getTableUtilizationAnalytics,
+  getSubscriptionUsageAnalytics,
   getReceiptAnalytics,
 } from './analytics.controller';
 import {
@@ -36,6 +37,7 @@ router.get('/tables', validate({ query: analyticsQuerySchema }), getTableUtiliza
 // Admin / Dashboard analytics
 const adminRoles = [UserRole.RESTAURANT_ADMIN, UserRole.SUPER_ADMIN];
 
+router.get('/subscription-usage', requireAuth, roleGuard(...adminRoles), getSubscriptionUsageAnalytics);
 router.get('/receipt-analytics', requireAuth, roleGuard(...adminRoles), getReceiptAnalytics);
 router.get('/email-analytics/summary', requireAuth, roleGuard(...adminRoles), getEmailSummary);
 router.get('/email-analytics/recent', requireAuth, roleGuard(...adminRoles), getRecentEmails);

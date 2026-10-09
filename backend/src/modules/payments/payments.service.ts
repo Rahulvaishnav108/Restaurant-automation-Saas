@@ -399,10 +399,118 @@ export class PaymentsService {
     if (!entity) return { received: true };
 
     const rzpPaymentId = entity.id;
-    const rzpOrderId   = entity.order_id;
-    const eventType    = event.event;
+    const rzpOrderId = entity.order_id;
+    const eventType = event.event;
 
-    // Find the payment record by Razorpay order ID
+    // Razorpay usually includes `notes` inside the payment entity.
+    // For subscription billing linkage, we rely on:
+    // - notes.subscriptionId
+    // - notes.restaurantId
+    const notes = entity?.notes ?? {};
+    const maybeSubscriptionId = notes?.subscriptionId ? String(notes.subscriptionId) : undefined;
+    const maybeRestaurantId = notes?.restaurantId ? String(notes.restaurantId) : undefined;
+
+    // ---- Subscription billing path ----
+    if (maybeSubscriptionId) {
+      const subscriptionId = maybeSubscriptionId;
+      const restaurantId = maybeRestaurantId;
+
+      if (!restaurantId) {
+        return { received: true, event: eventType, subscription: subscriptionId, reason: 'missing_restaurantId' };
+      }
+
+      const planAmount = entity.amount ? Number(entity.amount) / 100 : 0;
+
+      const { SubscriptionPaymentModel, SubscriptionModel, SubscriptionEventModel } = await import('../../modules/subscriptions/subscriptions.model');
+      const { SubscriptionPaymentProvider, SubscriptionPaymentStatus, SubscriptionEventType } = await import('../../modules/subscriptions/subscriptions.model');
+
+      if (eventType === 'payment.captured') {
+        await SubscriptionPaymentModel.findOneAndUpdate(
+          {
+            subscriptionId: new mongoose.Types.ObjectId(subscriptionId),
+            providerOrderId: rzpOrderId,
+          },
+          {
+            providerPaymentId: rzpPaymentId,
+            status: SubscriptionPaymentStatus.COMPLETED,
+            paidAt: new Date(),
+            webhookEventId: event?.id ? String(event.id) : null,
+            metadata: { ...(entity?.notes ?? {}), source: 'razorpay_webhook' },
+          },
+          { new: true, upsert: true },
+        );
+
+        const sub = await SubscriptionModel.findById(subscriptionId);
+        if (sub) {
+          const addDays = sub.billingCycle === 'yearly' ? 365 : 30;
+          sub.currentPeriodStart = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : new Date();
+          sub.currentPeriodEnd = new Date(Date.now() + addDays * 24 * 60 * 60 * 1000);
+          sub.status = SubscriptionPaymentStatus.COMPLETED as any;
+          sub.nextBillingDate = sub.autoRenew ? new Date(sub.currentPeriodEnd) : null;
+          sub.lastPaymentReference = String(rzpPaymentId);
+
+          await sub.save();
+
+          await SubscriptionEventModel.create({
+            subscriptionId: new mongoose.Types.ObjectId(subscriptionId),
+            restaurantId: new mongoose.Types.ObjectId(restaurantId),
+            type: SubscriptionEventType.PAYMENT_COMPLETED,
+            metadata: {
+              paymentProvider: SubscriptionPaymentProvider.RAZORPAY,
+              amount: planAmount,
+              orderId: rzpOrderId,
+              paymentId: rzpPaymentId,
+              fromPlan: sub.plan,
+            },
+          });
+
+          await SubscriptionEventModel.create({
+            subscriptionId: new mongoose.Types.ObjectId(subscriptionId),
+            restaurantId: new mongoose.Types.ObjectId(restaurantId),
+            type: SubscriptionEventType.RENEWED,
+            metadata: { newPeriodEnd: sub.currentPeriodEnd, addDays },
+          });
+        }
+      }
+
+      if (eventType === 'payment.failed') {
+        await SubscriptionPaymentModel.findOneAndUpdate(
+          {
+            subscriptionId: new mongoose.Types.ObjectId(subscriptionId),
+            providerOrderId: rzpOrderId,
+          },
+          {
+            providerPaymentId: rzpPaymentId,
+            status: SubscriptionPaymentStatus.FAILED,
+            failedAt: new Date(),
+            webhookEventId: event?.id ? String(event.id) : null,
+            metadata: {
+              ...(entity?.notes ?? {}),
+              source: 'razorpay_webhook',
+              error: entity?.error_description ?? null,
+            },
+          },
+          { new: true, upsert: true },
+        );
+
+        await SubscriptionEventModel.create({
+          subscriptionId: new mongoose.Types.ObjectId(subscriptionId),
+          restaurantId: new mongoose.Types.ObjectId(restaurantId),
+          type: SubscriptionEventType.PAYMENT_FAILED,
+          metadata: {
+            orderId: rzpOrderId,
+            paymentId: rzpPaymentId,
+            error: entity?.error_description ?? null,
+          },
+        });
+
+        await SubscriptionModel.findByIdAndUpdate(subscriptionId, { status: 'past_due' });
+      }
+
+      return { received: true, event: eventType, subscription: subscriptionId };
+    }
+
+    // ---- Customer bill payment path (existing behavior) ----
     const payment = (await PaymentModel.findOne({
       $or: [
         { razorpayOrderId: rzpOrderId },

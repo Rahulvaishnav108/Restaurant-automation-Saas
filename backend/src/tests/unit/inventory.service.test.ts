@@ -11,6 +11,11 @@ jest.mock('../../modules/inventory/inventoryTransaction.service');
 jest.mock('../../modules/inventory/inventoryTransaction.model');
 jest.mock('../../modules/auditLogs/auditLogs.helper');
 jest.mock('../../modules/notifications/notifications.service');
+jest.mock('../../modules/subscriptions/subscriptionEnforcement.service', () => ({
+  assertPlanLimit: jest.fn().mockResolvedValue(undefined),
+  assertFeatureAccess: jest.fn().mockResolvedValue(undefined),
+  recordSubscriptionUsage: jest.fn().mockResolvedValue(undefined),
+}));
 jest.mock('mongoose', () => {
   const original = jest.requireActual('mongoose');
   return {

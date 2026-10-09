@@ -3,6 +3,7 @@ import { ErrorCode } from '../../constants/errors';
 import { AppError } from '../../utils/AppError';
 import { ok } from '../../utils/responses';
 import { OfferModel } from './offers.model';
+import { assertFeatureAccess, recordSubscriptionUsage } from '../subscriptions/subscriptionEnforcement.service';
 
 function resolveRestaurantId(req: Request, candidate?: unknown): string {
   if (req.user?.restaurantId) {
@@ -19,6 +20,8 @@ function resolveRestaurantId(req: Request, candidate?: unknown): string {
 export async function createOfferController(req: Request, res: Response, next: NextFunction) {
   try {
     const restaurantId = resolveRestaurantId(req, req.body.restaurantId);
+    await assertFeatureAccess(restaurantId, 'dynamicDiscountEngine', 'Dynamic discount engine');
+
     const existing = await OfferModel.exists({
       restaurantId,
       code: req.body.code,
@@ -35,6 +38,9 @@ export async function createOfferController(req: Request, res: Response, next: N
       discountPercent: req.body.discountPercent,
       active: req.body.active ?? true,
     });
+
+    const discountUsage = await OfferModel.countDocuments({ restaurantId });
+    await recordSubscriptionUsage(restaurantId, 'discountUsage', discountUsage);
 
     ok(res, { offer }, 201);
   } catch (error) {

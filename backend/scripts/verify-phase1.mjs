@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
@@ -176,11 +177,32 @@ async function login(url, email, password, deviceLabel) {
   };
 }
 
-async function runNewmanSuite(url) {
+async function runNewmanSuite(url, seedPassword) {
   const environment = JSON.parse(fs.readFileSync(environmentPath, 'utf8'));
+  const credentials = {
+    adminEmail: 'admin@example.com',
+    adminPassword: seedPassword,
+    customerEmail: 'guest@example.com',
+    customerPassword: seedPassword,
+    staffEmail: 'staff@example.com',
+    staffPassword: seedPassword,
+    kitchenEmail: 'kitchen@example.com',
+    kitchenPassword: seedPassword,
+    cleaningEmail: 'cleaning@example.com',
+    cleaningPassword: seedPassword,
+    superAdminEmail: 'superadmin@example.com',
+    superAdminPassword: seedPassword,
+  };
   const runtimeEnvironment = {
     ...environment,
-    values: environment.values.map((entry) => (entry.key === 'baseUrl' ? { ...entry, value: url } : entry)),
+    values: environment.values.map((entry) => {
+      if (entry.key === 'baseUrl') {
+        return { ...entry, value: url };
+      }
+      return Object.prototype.hasOwnProperty.call(credentials, entry.key)
+        ? { ...entry, value: credentials[entry.key] }
+        : entry;
+    }),
   };
 
   const summary = await new Promise((resolve, reject) => {
@@ -216,7 +238,7 @@ function toObjectId(id) {
   return new mongoose.Types.ObjectId(id);
 }
 
-async function runSmokeSuite(url, db) {
+async function runSmokeSuite(url, db, seedPassword) {
   const results = [];
   const state = {
     admin: null,
@@ -363,12 +385,12 @@ async function runSmokeSuite(url, db) {
   });
 
   await runStep('auth login role matrix', async () => {
-    state.admin = await login(url, 'admin@ambertable.com', 'Admin@123', 'Phase1 Verify Admin');
-    state.customer = await login(url, 'guest@ambertable.com', 'Guest@123', 'Phase1 Verify Customer');
-    state.staff = await login(url, 'staff@ambertable.com', 'Staff@123', 'Phase1 Verify Staff');
-    state.kitchen = await login(url, 'kitchen@ambertable.com', 'Kitchen@123', 'Phase1 Verify Kitchen');
-    state.cleaning = await login(url, 'cleaning@ambertable.com', 'Cleaning@123', 'Phase1 Verify Cleaning');
-    state.superAdmin = await login(url, 'superadmin@graphura.com', 'Super@123', 'Phase1 Verify Super Admin');
+    state.admin = await login(url, 'admin@example.com', seedPassword, 'Phase1 Verify Admin');
+    state.customer = await login(url, 'guest@example.com', seedPassword, 'Phase1 Verify Customer');
+    state.staff = await login(url, 'staff@example.com', seedPassword, 'Phase1 Verify Staff');
+    state.kitchen = await login(url, 'kitchen@example.com', seedPassword, 'Phase1 Verify Kitchen');
+    state.cleaning = await login(url, 'cleaning@example.com', seedPassword, 'Phase1 Verify Cleaning');
+    state.superAdmin = await login(url, 'superadmin@example.com', seedPassword, 'Phase1 Verify Super Admin');
   });
 
   await runStep('auth me sessions refresh logout otp', async () => {
@@ -399,7 +421,7 @@ async function runSmokeSuite(url, db) {
     });
     assert(logout.status === 200, `logout returned ${logout.status}`);
 
-    state.customer = await login(url, 'guest@ambertable.com', 'Guest@123', 'Phase1 Verify Customer Relogin');
+    state.customer = await login(url, 'guest@example.com', seedPassword, 'Phase1 Verify Customer Relogin');
 
     const customerMobile = '9999999999';
     const otpRequest = await request(url, 'POST', '/api/v1/auth/request-otp', {
@@ -419,9 +441,9 @@ async function runSmokeSuite(url, db) {
   await runStep('auth register user lifecycle', async () => {
     const timestamp = Date.now();
     const tempEmail = `phase1-user-${timestamp}@example.com`;
-    const initialPassword = 'Phase1@123';
-    const changedPassword = 'Phase1@456';
-    const resetPassword = 'Phase1@789';
+    const initialPassword = randomBytes(32).toString('base64url');
+    const changedPassword = randomBytes(32).toString('base64url');
+    const resetPassword = randomBytes(32).toString('base64url');
 
     const register = await request(url, 'POST', '/api/v1/auth/register', {
       body: {
@@ -2218,6 +2240,7 @@ async function main() {
       dbName: 'restaurant-automation-verify',
     },
   });
+  const seedPassword = randomBytes(32).toString('base64url');
   let verifyConnection = null;
 
   const server = spawn(process.execPath, [path.join(backendDir, 'dist', 'server.js')], {
@@ -2231,9 +2254,12 @@ async function main() {
       MONGODB_CONNECT_TIMEOUT_MS: '5000',
       ALLOW_NO_DB: 'false',
       SEED_ON_STARTUP: 'true',
-      JWT_SECRET: 'phase1-verify-secret',
-      JWT_REFRESH_SECRET: 'phase1-verify-refresh-secret',
-      COOKIE_SECRET: 'phase1-verify-cookie-secret',
+      JWT_SECRET: randomBytes(32).toString('hex'),
+      JWT_REFRESH_SECRET: randomBytes(32).toString('hex'),
+      COOKIE_SECRET: randomBytes(32).toString('hex'),
+      DEV_SEED_PASSWORD: seedPassword,
+      SUPER_ADMIN_EMAIL: 'superadmin@example.com',
+      SUPER_ADMIN_PASSWORD: seedPassword,
       CORS_ORIGIN: 'http://localhost:5173',
       SOCKET_CORS_ORIGIN: 'http://localhost:5173',
       ENABLE_REQUEST_LOGS: 'false',
@@ -2267,8 +2293,8 @@ async function main() {
     }).asPromise();
     assert(verifyConnection.db, 'Verification database connection is unavailable');
 
-    const smoke = await runSmokeSuite(baseUrl, verifyConnection.db);
-    const postman = await runNewmanSuite(baseUrl);
+    const smoke = await runSmokeSuite(baseUrl, verifyConnection.db, seedPassword);
+    const postman = await runNewmanSuite(baseUrl, seedPassword);
 
     const summary = {
       postman,

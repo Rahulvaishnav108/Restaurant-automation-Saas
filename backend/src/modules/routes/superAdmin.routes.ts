@@ -1,9 +1,11 @@
 import mongoose from 'mongoose';
 import { Router } from 'express';
 import { ok } from '../../utils/responses';
+
 import { RestaurantModel } from '../restaurants/restaurants.model';
 import { AuditLogModel } from '../auditLogs/auditLogs.schema';
 import { FeatureFlagModel, PlatformPlanModel } from '../superAdmin/superAdmin.model';
+
 import { RestaurantStatus } from '../../constants/statuses';
 
 export const superAdminRouter = Router();
@@ -228,3 +230,4 @@ superAdminRouter.patch('/feature-flags/:id', async (req, res, next) => {
     next(error);
   }
 });
+

@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
-import { randomUUID } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 import { roles, type AppRole } from '../constants/roles';
+import { env } from '../config/env';
 
 export type RestaurantStatus = 'ACTIVE' | 'PENDING' | 'SUSPENDED';
 export type TableStatus = 'AVAILABLE' | 'OCCUPIED' | 'RESERVED' | 'CLEANING';
@@ -82,6 +83,7 @@ export type TableSessionRecord = {
 };
 
 const createPasswordHash = (password: string) => bcrypt.hashSync(password, 10);
+const demoPassword = env.DEV_SEED_PASSWORD ?? randomBytes(32).toString('base64url');
 const nowIso = () => new Date().toISOString();
 
 let sequence = 5000;
@@ -113,60 +115,60 @@ export const phase1Store = {
     {
       id: 'usr_admin_1',
       name: 'Admin',
-      email: 'admin@ambertable.com',
+      email: 'admin@example.com',
       mobile: '5555555555',
       role: roles.restaurantAdmin,
       restaurantId: 'rest_1',
-      passwordHash: createPasswordHash('Admin@123'),
+      passwordHash: createPasswordHash(demoPassword),
       isActive: true,
     },
     {
       id: 'usr_customer_1',
       name: 'Aarav Guest',
-      email: 'guest@ambertable.com',
+      email: 'guest@example.com',
       mobile: '9999999999',
       role: roles.customer,
       restaurantId: 'rest_1',
-      passwordHash: createPasswordHash('Guest@123'),
+      passwordHash: createPasswordHash(demoPassword),
       isActive: true,
     },
     {
       id: 'usr_staff_1',
       name: 'Riya Service',
-      email: 'staff@ambertable.com',
+      email: 'staff@example.com',
       mobile: '8888888888',
       role: roles.serviceStaff,
       restaurantId: 'rest_1',
-      passwordHash: createPasswordHash('Staff@123'),
+      passwordHash: createPasswordHash(demoPassword),
       isActive: true,
     },
     {
       id: 'usr_kitchen_1',
       name: 'Kabir Kitchen',
-      email: 'kitchen@ambertable.com',
+      email: 'kitchen@example.com',
       mobile: '7777777777',
       role: roles.kitchenStaff,
       restaurantId: 'rest_1',
-      passwordHash: createPasswordHash('Kitchen@123'),
+      passwordHash: createPasswordHash(demoPassword),
       isActive: true,
     },
     {
       id: 'usr_cleaning_1',
       name: 'Meera Cleaning',
-      email: 'cleaning@ambertable.com',
+      email: 'cleaning@example.com',
       mobile: '6666666666',
       role: roles.cleaningStaff,
       restaurantId: 'rest_1',
-      passwordHash: createPasswordHash('Cleaning@123'),
+      passwordHash: createPasswordHash(demoPassword),
       isActive: true,
     },
     {
       id: 'usr_super_1',
       name: 'Platform Owner',
-      email: 'superadmin@graphura.com',
+      email: 'superadmin@example.com',
       mobile: '4444444444',
       role: roles.superAdmin,
-      passwordHash: createPasswordHash('Super@123'),
+      passwordHash: createPasswordHash(demoPassword),
       isActive: true,
     },
   ] as UserRecord[],

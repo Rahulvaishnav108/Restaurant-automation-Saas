@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
@@ -102,11 +103,24 @@ async function login(url, email, password, deviceLabel) {
   return response.json.data.accessToken;
 }
 
-async function runNewmanSuite(url) {
+async function runNewmanSuite(url, seedPassword) {
   const environment = JSON.parse(fs.readFileSync(environmentPath, 'utf8'));
+  const credentials = {
+    analyticsAdminEmail: 'analytics.admin@example.com',
+    analyticsAdminPassword: seedPassword,
+    analyticsSuperAdminEmail: 'analytics.superadmin@example.com',
+    analyticsSuperAdminPassword: seedPassword,
+  };
   const runtimeEnvironment = {
     ...environment,
-    values: environment.values.map((entry) => (entry.key === 'baseUrl' ? { ...entry, value: url } : entry)),
+    values: environment.values.map((entry) => {
+      if (entry.key === 'baseUrl') {
+        return { ...entry, value: url };
+      }
+      return Object.prototype.hasOwnProperty.call(credentials, entry.key)
+        ? { ...entry, value: credentials[entry.key] }
+        : entry;
+    }),
   };
 
   const summary = await new Promise((resolve, reject) => {
@@ -136,7 +150,7 @@ async function runNewmanSuite(url) {
   };
 }
 
-async function seedAnalyticsRuntimeData(db) {
+async function seedAnalyticsRuntimeData(db, seedPassword) {
   const { hashPassword } = await loadBuiltCrypto();
   const now = new Date();
 
@@ -147,14 +161,7 @@ async function seedAnalyticsRuntimeData(db) {
   const kitchenStaffTwoId = new mongoose.Types.ObjectId();
   const kitchenStaffThreeId = new mongoose.Types.ObjectId();
 
-  const [adminPasswordHash, superAdminPasswordHash, kitchenOnePasswordHash, kitchenTwoPasswordHash, kitchenThreePasswordHash] =
-    await Promise.all([
-      hashPassword('Analytics@123'),
-      hashPassword('AnalyticsSuper@123'),
-      hashPassword('Kitchen@123'),
-      hashPassword('Kitchen@123'),
-      hashPassword('Kitchen@123'),
-    ]);
+  const passwordHash = await hashPassword(seedPassword);
 
   await db.collection('restaurants').insertOne({
     _id: restaurantId,
@@ -181,7 +188,7 @@ async function seedAnalyticsRuntimeData(db) {
       name: 'Analytics Admin',
       email: 'analytics.admin@example.com',
       mobile: '9999911111',
-      password: adminPasswordHash,
+      password: passwordHash,
       role: 'restaurant-admin',
       status: 'ACTIVE',
       restaurantId,
@@ -201,7 +208,7 @@ async function seedAnalyticsRuntimeData(db) {
       name: 'Analytics Super Admin',
       email: 'analytics.superadmin@example.com',
       mobile: '9999922222',
-      password: superAdminPasswordHash,
+      password: passwordHash,
       role: 'super-admin',
       status: 'ACTIVE',
       restaurantId: null,
@@ -221,7 +228,7 @@ async function seedAnalyticsRuntimeData(db) {
       name: 'Kitchen One',
       email: 'analytics.kitchen.one@example.com',
       mobile: '9999933331',
-      password: kitchenOnePasswordHash,
+      password: passwordHash,
       role: 'kitchen-staff',
       status: 'ACTIVE',
       restaurantId,
@@ -241,7 +248,7 @@ async function seedAnalyticsRuntimeData(db) {
       name: 'Kitchen Two',
       email: 'analytics.kitchen.two@example.com',
       mobile: '9999933332',
-      password: kitchenTwoPasswordHash,
+      password: passwordHash,
       role: 'kitchen-staff',
       status: 'ACTIVE',
       restaurantId,
@@ -261,7 +268,7 @@ async function seedAnalyticsRuntimeData(db) {
       name: 'Kitchen Three',
       email: 'analytics.kitchen.three@example.com',
       mobile: '9999933333',
-      password: kitchenThreePasswordHash,
+      password: passwordHash,
       role: 'kitchen-staff',
       status: 'INACTIVE',
       restaurantId,
@@ -769,7 +776,7 @@ async function seedAnalyticsRuntimeData(db) {
   };
 }
 
-async function runSmokeSuite(url, restaurantId) {
+async function runSmokeSuite(url, restaurantId, seedPassword) {
   const results = [];
 
   async function runStep(name, fn) {
@@ -786,7 +793,7 @@ async function runSmokeSuite(url, restaurantId) {
   }
 
   await runStep('admin revenue analytics', async () => {
-    const adminToken = await login(url, 'analytics.admin@example.com', 'Analytics@123', 'Analytics Verify Admin');
+    const adminToken = await login(url, 'analytics.admin@example.com', seedPassword, 'Analytics Verify Admin');
     const response = await request(url, 'GET', '/api/v1/admin/analytics/revenue?from=2026-01-01&to=2026-01-31&groupBy=day', {
       token: adminToken,
     });
@@ -798,7 +805,7 @@ async function runSmokeSuite(url, restaurantId) {
   });
 
   await runStep('admin peak-hours analytics', async () => {
-    const adminToken = await login(url, 'analytics.admin@example.com', 'Analytics@123', 'Analytics Verify Admin Peak');
+    const adminToken = await login(url, 'analytics.admin@example.com', seedPassword, 'Analytics Verify Admin Peak');
     const response = await request(url, 'GET', '/api/v1/admin/analytics/peak-hours?from=2026-01-01&to=2026-01-31', {
       token: adminToken,
     });
@@ -810,7 +817,7 @@ async function runSmokeSuite(url, restaurantId) {
   });
 
   await runStep('admin table-utilization analytics', async () => {
-    const adminToken = await login(url, 'analytics.admin@example.com', 'Analytics@123', 'Analytics Verify Admin Tables');
+    const adminToken = await login(url, 'analytics.admin@example.com', seedPassword, 'Analytics Verify Admin Tables');
     const response = await request(url, 'GET', '/api/v1/admin/analytics/table-utilization', {
       token: adminToken,
     });
@@ -825,7 +832,7 @@ async function runSmokeSuite(url, restaurantId) {
     const superAdminToken = await login(
       url,
       'analytics.superadmin@example.com',
-      'AnalyticsSuper@123',
+      seedPassword,
       'Analytics Verify Super Admin',
     );
     const response = await request(
@@ -844,11 +851,11 @@ async function runSmokeSuite(url, restaurantId) {
   });
 
   await runStep('analytics validation and auth guards', async () => {
-    const adminToken = await login(url, 'analytics.admin@example.com', 'Analytics@123', 'Analytics Verify Admin Guard');
+    const adminToken = await login(url, 'analytics.admin@example.com', seedPassword, 'Analytics Verify Admin Guard');
     const superAdminToken = await login(
       url,
       'analytics.superadmin@example.com',
-      'AnalyticsSuper@123',
+      seedPassword,
       'Analytics Verify Super Guard',
     );
 
@@ -880,6 +887,7 @@ async function runSmokeSuite(url, restaurantId) {
 }
 
 async function main() {
+  const seedPassword = randomBytes(32).toString('base64url');
   const mongod = await MongoMemoryServer.create({
     instance: {
       dbName: 'restaurant-automation-analytics-verify',
@@ -899,7 +907,7 @@ async function main() {
       .asPromise();
 
     assert(verifyConnection.db, 'Verification database connection is unavailable');
-    const seeded = await seedAnalyticsRuntimeData(verifyConnection.db);
+    const seeded = await seedAnalyticsRuntimeData(verifyConnection.db, seedPassword);
 
     server = spawn(process.execPath, [path.join(backendDir, 'dist', 'server.js')], {
       cwd: backendDir,
@@ -912,9 +920,9 @@ async function main() {
         MONGODB_CONNECT_TIMEOUT_MS: '5000',
         ALLOW_NO_DB: 'false',
         SEED_ON_STARTUP: 'false',
-        JWT_SECRET: 'analytics-verify-secret',
-        JWT_REFRESH_SECRET: 'analytics-verify-refresh-secret',
-        COOKIE_SECRET: 'analytics-verify-cookie-secret',
+        JWT_SECRET: randomBytes(32).toString('hex'),
+        JWT_REFRESH_SECRET: randomBytes(32).toString('hex'),
+        COOKIE_SECRET: randomBytes(32).toString('hex'),
         CORS_ORIGIN: 'http://localhost:5173',
         SOCKET_CORS_ORIGIN: 'http://localhost:5173',
         ENABLE_REQUEST_LOGS: 'false',
@@ -940,8 +948,8 @@ async function main() {
 
     await waitForHealth(baseUrl);
 
-    const smoke = await runSmokeSuite(baseUrl, seeded.restaurantId);
-    const postman = await runNewmanSuite(baseUrl);
+    const smoke = await runSmokeSuite(baseUrl, seeded.restaurantId, seedPassword);
+    const postman = await runNewmanSuite(baseUrl, seedPassword);
 
     const summary = {
       smoke,
