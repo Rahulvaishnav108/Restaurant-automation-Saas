@@ -217,7 +217,7 @@ export const useCustomerStore = create<CustomerStore>()(
       // Initializing Profile Features State
       profile: {
         name: 'Rahul Sharma',
-        phone: '+91 98765 43210',
+        phone: '0000000000',
         email: 'rahul.sharma@example.com',
         isSmartMember: true,
       },

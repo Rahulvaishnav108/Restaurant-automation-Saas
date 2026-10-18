@@ -555,7 +555,7 @@ export default function CustomerProfilePage() {
 
               {/* Other Preferences */}
               <button 
-                onClick={() => showToast('Help Desk is open! Calling line +91 98765 43210.')}
+                onClick={() => showToast('Help Desk is open! Contact support through your restaurant administrator.')}
                 className="w-full flex items-center justify-between p-4 hover:bg-sd-surface-container-low transition-colors group"
               >
                 <div className="flex items-center gap-3">
@@ -597,7 +597,7 @@ export default function CustomerProfilePage() {
               </div>
               <div>
                 <p className="text-xs font-bold font-sans">Need Help?</p>
-                <p className="text-[11px] text-sd-on-surface-variant font-sans">Call us at +91 98765 43210</p>
+                <p className="text-[11px] text-sd-on-surface-variant font-sans">Contact your restaurant administrator for support</p>
               </div>
             </div>
             <div className="bg-sd-tertiary-container/5 rounded-xl p-4 border border-sd-tertiary-container/10 flex items-center gap-3">
@@ -699,7 +699,7 @@ export default function CustomerProfilePage() {
                         value={localPhone}
                         onChange={(e) => setLocalPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                         className="flex-1 px-4 py-2.5 rounded-xl border border-sd-surface-variant focus:outline-none focus:ring-2 focus:ring-sd-primary focus:border-sd-primary font-sans text-sm"
-                        placeholder="98765 43210"
+                        placeholder="Enter mobile number"
                         required
                       />
                     </div>

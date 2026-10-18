@@ -51,7 +51,7 @@ function ProfileCard({ darkMode, onClose }: ProfileCardProps) {
 
   const details = [
     { icon: Mail, label: "souvik@hq.io" },
-    { icon: Phone, label: "+91 98765 43210" },
+    { icon: Phone, label: "Demo support contact" },
     { icon: MapPin, label: "Kolkata, WB" },
   ];
 

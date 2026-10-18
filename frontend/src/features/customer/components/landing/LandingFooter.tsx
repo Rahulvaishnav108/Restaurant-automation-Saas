@@ -254,9 +254,6 @@ export default function LandingFooter(): JSX.Element {
               </li>
               <li className="flex items-start gap-3">
                 <Phone className="w-[15px] h-[15px] mt-0.5 shrink-0" style={{ color: '#FF6B1A' }} />
-                <span className="text-[14px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                  +91 98765 43210
-                </span>
               </li>
               <li className="flex items-start gap-3">
                 <MapPin className="w-[15px] h-[15px] mt-0.5 shrink-0" style={{ color: '#FF6B1A' }} />

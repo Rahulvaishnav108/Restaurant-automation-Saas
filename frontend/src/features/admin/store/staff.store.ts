@@ -164,16 +164,16 @@ export function mapBackendUserToStaffMember(user: any): StaffMember {
 // ── Seed Data (Fallback) ───────────────────────────────────────────────────
 
 const seedMembers: StaffMember[] = [
-  { id: 's1',  name: 'John Smith',      email: 'john.smith@email.com',    avatar: 'JS', role: 'Manager',   department: 'Management', phone: '+91 98765 43210', status: 'Active',   hireDate: 'Jan 15, 2023', performance: 4.8, salary: 65000 },
-  { id: 's2',  name: 'Sarah Johnson',   email: 'sarah.j@email.com',       avatar: 'SJ', role: 'Server',    department: 'Service',    phone: '+91 98765 43211', status: 'Active',   hireDate: 'Feb 10, 2023', performance: 4.2, salary: 32000 },
-  { id: 's3',  name: 'Michael Brown',   email: 'michael.b@email.com',     avatar: 'MB', role: 'Chef',      department: 'Kitchen',    phone: '+91 98765 43212', status: 'Active',   hireDate: 'Mar 5, 2023',  performance: 4.6, salary: 55000 },
-  { id: 's4',  name: 'Emily Davis',     email: 'emily.d@email.com',       avatar: 'ED', role: 'Bartender', department: 'Bar',        phone: '+91 98765 43213', status: 'Active',   hireDate: 'Mar 20, 2023', performance: 4.1, salary: 38000 },
-  { id: 's5',  name: 'David Wilson',    email: 'david.w@email.com',       avatar: 'DW', role: 'Server',    department: 'Service',    phone: '+91 98765 43214', status: 'On Leave', hireDate: 'Apr 8, 2023',  performance: 3.9, salary: 30000 },
-  { id: 's6',  name: 'Lisa Martinez',   email: 'lisa.m@email.com',        avatar: 'LM', role: 'Host',      department: 'Front Desk', phone: '+91 98765 43215', status: 'Active',   hireDate: 'May 12, 2023', performance: 4.4, salary: 35000 },
-  { id: 's7',  name: 'Robert Taylor',   email: 'robert.t@email.com',      avatar: 'RT', role: 'Chef',      department: 'Kitchen',    phone: '+91 98765 43216', status: 'Active',   hireDate: 'Jun 1, 2023',  performance: 4.7, salary: 52000 },
-  { id: 's8',  name: 'Amanda White',    email: 'amanda.w@email.com',      avatar: 'AW', role: 'Server',    department: 'Service',    phone: '+91 98765 43217', status: 'Inactive', hireDate: 'Jul 18, 2023', performance: 3.5, salary: 29000 },
-  { id: 's9',  name: 'James Garcia',    email: 'james.g@email.com',       avatar: 'JG', role: 'Bartender', department: 'Bar',        phone: '+91 98765 43218', status: 'Active',   hireDate: 'Aug 3, 2023',  performance: 4.3, salary: 40000 },
-  { id: 's10', name: 'Priya Sharma',    email: 'priya.s@email.com',       avatar: 'PS', role: 'Manager',   department: 'Management', phone: '+91 98765 43219', status: 'Active',   hireDate: 'Sep 9, 2023',  performance: 4.9, salary: 70000 },
+  { id: 's1',  name: 'John Smith',      email: 'john.smith@email.com',    avatar: 'JS', role: 'Manager',   department: 'Management', phone: '0000000000', status: 'Active',   hireDate: 'Jan 15, 2023', performance: 4.8, salary: 65000 },
+  { id: 's2',  name: 'Sarah Johnson',   email: 'sarah.j@email.com',       avatar: 'SJ', role: 'Server',    department: 'Service',    phone: '0000000000', status: 'Active',   hireDate: 'Feb 10, 2023', performance: 4.2, salary: 32000 },
+  { id: 's3',  name: 'Michael Brown',   email: 'michael.b@email.com',     avatar: 'MB', role: 'Chef',      department: 'Kitchen',    phone: '0000000000', status: 'Active',   hireDate: 'Mar 5, 2023',  performance: 4.6, salary: 55000 },
+  { id: 's4',  name: 'Emily Davis',     email: 'emily.d@email.com',       avatar: 'ED', role: 'Bartender', department: 'Bar',        phone: '0000000000', status: 'Active',   hireDate: 'Mar 20, 2023', performance: 4.1, salary: 38000 },
+  { id: 's5',  name: 'David Wilson',    email: 'david.w@email.com',       avatar: 'DW', role: 'Server',    department: 'Service',    phone: '0000000000', status: 'On Leave', hireDate: 'Apr 8, 2023',  performance: 3.9, salary: 30000 },
+  { id: 's6',  name: 'Lisa Martinez',   email: 'lisa.m@email.com',        avatar: 'LM', role: 'Host',      department: 'Front Desk', phone: '0000000000', status: 'Active',   hireDate: 'May 12, 2023', performance: 4.4, salary: 35000 },
+  { id: 's7',  name: 'Robert Taylor',   email: 'robert.t@email.com',      avatar: 'RT', role: 'Chef',      department: 'Kitchen',    phone: '0000000000', status: 'Active',   hireDate: 'Jun 1, 2023',  performance: 4.7, salary: 52000 },
+  { id: 's8',  name: 'Amanda White',    email: 'amanda.w@email.com',      avatar: 'AW', role: 'Server',    department: 'Service',    phone: '0000000000', status: 'Inactive', hireDate: 'Jul 18, 2023', performance: 3.5, salary: 29000 },
+  { id: 's9',  name: 'James Garcia',    email: 'james.g@email.com',       avatar: 'JG', role: 'Bartender', department: 'Bar',        phone: '0000000000', status: 'Active',   hireDate: 'Aug 3, 2023',  performance: 4.3, salary: 40000 },
+  { id: 's10', name: 'Priya Sharma',    email: 'priya.s@email.com',       avatar: 'PS', role: 'Manager',   department: 'Management', phone: '0000000000', status: 'Active',   hireDate: 'Sep 9, 2023',  performance: 4.9, salary: 70000 },
 ];
 
 // ── Store ──────────────────────────────────────────────────────────────────

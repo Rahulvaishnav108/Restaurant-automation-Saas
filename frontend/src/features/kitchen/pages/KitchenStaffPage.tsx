@@ -18,8 +18,8 @@ export interface JoineeRequest {
 }
 
 const SEED_JOINEES: JoineeRequest[] = [
-  { id: 'JR-01', name: 'Rohan Das', role: 'Line Cook', email: 'rohan.das@email.com', phone: '+91 99999 88888', appliedDate: '18-06-2026', status: 'pending' },
-  { id: 'JR-02', name: 'Siddharth Sen', role: 'Kitchen Assistant', email: 'sid.sen@email.com', phone: '+91 88888 77777', appliedDate: '19-06-2026', status: 'pending' },
+  { id: 'JR-01', name: 'Rohan Das', role: 'Line Cook', email: 'rohan.das@email.com', phone: '0000000000', appliedDate: '18-06-2026', status: 'pending' },
+  { id: 'JR-02', name: 'Siddharth Sen', role: 'Kitchen Assistant', email: 'sid.sen@email.com', phone: '0000000000', appliedDate: '19-06-2026', status: 'pending' },
 ];
 
 const ROLE_OPTIONS = [
@@ -955,7 +955,7 @@ export default function KitchenStaffPage() {
                     type="tel"
                     value={newPhone}
                     onChange={(e) => setNewPhone(e.target.value)}
-                    placeholder="e.g. +91 99999 88888"
+                    placeholder="e.g. 0000000000"
                     className="w-full px-4 py-2.5 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-750 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 dark:text-white font-sans text-sm"
                   />
                 </div>

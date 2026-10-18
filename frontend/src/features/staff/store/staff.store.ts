@@ -92,7 +92,7 @@ class StaffStore {
       section: 'Zone A (Tables 1-8)',
       status: 'On Duty',
       email: 'rahul.sharma@dineease.com',
-      phone: '+91 99999 88888',
+      phone: '0000000000',
       joined: 'Jan 2025',
       avatar: ''
     };

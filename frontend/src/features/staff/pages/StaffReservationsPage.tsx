@@ -15,10 +15,10 @@ interface Reservation {
 export default function StaffReservationsPage() {
   const { query } = useStaffSearch();
   const [reservations, setReservations] = useState<Reservation[]>([
-    { id: 1, name: 'Ananya Roy', pax: 4, time: '07:30 PM', phone: '+91 98765 43210', status: 'Confirmed', type: 'Reservation' },
-    { id: 2, name: 'Vikram Singh', pax: 2, time: '08:00 PM', phone: '+91 87654 32109', status: 'Confirmed', type: 'Reservation' },
-    { id: 3, name: 'Siddharth Sen', pax: 5, time: '15 mins wait', phone: '+91 76543 21098', status: 'Confirmed', type: 'Walk-in', queueNo: 1 },
-    { id: 4, name: 'Megha Gupta', pax: 3, time: '25 mins wait', phone: '+91 65432 10987', status: 'Confirmed', type: 'Walk-in', queueNo: 2 },
+    { id: 1, name: 'Ananya Roy', pax: 4, time: '07:30 PM', phone: '0000000000', status: 'Confirmed', type: 'Reservation' },
+    { id: 2, name: 'Vikram Singh', pax: 2, time: '08:00 PM', phone: '0000000000', status: 'Confirmed', type: 'Reservation' },
+    { id: 3, name: 'Siddharth Sen', pax: 5, time: '15 mins wait', phone: '0000000000', status: 'Confirmed', type: 'Walk-in', queueNo: 1 },
+    { id: 4, name: 'Megha Gupta', pax: 3, time: '25 mins wait', phone: '0000000000', status: 'Confirmed', type: 'Walk-in', queueNo: 2 },
     { id: 5, name: 'Kabir Mehta', pax: 6, time: '09:00 PM', phone: '+91 54321 09876', status: 'Confirmed', type: 'Reservation' },
   ]);
 

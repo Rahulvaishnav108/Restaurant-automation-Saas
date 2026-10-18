@@ -90,7 +90,7 @@ class CleaningStore {
       name: 'Priya Sharma',
       id: 'CS-1024',
       email: 'priya.sharma@cleanserve.com',
-      phone: '+91 98765 43210',
+      phone: '0000000000',
       role: 'Cleaning Staff',
       department: 'Housekeeping',
       joinedOn: 'Feb 12, 2024',
@@ -337,7 +337,7 @@ class CleaningStore {
         name: 'Ramesh K.',
         role: 'Cleaning Staff',
         area: 'Dining Area A',
-        phone: '+91 98001 11111',
+        phone: '0000000000',
         avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCZ1EeclPIzb65zLML4Z-Ep8QnCj_Ey68uOYKOfFtZuK_k5ILmHPwi-DSDwYreE9ju4D4Z79Hp6UeAKZXSwBOURkmGSQ7hNQ8-lDeQGBfmjcHltnwofvxh67WrZSDukcUkwZiuZjqYa74AhkTFTcLWqysc21n_T9l3J9vkmkj_lFhXuaPU189ige8Tlb5foWMvGnW27LhowBJk4dHeUfzWcmeRluinE4acRYrVtfGNEr0sYCTnJ1sdGsg1NYN3HFCrqzkH0-TJrClE',
       },
       {
@@ -345,7 +345,7 @@ class CleaningStore {
         name: 'Vikram P.',
         role: 'Senior Cleaner',
         area: 'Terrace Area',
-        phone: '+91 98001 22222',
+        phone: '0000000000',
         avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA--L3CSbZtR0isayAQeKWVqEYUnJm50z5jjO9pkKQN7ksNy8Vgt62aZwgUrLRnYBtnpNDDk4IRK7ognEaSVtSVSsdI0zIDiq4N90jHPW5P1ONLpdO51I3sP-vvCRQnQTsfxs1Via1HEmQcJeHVGQ6-nNWKCActOegeFVwkpjBzRiXJlzDX15TkbA-90HDUzdz54FoQmsFcObFCGuXAmvK2KTyMt9nyMhl5nHPEV0d4sIjpe9An60OytiSZxSfYVdBG1nSHlTyW1aA',
       },
       {
@@ -353,7 +353,7 @@ class CleaningStore {
         name: 'Anita S.',
         role: 'Cleaning Staff',
         area: 'Dining Area B',
-        phone: '+91 98001 33333',
+        phone: '0000000000',
         avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuANsaeL1qIrdjS8VjlskxOHt17ofWL0mQA8HTEyUyGUmb0WZEoFeVIhAYDxByw8LuxWxFKIdV270hwAPBmZFNJdIOoLB7X4CRStTLzQ66uJ709k9Kvpbt3yDChYZmi0IOgzaKGIARmUFWTp8fiuOG-poilaUus94iK5MEMaPofwxQGipJFvuis9fWEp53IS84fln5N1GSiP7xWII9WnJi1qTw5gFY4eKQQgrXVlslMwV6TbZi4nnm2vGRG3hjoOoFQyNc23SGR4j9U',
       },
     ];

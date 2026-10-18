@@ -81,7 +81,7 @@ export default function EditProfile() {
     lastName: "Dey",
     displayName: "Mr. Souvik",
     email: "souvik@hq.io",
-    phone: "+91 98765 43210",
+    phone: "0000000000",
     location: "Kolkata, WB",
     bio: "Super Administrator managing the HQ Terminal platform.",
   });
