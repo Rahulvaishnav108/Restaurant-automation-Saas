@@ -2,6 +2,7 @@
 // Central application router — assembles all role-based route modules
 
 import { createBrowserRouter, createHashRouter, Navigate, RouterProvider } from 'react-router-dom';
+import type { RouteObject } from 'react-router-dom';
 import RootErrorBoundary from './RootErrorBoundary';
 import { ProtectedRoute } from './guards/ProtectedRoute';
 
@@ -18,6 +19,8 @@ import { superAdminRoutes } from '../routes/superAdmin.routes';
 import LandingPage from '../features/customer/pages/LandingPage';
 import RestaurantsPage from '../features/customer/pages/RestaurantsPage';
 import OffersPage from '../features/customer/pages/OffersPage';
+import DemoWorkspacePage from '../features/customer/pages/DemoWorkspacePage';
+import type { AppRole } from '../auth/AuthProvider';
 import { lazy, Suspense } from 'react';
 
 // Lazy-loaded table session page (QR scan entry)
@@ -92,8 +95,42 @@ const routes = [
   },
 ];
 
+function demoRoleRoutes(source: RouteObject[], role: AppRole, keepIndex = false): RouteObject[] {
+  const root = source[0] as import('react-router-dom').NonIndexRouteObject;
+  const originalIndex = root.children?.find((route) => route.index);
+  return [{
+    ...root,
+    children: [
+      ...(keepIndex && originalIndex ? [originalIndex] : []),
+      ...(!keepIndex ? [{ index: true, element: <DemoWorkspacePage role={role} /> }] : []),
+      { path: '*', element: <DemoWorkspacePage role={role} /> },
+    ],
+  }];
+}
+
+const demoRoutes: RouteObject[] = [
+  { path: '/', element: <LandingPage />, errorElement: <RootErrorBoundary /> },
+  { path: '/customer/restaurants', element: <RestaurantsPage /> },
+  { path: '/customer/offers', element: <OffersPage /> },
+  { path: '/table', element: <DemoWorkspacePage role="customer" /> },
+  { path: '/auth', children: authRoutes, errorElement: <RootErrorBoundary /> },
+  {
+    element: <ProtectedRoute />,
+    errorElement: <RootErrorBoundary />,
+    children: [
+      ...demoRoleRoutes(adminRoutes, 'admin', true),
+      ...demoRoleRoutes(staffRoutes, 'staff'),
+      ...demoRoleRoutes(kitchenRoutes, 'kitchen'),
+      ...demoRoleRoutes(cleaningRoutes, 'cleaning'),
+      ...demoRoleRoutes(customerRoutes, 'customer'),
+      ...demoRoleRoutes(superAdminRoutes, 'super-admin'),
+    ],
+  },
+  { path: '*', element: <Navigate to="/" replace /> },
+];
+
 const router = import.meta.env.VITE_DEMO_MODE === 'true'
-  ? createHashRouter(routes)
+  ? createHashRouter(demoRoutes)
   : createBrowserRouter(routes, { basename: import.meta.env.BASE_URL });
 
 export default function AppRouter(): JSX.Element {
