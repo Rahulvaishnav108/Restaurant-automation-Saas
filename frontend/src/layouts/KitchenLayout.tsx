@@ -42,7 +42,7 @@ export default function KitchenLayout(): JSX.Element {
 
   return (
     <KitchenSearchProvider>
-      <div className="flex h-screen overflow-hidden bg-sd-surface text-sd-on-surface font-sans kitchen-panel">
+      <div className="spatial-app flex h-screen overflow-hidden bg-sd-surface text-sd-on-surface font-sans kitchen-panel">
         {/* Sidebar */}
         <KitchenSidebar
           collapsed={sidebarCollapsed}

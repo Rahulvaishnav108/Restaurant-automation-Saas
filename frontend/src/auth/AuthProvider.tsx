@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, type PropsWithChildren } from 'react';
 import { apiClient } from '../shared/services/apiClient';
+import { env } from '../lib/env';
 import {
   getAccessToken,
   getStoredRole,
@@ -196,6 +197,23 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
   // ── Sign-in ───────────────────────────────────────────────────────
 
   const signIn = useCallback(async (input: { email?: string; mobile?: string; password: string; deviceLabel?: string }): Promise<AuthUser> => {
+    if (env.demoMode) {
+      const requestedPanel = window.location.hash.match(/\/(admin|staff|kitchen|cleaning|superadmin|super-admin|customer)(?:\/|$)/)?.[1];
+      const roleByPanel: Record<string, AppRole> = { admin: 'admin', staff: 'staff', kitchen: 'kitchen', cleaning: 'cleaning', superadmin: 'super-admin', 'super-admin': 'super-admin', customer: 'customer' };
+      const email = input.email?.toLowerCase() ?? '';
+      const role = roleByPanel[requestedPanel ?? ''] ?? (email.includes('admin') ? 'admin' : email.includes('kitchen') ? 'kitchen' : email.includes('staff') ? 'staff' : email.includes('clean') ? 'cleaning' : email.includes('platform') ? 'super-admin' : 'customer');
+      const panel = appRoleToPanel(role);
+      const profile = roleProfiles[role];
+      const demoToken = `demo-token-${role}`;
+      setStoredRole(panel, role);
+      setStoredUser(panel, { id: profile.id, name: profile.name, role, panel, internal_role: profile.internal_role, restaurantId: profile.restaurantId, restaurantName: profile.restaurantName });
+      setAccessToken(panel, demoToken);
+      setActivePanel(panel);
+      setActivePanelState(panel);
+      setUserState(profile);
+      setAccessTokenStateRaw(demoToken);
+      return profile;
+    }
     const response = await apiClient.post<LoginResponse>('/auth/login', input);
     const payload = response.data.data;
     const panel = payload.panel;

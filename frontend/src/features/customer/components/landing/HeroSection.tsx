@@ -28,7 +28,7 @@ export default function HeroSection({ onLoginOpen }: HeroSectionProps) {
       id="home"
       className="relative min-h-[680px] flex flex-col justify-center overflow-hidden"
       style={{
-        background: `linear-gradient(90deg, rgba(15,15,15,0.88) 0%, rgba(15,15,15,0.4) 100%), url('/images/landing/hero.png')`,
+        background: `linear-gradient(90deg, rgba(15,15,15,0.88) 0%, rgba(15,15,15,0.4) 100%), url('${import.meta.env.BASE_URL}images/landing/hero.png')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }}

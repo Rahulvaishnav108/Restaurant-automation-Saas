@@ -424,12 +424,21 @@ export class PaymentsService {
       const { SubscriptionPaymentModel, SubscriptionModel } = await import('../../modules/subscriptions/subscriptions.model');
       const { SubscriptionPaymentProvider, SubscriptionPaymentStatus, SubscriptionEventType } = await import('../../modules/subscriptions/subscriptions.model');
 
+      const paymentOrder = await SubscriptionPaymentModel.findOne({
+        subscriptionId: new mongoose.Types.ObjectId(subscriptionId),
+        providerOrderId: rzpOrderId,
+      });
+      if (!paymentOrder || paymentOrder.restaurantId.toString() !== restaurantId) {
+        return { received: true, event: eventType, subscription: subscriptionId, reason: 'unknown_order' };
+      }
+
       if (eventType === 'payment.captured') {
         const { appendSubscriptionHistory } = await import('../../modules/subscriptions/subscriptions.history.service');
         const subscriptionPayment = await SubscriptionPaymentModel.findOneAndUpdate(
           {
             subscriptionId: new mongoose.Types.ObjectId(subscriptionId),
             providerOrderId: rzpOrderId,
+            amount: planAmount,
           },
           {
             providerPaymentId: rzpPaymentId,
@@ -438,12 +447,18 @@ export class PaymentsService {
             webhookEventId: event?.id ? String(event.id) : null,
             metadata: { ...(entity?.notes ?? {}), source: 'razorpay_webhook' },
           },
-          { new: true, upsert: true },
+          { new: true },
         );
+
+        if (!subscriptionPayment) {
+          return { received: true, event: eventType, subscription: subscriptionId, reason: 'amount_mismatch' };
+        }
 
         const sub = await SubscriptionModel.findById(subscriptionId);
         if (sub && subscriptionPayment && !subscriptionPayment.paymentAppliedAt) {
-          const addDays = sub.billingCycle === 'yearly' ? 365 : 30;
+          const paymentMetadata = (subscriptionPayment.metadata ?? {}) as Record<string, any>;
+          const effectiveCycle = paymentMetadata.targetBillingCycle ?? subscriptionPayment.billingCycle ?? sub.billingCycle;
+          const addDays = effectiveCycle === 'yearly' ? 365 : 30;
           const periodStart = sub.currentPeriodEnd && sub.currentPeriodEnd > new Date() ? sub.currentPeriodEnd : new Date();
           const periodEnd = new Date(periodStart.getTime() + addDays * 24 * 60 * 60 * 1000);
           const session = await mongoose.startSession();
@@ -464,18 +479,40 @@ export class PaymentsService {
               sub.expiredAt = null;
               sub.cancelledAt = null;
               sub.metadata = { ...(sub.metadata ?? {}), cancelAtPeriodEnd: false, expireAtPeriodEnd: false };
+              if (paymentMetadata.action === 'upgrade' && paymentMetadata.targetPlanId) {
+                const targetPlan = await (await import('../../modules/superAdmin/superAdmin.model')).PlatformPlanModel.findById(paymentMetadata.targetPlanId).session(session);
+                if (targetPlan) {
+                  const requestedSeats = Number(paymentMetadata.targetSeats ?? sub.seats);
+                  if (!Number.isInteger(requestedSeats) || requestedSeats < 1 || requestedSeats > targetPlan.tenantLimit) {
+                    throw new AppError('Paid upgrade seat count is outside the target plan limit', 409, ErrorCode.TENANT_VIOLATION);
+                  }
+                  sub.plan = targetPlan.name;
+                  sub.planId = targetPlan._id;
+                  sub.seats = requestedSeats;
+                  sub.billingCycle = paymentMetadata.targetBillingCycle ?? sub.billingCycle;
+                  await (await import('../../modules/restaurants/restaurants.model')).RestaurantModel.updateOne({ _id: sub.restaurantId }, { plan: targetPlan.name }, { session });
+                }
+              }
               await sub.save({ session });
               await appendSubscriptionHistory({
                 subscriptionId: sub._id, restaurantId: sub.restaurantId,
                 eventType: SubscriptionEventType.PAYMENT_COMPLETED,
-                metadata: { paymentProvider: SubscriptionPaymentProvider.RAZORPAY, amount: planAmount, orderId: rzpOrderId, paymentId: rzpPaymentId },
+                metadata: { paymentProvider: SubscriptionPaymentProvider.RAZORPAY, amount: planAmount, orderId: rzpOrderId, paymentId: rzpPaymentId, action: paymentMetadata.action ?? 'renewal', plan: sub.plan },
                 session,
               });
-              await appendSubscriptionHistory({
-                subscriptionId: sub._id, restaurantId: sub.restaurantId,
-                eventType: SubscriptionEventType.RENEWED,
-                metadata: { newPeriodEnd: periodEnd, addDays }, session,
-              });
+              if (paymentMetadata.action === 'upgrade') {
+                await appendSubscriptionHistory({
+                  subscriptionId: sub._id, restaurantId: sub.restaurantId,
+                  eventType: SubscriptionEventType.UPGRADED,
+                  metadata: { toPlan: sub.plan, toPlanId: sub.planId, seats: sub.seats, billingCycle: sub.billingCycle, appliesAt: new Date(), }, session,
+                });
+              } else {
+                await appendSubscriptionHistory({
+                  subscriptionId: sub._id, restaurantId: sub.restaurantId,
+                  eventType: SubscriptionEventType.RENEWED,
+                  metadata: { newPeriodEnd: periodEnd, addDays }, session,
+                });
+              }
             });
           } finally { await session.endSession(); }
         }
@@ -486,6 +523,7 @@ export class PaymentsService {
           {
             subscriptionId: new mongoose.Types.ObjectId(subscriptionId),
             providerOrderId: rzpOrderId,
+            amount: planAmount,
           },
           {
             providerPaymentId: rzpPaymentId,
@@ -498,7 +536,7 @@ export class PaymentsService {
               error: entity?.error_description ?? null,
             },
           },
-          { new: true, upsert: true },
+          { new: true },
         );
 
         if (failedPayment?.status === SubscriptionPaymentStatus.FAILED && !failedPayment.failureRecordedAt) {
@@ -521,6 +559,10 @@ export class PaymentsService {
         } finally { await session.endSession(); }
 
         }
+      }
+
+      if (eventType === 'payment.authorized') {
+        return { received: true, event: eventType, subscription: subscriptionId, status: 'awaiting_capture' };
       }
 
       return { received: true, event: eventType, subscription: subscriptionId };

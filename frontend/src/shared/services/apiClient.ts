@@ -45,6 +45,9 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
+  if (env.demoMode) {
+    return Promise.reject(new Error('The hosted demo uses sample data and does not connect to the API.'));
+  }
   // Resolve the access token from the URL prefix or the currently active panel
   const panel = getPanelFromUrl(config.url) || getActivePanel();
   const token = getAccessToken(panel);

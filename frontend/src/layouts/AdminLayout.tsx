@@ -28,7 +28,7 @@ export default function AdminLayout(): JSX.Element {
   return (
     <AdminNotificationsProvider>
       <AdminSearchProvider>
-        <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-950 dark:text-gray-50 font-sans admin-panel">
+        <div className="spatial-app flex min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-950 dark:text-gray-50 font-sans admin-panel">
           <AdminSidebar
             collapsed={sidebarCollapsed}
             onToggle={handleToggleSidebar}

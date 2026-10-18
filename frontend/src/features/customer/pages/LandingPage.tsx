@@ -1,6 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QrCode } from 'lucide-react';
+import { useAuth, type AppRole } from '../../../auth/AuthProvider';
+import { env } from '../../../lib/env';
 import {
   LandingNavbar,
   HeroSection,
@@ -19,6 +21,13 @@ import '../components/landing/landing.css';
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { signInAs } = useAuth();
+
+  const enterDemo = (role: AppRole) => {
+    signInAs(role);
+    const route = role === 'super-admin' ? '/superadmin' : `/${role}`;
+    navigate(route);
+  };
 
   const openLogin = () => {
     navigate('/auth/customer');
@@ -61,6 +70,20 @@ export default function LandingPage() {
       <TestimonialsSection />
       
       <LandingFooter />
+
+      {env.demoMode && (
+        <aside className="demo-access" aria-label="Demo workspaces">
+          <span className="demo-access-label"><span className="demo-access-dot" /> Live preview · sample data</span>
+          <div className="demo-access-actions">
+            {([
+              ['Customer', 'customer'], ['Admin', 'admin'], ['Staff', 'staff'],
+              ['Kitchen', 'kitchen'], ['Cleaning', 'cleaning'], ['Platform', 'super-admin'],
+            ] as Array<[string, AppRole]>).map(([label, role]) => (
+              <button key={role} type="button" onClick={() => enterDemo(role)}>{label}</button>
+            ))}
+          </div>
+        </aside>
+      )}
 
       {/* Floating QR Scanner Button */}
       {/* Desktop: Right center */}

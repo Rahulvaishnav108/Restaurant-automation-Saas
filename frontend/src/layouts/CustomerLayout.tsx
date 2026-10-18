@@ -119,7 +119,7 @@ export default function CustomerLayout() {
   return (
     <CartProvider>
       <SearchProvider>
-        <div className="flex h-screen overflow-hidden bg-sd-surface customer-panel">
+        <div className="spatial-app flex h-screen overflow-hidden bg-sd-surface customer-panel">
           <CustomerSidebar
             collapsed={sidebarCollapsed}
             onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}

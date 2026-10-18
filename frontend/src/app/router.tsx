@@ -1,7 +1,7 @@
 // src/app/router.tsx
 // Central application router — assembles all role-based route modules
 
-import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, createHashRouter, Navigate, RouterProvider } from 'react-router-dom';
 import RootErrorBoundary from './RootErrorBoundary';
 import { ProtectedRoute } from './guards/ProtectedRoute';
 
@@ -25,7 +25,7 @@ const TableSessionPage = lazy(
   () => import('../features/customer/pages/TableSessionPage')
 );
 
-const router = createBrowserRouter([
+const routes = [
   // ── Public landing ─────────────────────────────────────────────────
   {
     path: '/',
@@ -90,7 +90,11 @@ const router = createBrowserRouter([
     path: '*',
     element: <Navigate to="/" replace />,
   },
-]);
+];
+
+const router = import.meta.env.VITE_DEMO_MODE === 'true'
+  ? createHashRouter(routes)
+  : createBrowserRouter(routes, { basename: import.meta.env.BASE_URL });
 
 export default function AppRouter(): JSX.Element {
   return <RouterProvider router={router} />;

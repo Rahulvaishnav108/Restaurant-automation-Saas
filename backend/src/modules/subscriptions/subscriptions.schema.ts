@@ -43,6 +43,9 @@ export const renewSchema = z.object({
 export const billingOrderSchema = z.object({
   provider: paymentProviderSchema.default('mock'),
   currency: z.string().trim().min(3).max(3).default('INR'),
+  plan: z.string().trim().min(1).optional(),
+  seats: z.number().int().positive().optional(),
+  billingCycle: billingCycleSchema.optional(),
 });
 
 export const usageUpdateSchema = z.object({

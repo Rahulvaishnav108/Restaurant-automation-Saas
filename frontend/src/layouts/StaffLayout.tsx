@@ -15,7 +15,7 @@ export default function StaffLayout(): JSX.Element {
 
   return (
     <StaffSearchProvider>
-      <div className="flex min-h-screen bg-sd-surface text-sd-on-surface font-sans staff-panel">
+      <div className="spatial-app flex min-h-screen bg-sd-surface text-sd-on-surface font-sans staff-panel">
         {/* Sidebar */}
         <StaffSidebar
           collapsed={sidebarCollapsed}

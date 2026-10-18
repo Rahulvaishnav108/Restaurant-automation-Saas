@@ -62,14 +62,14 @@
 - [x] Subscription billing creation (Razorpay/mock; Stripe is not configured) linked to subscription
 - [x] Subscription payment records linked to subscription lifecycle
 - [x] Auto-renewal handling (scheduler + Razorpay webhook success/failure transitions)
-- [ ] Upgrade proration and payment adjustments require a provider pricing policy before implementation
+- [x] Upgrade proration and payment adjustments (remaining-period price difference is charged; plan, seats, and cycle apply only after verified payment)
 
-**Current status:** Razorpay and mock subscription billing lifecycle are wired; Stripe and proration are not configured.
+**Current status:** Razorpay and mock subscription billing lifecycle are wired; upgrades use remaining-period price-difference proration. Stripe is not configured.
 
 ---
 
 ## 7) Technical improvements (supporting)
-- [ ] Add MongoDB transactions for plan and subscription lifecycle updates (requires a replica-set MongoDB deployment)
+- [x] Add MongoDB transactions for plan and subscription lifecycle updates; local Docker Compose Mongo runs as a replica set
 - [x] Fix plan/subscription creation races using unique indexes and duplicate-key handling
 - [x] Subscription runtime references use planId ObjectId; plan name remains for compatibility/display
 
@@ -81,5 +81,5 @@ To mark the module as complete, the following must be true:
 2) Upgrade/downgrade/renew/cancel/expire flows update state consistently and write history.
 3) Plan limits are enforced at runtime everywhere required.
 4) Usage monitoring drives notifications and enforcement.
-5) Subscription billing lifecycle is fully linked + webhook-driven.
+5) Subscription billing lifecycle is fully linked + webhook-driven, including paid upgrades and prorated adjustments.
 

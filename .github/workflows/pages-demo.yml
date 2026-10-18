@@ -1,0 +1,62 @@
+name: Deploy demo to GitHub Pages
+
+on:
+  push:
+    branches: [main, rahul-vaishnav/complete-subscription-plan-management]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/pages-demo.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build credential-free demo
+        run: npm run build --workspace frontend
+        env:
+          VITE_DEMO_MODE: 'true'
+          VITE_APP_ENV: production
+          VITE_APP_NAME: RestoHub Demo
+          VITE_API_URL: https://demo.invalid/api/v1
+          VITE_SOCKET_URL: https://demo.invalid
+          VITE_ENABLE_NOTIFICATIONS: 'false'
+          VITE_ENABLE_ANALYTICS: 'false'
+          VITE_DEBUG_MODE: 'false'
+          VITE_BASE_PATH: /Restaurant-automation-Saas/
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: frontend/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

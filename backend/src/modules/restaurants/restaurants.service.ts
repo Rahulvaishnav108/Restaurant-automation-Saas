@@ -9,6 +9,12 @@ import { SessionStatus, TableStatus } from '../../constants/statuses';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
 import type { UpdateRestaurantSettingsInput } from './restaurants.schema';
+import { OrderModel } from '../orders/orders.model';
+import { BillingModel } from '../billing/billing.model';
+import { ReservationModel } from '../reservations/reservations.model';
+import { BillStatus } from '../billing/billing.schema';
+import { OrderStatus } from '../../constants/statuses';
+import mongoose from 'mongoose';
 
 // ── Get public restaurant by slug ─────────────────────────────────────
 export async function getRestaurantBySlug(slug: string) {
@@ -49,6 +55,57 @@ export async function getRestaurantOverview(restaurantId: string) {
       activeSessions,
       occupiedTables,
     },
+  };
+}
+
+export async function getRestaurantDashboard(restaurantId: string) {
+  const now = new Date();
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const weekStart = new Date(startToday);
+  weekStart.setDate(weekStart.getDate() - 6);
+  const [
+    todayRevenueRows,
+    previousRevenueRows,
+    todayOrders,
+    activeOrders,
+    totalCustomers,
+    dailyRevenueRows,
+    recentOrders,
+    topItems,
+    tableCounts,
+    upcomingReservations,
+  ] = await Promise.all([
+    BillingModel.aggregate([{ $match: { restaurantId: new mongoose.Types.ObjectId(restaurantId), status: BillStatus.PAID, paidAt: { $gte: startToday } } }, { $group: { _id: null, total: { $sum: '$finalAmount' } } }]),
+    BillingModel.aggregate([{ $match: { restaurantId: new mongoose.Types.ObjectId(restaurantId), status: BillStatus.PAID, paidAt: { $gte: new Date(startToday.getTime() - 86400000), $lt: startToday } } }, { $group: { _id: null, total: { $sum: '$finalAmount' } } }]),
+    OrderModel.countDocuments({ restaurantId, createdAt: { $gte: startToday } }),
+    OrderModel.countDocuments({ restaurantId, status: { $nin: [OrderStatus.COMPLETED, OrderStatus.CANCELLED, OrderStatus.REJECTED] } }),
+    OrderModel.distinct('customerId', { restaurantId, customerId: { $ne: null } }).then((ids) => ids.length),
+    BillingModel.aggregate([{ $match: { restaurantId: new mongoose.Types.ObjectId(restaurantId), status: BillStatus.PAID, paidAt: { $gte: weekStart } } }, { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$paidAt' } }, total: { $sum: '$finalAmount' } } }]),
+    OrderModel.find({ restaurantId }).sort({ createdAt: -1 }).limit(6).populate('tableId', 'tableNumber').lean(),
+    OrderModel.aggregate([{ $match: { restaurantId: new mongoose.Types.ObjectId(restaurantId), createdAt: { $gte: weekStart } } }, { $unwind: '$items' }, { $group: { _id: '$items.name', quantity: { $sum: '$items.quantity' }, revenue: { $sum: '$items.totalPrice' } } }, { $sort: { quantity: -1 } }, { $limit: 5 }]),
+    TableModel.aggregate([{ $match: { restaurantId: new mongoose.Types.ObjectId(restaurantId), isActive: true } }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
+    ReservationModel.find({ restaurantId, date: { $gte: startToday.toISOString().slice(0, 10) }, status: { $nin: ['CANCELLED', 'CANCELED'] } }).sort({ date: 1, slot: 1 }).limit(5).lean(),
+  ]);
+
+  const currentRevenue = todayRevenueRows[0]?.total ?? 0;
+  const previousRevenue = previousRevenueRows[0]?.total ?? 0;
+  const revenueChange = previousRevenue ? ((currentRevenue - previousRevenue) / previousRevenue) * 100 : null;
+  const revenueByDay = new Map(dailyRevenueRows.map((row: any) => [row._id, row.total]));
+  const revenue = Array.from({ length: 7 }, (_, index) => {
+    const day = new Date(weekStart);
+    day.setDate(weekStart.getDate() + index);
+    const key = day.toISOString().slice(0, 10);
+    return { date: key, label: new Intl.DateTimeFormat('en', { weekday: 'short' }).format(day), total: revenueByDay.get(key) ?? 0 };
+  });
+
+  return {
+    metrics: { revenue: currentRevenue, revenueChange, orders: todayOrders, activeOrders, customers: totalCustomers },
+    revenue,
+    recentOrders: recentOrders.map((order: any) => ({ id: order.orderNumber, table: order.tableId?.tableNumber ?? 'Takeaway', items: order.items.map((item: any) => item.name).slice(0, 3).join(', '), total: order.finalAmount ?? order.totalAmount, status: order.status, createdAt: order.createdAt })),
+    topItems: topItems.map((item: any) => ({ name: item._id, quantity: item.quantity, revenue: item.revenue })),
+    tables: tableCounts.reduce((result: Record<string, number>, row: any) => { result[row._id] = row.count; return result; }, {}),
+    upcomingReservations: upcomingReservations.map((reservation: any) => ({ id: reservation._id, name: reservation.customerName, date: reservation.date, slot: reservation.slot, guests: reservation.guests, status: reservation.status })),
+    generatedAt: now,
   };
 }
 

@@ -45,7 +45,7 @@ export default function RestaurantCard({ restaurant, onLoginOpen }: RestaurantCa
       {/* Image Container */}
       <div className="landing-img-overlay-wrap relative h-[200px] overflow-hidden">
         <img
-          src={restaurant.image}
+          src={restaurant.image.startsWith('/') ? `${import.meta.env.BASE_URL}${restaurant.image.slice(1)}` : restaurant.image}
           alt={restaurant.name}
           className="landing-img-professional w-full h-full object-cover"
           loading="lazy"

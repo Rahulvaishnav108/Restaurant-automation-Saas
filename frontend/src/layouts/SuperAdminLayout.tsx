@@ -87,7 +87,7 @@ export default function SuperAdminLayout() {
 
   return (
     <div
-      className={`flex min-h-screen font-sans antialiased transition-colors duration-300 superadmin-panel ${
+      className={`spatial-app flex min-h-screen font-sans antialiased transition-colors duration-300 superadmin-panel ${
         darkMode ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-900"
       }`}
     >

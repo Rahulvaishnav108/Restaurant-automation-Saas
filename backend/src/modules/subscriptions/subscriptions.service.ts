@@ -679,9 +679,45 @@ export async function getSubscriptionHistory(id: string) {
 export async function createBillingOrder(id: string, input: BillingOrderInput) {
   const sub = await SubscriptionModel.findById(id);
   if (!sub) throw new AppError('Subscription not found', 404, ErrorCode.NOT_FOUND);
-
-  const planDoc = await resolvePlanDetails(sub.plan);
-  const amount = getPlanAmount(planDoc, sub.billingCycle);
+  const targetPlan = input.plan ?? sub.plan;
+  const targetSeats = input.seats ?? sub.seats ?? 1;
+  const billingCycle = (input.billingCycle ?? sub.billingCycle) as BillingCycle;
+  const planDoc = await resolvePlanDetails(targetPlan);
+  validateSeatsAgainstPlanLimit(targetSeats, planDoc.tenantLimit);
+  const targetAmount = getPlanAmount(planDoc, billingCycle) * targetSeats;
+  const isUpgrade = planDoc._id.toString() !== sub.planId.toString() || targetSeats > sub.seats || billingCycle !== sub.billingCycle;
+  if (isUpgrade && sub.metadata?.pendingDowngrade) {
+    throw new AppError('Cancel the pending downgrade before creating an upgrade payment', 409, ErrorCode.CONFLICT);
+  }
+  if (isUpgrade && sub.status === SubscriptionStatus.ACTIVE && (planDoc._id.toString() !== sub.planId.toString() || billingCycle !== sub.billingCycle)) {
+    const currentPlan = await PlatformPlanModel.findById(sub.planId).lean() as unknown as PlanDetails | null;
+    const requestedUnitPrice = getPlanAmount(planDoc, billingCycle);
+    const currentUnitPrice = currentPlan ? getPlanAmount(currentPlan, sub.billingCycle) : 0;
+    if (currentPlan && requestedUnitPrice < currentUnitPrice) {
+      throw new AppError('A lower-priced plan or billing cycle must be scheduled as a downgrade', 409, ErrorCode.INVALID_REQUEST);
+    }
+  }
+  let amount = targetAmount;
+  let proration: Record<string, number> | null = null;
+  if (isUpgrade && sub.status === SubscriptionStatus.ACTIVE) {
+    const currentPlan = await PlatformPlanModel.findById(sub.planId).lean() as unknown as PlanDetails | null;
+    if (currentPlan) {
+      const periodStart = sub.currentPeriodStart?.getTime() ?? Date.now();
+      const periodEnd = sub.currentPeriodEnd?.getTime() ?? Date.now();
+      const periodLength = Math.max(1, periodEnd - periodStart);
+      const remaining = Math.max(0, Math.min(1, (periodEnd - Date.now()) / periodLength));
+      const currentPeriodValue = getPlanAmount(currentPlan, sub.billingCycle) * (sub.seats ?? 1);
+      const targetPeriodValue = targetAmount;
+      const credit = roundToTwoDecimals(currentPeriodValue * remaining);
+      const charge = roundToTwoDecimals(Math.max(0, targetPeriodValue - currentPeriodValue) * remaining);
+      amount = charge;
+      proration = { remainingFraction: Number(remaining.toFixed(4)), credit, charge, currentPeriodValue, targetPeriodValue };
+    }
+  }
+  if (!isUpgrade) amount = targetAmount;
+  if (isUpgrade && amount <= 0) {
+    throw new AppError('The requested upgrade has no payable proration for the current billing period', 400, ErrorCode.INVALID_REQUEST);
+  }
   const provider = input.provider as SubscriptionPaymentProvider;
   const receipt = `sub_${sub._id.toString().slice(-12)}_${Date.now()}`;
 
@@ -696,9 +732,13 @@ export async function createBillingOrder(id: string, input: BillingOrderInput) {
       notes: {
         subscriptionId: sub._id.toString(),
         restaurantId: sub.restaurantId.toString(),
-        plan: sub.plan,
-        planId: sub.planId.toString(),
-        billingCycle: sub.billingCycle,
+        plan: planDoc.name,
+        planId: planDoc._id.toString(),
+        billingCycle,
+        seats: String(targetSeats),
+        action: isUpgrade ? 'upgrade' : 'renewal',
+        amount: String(amount),
+        proration: JSON.stringify(proration ?? {}),
       },
     });
     providerOrderId = order.id;
@@ -714,13 +754,19 @@ export async function createBillingOrder(id: string, input: BillingOrderInput) {
     planId: planDoc._id,
     provider,
     status: SubscriptionPaymentStatus.PENDING,
-    billingCycle: sub.billingCycle,
+    billingCycle,
     amount,
     currency: input.currency,
     providerOrderId,
     metadata: {
       receipt,
       source: 'subscription_billing_order',
+      action: isUpgrade ? 'upgrade' : 'renewal',
+      targetPlan: planDoc.name,
+      targetPlanId: planDoc._id.toString(),
+      targetSeats,
+      targetBillingCycle: billingCycle,
+      proration,
     },
   });
 
@@ -737,7 +783,7 @@ export async function createBillingOrder(id: string, input: BillingOrderInput) {
     currency: input.currency,
   });
 
-  return { payment, providerOrder: providerPayload };
+  return { payment, providerOrder: providerPayload, proration, target: { plan: planDoc.name, seats: targetSeats, billingCycle, amount } };
 }
 
 

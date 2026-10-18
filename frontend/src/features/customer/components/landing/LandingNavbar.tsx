@@ -63,7 +63,7 @@ export default function LandingNavbar({ onLoginOpen }: LandingNavbarProps) {
       >
         <div className="max-w-[1440px] mx-auto px-6 lg:px-12 h-[72px] flex items-center justify-between">
           {/* Logo */}
-          <a href="/" className="flex items-center gap-2.5 landing-focus-ring">
+          <a href={import.meta.env.BASE_URL} className="flex items-center gap-2.5 landing-focus-ring">
             <div
               className="w-[38px] h-[38px] rounded-full flex items-center justify-center shrink-0"
               style={{ backgroundColor: '#FF6B1A', boxShadow: '0 0 14px rgba(255,107,26,0.35)' }}
@@ -165,7 +165,7 @@ export default function LandingNavbar({ onLoginOpen }: LandingNavbarProps) {
           style={{ background: 'linear-gradient(135deg, #0F0F0F 0%, #1A1008 100%)' }}
         >
           <div className="flex items-center justify-between px-6 h-[72px]">
-            <a href="/" className="flex items-center gap-2.5">
+          <a href={import.meta.env.BASE_URL} className="flex items-center gap-2.5">
               <div
                 className="w-[38px] h-[38px] rounded-full flex items-center justify-center"
                 style={{ backgroundColor: '#FF6B1A' }}

@@ -3,21 +3,13 @@
 This file tracks implementation progress for `backend/TODO.md`.
 
 ## Completed
-- [x] Confirmed `Subscription` endpoints exist (create/list/get/update/status/activate/cancel/renew + usage increment/report).
-- [x] Verified `backend/TODO.md` remaining items are still not fully implemented (upgrade/downgrade/expire, plan enforcement, system-wide usage monitoring, 80% alerts, full billing linkage, technical improvements).
+- Subscription lifecycle endpoints, state transitions, history, expiry scheduler, and notifications.
+- Plan limit enforcement, usage aggregation, and threshold alerts.
+- Razorpay and mock billing records linked to subscription state.
+- Upgrade proration based on remaining billing period; the subscription and restaurant plan change only after the payment webhook confirms success.
+- Local Docker Compose MongoDB configured as a single-node replica set for transaction support.
+- Unique indexes and duplicate-key handling for subscription and plan creation races.
 
-## In Progress (next work)
-1. Schema/Foundation
-   - [ ] Dedicated `RestaurantSubscription` source-of-truth entity alignment
-   - [ ] Subscription history model linking lifecycle/payment/usage events
-   - [ ] Enforce `planId` as `ObjectId` end-to-end
-2. Lifecycle Engine
-   - [x] Upgrade rules + state transition + history (initial phase)
-   - [ ] Downgrade rules + state transition + history
-   - [ ] Expire rules + scheduler/job + expiry notifications + history
-
-
-
-## Blocked / Notes
-- Current shell environment in this session rejects `&&` separators in `execute_command`; use separate commands instead.
-
+## Deployment notes
+- Production MongoDB must also run as a replica set or sharded cluster for transactions. The local Compose replica set does not configure an external production database.
+- Stripe billing remains unconfigured.

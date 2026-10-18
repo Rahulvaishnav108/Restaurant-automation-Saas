@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { validate } from '../../middleware/validate';
 import {
   getRestaurantOverviewController,
+  getRestaurantDashboardController,
   getRestaurantSettingsController,
   updateRestaurantSettingsController,
 } from '../restaurants/restaurants.controller';
@@ -36,6 +37,7 @@ import supplierRouter from '../suppliers/supplier.routes';
 export const adminRouter = Router();
 
 adminRouter.get('/restaurant/overview', getRestaurantOverviewController);
+adminRouter.get('/restaurant/dashboard', getRestaurantDashboardController);
 adminRouter.get('/restaurant/settings', getRestaurantSettingsController);
 adminRouter.patch('/restaurant/settings', validate({ body: updateRestaurantSettingsSchema }), updateRestaurantSettingsController);
 

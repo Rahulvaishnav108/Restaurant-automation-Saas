@@ -43,7 +43,7 @@ export default function CleaningLayout(): JSX.Element {
   return (
     <ToastProvider>
     <CleaningSearchProvider>
-      <div className="flex min-h-screen bg-sd-surface text-sd-on-surface font-sans cleaning-panel">
+      <div className="spatial-app flex min-h-screen bg-sd-surface text-sd-on-surface font-sans cleaning-panel">
         {/* Sidebar */}
         <CleaningSidebar
           collapsed={sidebarCollapsed}

@@ -8,6 +8,7 @@ import { TableSessionModel } from '../tableSessions/tableSessions.model';
 import { SessionStatus, TableStatus } from '../../constants/statuses';
 import { logAudit } from '../auditLogs/auditLogs.helper';
 import { AuditAction, AuditEntity } from '../auditLogs/auditLogs.types';
+import { getRestaurantDashboard } from './restaurants.service';
 
 export const getPublicRestaurantController = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const restaurant = await RestaurantModel.findOne({ slug: req.params.slug }).lean();
@@ -41,6 +42,12 @@ export const getRestaurantOverviewController = asyncHandler(async (req: Request,
       occupiedTables,
     },
   });
+});
+
+export const getRestaurantDashboardController = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  const restaurantId = req.user?.restaurantId;
+  if (!restaurantId) throw new AppError(403, 'FORBIDDEN', 'Restaurant context required');
+  ok(res, await getRestaurantDashboard(restaurantId));
 });
 
 export const getRestaurantSettingsController = asyncHandler(async (req: Request, res: Response): Promise<void> => {

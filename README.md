@@ -1,5 +1,11 @@
 # 🍽️ Restaurant Automation SaaS
 
+## Live demo
+
+The GitHub Pages demo is a frontend-only preview with sample data and demo role access. It does not connect to a backend, database, email provider, or payment service and uses no deployment credentials. The full application still requires the backend and MongoDB configured for a private deployment.
+
+Demo URL: https://rahulvaishnav108.github.io/Restaurant-automation-Saas/
+
 A modern multi-tenant Restaurant Automation SaaS platform designed to streamline restaurant operations from QR-based customer ordering to kitchen batching, service management, billing, loyalty systems, analytics, and platform-level SaaS administration.
 
 ---
