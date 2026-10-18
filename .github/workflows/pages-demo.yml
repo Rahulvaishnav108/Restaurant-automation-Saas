@@ -5,6 +5,7 @@ on:
     branches: [main, rahul-vaishnav/complete-subscription-plan-management]
     paths:
       - 'frontend/**'
+      - 'package-lock.json'
       - '.github/workflows/pages-demo.yml'
   workflow_dispatch:
 
