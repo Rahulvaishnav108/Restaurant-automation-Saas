@@ -260,6 +260,11 @@ function buildSubscriptionUsageAnalytics(
 export class AnalyticsService {
   static async getAdminOverview(restaurantId: string, filters: AnalyticsDateRange) {
     await assertFeatureAccess(restaurantId, 'advancedAnalytics', 'Advanced Analytics');
+    await SubscriptionModel.findOneAndUpdate(
+      { restaurantId, status: 'active' },
+      { $inc: { 'usage.analyticsUsage': 1 } },
+      { new: true },
+    ).select('usage.analyticsUsage').lean();
     const restaurantObjectId = toObjectId(restaurantId);
     const paidBillMatch = {
       restaurantId: restaurantObjectId,

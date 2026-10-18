@@ -13,6 +13,7 @@ import { AuditAction, AuditEntity } from '../auditLogs/auditLogs.types';
 import { RestaurantModel } from '../restaurants/restaurants.model';
 import { socketService } from '../../sockets/socket.service';
 import { SocketEvent } from '../../constants/events';
+import { assertPlanLimit, recordSubscriptionUsage } from '../subscriptions/subscriptionEnforcement.service';
 
 function resolveRestaurantId(
   req: Request,
@@ -153,10 +154,17 @@ export async function updateTableController(req: Request, res: Response, next: N
     if (req.body.assignedStaffId !== undefined) updateDoc.assignedStaffId = req.body.assignedStaffId;
     if (req.body.isActive !== undefined) updateDoc.isActive = req.body.isActive;
 
+    const restaurantId = getRestaurantId(req);
+    if (updateDoc.isActive === true) {
+      const currentlyActive = await TableModel.countDocuments({ restaurantId, isActive: true });
+      const target = await TableModel.findOne({ _id: req.params.id, restaurantId }).select('isActive').lean();
+      if (target && !target.isActive) await assertPlanLimit(restaurantId, 'tableLimit', currentlyActive + 1, 'tables');
+    }
+
     const table = await TableModel.findOneAndUpdate(
       {
         _id: req.params.id,
-        restaurantId: getRestaurantId(req),
+        restaurantId,
       },
       updateDoc,
       { new: true, runValidators: true },
@@ -164,6 +172,10 @@ export async function updateTableController(req: Request, res: Response, next: N
 
     if (!table) {
       throw new AppError('Table not found', 404, ErrorCode.NOT_FOUND);
+    }
+    if (updateDoc.isActive !== undefined) {
+      const activeCount = await TableModel.countDocuments({ restaurantId, isActive: true });
+      await recordSubscriptionUsage(restaurantId, 'activeTables', activeCount);
     }
 
     ok(res, { table });

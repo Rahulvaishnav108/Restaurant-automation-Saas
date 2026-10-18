@@ -49,6 +49,18 @@ describe('Subscription Enforcement Service', () => {
   });
 
   describe('assertPlanLimit', () => {
+    it('emits a single warning when usage crosses 80 percent', async () => {
+      jest.spyOn(SubscriptionModel, 'findOne').mockReturnValue({
+        lean: jest.fn().mockResolvedValue({ plan: 'Basic', status: SubscriptionStatus.ACTIVE, usage: { monthlyOrderCount: 79 } }),
+      } as any);
+      jest.spyOn(PlatformPlanModel, 'findOne').mockReturnValue({
+        lean: jest.fn().mockResolvedValue({ name: 'Basic', monthlyOrderLimit: 100 }),
+      } as any);
+      const { NotificationsService } = await import('../../modules/notifications/notifications.service');
+      const notificationSpy = jest.spyOn(NotificationsService, 'createNotification').mockResolvedValue({} as any);
+      await assertPlanLimit(restaurantId, 'monthlyOrderLimit', 80, 'Orders');
+      expect(notificationSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'SUBSCRIPTION_USAGE_80_PERCENT' }));
+    });
     it('throws 403 when no active subscription exists', async () => {
       jest.spyOn(SubscriptionModel, 'findOne').mockReturnValue({
         lean: jest.fn().mockResolvedValue(null),

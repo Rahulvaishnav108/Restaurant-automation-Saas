@@ -6,6 +6,7 @@ import * as Service from '../../modules/subscriptions/subscriptions.service';
 import { NotificationsService } from '../../modules/notifications/notifications.service';
 import { AppError } from '../../utils/AppError';
 import { ErrorCode } from '../../constants/errors';
+import mongoose from 'mongoose';
 
 jest.mock('../../modules/subscriptions/subscriptions.model', () => ({
   BillingCycle: {
@@ -89,7 +90,7 @@ const mockRestaurantModel = RestaurantModel as any;
 const mockNotificationsService = NotificationsService as any;
 
 describe('SubscriptionService', () => {
-  const restaurantId = 'rest_1';
+  const restaurantId = '507f1f77bcf86cd799439011';
   const subscriptionInput = {
     restaurantId,
     plan: 'STARTER',
@@ -102,16 +103,16 @@ describe('SubscriptionService', () => {
 
   describe('createSubscription', () => {
     it('throws when subscription already exists', async () => {
-      mockSubscriptionModel.findOne.mockResolvedValueOnce({});
-
+      const mockLean = jest.fn() as any;
+      mockLean.mockResolvedValueOnce({ _id: '507f1f77bcf86cd799439012', name: 'STARTER', tenantLimit: 1 });
+      mockPlatformPlanModel.findOne.mockReturnValueOnce({ lean: mockLean });
+      mockSubscriptionModel.create.mockRejectedValueOnce({ code: 11000 });
       await expect(Service.createSubscription(subscriptionInput)).rejects.toThrow(AppError);
-      expect(mockSubscriptionModel.findOne).toHaveBeenCalledWith({ restaurantId });
     });
 
     it('throws when plan tenant limit is exceeded', async () => {
-      mockSubscriptionModel.findOne.mockResolvedValueOnce(null);
       const mockLean = jest.fn() as any;
-      mockLean.mockResolvedValueOnce({ _id: 'plan_1', name: 'STARTER', tenantLimit: 1 });
+      mockLean.mockResolvedValueOnce({ _id: new mongoose.Types.ObjectId(), name: 'STARTER', tenantLimit: 1 });
       mockPlatformPlanModel.findOne.mockReturnValueOnce({ lean: mockLean });
 
       await expect(
@@ -122,9 +123,8 @@ describe('SubscriptionService', () => {
 
     it('creates subscription when seats are within tenant limit', async () => {
       const mockSubscription = { _id: 'sub_1', ...subscriptionInput, seats: 1 };
-      mockSubscriptionModel.findOne.mockResolvedValueOnce(null);
       const mockLean = jest.fn() as any;
-      mockLean.mockResolvedValueOnce({ name: 'STARTER', tenantLimit: 1 });
+      mockLean.mockResolvedValueOnce({ _id: new mongoose.Types.ObjectId(), name: 'STARTER', tenantLimit: 1 });
       mockPlatformPlanModel.findOne.mockReturnValueOnce({ lean: mockLean });
       mockSubscriptionModel.create.mockResolvedValueOnce(mockSubscription);
 

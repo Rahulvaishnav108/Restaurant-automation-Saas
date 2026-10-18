@@ -119,10 +119,14 @@ export async function updateTableStatus(
   newStatus: TableStatus,
   restaurantId: string
 ): Promise<ITable> {
-  const table = await TableModel.findOne({ _id: tableId, restaurantId });
-  if (!table) {
-    throw new AppError('Table not found', 404, ErrorCode.NOT_FOUND);
+  const existingTable = await TableModel.findOne({ _id: tableId, restaurantId });
+  if (!existingTable) throw new AppError('Table not found', 404, ErrorCode.NOT_FOUND);
+  if (newStatus === TableStatus.AVAILABLE && !existingTable.isActive) {
+    const currentTables = await TableModel.countDocuments({ restaurantId, isActive: true });
+    await assertPlanLimit(restaurantId, 'tableLimit', currentTables + 1, 'tables');
+    existingTable.isActive = true;
   }
+  const table = existingTable;
 
   if (!table.isActive) {
     throw new AppError('Table is inactive', 400, ErrorCode.TABLE_INACTIVE);

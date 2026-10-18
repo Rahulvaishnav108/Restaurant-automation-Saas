@@ -27,6 +27,8 @@ function mapEventType(type: SubscriptionEventType): RestaurantSubscriptionHistor
       return RestaurantSubscriptionHistoryEventType.LIMIT_WARNING;
     case SubscriptionEventType.LIMIT_EXCEEDED:
       return RestaurantSubscriptionHistoryEventType.LIMIT_EXCEEDED;
+    case SubscriptionEventType.RENEWAL_REMINDER:
+      return RestaurantSubscriptionHistoryEventType.RENEWAL_REMINDER;
     case SubscriptionEventType.FEATURE_BLOCKED:
       return RestaurantSubscriptionHistoryEventType.FEATURE_BLOCKED;
     case SubscriptionEventType.PAYMENT_CREATED:
@@ -51,23 +53,24 @@ export async function appendSubscriptionHistory(params: {
   eventType: SubscriptionEventType;
   metadata?: Record<string, unknown>;
   writeLegacyEvent?: boolean;
+  session?: mongoose.ClientSession;
 }) {
-  const { subscriptionId, restaurantId, eventType, metadata = {}, writeLegacyEvent = true } = params;
+  const { subscriptionId, restaurantId, eventType, metadata = {}, writeLegacyEvent = true, session } = params;
 
   const subId = new mongoose.Types.ObjectId(subscriptionId);
   const restId = new mongoose.Types.ObjectId(restaurantId);
 
   // Write to legacy subscriptionEvents as well (so we don’t break existing analytics).
   if (writeLegacyEvent) {
-    await SubscriptionEventModel.create({ subscriptionId: subId, restaurantId: restId, type: eventType, metadata });
+    await SubscriptionEventModel.create([{ subscriptionId: subId, restaurantId: restId, type: eventType, metadata }], session ? { session } : undefined);
   }
 
   // Write to dedicated history model.
-  await RestaurantSubscriptionHistoryModel.create({
+  await RestaurantSubscriptionHistoryModel.create([{
     subscriptionId: subId,
     restaurantId: restId,
     eventType: mapEventType(eventType),
     metadata,
-  });
+  }], session ? { session } : undefined);
 }
 

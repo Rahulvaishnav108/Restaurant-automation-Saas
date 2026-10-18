@@ -1,4 +1,4 @@
-# Subscription & Plan Management — Completion Checklist
+# Subscription & Plan Management â€” Completion Checklist
 
 > Handbook module: Restaurant Subscription & Plan Management
 
@@ -6,72 +6,72 @@
 
 ### 1) Restaurant Subscription Lifecycle
 - [x] Subscription endpoints exist (create/list/get/update/status/activate/cancel/renew + usage increment/report)
-- [ ] Upgrade Subscription (upgrade rules + state transition + history)
-- [ ] Downgrade Subscription (downgrade rules + state transition + history)
-- [ ] Expire Subscription (scheduler/job + expiry state + notifications)
-- [ ] Subscription History (dedicated history model + link to each lifecycle/payment/usage event)
-- [ ] Dedicated `RestaurantSubscription` entity as handbook source-of-truth (planId ObjectId, billing cycle, auto-renew, payment refs)
+- [x] Upgrade Subscription (active-only rules + transactional plan sync + history)
+- [x] Downgrade Subscription (period-end scheduling + transactional application + history)
+- [x] Expire Subscription (scheduler/job + expiry state + notifications)
+- [x] Subscription History (dedicated history model + lifecycle/payment/usage event linkage)
+- [x] Subscription entity stores canonical planId ObjectId, billing cycle, auto-renew, payment refs, periods, and usage (legacy model name retained for compatibility)
 
-**Current status:** Partially complete (endpoints present), lifecycle engine pieces missing.
+**Current status:** Lifecycle, persistence, history, scheduler, and expiry handling implemented.
 
 ---
 
 ### 2) Plan Limits & Feature Flags
 - [x] `PlatformPlanModel` contains many handbook flags/limits (reservationAccess, queueAccess, analytics/automation/discount flags, staffLimit, inventoryLimit, etc.)
 - [x] Add remaining required limits if missing from plan schema (PlatformPlanModel already includes most handbook flags/limits)
-- [ ] Enforce limits across system (tables, orders, reservations, queue, staff, inventory)
-- [ ] Premium feature restriction logic when limits breached
+- [x] Enforce limits across system (tables, orders, reservations, queue, staff, inventory)
+- [x] Premium feature restriction logic when limits breached
 
 
-**Current status:** Partial.
+**Current status:** Runtime limits and feature gates are wired into applicable mutation/read flows.
 
 ---
 
 ### 3) Usage Monitoring
 - [x] Subscription-level usage counters exist (generic `incrementUsage` + `getUsageReport`)
-- [ ] System-wide usage tracking/aggregation (orders totals, active tables, queue usage, reservations activity, discount usage, traffic, analytics usage)
-- [ ] Tie usage signals to limit checks + notifications + admin dashboards
+- [x] System-wide usage tracking/aggregation (orders totals, active tables, queue usage, reservations, offers, staff, inventory; analytics requests counted)
+- [x] Tie usage signals to limit checks + notifications + usage reports
 
-**Current status:** Missing system-wide monitoring.
+**Current status:** Aggregation job records counts and emits threshold alerts; analytics requests are counted.
 
 ---
 
 ### 4) Auto Limit Enforcement
-- [ ] Middleware/services to detect breaches and restrict features
-- [ ] Automatic 80% threshold alert triggering
-- [ ] Consistent behavior across all relevant flows (table actions, order placement, reservation/queue access)
+- [x] Services to detect breaches and restrict features
+- [x] Automatic 80% threshold alert triggering
+- [x] Consistent behavior across creation flows (table actions, order placement, reservation/queue access)
 
-**Current status:** Missing.
+**Current status:** Enforcement and threshold notifications are implemented at supported flow entry points.
 
 ---
 
 ### 5) Notifications
 - [x] Notifications module exists (create notification + scoping + read flow)
-- [ ] 80% usage alerts
-- [ ] Plan expiry notifications
-- [ ] Limit exceeded notifications
-- [ ] Upgrade recommendation notifications
-- [ ] Renewal reminder notifications
+- [x] 80% usage alerts
+- [x] Plan expiry notifications
+- [x] Limit exceeded notifications
+- [x] Upgrade recommendation notifications
+- [x] Renewal reminder notifications
 
-**Current status:** Missing/partially wired.
+**Current status:** Usage, expiry, renewal, and limit notifications are wired.
 
 ---
 
 ### 6) Billing Integration (Subscriptions)
 - [x] Customer payment + billing flows exist (Bills/Payments models + Razorpay webhook handling)
-- [ ] Subscription billing creation (Razorpay/Stripe) linked to `RestaurantSubscription`
-- [ ] Subscription payment records (providerOrderId/paymentId/webhookEventId) linked to subscription lifecycle
-- [ ] Auto-renewal handling (scheduler + webhook success/failure transitions)
-- [ ] Upgrade/downgrade proration and payment adjustments (if required by handbook)
+- [x] Subscription billing creation (Razorpay/mock; Stripe is not configured) linked to subscription
+- [x] Subscription payment records linked to subscription lifecycle
+- [x] Auto-renewal handling (scheduler + Razorpay webhook success/failure transitions)
+- [ ] Upgrade proration and payment adjustments require a provider pricing policy before implementation
 
-**Current status:** Missing subscription billing linkage/webhooks.
+**Current status:** Razorpay and mock subscription billing lifecycle are wired; Stripe and proration are not configured.
 
 ---
 
 ## 7) Technical improvements (supporting)
-- [ ] Add MongoDB transactions for plan updates
-- [ ] Fix race condition during plan creation
-- [ ] Replace string-based plan references with proper database relationships (`ObjectId`) end-to-end
+- [ ] Add MongoDB transactions for plan and subscription lifecycle updates (requires a replica-set MongoDB deployment)
+- [x] Fix plan/subscription creation races using unique indexes and duplicate-key handling
+- [x] Subscription runtime references use planId ObjectId; plan name remains for compatibility/display
 
 ---
 

@@ -45,6 +45,11 @@ const usageKeyByLimit: Record<PlanLimitField, string> = {
   queueLimit: 'queueUsage',
 };
 
+const directCounterByLimit: Partial<Record<PlanLimitField, string>> = {
+  tableLimit: 'activeTables', dailyOrderLimit: 'dailyOrderCount',
+  monthlyOrderLimit: 'monthlyOrderCount',
+};
+
 function toMongoId(value: string | Types.ObjectId): any {
   const normalized = value.toString();
   return mongoose.Types.ObjectId.isValid(normalized) ? new mongoose.Types.ObjectId(normalized) : value;
@@ -185,7 +190,9 @@ export async function assertPlanLimit(
 
   const percentUsed = roundPercent(nextUsage, limit);
   const usageKey = usageKeyByLimit[field];
-  const currentUsage = subscription?.usage?.[usageKey] ?? subscription?.[usageKey] ?? 0;
+  const currentUsage = subscription?.usage?.[usageKey]
+    ?? (directCounterByLimit[field] ? subscription?.[directCounterByLimit[field]!] : undefined)
+    ?? 0;
   const previousPercent = roundPercent(currentUsage, limit);
 
   if (nextUsage > limit) {
@@ -231,10 +238,16 @@ export async function recordSubscriptionUsage(
   key: string,
   value: number,
 ) {
+  const directField: Record<string, string> = {
+    activeTables: 'activeTables', dailyOrderCount: 'dailyOrderCount',
+    monthlyOrderCount: 'monthlyOrderCount', usageCount: 'usageCount',
+  };
+  const update: Record<string, number> = { [`usage.${key}`]: value };
+  if (directField[key]) update[directField[key]] = value;
   await SubscriptionModel.findOneAndUpdate(
     { restaurantId, status: SubscriptionStatus.ACTIVE },
     {
-      $set: { [`usage.${key}`]: value },
+      $set: update,
     },
     { new: true },
   );

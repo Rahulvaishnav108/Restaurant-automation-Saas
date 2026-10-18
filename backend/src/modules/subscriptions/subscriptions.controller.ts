@@ -96,6 +96,13 @@ export const history = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const createBillingOrder = asyncHandler(async (req: Request, res: Response) => {
+  const user = req.user as any;
+  if (user?.role !== 'SUPER_ADMIN') {
+    const current = await service.getSubscription(req.params.id);
+    if (String(current.restaurantId) !== String(user?.restaurantId)) {
+      throw new AppError('Subscription not found', 404, ErrorCode.NOT_FOUND);
+    }
+  }
   const result = await service.createBillingOrder(req.params.id, req.body);
   ok(res, result, 201);
 });

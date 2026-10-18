@@ -114,19 +114,6 @@ function shouldNotifyUsageWarning(currentUsage: number, newUsage: number, usageL
 }
 
 
-function buildUsageReportEntries(usage: Record<string, number>, usageLimit: number) {
-  return Object.entries(usage).map(([key, currentUsage]) => {
-    const remaining = Math.max(usageLimit - currentUsage, 0);
-    return {
-      key,
-      currentUsage,
-      usageLimit,
-      remaining,
-      percentUsed: usageLimit > 0 ? roundToTwoDecimals((currentUsage / usageLimit) * 100) : 0,
-    };
-  });
-}
-
 type SubscriptionUsageSummary = {
   plan?: string;
   status?: string;
@@ -206,16 +193,14 @@ function validateSeatsAgainstPlanLimit(seats: number, tenantLimit: number) {
 }
 
 export async function createSubscription(input: CreateSubscriptionInput) {
-const existing = await SubscriptionModel.findOne({ restaurantId: input.restaurantId });
-  if (existing) throw new AppError('Subscription already exists for restaurant', 409, ErrorCode.CONFLICT);
-
   const planDoc = await resolvePlanDetails(input.plan);
   const tenantLimit = planDoc.tenantLimit;
   const seats = input.seats ?? 1;
   validateSeatsAgainstPlanLimit(seats, tenantLimit);
   const billingCycle = (input.billingCycle ?? BillingCycle.MONTHLY) as BillingCycle;
-  
-  let periodEnd = new Date(input.currentPeriodEnd || Date.now());
+  if (!mongoose.Types.ObjectId.isValid(input.restaurantId)) throw new AppError('Invalid restaurant id', 400, ErrorCode.INVALID_REQUEST);
+  const periodStart = new Date();
+  let periodEnd = input.currentPeriodEnd ? new Date(input.currentPeriodEnd) : addDays(periodStart, billingCycle === BillingCycle.YEARLY ? 365 : 30);
   let isTrial = false;
   let trialStartsAt: Date | null = null;
   let trialEndsAt: Date | null = null;
@@ -227,7 +212,9 @@ const existing = await SubscriptionModel.findOne({ restaurantId: input.restauran
     periodEnd = trialEndsAt;
   }
 
-  const doc = await SubscriptionModel.create({
+  let doc;
+  try {
+  doc = await SubscriptionModel.create({
     restaurantId: input.restaurantId as any,
     plan: planDoc.name,
     planId: planDoc._id,
@@ -235,7 +222,7 @@ const existing = await SubscriptionModel.findOne({ restaurantId: input.restauran
     billingCycle,
     seats,
     startedAt: new Date(),
-    currentPeriodStart: new Date(),
+    currentPeriodStart: periodStart,
     currentPeriodEnd: periodEnd,
     autoRenew: input.autoRenew ?? true,
     nextBillingDate: periodEnd,
@@ -247,6 +234,12 @@ const existing = await SubscriptionModel.findOne({ restaurantId: input.restauran
     trialStartsAt,
     trialEndsAt,
   } as unknown as Partial<ISubscription>);
+  } catch (error) {
+    if ((error as any)?.code === 11000) {
+      throw new AppError('Subscription already exists for restaurant', 409, ErrorCode.CONFLICT);
+    }
+    throw error;
+  }
 
 
 await syncRestaurantPlan(input.restaurantId as any, planDoc.name);
@@ -291,15 +284,31 @@ export async function getSubscriptionUsage(id: string) {
 export async function getSubscriptionUsageReport(id: string) {
   const sub = await SubscriptionModel.findById(id);
   if (!sub) throw new AppError('Subscription not found', 404, ErrorCode.NOT_FOUND);
-  const usage = sub.usage ?? {};
-  const usageLimit = await resolvePlanUsageLimit(sub.plan);
+  const usage: Record<string, number> = {
+    ...(sub.usage ?? {}),
+    activeTables: sub.activeTables ?? 0,
+    dailyOrderCount: sub.dailyOrderCount ?? 0,
+    monthlyOrderCount: sub.monthlyOrderCount ?? 0,
+    usageCount: sub.usageCount ?? 0,
+  };
+  const plan = await PlatformPlanModel.findById(sub.planId).lean();
+  const limits: Record<string, number | null | undefined> = {
+    usageCount: plan?.usageLimit, activeTables: plan?.tableLimit,
+    dailyOrderCount: plan?.dailyOrderLimit, monthlyOrderCount: plan?.monthlyOrderLimit,
+    staffCount: plan?.staffLimit, inventoryCount: plan?.inventoryLimit,
+    reservationActivity: plan?.reservationLimit, queueUsage: plan?.queueLimit,
+  };
 
   return {
     subscriptionId: sub._id.toString(),
     plan: sub.plan,
     status: sub.status,
-    usageReport: buildUsageReportEntries(usage, usageLimit),
-    usageLimit,
+    usageReport: Object.entries(usage).map(([key, currentUsage]) => {
+      const usageLimit = limits[key];
+      const remaining = usageLimit == null ? null : Math.max(usageLimit - currentUsage, 0);
+      return { key, currentUsage, usageLimit: usageLimit ?? null, remaining, percentUsed: usageLimit && usageLimit > 0 ? roundToTwoDecimals((currentUsage / usageLimit) * 100) : null };
+    }),
+    usageLimit: plan?.usageLimit ?? null,
     updatedAt: sub.updatedAt ?? sub.createdAt,
   };
 }
@@ -399,15 +408,18 @@ export async function activate(id: string) {
 
 export async function cancel(id: string, immediate = true) {
   if (immediate) {
-    const sub = await SubscriptionModel.findByIdAndUpdate(
-      id,
-      { status: SubscriptionStatus.CANCELLED, cancelledAt: new Date(), autoRenew: false },
-      { new: true },
-    );
+    const sub = await SubscriptionModel.findById(id);
     if (!sub) throw new AppError('Subscription not found', 404, ErrorCode.NOT_FOUND);
-    await logSubscriptionEvent(sub._id.toString(), sub.restaurantId.toString(), SubscriptionEventType.CANCELLED, {
-      immediate: true,
-    });
+    sub.status = SubscriptionStatus.CANCELLED;
+    sub.cancelledAt = new Date();
+    sub.autoRenew = false;
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        await sub.save({ session });
+        await appendSubscriptionHistory({ subscriptionId: sub._id, restaurantId: sub.restaurantId, eventType: SubscriptionEventType.CANCELLED, metadata: { immediate: true }, session });
+      });
+    } finally { await session.endSession(); }
     await sendSubscriptionNotification(
       sub.restaurantId.toString(),
       'Subscription cancelled',
@@ -427,10 +439,13 @@ export async function cancel(id: string, immediate = true) {
     cancelAtPeriodEnd: true,
     cancellationRequestedAt: sub.cancellationRequestedAt,
   };
-  await sub.save();
-  await logSubscriptionEvent(sub._id.toString(), sub.restaurantId.toString(), SubscriptionEventType.CANCELLATION_SCHEDULED, {
-    appliesAt: sub.currentPeriodEnd,
-  });
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      await sub.save({ session });
+      await appendSubscriptionHistory({ subscriptionId: sub._id, restaurantId: sub.restaurantId, eventType: SubscriptionEventType.CANCELLATION_SCHEDULED, metadata: { appliesAt: sub.currentPeriodEnd }, session });
+    });
+  } finally { await session.endSession(); }
   await sendSubscriptionNotification(
     sub.restaurantId.toString(),
     'Subscription cancellation scheduled',
@@ -443,7 +458,7 @@ export async function cancel(id: string, immediate = true) {
 export async function renew(id: string, days = 30) {
   const sub = await SubscriptionModel.findById(id);
   if (!sub) throw new AppError('Subscription not found', 404, ErrorCode.NOT_FOUND);
-  const periodStart = new Date();
+  const periodStart = sub.currentPeriodEnd > new Date() ? sub.currentPeriodEnd : new Date();
   sub.status = SubscriptionStatus.ACTIVE;
   sub.currentPeriodStart = periodStart;
   sub.currentPeriodEnd = addDays(periodStart, days);
@@ -453,12 +468,13 @@ export async function renew(id: string, days = 30) {
   sub.isTrial = false;
   sub.trialEndsAt = null;
   sub.trialStartsAt = null;
-  await sub.save();
-  await logSubscriptionEvent(sub._id.toString(), sub.restaurantId.toString(), SubscriptionEventType.RENEWED, {
-    days,
-    currentPeriodStart: sub.currentPeriodStart,
-    currentPeriodEnd: sub.currentPeriodEnd,
-  });
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      await sub.save({ session });
+      await appendSubscriptionHistory({ subscriptionId: sub._id, restaurantId: sub.restaurantId, eventType: SubscriptionEventType.RENEWED, metadata: { days, currentPeriodStart: sub.currentPeriodStart, currentPeriodEnd: sub.currentPeriodEnd }, session });
+    });
+  } finally { await session.endSession(); }
   await sendSubscriptionNotification(
     sub.restaurantId.toString(),
     'Subscription renewed',
@@ -485,9 +501,21 @@ export async function upgradeSubscription(id: string, input: UpdateSubscriptionI
     throw new AppError('plan is required for upgrade', 400, ErrorCode.INVALID_REQUEST);
   }
 
-  // Upgrade applies immediately per chosen defaults
+  if (sub.status !== SubscriptionStatus.ACTIVE) {
+    throw new AppError('Only active subscriptions can be upgraded', 409, ErrorCode.INVALID_REQUEST);
+  }
+  if (sub.metadata?.pendingDowngrade) {
+    throw new AppError('Cancel the pending downgrade before upgrading', 409, ErrorCode.CONFLICT);
+  }
   const targetSeats = seats ?? sub.seats ?? 1;
   const planDoc = await resolvePlanDetails(plan);
+  const currentPlanDoc = await PlatformPlanModel.findById(sub.planId).lean();
+  if (planDoc._id.equals(sub.planId) && targetSeats <= sub.seats && (!billingCycle || billingCycle === sub.billingCycle)) {
+    throw new AppError('Requested changes do not upgrade the subscription', 400, ErrorCode.INVALID_REQUEST);
+  }
+  if (currentPlanDoc && planDoc.priceMonthly < currentPlanDoc.priceMonthly && planDoc._id.toString() !== sub.planId.toString()) {
+    throw new AppError('A lower priced plan must be scheduled as a downgrade', 400, ErrorCode.INVALID_REQUEST);
+  }
   const tenantLimit = planDoc.tenantLimit;
   validateSeatsAgainstPlanLimit(targetSeats, tenantLimit);
 
@@ -503,22 +531,19 @@ export async function upgradeSubscription(id: string, input: UpdateSubscriptionI
   sub.currentPeriodEnd = sub.currentPeriodEnd ?? new Date();
 
   sub.status = SubscriptionStatus.ACTIVE;
-  await sub.save();
-
-  await syncRestaurantPlan(sub.restaurantId, planDoc.name);
-
-  await logSubscriptionEvent(sub._id.toString(), sub.restaurantId.toString(), SubscriptionEventType.UPGRADED, {
-
-
-    fromPlan: previousPlan,
-    toPlan: planDoc.name,
-    toPlanId: planDoc._id,
-    seats: targetSeats,
-    billingCycle: sub.billingCycle,
-    appliesAt: new Date(),
-    paymentProvider: sub.paymentProvider,
-    currentPeriodEnd: sub.currentPeriodEnd,
-  } as any);
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      await sub.save({ session });
+      await RestaurantModel.updateOne({ _id: sub.restaurantId }, { plan: planDoc.name }, { session });
+      await appendSubscriptionHistory({
+        subscriptionId: sub._id, restaurantId: sub.restaurantId,
+        eventType: SubscriptionEventType.UPGRADED,
+        metadata: { fromPlan: previousPlan, toPlan: planDoc.name, toPlanId: planDoc._id, seats: targetSeats, billingCycle: sub.billingCycle, appliesAt: new Date(), currentPeriodEnd: sub.currentPeriodEnd },
+        session,
+      });
+    });
+  } finally { await session.endSession(); }
 
 
 
@@ -548,6 +573,12 @@ export async function downgradeSubscription(id: string, input: UpdateSubscriptio
   // We record the desired plan in metadata (until proper history model wiring is added).
   const targetSeats = seats ?? sub.seats ?? 1;
   const planDoc = await resolvePlanDetails(plan);
+  if (sub.status !== SubscriptionStatus.ACTIVE) throw new AppError('Only active subscriptions can be downgraded', 409, ErrorCode.INVALID_REQUEST);
+  if (sub.metadata?.pendingDowngrade) throw new AppError('A downgrade is already scheduled', 409, ErrorCode.CONFLICT);
+  const currentPlanDoc = await PlatformPlanModel.findById(sub.planId).lean();
+  if (currentPlanDoc && planDoc.priceMonthly >= currentPlanDoc.priceMonthly && targetSeats >= sub.seats && planDoc._id.toString() !== sub.planId.toString()) {
+    throw new AppError('Requested plan is not a downgrade', 400, ErrorCode.INVALID_REQUEST);
+  }
   const tenantLimit = planDoc.tenantLimit;
   validateSeatsAgainstPlanLimit(targetSeats, tenantLimit);
 
@@ -562,6 +593,7 @@ export async function downgradeSubscription(id: string, input: UpdateSubscriptio
     },
   };
 
+  await sub.save();
   await logSubscriptionEvent(sub._id.toString(), sub.restaurantId.toString(), SubscriptionEventType.DOWNGRADED, {
 
     from: sub.plan,
@@ -579,7 +611,6 @@ export async function downgradeSubscription(id: string, input: UpdateSubscriptio
     'SUBSCRIPTION_DOWNGRADED_SCHEDULED',
   );
 
-  await sub.save();
   return sub;
 }
 
@@ -589,6 +620,7 @@ export async function expireSubscription(id: string, immediate?: boolean) {
 
   // Per chosen defaults: expire at period end unless immediate is explicitly set.
   if (!immediate) {
+    if (sub.metadata?.expireAtPeriodEnd || sub.metadata?.cancelAtPeriodEnd) return sub;
     sub.cancellationRequestedAt = new Date();
     sub.autoRenew = false;
     sub.metadata = {
@@ -597,9 +629,13 @@ export async function expireSubscription(id: string, immediate?: boolean) {
       expiryRequestedAt: sub.cancellationRequestedAt,
     };
 
-    await logSubscriptionEvent(sub._id.toString(), sub.restaurantId.toString(), SubscriptionEventType.CANCELLATION_SCHEDULED, {
-      reason: 'manual_or_scheduler',
-    } as any);
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        await sub.save({ session });
+        await appendSubscriptionHistory({ subscriptionId: sub._id, restaurantId: sub.restaurantId, eventType: SubscriptionEventType.CANCELLATION_SCHEDULED, metadata: { reason: 'manual_or_scheduler', appliesAt: sub.currentPeriodEnd }, session });
+      });
+    } finally { await session.endSession(); }
 
     await sendSubscriptionNotification(
       sub.restaurantId.toString(),
@@ -608,16 +644,20 @@ export async function expireSubscription(id: string, immediate?: boolean) {
       'SUBSCRIPTION_EXPIRY_SCHEDULED',
     );
 
-    await sub.save();
     return sub;
   }
 
+if (sub.status === SubscriptionStatus.EXPIRED) return sub;
 sub.status = SubscriptionStatus.EXPIRED;
   sub.expiredAt = new Date();
   sub.autoRenew = false;
-  await logSubscriptionEvent(sub._id.toString(), sub.restaurantId.toString(), SubscriptionEventType.EXPIRED, {} as any);
-
-  await syncRestaurantPlan(sub.restaurantId, sub.plan);
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      await sub.save({ session });
+      await appendSubscriptionHistory({ subscriptionId: sub._id, restaurantId: sub.restaurantId, eventType: SubscriptionEventType.EXPIRED, metadata: {}, session });
+    });
+  } finally { await session.endSession(); }
 
   await sendSubscriptionNotification(
     sub.restaurantId.toString(),
@@ -626,7 +666,6 @@ sub.status = SubscriptionStatus.EXPIRED;
     'SUBSCRIPTION_EXPIRED',
   );
 
-  await sub.save();
   return sub;
 }
 
@@ -687,6 +726,7 @@ export async function createBillingOrder(id: string, input: BillingOrderInput) {
 
   sub.lastPaymentId = payment._id as any;
   sub.lastPaymentReference = providerOrderId;
+  sub.paymentProvider = provider;
   await sub.save();
 
   await logSubscriptionEvent(sub._id.toString(), sub.restaurantId.toString(), SubscriptionEventType.PAYMENT_CREATED, {
@@ -708,6 +748,9 @@ export async function incrementUsage(id: string, key: string, delta = 1) {
     throw new AppError('Cannot record usage for inactive subscription', 400, ErrorCode.INVALID_REQUEST);
   }
 
+  if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(key) || key.startsWith('$')) {
+    throw new AppError('Invalid usage key', 400, ErrorCode.INVALID_REQUEST);
+  }
   const usageLimit = await resolvePlanUsageLimit(sub.plan);
   const currentUsage = sub.usage?.[key] ?? 0;
   const newUsage = currentUsage + delta;
@@ -728,6 +771,12 @@ export async function incrementUsage(id: string, key: string, delta = 1) {
       'Subscription usage limit reached',
       `Usage for '${key}' has exceeded the plan limit of ${usageLimit}. Please upgrade your plan to continue.`,
       'SUBSCRIPTION_USAGE_LIMIT_EXCEEDED',
+    );
+    await sendSubscriptionNotification(
+      sub.restaurantId.toString(),
+      'Upgrade recommended',
+      `Your ${sub.plan} plan limit for '${key}' has been reached. Review available plans to continue using this feature.`,
+      'SUBSCRIPTION_UPGRADE_RECOMMENDED',
     );
     throw new AppError(
       `Usage for '${key}' (${newUsage}) exceeds plan limit (${usageLimit})`,

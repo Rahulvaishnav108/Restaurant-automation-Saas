@@ -40,6 +40,7 @@ export enum SubscriptionEventType {
   USAGE_RECORDED = 'USAGE_RECORDED',
   LIMIT_WARNING = 'LIMIT_WARNING',
   LIMIT_EXCEEDED = 'LIMIT_EXCEEDED',
+  RENEWAL_REMINDER = 'RENEWAL_REMINDER',
   FEATURE_BLOCKED = 'FEATURE_BLOCKED',
   PAYMENT_CREATED = 'PAYMENT_CREATED',
   PAYMENT_COMPLETED = 'PAYMENT_COMPLETED',
@@ -71,6 +72,8 @@ export interface ISubscriptionPayment extends Document {
   metadata: Record<string, unknown>;
   paidAt?: Date | null;
   failedAt?: Date | null;
+  paymentAppliedAt?: Date | null;
+  failureRecordedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -201,11 +204,14 @@ const subscriptionPaymentSchema = new Schema<ISubscriptionPayment>(
     metadata: { type: Schema.Types.Mixed, default: {} },
     paidAt: { type: Date, default: null },
     failedAt: { type: Date, default: null },
+    paymentAppliedAt: { type: Date, default: null },
+    failureRecordedAt: { type: Date, default: null },
   },
   { collection: 'subscriptionPayments', timestamps: true },
 );
 
 subscriptionPaymentSchema.index({ provider: 1, providerOrderId: 1 });
+subscriptionPaymentSchema.index({ provider: 1, webhookEventId: 1 }, { unique: true, partialFilterExpression: { webhookEventId: { $type: 'string' } } });
 subscriptionPaymentSchema.index({ restaurantId: 1, createdAt: -1 });
 
 export const SubscriptionModel = model<ISubscription>('Subscription', subscriptionSchema);

@@ -2,7 +2,7 @@
 // All DB logic for super admin operations.
 // Controllers stay thin — everything lives here.
 
-import mongoose, { FilterQuery } from 'mongoose';
+import { FilterQuery } from 'mongoose';
 import { RestaurantModel } from '../restaurants/restaurants.model';
 import { UserModel } from '../users/users.model';
 import { PlatformPlanModel, FeatureFlagModel } from './superAdmin.model';
@@ -161,27 +161,14 @@ export async function deleteRestaurant(id: string) {
 // ──────────────────────────────────────────────────────────────────────
 
 export async function createPlan(input: CreatePlanInput) {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
-    const existing = await PlatformPlanModel.findOne({ name: input.name }).session(session);
-    if (existing) {
-      throw new AppError('Plan with this name already exists', 409, ErrorCode.CONFLICT);
-    }
-
-    const created = await PlatformPlanModel.create([input], { session });
-    await session.commitTransaction();
-    return created[0];
+    return await PlatformPlanModel.create(input);
   } catch (error) {
-    await session.abortTransaction();
     const anyErr = error as any;
     if (anyErr?.code === 11000) {
       throw new AppError('Plan with this name already exists', 409, ErrorCode.CONFLICT);
     }
     throw error;
-  } finally {
-    session.endSession();
   }
 }
 
@@ -190,28 +177,9 @@ export async function listPlans() {
 }
 
 export async function updatePlan(id: string, input: UpdatePlanInput) {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const plan = await PlatformPlanModel.findByIdAndUpdate(
-      id,
-      input,
-      { new: true, runValidators: true, session },
-    ).lean();
-
-    if (!plan) {
-      throw new AppError('Plan not found', 404, ErrorCode.NOT_FOUND);
-    }
-
-    await session.commitTransaction();
-    return plan;
-  } catch (error) {
-    await session.abortTransaction();
-    throw error;
-  } finally {
-    session.endSession();
-  }
+  const plan = await PlatformPlanModel.findByIdAndUpdate(id, input, { new: true, runValidators: true }).lean();
+  if (!plan) throw new AppError('Plan not found', 404, ErrorCode.NOT_FOUND);
+  return plan;
 }
 
 // ──────────────────────────────────────────────────────────────────────

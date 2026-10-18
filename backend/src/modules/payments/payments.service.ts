@@ -421,11 +421,12 @@ export class PaymentsService {
 
       const planAmount = entity.amount ? Number(entity.amount) / 100 : 0;
 
-      const { SubscriptionPaymentModel, SubscriptionModel, SubscriptionEventModel } = await import('../../modules/subscriptions/subscriptions.model');
+      const { SubscriptionPaymentModel, SubscriptionModel } = await import('../../modules/subscriptions/subscriptions.model');
       const { SubscriptionPaymentProvider, SubscriptionPaymentStatus, SubscriptionEventType } = await import('../../modules/subscriptions/subscriptions.model');
 
       if (eventType === 'payment.captured') {
-        await SubscriptionPaymentModel.findOneAndUpdate(
+        const { appendSubscriptionHistory } = await import('../../modules/subscriptions/subscriptions.history.service');
+        const subscriptionPayment = await SubscriptionPaymentModel.findOneAndUpdate(
           {
             subscriptionId: new mongoose.Types.ObjectId(subscriptionId),
             providerOrderId: rzpOrderId,
@@ -441,40 +442,47 @@ export class PaymentsService {
         );
 
         const sub = await SubscriptionModel.findById(subscriptionId);
-        if (sub) {
+        if (sub && subscriptionPayment && !subscriptionPayment.paymentAppliedAt) {
           const addDays = sub.billingCycle === 'yearly' ? 365 : 30;
-          sub.currentPeriodStart = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : new Date();
-          sub.currentPeriodEnd = new Date(Date.now() + addDays * 24 * 60 * 60 * 1000);
-          sub.status = SubscriptionPaymentStatus.COMPLETED as any;
-          sub.nextBillingDate = sub.autoRenew ? new Date(sub.currentPeriodEnd) : null;
-          sub.lastPaymentReference = String(rzpPaymentId);
-
-          await sub.save();
-
-          await SubscriptionEventModel.create({
-            subscriptionId: new mongoose.Types.ObjectId(subscriptionId),
-            restaurantId: new mongoose.Types.ObjectId(restaurantId),
-            type: SubscriptionEventType.PAYMENT_COMPLETED,
-            metadata: {
-              paymentProvider: SubscriptionPaymentProvider.RAZORPAY,
-              amount: planAmount,
-              orderId: rzpOrderId,
-              paymentId: rzpPaymentId,
-              fromPlan: sub.plan,
-            },
-          });
-
-          await SubscriptionEventModel.create({
-            subscriptionId: new mongoose.Types.ObjectId(subscriptionId),
-            restaurantId: new mongoose.Types.ObjectId(restaurantId),
-            type: SubscriptionEventType.RENEWED,
-            metadata: { newPeriodEnd: sub.currentPeriodEnd, addDays },
-          });
+          const periodStart = sub.currentPeriodEnd && sub.currentPeriodEnd > new Date() ? sub.currentPeriodEnd : new Date();
+          const periodEnd = new Date(periodStart.getTime() + addDays * 24 * 60 * 60 * 1000);
+          const session = await mongoose.startSession();
+          try {
+            await session.withTransaction(async () => {
+              const claimedPayment = await SubscriptionPaymentModel.findOneAndUpdate(
+                { _id: subscriptionPayment._id, paymentAppliedAt: null },
+                { $set: { paymentAppliedAt: new Date() } },
+                { new: true, session },
+              );
+              if (!claimedPayment) return;
+              sub.currentPeriodStart = periodStart;
+              sub.currentPeriodEnd = periodEnd;
+              sub.status = 'active' as any;
+              sub.nextBillingDate = sub.autoRenew ? periodEnd : null;
+              sub.lastPaymentReference = String(rzpPaymentId);
+              sub.lastPaymentId = subscriptionPayment._id as any;
+              sub.expiredAt = null;
+              sub.cancelledAt = null;
+              sub.metadata = { ...(sub.metadata ?? {}), cancelAtPeriodEnd: false, expireAtPeriodEnd: false };
+              await sub.save({ session });
+              await appendSubscriptionHistory({
+                subscriptionId: sub._id, restaurantId: sub.restaurantId,
+                eventType: SubscriptionEventType.PAYMENT_COMPLETED,
+                metadata: { paymentProvider: SubscriptionPaymentProvider.RAZORPAY, amount: planAmount, orderId: rzpOrderId, paymentId: rzpPaymentId },
+                session,
+              });
+              await appendSubscriptionHistory({
+                subscriptionId: sub._id, restaurantId: sub.restaurantId,
+                eventType: SubscriptionEventType.RENEWED,
+                metadata: { newPeriodEnd: periodEnd, addDays }, session,
+              });
+            });
+          } finally { await session.endSession(); }
         }
       }
 
       if (eventType === 'payment.failed') {
-        await SubscriptionPaymentModel.findOneAndUpdate(
+        const failedPayment = await SubscriptionPaymentModel.findOneAndUpdate(
           {
             subscriptionId: new mongoose.Types.ObjectId(subscriptionId),
             providerOrderId: rzpOrderId,
@@ -493,18 +501,26 @@ export class PaymentsService {
           { new: true, upsert: true },
         );
 
-        await SubscriptionEventModel.create({
-          subscriptionId: new mongoose.Types.ObjectId(subscriptionId),
-          restaurantId: new mongoose.Types.ObjectId(restaurantId),
-          type: SubscriptionEventType.PAYMENT_FAILED,
-          metadata: {
-            orderId: rzpOrderId,
-            paymentId: rzpPaymentId,
-            error: entity?.error_description ?? null,
-          },
-        });
+        if (failedPayment?.status === SubscriptionPaymentStatus.FAILED && !failedPayment.failureRecordedAt) {
+        const { appendSubscriptionHistory } = await import('../../modules/subscriptions/subscriptions.history.service');
+        const session = await mongoose.startSession();
+        try {
+          await session.withTransaction(async () => {
+            const claimedPayment = await SubscriptionPaymentModel.findOneAndUpdate(
+              { _id: failedPayment._id, failureRecordedAt: null },
+              { $set: { failureRecordedAt: new Date() } },
+              { new: true, session },
+            );
+            if (!claimedPayment) return;
+            await SubscriptionModel.updateOne({ _id: subscriptionId }, { $set: { status: 'past_due' } }, { session });
+            await appendSubscriptionHistory({
+              subscriptionId, restaurantId, eventType: SubscriptionEventType.PAYMENT_FAILED,
+              metadata: { orderId: rzpOrderId, paymentId: rzpPaymentId, error: entity?.error_description ?? null }, session,
+            });
+          });
+        } finally { await session.endSession(); }
 
-        await SubscriptionModel.findByIdAndUpdate(subscriptionId, { status: 'past_due' });
+        }
       }
 
       return { received: true, event: eventType, subscription: subscriptionId };
